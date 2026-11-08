@@ -2,7 +2,7 @@
 
 *A turn-based game of war and economy on a continent split between many crowns.*
 
-![The continent at the dawn of Year 1](docs/map.png)
+![Europe at the dawn of Year 1, in a 1000-state game on the world map](docs/map.png)
 
 ## The Lore
 
