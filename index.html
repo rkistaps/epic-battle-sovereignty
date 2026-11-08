@@ -100,6 +100,25 @@ td.r,th.r{text-align:right}
 .modal h2{margin:0 0 10px;color:var(--acc)}
 /* year report: body scrolls, footer with Continue always visible, "Elsewhere" has its own scroll */
 .modal.report{display:flex;flex-direction:column;overflow:hidden}
+/* battle report window */
+.modal.battle{max-width:1040px}
+.bsides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.bsides{grid-template-columns:1fr}}
+.bside{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.bside h4{margin:0;font-size:16px}
+.btag{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;border:1px solid var(--line);color:var(--mut);margin-left:6px;vertical-align:2px;font-weight:400}
+.brole{font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.bgen{display:flex;gap:10px;align-items:center;background:#0f111466;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:8px 0}
+.lossbar{display:inline-block;width:44px;height:5px;background:#0f1114;border-radius:3px;overflow:hidden;vertical-align:1px;margin-left:6px}
+.lossbar i{display:block;height:100%;background:var(--bad)}
+.bmult td{border-bottom:1px dashed #353a4488;padding:3px 6px}
+.bmult tr.tot td{border-bottom:0;border-top:1px solid var(--line);font-weight:700}
+.bcalc{background:#0f111466;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-variant-numeric:tabular-nums}
+.bchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.bchips span{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px}
+.sbar2{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:4px 0 2px}
+.sbar2 i{display:block;height:100%}
+.modal.battle .stat .sub{text-transform:none;letter-spacing:0;font-size:12px}
 .rep-body{overflow:auto;min-height:0;flex:1 1 auto;padding-right:4px}
 .rep-scroll{max-height:min(34vh,300px);overflow:auto;border:1px solid var(--line);border-radius:8px;padding:2px 10px;background:#0f111466}
 .rep-foot{display:flex;align-items:center;gap:8px;padding-top:12px;margin-top:8px;border-top:1px solid var(--line);flex:0 0 auto}
@@ -412,11 +431,12 @@ function defTech(c){ return 1+R.defPerLevel*lvl(c,"def"); }
 function atkPower(c){ return atkTech(c)*M(c,"attack")*wonderMul(c,"atk"); }
 function defPower(c){ return defTech(c)*M(c,"defense")*wonderMul(c,"def"); }
 // strength per point of troop attack/defense when A attacks D: the research edge is capped at R.techEdgeMax×
-function clashPowers(A,D){
+function clashTech(A,D){
   let a=atkTech(A), d=defTech(D); const k=R.techEdgeMax;
   if(k>=1){ if(a>d*k) a=d*k; else if(d>a*k) d=a*k; }
-  return [a*M(A,"attack")*wonderMul(A,"atk"), d*M(D,"defense")*wonderMul(D,"def")];
+  return [a,d];
 }
+function clashPowers(A,D){ const [a,d]=clashTech(A,D); return [a*M(A,"attack")*wonderMul(A,"atk"), d*M(D,"defense")*wonderMul(D,"def")]; }
 
 // Wonders: one per research area. Holding one multiplies that area's main effect by 1 + the wonder's bonus (default +25%).
 const WONDERS = {sci:{name:"Great Library",icon:"📜",bonus:0.25}, agri:{name:"Hanging Gardens",icon:"🌿",bonus:0.25}, fin:{name:"Golden Exchange",icon:"💰",bonus:0.25},
@@ -638,6 +658,8 @@ function linkMap(links){ const mp=new Map(); for(const [a,b] of links||[]){ if(!
 function linksOf(g){ if(!g.links||!g.links.length) return null; let mp=LINKS.get(g); if(!mp){ mp=linkMap(g.links); LINKS.set(g,mp); } return mp; }
 
 const OBSERVER=-9; // g.player in observer mode (no state is yours)
+// unique id of a game: news and battle reports are stored under it (Math.random is fine here: it doesn't touch the game's dice)
+function newGid(seed){ return seed.toString(36)+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8); }
 function newGame(opts){
   const seed = opts.seed || Math.floor(Math.random()*1e9);
   const rnd = mulberry32(seed);
@@ -739,7 +761,7 @@ function newGame(opts){
   countries.forEach(c=>{ setTraits(c,CIVS[Math.floor(rnd()*CIVS.length)].id,LEADERS[Math.floor(rnd()*LEADERS.length)].id); c.persona=rnd()<leaderOf(c).mil?"mil":"sci"; });
   // relations start empty: a missing entry means the pair's starting value (0, or ±relNoiseAmp with random start)
   // takenAt = year each cell last changed hands (0 = never), takenFrom = who lost it
-  const g = {seed, rs:Math.floor(rnd()*1e9), W,H,cells,takenAt:new Int16Array(cells.length),takenFrom:new Int16Array(cells.length).fill(-1),countries,turn:1,price:1.1, water:Math.round(frac*100), waterStyle:style, map:preset||"random", links,
+  const g = {seed, gid:newGid(seed), rs:Math.floor(rnd()*1e9), W,H,cells,takenAt:new Int16Array(cells.length),takenFrom:new Int16Array(cells.length).fill(-1),countries,turn:1,price:1.1, water:Math.round(frac*100), waterStyle:style, map:preset||"random", links,
     difficulty:opts.difficulty??1, relNoise:!!opts.relNoise, player:-1, log:[], battles:[], allBattles:[], over:false, genId:1, worldEvents:[]};
   // observer mode: nobody is the player (g.player = OBSERVER) and every state is run by the computer
   let p = opts.observer ? OBSERVER : opts.player;
@@ -1329,11 +1351,12 @@ function relOnAttack(g,A,D,taken,win,adjNow){
   const C=g.countries, adj=adjNow||adjacency(g), landPct=taken>0?100*taken/Math.max(1,D.land+taken):0; // D.land is already reduced
   relAdd(g,D,A.id,-(taken>0||win?R.relHit+R.relHitLand*landPct:R.relHitFail));
   const justified=(A.hitBy?.[D.id]??-1e9)>=g.turn-R.relJustYears, wm=justified?R.relJustified:1; // revenge isn't seen as aggression
-  const done=new Set([A.id,D.id]);
-  if(g.teams&&D.team!=null) for(const o of C) if(o.alive&&!done.has(o.id)&&o.team===D.team){ relAdd(g,o,A.id,-R.relAlly); done.add(o.id); }
+  const done=new Set([A.id,D.id]), out={allies:0,near:0,far:0,wm}; // who reacted, for the battle report
+  if(g.teams&&D.team!=null) for(const o of C) if(o.alive&&!done.has(o.id)&&o.team===D.team){ relAdd(g,o,A.id,-R.relAlly); done.add(o.id); out.allies++; }
   for(const j of adj[A.id]){ const o=C[j]; if(done.has(j)||!o.alive||allied(g,j,A.id)) continue;
-    relAdd(g,o,A.id,-(adj[D.id].has(j)?R.relWitnessNear:R.relWitness)*wm); }
+    const nr=adj[D.id].has(j); relAdd(g,o,A.id,-(nr?R.relWitnessNear:R.relWitness)*wm); if(nr) out.near++; else out.far++; }
   (D.hitBy||(D.hitBy={}))[A.id]=g.turn;
+  return out;
 }
 // once a year, after the battles: peace slowly builds trust, a big neighbor is a threat, far-away feelings fade
 function relYear(g){
@@ -1393,10 +1416,13 @@ function endTurn(g){
   // is fought at the odds of all attackers combined vs the whole guard (each battle still has its own result)
   const base={}; for(const id in guards) base[id]={...guards[id]}; // guards at the start of the year
   const totStr={}, defYear={};
-  for(const a of all){ a.strA=attackStrength(g,a); if(a.strA>0) totStr[a.target]=(totStr[a.target]||0)+a.strA; }
+  const nOn={};
+  for(const a of all){ a.strA=attackStrength(g,a); if(a.strA>0){ totStr[a.target]=(totStr[a.target]||0)+a.strA; nOn[a.target]=(nOn[a.target]||0)+1; } }
+  for(const a of all) a.nOn=nOn[a.target]||0;
   for(const a of all) if(a.strA>0){ a.share=a.strA/totStr[a.target]; resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow); }
   // the defending general: one morale hit for the whole year (big if any attacker broke through), skill from each battle
-  for(const id in defYear){ const y=defYear[id], dg=y.dg; dg.skill=Math.min(100,dg.skill+dg.mind*y.n); dg.morale=Math.max(0,dg.morale-(y.lost?20:5)); dg.battles+=y.n; }
+  for(const id in defYear){ const y=defYear[id], dg=y.dg; dg.skill=Math.min(100,dg.skill+dg.mind*y.n); dg.morale=Math.max(0,dg.morale-(y.lost?20:5)); dg.battles+=y.n;
+    for(const d of y.reps) if(d.gD){ d.gD[3]=Math.round(dg.skill); d.gD[5]=Math.round(dg.morale); } }
   C.forEach(c=>c.attacks=[]);
   // economy
   settle(g);
@@ -1411,7 +1437,7 @@ function endTurn(g){
   relYear(g); // peace, forgiveness and size threat
   C.forEach(c=>{ c.lostRecent.shift(); c.lostRecent.push(c.lostThis); c.history.push(c.alive?c.land:0); });
   computeHegemon(g);
-  g.allBattles.push({turn:g.turn,list:g.battles});
+  g.allBattles.push({turn:g.turn,list:g.battles.map(({d,...b})=>b)}); // full reports live in the news archive
   if(g.allBattles.length>40) g.allBattles.shift();
   g.turn++;
   // player defaults for next turn
@@ -1436,7 +1462,8 @@ function attackStrength(g,a){
   const gen=A.generals.find(x=>x.id===a.gen); if(!gen) return 0;
   if(!frontierCells(g,A.id,D.id).length) return 0;
   const atkTr=a.troops||{spear:Math.min(a.soldiers,A.soldiers)}; if(troopCount(atkTr)<=0) return 0;
-  return troopSum(atkTr,"atk")*clashPowers(A,D)[0]*genFactor(gen)*rr(g,1-R.battleLuck,1+R.battleLuck); // research edge capped
+  const p=[troopSum(atkTr,"atk"),clashTech(A,D)[0],M(A,"attack"),wonderMul(A,"atk"),genFactor(gen),rr(g,1-R.battleLuck,1+R.battleLuck)]; // research edge capped
+  a.parts=p; return p.reduce((x,y)=>x*y,1);
 }
 // one attack. The defender fights it with a.share of its start-of-year guards (split by attack strength);
 // losses come out of the real guard pool.
@@ -1448,46 +1475,56 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   const frontier=frontierCells(g,A.id,D.id); if(!frontier.length) return;
   const atkTr=a.troops||{spear:Math.min(a.soldiers,A.soldiers)}, sA=troopCount(atkTr); if(sA<=0) return;
   const dg=defGenOf[D.id] && D.generals.includes(defGenOf[D.id]) ? defGenOf[D.id] : null;
+  const tArr=tr=>TROOPS.map(t=>Math.round(tr[t.id]||0)), sentTr=tArr(atkTr), landA0=A.land, landD0=D.land, popA0=popOf(A), popD0=popOf(D);
+  const genRow=x=>x?[x.name,x.age,Math.round(x.skill),Math.round(x.skill),Math.round(x.morale),Math.round(x.morale),x.speed]:null, gA=genRow(gen), gD=genRow(dg);
   const pool=guards[D.id]||{}, gTr={}; // this battle's part of the guard (fractional counts are fine for strength)
   for(const k in base[D.id]||{}) gTr[k]=Math.min(pool[k]||0,(base[D.id][k]||0)*a.share);
   const gd=Math.round(troopCount(gTr));
   const pD=clashPowers(A,D)[1], strA=a.strA;
   const sea=seaOnlyFront(g,A.id,D.id,frontier), fb=frontBonusAD(g,A.id,D.id,frontier); // narrow pass or sea crossing: defenders fight harder
-  const strD=troopSum(gTr,"def")*pD*genFactor(dg)*(1+R.defenderBonus)*(1+fb)*rr(g,1-R.battleLuck,1+R.battleLuck);
-  let taken=0,lossA=0,lossD=0,win=false;
+  const sDp=[troopSum(gTr,"def"),clashTech(A,D)[1],M(D,"defense"),wonderMul(D,"def"),genFactor(dg),1+R.defenderBonus,1+fb,rr(g,1-R.battleLuck,1+R.battleLuck)];
+  const strD=sDp.reduce((x,y)=>x*y,1), defTr=tArr(gTr);
+  let taken=0,lossA=0,lossD=0,win=false,lossTrA={},lossTrD={};
   let decisive=1;
-  if(troopCount(gTr)<=0||strD<=0){ win=true; const L=casualties(atkTr,R.raidLoss); applyLosses(A,atkTr,L.out); lossA=L.n; }
+  if(troopCount(gTr)<=0||strD<=0){ win=true; const L=casualties(atkTr,R.raidLoss); applyLosses(A,atkTr,L.out); lossA=L.n; lossTrA=L.out; }
   else {
     const r=strA/strD, fA=R.battleLoss*strD/(strA+strD)*(r>1?1:R.loserPenalty), fD=R.battleLoss*strA/(strA+strD);
     const LA=casualties(atkTr,fA), LD=casualties(gTr,fD);
     for(const k in LD.out) LD.out[k]=Math.min(pool[k]||0,Math.round(LD.out[k])); // whole soldiers only
     LD.n=Object.values(LD.out).reduce((s,v)=>s+v,0);
-    applyLosses(A,atkTr,LA.out); applyLosses(D,pool,LD.out); lossA=LA.n; lossD=LD.n;
+    applyLosses(A,atkTr,LA.out); applyLosses(D,pool,LD.out); lossA=LA.n; lossD=LD.n; lossTrA=LA.out; lossTrD=LD.out;
     if(r>1){ win=true; decisive=Math.min(1,R.narrowWinShare+(1-R.narrowWinShare)*(r-1)); } // narrow win → share, 100% at twice their strength
   }
-  if(win) taken=Math.max(1,Math.min(conquest(gen,troopCount(atkTr),decisive,A,holdUnits(atkTr)),D.land));
+  const surv=troopCount(atkTr), landCalc=[speedCap(gen),R.armyLand*Math.sqrt(Math.max(0,surv)),exploreMul(A),decisive,Math.floor(holdUnits(atkTr)*R.occupy)];
+  if(win) taken=Math.max(1,Math.min(conquest(gen,surv,decisive,A,holdUnits(atkTr)),D.land));
   gen.skill=Math.min(100,gen.skill+gen.mind*1.5+(win?2:0)); gen.morale=Math.max(0,gen.morale-(win?8:25)); gen.battles++;
-  if(dg){ const y=defYear[D.id]||(defYear[D.id]={dg,n:0,lost:false}); y.n++; if(win) y.lost=true; } // applied once after all battles
-  let movedPeas=0;
+  gA[3]=Math.round(gen.skill); gA[5]=Math.round(gen.morale);
+  const det={tA:sentTr,lA:tArr(lossTrA),tD:defTr,lD:tArr(lossTrD),home:troopCount(guards[A.id]||{}),share:+(a.share||1).toFixed(3),nOn:a.nOn||1,
+    gA,gD,sA:a.parts||null,sD:troopCount(gTr)>0?sDp:null,raw:[atkTech(A),defTech(D)],lv:[A.lv.atk||0,A.lv.explore||0,D.lv.def||0],land:[...landCalc,landD0,landA0],
+    who:[A.team??-1,A.civ,A.leader,A.landType,popA0,D.team??-1,D.civ,D.leader,D.landType,popD0],aft:null,front:frontier.length,sea:sea?1:0};
+  if(dg){ const y=defYear[D.id]||(defYear[D.id]={dg,n:0,lost:false,reps:[]}); y.n++; if(win) y.lost=true; y.reps.push(det); } // applied once after all battles
+  let movedPeas=0, sciLostR=0, grainR=0, capturedR=0, elimPeas=0;
   if(taken>0){
     taken=Math.min(taken,D.land);
     const frac=taken/D.land;
     movedPeas=Math.round(D.peasants*frac);
     const sciLost=Math.round(D.sci*frac), grainMoved=Math.round(D.grain*frac*R.lootGrain);
     D.peasants-=movedPeas; D.sci-=sciLost; D.grain-=grainMoved;
-    A.peasants+=Math.round((movedPeas+sciLost)*R.capturedPeasants); A.grain+=grainMoved;
+    capturedR=Math.round((movedPeas+sciLost)*R.capturedPeasants); sciLostR=sciLost; grainR=grainMoved;
+    A.peasants+=capturedR; A.grain+=grainMoved;
     transferCells(g,A.id,D.id,taken,frontier);
     D.lostThis+=taken;
   }
-  relOnAttack(g,A,D,taken,win,adjNow); // the victim, its allies and the attacker's neighbors think worse of the attacker
-  const rec={turn:g.turn,att:A.id,def:D.id,sent:sA,guards:gd,lossA,lossD,taken,win,gen:gen.name,defGen:dg?dg.name:null,elim:false,front:frontier.length,fb,sea};
+  const rel0=relOf(g,D,A.id), rw=relOnAttack(g,A,D,taken,win,adjNow); // the victim, its allies and the attacker's neighbors think worse of the attacker
+  const rec={turn:g.turn,att:A.id,def:D.id,sent:sA,guards:gd,lossA,lossD,taken,win,gen:gen.name,defGen:dg?dg.name:null,elim:false,front:frontier.length,fb,sea,d:det};
   if(D.land<=0 || popOf(D)<R.minPop){
     const own=ownedCells(g);
     for(const i of own[D.id]) if(g.cells[i]===D.id){ g.cells[i]=A.id; g.takenAt[i]=g.turn; g.takenFrom[i]=D.id; own[A.id].push(i); A.land++; }
     own[D.id]=[]; ADJ.delete(g);
-    A.peasants+=Math.round(D.peasants*0.5);
+    elimPeas=Math.round(D.peasants*0.5); A.peasants+=elimPeas;
     eliminate(g,D,A); rec.elim=true;
   }
+  det.aft=[movedPeas,capturedR,sciLostR,grainR,Math.round(rel0),Math.round(relOf(g,D,A.id)),rw.allies,rw.near,rw.far,+rw.wm.toFixed(2),elimPeas];
   A.lastWar=D.lastWar=g.turn;
   g.battles.push(rec);
 }
@@ -1675,7 +1712,11 @@ const DB=(()=>{
     r.onupgradeneeded=()=>r.result.createObjectStore("saves"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }));
   const tx=(mode,fn)=>open().then(db=>new Promise((res,rej)=>{ const t=db.transaction("saves",mode), q=fn(t.objectStore("saves"));
     t.oncomplete=()=>res(q.result); t.onerror=t.onabort=()=>rej(t.error); }));
-  return { get:k=>tx("readonly",s=>s.get(k)), put:(k,v)=>tx("readwrite",s=>s.put(v,k)) };
+  const range=(lo,hi)=>IDBKeyRange.bound(lo,hi);
+  return { get:k=>tx("readonly",s=>s.get(k)), put:(k,v)=>tx("readwrite",s=>s.put(v,k)), del:k=>tx("readwrite",s=>s.delete(k)),
+    delRange:(lo,hi)=>tx("readwrite",s=>s.delete(range(lo,hi))),
+    getRange:(lo,hi)=>open().then(db=>new Promise((res,rej)=>{ const t=db.transaction("saves","readonly"), st=t.objectStore("saves"), a=st.getAllKeys(range(lo,hi)), b=st.getAll(range(lo,hi));
+      t.oncomplete=()=>res([a.result,b.result]); t.onerror=t.onabort=()=>rej(t.error); })) };
 })();
 try{ navigator.storage?.persist?.(); }catch(e){} // ask the browser not to evict saves
 // old localStorage format: JSON with run-length encoded cells ("owner*count,...")
@@ -1686,23 +1727,64 @@ function fromLocal(){ const s=localStorage.getItem(OLD_KEY); if(!s) return null;
 let SAVED=null; // {name,turn,over} of the stored game, for the setup screen
 const saveMeta=g=>g?{name:g.countries[g.player]?.name??"observer mode",turn:g.turn,over:g.over}:null;
 // ---------- news archive: every battle you could see, saved next to the game ----------
-// Compact rows: [year, attacker (-1 = famine collapse), defender, sent, guards, lossA, lossD, taken, win, destroyed, narrowFrontBonus]
-let NEWS={key:null,items:[]};
-const newsKey=g=>g?g.seed+":"+g.countries.length:null;
-function newsFor(g){ if(NEWS.key!==newsKey(g)) NEWS={key:newsKey(g),items:[]}; return NEWS; }
-const packBattle=b=>[b.turn,b.att,b.def,b.sent,b.guards,b.lossA,b.lossD,b.taken,b.win?1:0,b.elim?1:0,+(b.fb||0).toFixed(2)];
+// Compact rows: [year, attacker (-1 = famine collapse), defender, sent, guards, lossA, lossD, taken, win, destroyed, narrowFrontBonus, report]
+// report = index of the battle's full report in its chunk's report list (-1 = none).
+// Stored in 10-year chunks: "news:00008" (rows of years 80-89) and "newsd:00008" (their reports), plus "news-meta" = {gid}.
+// Each save writes only the chunks that changed; a different game (new gid) clears the old chunks first.
+const NEWS_CH=10, ck=c=>String(c).padStart(5,"0");
+const newsFresh=gid=>({gid,items:[],det:{},dirty:new Set()});
+let NEWS=newsFresh(null), NEWS_STORED; // NEWS_STORED = gid of the archive in storage
+const oldGid=g=>"old-"+g.seed+"-"+g.countries.length; // games from before game ids
+function newsFor(g){ if(!g.gid) g.gid=oldGid(g); if(NEWS.gid!==g.gid) NEWS=newsFresh(g.gid); return NEWS; }
+function newsAdd(n,row,det){ const c=Math.floor(row[0]/NEWS_CH); if(det){ const L=n.det[c]||(n.det[c]=[]); row[11]=L.length; L.push(det); } n.items.push(row); n.dirty.add(c); }
+const packBattle=b=>[b.turn,b.att,b.def,b.sent,b.guards,b.lossA,b.lossD,b.taken,b.win?1:0,b.elim?1:0,+(b.fb||0).toFixed(2),-1];
+const r4=a=>a?a.map(v=>typeof v==="number"?+v.toFixed(4):v):null;
+const packDetail=d=>[1,d.tA,d.lA,d.tD,d.lD,d.home,d.share,d.nOn,d.gA,d.gD,r4(d.sA),r4(d.sD),r4(d.raw),d.lv,r4(d.land),d.who,d.aft,d.front,d.sea];
+const unpackDetail=x=>({tA:x[1],lA:x[2],tD:x[3],lD:x[4],home:x[5],share:x[6],nOn:x[7],gA:x[8],gD:x[9],sA:x[10],sD:x[11],raw:x[12],lv:x[13],land:x[14],who:x[15],aft:x[16],front:x[17],sea:x[18]});
+// a news row's report: from memory, or read its chunk back from storage
+async function newsDetail(a){
+  const c=Math.floor(a[0]/NEWS_CH), k=a[11]??-1; if(k<0) return null;
+  let L=NEWS.det[c]; if(!L){ try{ L=await DB.get("newsd:"+ck(c)); }catch(e){} if(L){ NEWS.det[c]=L; UI.repChunk=c; } }
+  return L&&L[k]?unpackDetail(L[k]):null;
+}
+function saveNews(){
+  const n=newsFor(G);
+  if(NEWS_STORED!==n.gid){ // storage holds another game's archive (or the old one-record format): clear it, then write everything
+    DB.delRange("news:","news:\uffff").catch(()=>{}); DB.delRange("newsd:","newsd:\uffff").catch(()=>{}); DB.del("news").catch(()=>{});
+    DB.put("news-meta",{gid:n.gid,ch:NEWS_CH}).catch(()=>{}); NEWS_STORED=n.gid;
+    for(const a of n.items) n.dirty.add(Math.floor(a[0]/NEWS_CH)); }
+  for(const c of n.dirty){ const lo=c*NEWS_CH, hi=lo+NEWS_CH, rows=[];
+    for(let i=n.items.length-1;i>=0;i--){ const y=n.items[i][0]; if(y<lo) break; if(y<hi) rows.push(n.items[i]); }
+    rows.reverse(); DB.put("news:"+ck(c),rows).catch(()=>{}); if(n.det[c]) DB.put("newsd:"+ck(c),n.det[c]).catch(()=>{}); }
+  n.dirty.clear();
+  const cur=Math.floor(G.turn/NEWS_CH); // reports of finished chunks are in storage now: free the memory
+  for(const c in n.det) if(+c!==cur&&+c!==UI.repChunk) delete n.det[c];
+}
+async function loadNews(g){
+  NEWS=newsFresh(g.gid); let meta=null;
+  try{ meta=await DB.get("news-meta"); }catch(e){}
+  NEWS_STORED=meta?.gid??null;
+  if(meta&&meta.gid===g.gid){
+    try{ const [keys,vals]=await DB.getRange("news:","news:\uffff");
+      keys.map((k,i)=>[+String(k).slice(5),vals[i]]).sort((x,y)=>x[0]-y[0]).forEach(([,rows])=>{ for(const r of rows) NEWS.items.push(r); });
+      const c=Math.floor(g.turn/NEWS_CH), d=await DB.get("newsd:"+ck(c)); if(d) NEWS.det[c]=d; }catch(e){}
+    return; }
+  // older saves kept the whole archive in one record: bring it over (written in chunks on the next save)
+  try{ const o=await DB.get("news"); if(o&&o.key===g.seed+":"+g.countries.length&&Array.isArray(o.items)) for(const a of o.items) newsAdd(NEWS,a.slice(0,11).concat(-1),null); }catch(e){}
+  backfillNews(g);
+}
 const unpackBattle=a=>({turn:a[0],att:a[1],def:a[2],sent:a[3],guards:a[4],lossA:a[5],lossD:a[6],taken:a[7],win:!!a[8],elim:!!a[9],fb:a[10]});
 // add the year that just ended (call after render, so fog-of-war knowledge is current)
 function archiveTurn(){
   const n=newsFor(G);
-  for(const b of G.battles) if(!G.fog||seenBattle(b)) n.items.push(packBattle(b));
-  for(const id of G.collapsed||[]) if(!G.fog||id===G.player||neighborsBefore(id)) n.items.push([G.turn-1,-1,id,0,0,0,0,0,0,1,0]);
+  for(const b of G.battles) if(!G.fog||seenBattle(b)) newsAdd(n,packBattle(b),b.d?packDetail(b.d):null);
+  for(const id of G.collapsed||[]) if(!G.fog||id===G.player||neighborsBefore(id)) newsAdd(n,[G.turn-1,-1,id,0,0,0,0,0,0,1,0,-1],null);
 }
 // older saves: start the archive from the recent history they still keep
-function backfillNews(g){ const n=newsFor(g); if(n.items.length||!g.allBattles) return; for(const yr of g.allBattles) for(const b of yr.list) n.items.push(packBattle(b)); }
+function backfillNews(g){ const n=newsFor(g); if(n.items.length||!g.allBattles) return; for(const yr of g.allBattles) for(const b of yr.list) newsAdd(n,packBattle(b),null); }
 function save(){
   if(!G) return; SAVED=saveMeta(G);
-  if(NEWS.key===newsKey(G)) DB.put("news",NEWS).catch(()=>{});
+  saveNews();
   DB.put("current",G).catch(()=>{ try{ localStorage.setItem(OLD_KEY,JSON.stringify(G,(k,v)=>GRID_KEYS.includes(k)?{rle:rleEnc(Array.from(v))}:v)); }catch(e){} });
 }
 async function loadSave(){
@@ -1714,7 +1796,7 @@ async function loadSave(){
     if(!g.takenAt) g.takenAt=new Int16Array(g.cells.length);
     if(!g.takenFrom) g.takenFrom=new Int16Array(g.cells.length).fill(-1); }
   if(g){ migrateResearch(g); migrateRelations(g); }
-  if(g){ try{ const n=await DB.get("news"); NEWS=n&&n.key===newsKey(g)?n:{key:newsKey(g),items:[]}; }catch(e){ NEWS={key:newsKey(g),items:[]}; } backfillNews(g); }
+  if(g){ if(!g.gid) g.gid=oldGid(g); await loadNews(g); }
   SAVED=saveMeta(g); return g;
 }
 
@@ -2399,7 +2481,7 @@ function pWorld(){
   const hidden=G.countries.length-all.length, LIMIT=150;
   const C=all.slice(0,LIMIT); for(const id of [G.player,UI.sel]) if(id!=null&&isKnown(id)&&!C.some(c=>c.id===id)) C.push(G.countries[id]);
   const sel=UI.sel!=null?G.countries[UI.sel]:null;
-  const recent=G.allBattles.slice(-6).reverse().map(b=>({...b,list:b.list.filter(seenBattle)}));
+  const recent=G.allBattles.slice(-6).reverse().map(b=>({...b,list:b.list.filter(seenBattle).map(newsRefFor(G.allBattles.at(-6)?.turn??0))}));
   return `${coalitionBanner()}${sel?inspect(sel):""}
   ${wonderList()}
   <h3>Rankings</h3>
@@ -2480,13 +2562,13 @@ function pNews(){
     if(st.f==="mine"&&a[1]!==G.player&&a[2]!==G.player) continue;
     if(st.f==="fallen"&&!a[9]) continue;
     if(q&&!hit(a[1])&&!hit(a[2])) continue;
-    rows.push(a); }
+    rows.push(i); }
   const pages=Math.max(1,Math.ceil(rows.length/PER)); st.page=Math.min(st.page,pages-1);
   const view=rows.slice(st.page*PER,(st.page+1)*PER);
   let html="", yr=null;
-  for(const a of view){
+  for(const i of view){ const a=N.items[i];
     if(a[0]!==yr){ if(yr!==null) html+="</ul>"; yr=a[0]; html+=`<div class="small" style="margin-top:6px"><b>Year ${yr}</b></div><ul class="log small" style="margin:2px 0 4px;padding-left:18px">`; }
-    html+= a[1]===-1 ? `<li><span class="sw" style="background:${C[a[2]].color}"></span><b>${esc(C[a[2]].name)}</b> collapsed from famine. <span class="mut">Its land became unowned.</span></li>` : battleLine(unpackBattle(a));
+    html+= a[1]===-1 ? `<li><span class="sw" style="background:${C[a[2]].color}"></span><b>${esc(C[a[2]].name)}</b> collapsed from famine. <span class="mut">Its land became unowned.</span></li>` : battleLine(Object.assign(unpackBattle(a),a[11]>=0?{ref:"n"+i}:{}));
   }
   if(yr!==null) html+="</ul>";
   const first=N.items.length?N.items[0][0]:null;
@@ -2500,10 +2582,142 @@ function pNews(){
   ${pages>1?`<div class="row" style="margin-top:8px"><button class="sm" data-npage="${st.page-1}" ${st.page<=0?"disabled":""}>← Newer</button><span class="small">Page ${st.page+1} of ${pages}</span><button class="sm" data-npage="${st.page+1}" ${st.page>=pages-1?"disabled":""}>Older →</button></div>`:""}`;
 }
 function battleLine(b){
-  const C=G.countries, you=b.att===G.player||b.def===G.player;
+  const C=G.countries, you=b.att===G.player||b.def===G.player, ref=battleRef(b);
   const who=id=>you||isKnown(id) ? `<span class="sw" style="background:${C[id].color}"></span>${esc(C[id].name)}` : `<span class="sw" style="background:rgb(${FOG})"></span><span class="mut">an unknown state</span>`;
   const res=b.win?`took <b>${fmt(b.taken)}</b> km²`:`was repelled`;
-  return `<li class="${you?'acc':''}">${who(b.att)} → ${who(b.def)}: ${res} (${fmt(b.sent)} soldiers vs ${b.guards===0?"no defenders":fmt(b.guards)+" guards"} · lost ${fmt(b.lossA)} vs ${fmt(b.lossD)}${b.fb>=0.05&&b.guards>0?`, ${b.sea?"sea crossing":"narrow front"}: defenders +${Math.round(b.fb*100)}%`:""})${b.elim?` <b class="bad">${you||isKnown(b.def)?esc(C[b.def].name):"A state"} destroyed!</b>`:""}</li>`;
+  return `<li class="${you?'acc':''}">${who(b.att)} → ${who(b.def)}: ${res} (${fmt(b.sent)} soldiers vs ${b.guards===0?"no defenders":fmt(b.guards)+" guards"} · lost ${fmt(b.lossA)} vs ${fmt(b.lossD)}${b.fb>=0.05&&b.guards>0?`, ${b.sea?"sea crossing":"narrow front"}: defenders +${Math.round(b.fb*100)}%`:""})${b.elim?` <b class="bad">${you||isKnown(b.def)?esc(C[b.def].name):"A state"} destroyed!</b>`:""}${ref?` <button class="sm" data-rep="${ref}">Details ›</button>`:""}</li>`;
+}
+// ---------- battle reports ----------
+// Recent wars lists the history kept in the save (no reports there): find each battle's news row, which has the report
+function newsRefFor(from){
+  const idx=new Map(), key=a=>a[0]+":"+a[1]+":"+a[2]+":"+a[3]+":"+a[4]+":"+a[5];
+  for(let i=NEWS.items.length-1;i>=0;i--){ const a=NEWS.items[i]; if(a[0]<from) break; if(a[11]>=0) idx.set(key(a),i); }
+  return b=>{ const i=idx.get(key([b.turn,b.att,b.def,b.sent,b.guards,b.lossA])); return i!=null?{...b,ref:"n"+i}:b; };
+}
+// ref: "n<i>" = row i of the news archive, "c<i>" = battle i of the year that just ended
+function battleRef(b){ if(b.ref) return b.ref; const i=b.d?G.battles.indexOf(b):-1; return i>=0?"c"+i:null; }
+async function openReport(ref){
+  let b=null,d=null;
+  if(ref[0]==="c"){ b=G.battles[+ref.slice(1)]; d=b?.d; }
+  else { const a=NEWS.items[+ref.slice(1)]; if(a){ b=unpackBattle(a); d=await newsDetail(a); } }
+  if(!b||!d){ flash("No report was saved for this battle."); return; }
+  const ov=$("ov"), m=$("modal");
+  if(ov.classList.contains("hidden")) UI.repBack=null;
+  else if(!m.classList.contains("battle")&&!UI.repBack) UI.repBack={html:m.innerHTML,cls:m.className}; // came from another window (year report): offer a way back
+  modal(reportHtml(b,d,ref),"battle"); m.scrollTop=0;
+}
+// the battles Previous/Next step through: the whole archive, or the year that just ended
+function reportList(ref){
+  if(ref[0]==="c") return G.battles.map((b,i)=>b.d&&seenBattle(b)?"c"+i:null).filter(Boolean);
+  const out=[]; NEWS.items.forEach((a,i)=>{ if(a[11]>=0) out.push("n"+i); }); return out;
+}
+function reportHtml(b,d,ref){
+  const C=G.countries, A=C[b.att], D=C[b.def], mine=b.att===G.player||b.def===G.player;
+  b={...b,front:d.front??b.front??0,sea:d.sea??b.sea};
+  const vis=id=>!G.fog||mine||isKnown(id), nm=id=>vis(id)?`<span class="sw" style="background:${C[id].color}"></span><b>${esc(C[id].name)}</b>`:`<span class="sw" style="background:rgb(${FOG})"></span><b>an unknown state</b>`;
+  const plain=id=>vis(id)?esc(C[id].name):"the unknown state";
+  const mul=v=>"×"+v.toFixed(2), cls=v=>v>1.0005?"good":v<0.9995?"bad":"mut", prod=a=>a?a.reduce((x,y)=>x*y,1):0, sum=a=>a.reduce((x,y)=>x+y,0);
+  const pct=(x,t)=>t>0?Math.round(100*x/t)+"%":"0%";
+  const strA=prod(d.sA), strD=prod(d.sD), lossA=sum(d.lA), lossD=sum(d.lD), sent=sum(d.tA), grd=sum(d.tD), surv=sent-lossA;
+  const [reach,army,ex,dec,hold,landD0,landA0]=d.land, aft=d.aft||[0,0,0,0,0,0,0,0,0,1,0], who=d.who;
+  const traitLine=(o,key)=>{ const W=R.traitWeight?.[key]??1, rows=[[CIVS,o[0]],[LEADERS,o[1]],[LANDS,o[2]]].map(([T,id])=>T.find(x=>x.id===id)).filter(Boolean);
+    const bits=rows.map(x=>{ const v=Math.round(W*((x[key]??1)-1)*100); return v?`${esc(x.name)} ${v>0?"+":"−"}${Math.abs(v)}%`:null; }).filter(Boolean);
+    return bits.length?bits.join(" · "):"No civilization, leader or land bonus"; };
+  const names=o=>[[CIVS,o[0]],[LEADERS,o[1]],[LANDS,o[2]]].map(([T,id])=>T.find(x=>x.id===id)?.name).filter(Boolean).map(esc).join(" · ");
+  const team=k=>k>=0&&G.teams?.[k]?`<span class="btag">${esc(allyTag(G,k))} · ${esc(G.teams[k].name)}</span>`:"";
+  const genFac=(sk,mo)=>(0.4+sk*0.008)*(0.5+mo/200);
+  const genBox=(g,icon,lost)=>!g?`<div class="bgen"><span style="font-size:20px">${icon}</span><div style="flex:1"><b>No general</b><div class="small mut">Armies without a general fight at ${mul(R.genNoGeneral)}</div></div><div style="text-align:right"><b>${mul(R.genNoGeneral)}</b></div></div>`
+    : `<div class="bgen"><span style="font-size:20px">${icon}</span><div style="flex:1"><b>Gen. ${esc(g[0])}</b> <span class="mut small">age ${g[1]}</span>
+      <div class="small mut">Skill ${g[2]} → <span class="${g[3]>g[2]?"good":"mut"}">${g[3]}</span> · Morale ${g[4]} → <span class="${g[5]<g[4]?"bad":"mut"}">${g[5]}</span>${lost?" (lost the battle)":""}${g[6]!=null?` · Speed ${g[6]} (reach ${speedCap({speed:g[6]})} km²)`:""}</div></div>
+      <div style="text-align:right" title="skill ${g[2]} → ${mul(0.4+g[2]*0.008)} · morale ${g[4]} → ${mul(0.5+g[4]/200)}"><b>General ${mul(genFac(g[2],g[4]))}</b><div class="small mut">skill × morale</div></div></div>`;
+  const troopTable=(T,L,stat,head)=>{ let h=`<table><tr><th>Troop</th><th class="r">${stat==="atk"?"Atk":"Def"}</th><th class="r">${head}</th><th class="r">Died</th><th class="r">Left</th><th>Loss</th></tr>`;
+    TROOPS.forEach((t,i)=>{ if(!T[i]) return; const f=L[i]/T[i]; h+=`<tr><td>${t.icon} ${esc(t.name)}</td><td class="r mut">${t[stat].toFixed(2)}</td><td class="r">${fmt(T[i])}</td><td class="r bad">${fmt(L[i])}</td><td class="r">${fmt(T[i]-L[i])}</td><td class="small">${Math.round(f*100)}%<span class="lossbar"><i style="width:${Math.min(100,f*100)}%"></i></span></td></tr>`; });
+    const tt=sum(T), tl=sum(L);
+    return h+`<tr style="font-weight:700"><td>Total</td><td></td><td class="r">${fmt(tt)}</td><td class="r bad">${fmt(tl)}</td><td class="r">${fmt(tt-tl)}</td><td class="small">${pct(tl,tt)}</td></tr></table>`; };
+  const multRow=(label,v,tip)=>`<tr${tip?` title="${tip}"`:""}><td>${label}</td><td class="r ${cls(v)}">${mul(v)}</td></tr>`;
+  const capNote=(raw,used)=>Math.abs(raw-used)>1e-3?` <span class="mut">(capped: the research edge counts at most ${R.techEdgeMax}×)</span>`:"";
+  const wonderRow=(area,v)=>v>1?multRow(`${WONDERS[area].icon} ${esc(WONDERS[area].name)}`,v):multRow("🏛 Wonder: none",1);
+  const genRow=(g,v)=>multRow(g?`General ${esc(g[0])} (skill ${g[2]}, morale ${g[4]})`:"No general",v,g?`skill ${g[2]} → ${mul(0.4+g[2]*0.008)} · morale ${g[4]} → ${mul(0.5+g[4]/200)}`:"");
+  // attacker card
+  const aSide=!vis(b.att)?`<div class="bside"><div class="brole" style="color:var(--bad)">Attacker</div><h4>${nm(b.att)}</h4><div class="small mut" style="margin-top:6px">Hidden by fog of war.</div></div>`:
+  `<div class="bside"><div class="brole" style="color:var(--bad)">Attacker</div>
+    <h4>${nm(b.att)}${team(who[0])}</h4>
+    <div class="small mut">${names(who.slice(1,4))} · ${fmt(landA0)}${b.taken?` → ${fmt(landA0+b.taken)}`:""} km² · ${fmt(who[4])} people</div>
+    ${genBox(d.gA,"🎖️",!b.win)}
+    ${troopTable(d.tA,d.lA,"atk","Sent")}
+    <div class="small mut" style="margin-top:4px">Left at home to guard: ${fmt(d.home)} soldiers</div>
+    <h3 style="margin-top:12px">How the strength adds up</h3>
+    <table class="bmult small">
+      <tr><td>Troop attack (soldiers × attack)</td><td class="r">${fmt(d.sA[0])}</td></tr>
+      ${multRow(`🔬 Attack research, level ${d.lv[0]}${capNote(d.raw[0],d.sA[1])}`,d.sA[1])}
+      ${multRow(traitLine(who.slice(1,4),"attack"),d.sA[2])}
+      ${wonderRow("atk",d.sA[3])}
+      ${genRow(d.gA,d.sA[4])}
+      ${multRow("Battle luck",d.sA[5])}
+      <tr class="tot"><td>Attack strength</td><td class="r">${fmt(strA)}</td></tr>
+    </table></div>`;
+  // defender card
+  const front=b.fb>0.0005?(b.sea?"Sea crossing":`Narrow front (${b.front} km border)`):`Front: ${b.front} km border`;
+  const dSide=!vis(b.def)?`<div class="bside"><div class="brole" style="color:var(--info)">Defender</div><h4>${nm(b.def)}</h4><div class="small mut" style="margin-top:6px">Hidden by fog of war.</div></div>`:
+  `<div class="bside"><div class="brole" style="color:var(--info)">Defender</div>
+    <h4>${nm(b.def)}${team(who[5])}</h4>
+    <div class="small mut">${names(who.slice(6,9))} · ${fmt(landD0)}${b.taken?` → ${fmt(Math.max(0,landD0-b.taken))}`:""} km² · ${fmt(who[9])} people</div>
+    ${genBox(d.gD,"🛡️",b.win&&!!d.sD)}
+    ${d.sD?troopTable(d.tD,d.lD,"def","Guards")+`<div class="small mut" style="margin-top:4px">${d.nOn>1?`${d.nOn} attacks on ${plain(b.def)} this year: this battle drew ${Math.round(d.share*100)}% of its guards`:`All guards fought this battle (no other attacks on ${plain(b.def)} this year)`}</div>
+    <h3 style="margin-top:12px">How the strength adds up</h3>
+    <table class="bmult small">
+      <tr><td>Troop defense (soldiers × defense)</td><td class="r">${fmt(d.sD[0])}</td></tr>
+      ${multRow(`🔬 Defense research, level ${d.lv[2]}${capNote(d.raw[1],d.sD[1])}`,d.sD[1])}
+      ${multRow(traitLine(who.slice(6,9),"defense"),d.sD[2])}
+      ${wonderRow("def",d.sD[3])}
+      ${genRow(d.gD,d.sD[4])}
+      ${multRow("Defender bonus",d.sD[5])}
+      ${multRow(front,d.sD[6])}
+      ${multRow("Battle luck",d.sD[7])}
+      <tr class="tot"><td>Defense strength</td><td class="r">${fmt(strD)}</td></tr>
+    </table>`:`<div class="note">No guards were home: the attackers walked in and lost only ${Math.round(R.raidLoss*100)}% (divided by toughness).</div>`}</div>`;
+  // summary
+  const res=b.win?(b.guards===0?`walked into undefended ${nm(b.def)}`:`attacked ${nm(b.def)} and <b class="good">won</b>`)+`, taking <b>${fmt(b.taken)} km²</b> (${pct(b.taken,landD0)} of its land)`:`attacked ${nm(b.def)} and was <b class="bad">repelled</b>`;
+  const ratio=strD>0?strA/strD:0;
+  const stat=(lab,val,sub)=>`<div class="stat"><span class="mut">${lab}</span><b>${val}</b><span class="mut sub">${sub}</span></div>`;
+  const vs=(x,y)=>`${x} <span class="mut" style="font-size:12px">vs</span> ${y}`;
+  const stats=`<div class="stats">
+    ${stat("Strength",d.sD?vs(fmt(strA),fmt(strD)):fmt(strA),d.sD?`${ratio>=1?"attacker":"defender"} ${(ratio>=1?ratio:1/ratio).toFixed(2)} : 1`:"no defenders")}
+    ${stat("Losses",vs(`<span class="bad">${fmt(lossA)}</span>`,`<span class="bad">${fmt(lossD)}</span>`),`${pct(lossA,sent)} vs ${pct(lossD,grd)} of soldiers`)}
+    ${stat("Land taken",`${fmt(b.taken)} km²`,!b.win?"attack repelled":!d.sD?"no defenders: full gain":dec>=1?"decisive win: full gain":`${Math.round(dec*100)}% of the full gain (narrow win)`)}
+    ${stat("Captured",`${fmt(aft[1])} peasants`,`+${fmt(aft[3])} grain looted`)}</div>`;
+  const bar=d.sD?`<div class="sbar2"><i style="width:${100*strA/(strA+strD)}%;background:${A.color}"></i><i style="width:${100*strD/(strA+strD)}%;background:${D.color}"></i></div>
+    <div class="small mut" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:12px"><span>${plain(b.att)} ${pct(strA,strA+strD)}</span><span>Winning at twice the defender's strength takes the full gain</span><span>${plain(b.def)} ${pct(strD,strA+strD)}</span></div>`:"";
+  // land and aftermath
+  const pot=(reach+army)*ex*dec;
+  const landCalc=b.win?`<b>Land taken:</b> (general's reach ${fmt(reach)} + army ${fmt(army)} <span class="mut">[${R.armyLand} × √${fmt(surv)} survivors]</span>) × Exploring ${mul(ex)} <span class="mut">[level ${d.lv[1]}, with civilization/leader/land]</span> × ${dec>=1?"full gain":`narrow win ${Math.round(dec*100)}%`} = ${fmt(pot)} km²
+      <span class="mut">· the survivors could hold up to ${fmt(hold)} km² (cavalry hold 2 each) · ${plain(b.def)} had ${fmt(landD0)} km²</span> → <b>${fmt(b.taken)} km²</b>`
+    :`<b>No land changed hands.</b> <span class="mut">The attack was beaten back.</span>`;
+  const chips=[];
+  if(b.taken){ chips.push(`👨‍🌾 ${fmt(aft[0])} peasants lived there: ${fmt(aft[1])} joined ${plain(b.att)}`); if(aft[2]) chips.push(`🔬 ${fmt(aft[2])} scientists lost`); if(aft[3]) chips.push(`🌾 ${fmt(aft[3])} grain looted`); }
+  if(vis(b.def)) chips.push(`😠 ${plain(b.def)}'s opinion of ${plain(b.att)}: ${aft[4]} → ${aft[5]}`);
+  if(aft[6]) chips.push(`🤝 ${aft[6]} member${aft[6]>1?"s":""} of ${plain(b.def)}'s alliance −${R.relAlly} toward ${plain(b.att)}`);
+  if(aft[7]) chips.push(`👀 ${aft[7]} neighbor${aft[7]>1?"s":""} of both −${+(R.relWitnessNear*aft[9]).toFixed(1)}`);
+  if(aft[8]) chips.push(`👀 ${aft[8]} other neighbor${aft[8]>1?"s":""} of ${plain(b.att)} −${+(R.relWitness*aft[9]).toFixed(1)}`);
+  if((aft[7]||aft[8])&&aft[9]<1) chips.push(`↩ Revenge: neighbors judge it ${Math.round((1-aft[9])*100)}% less harshly`);
+  if(b.elim) chips.push(`☠ ${plain(b.def)} was destroyed: ${fmt(aft[10])} of its people joined ${plain(b.att)}`);
+  // footer: back, map, previous/next, research edge
+  const list=reportList(ref), at=list.indexOf(ref), prev=at>0?list[at-1]:null, next=at>=0&&at<list.length-1?list[at+1]:null;
+  const mapId=D.alive?b.def:b.att, edge=d.raw[1]>0?d.raw[0]/d.raw[1]:1;
+  return `<div class="rep-head"><div class="row" style="justify-content:space-between;margin:0 0 4px"><h2>⚔️ Battle report · Year ${b.turn}</h2>
+      <span class="small mut">${d.nOn>1?`${d.nOn} attacks on ${plain(b.def)} this year`:`The only attack on ${plain(b.def)} this year`} · ${b.front} km border</span></div>
+    <div style="font-size:15px;margin-bottom:10px">${nm(b.att)} ${res}.</div></div>
+    ${stats}${bar}
+    <div class="bsides">${aSide}${dSide}</div>
+    <h3>Land and aftermath</h3>
+    <div class="bcalc small">${landCalc}</div>
+    ${chips.length?`<div class="bchips">${chips.map(c=>`<span>${c}</span>`).join("")}</div>`:""}
+    <div class="rep-foot">
+      ${UI.repBack?`<button data-repback="1">‹ Back to year report</button>`:""}
+      ${vis(mapId)?`<button data-repmap="${mapId}">🗺 Show on map</button>`:""}
+      <button data-rep="${prev||""}" ${prev?"":"disabled"}>‹ Previous battle</button><button data-rep="${next||""}" ${next?"":"disabled"}>Next battle ›</button>
+      <span class="small mut" title="Attack research ÷ defense research. In battle, one side's research counts at most ${R.techEdgeMax}× the other's.">Research edge: ${edge>=1?"attacker":"defender"} ${(edge>=1?edge:1/edge).toFixed(2)}× (cap ${R.techEdgeMax}×)</span>
+      <button class="pri" data-repclose="1">Close</button></div>`;
 }
 
 // ---------- settings (tabs: rules, troops, civilizations, leaders, land types, wonders) ----------
@@ -2690,7 +2904,7 @@ function helpModal(){
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Economy tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; attacks send your most offensive troops first. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
-  <h3>War</h3><ul class="log">
+  <h3>War</h3><ul class="log"><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
   <li>Strength = soldiers × Attack/Defense research × general (skill and morale) × your civilization's and leader's attack (when attacking) or defense (when defending) bonus. A research lead counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy. Defenders get +15%. A state with no guards loses as much land as the attacker's general and army can take.</li>
   <li>The winner takes land and the peasants on it: (general's Speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness. Decisiveness runs from 25% for a narrow win to 100% at twice the defender's strength (or no defenders). Each surviving soldier can hold at most ${R.occupy} km².</li>
@@ -2848,6 +3062,10 @@ document.addEventListener("click",async ev=>{
     else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=false; renderAllyMap(); v.refresh(); }
     else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=false; renderAllyMap(); v.refresh(); }
     return; }
+  if(d.rep){ openReport(d.rep); return; }
+  if(d.repback!=null){ const bk=UI.repBack; UI.repBack=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); return; }
+  if(d.repclose!=null){ UI.repBack=null; closeModal(); return; }
+  if(d.repmap!=null){ const id=+d.repmap; UI.repBack=null; closeModal(); UI.sel=id; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
   if(d.tab){ UI.tab=d.tab; render(); return; }
@@ -2919,7 +3137,7 @@ document.addEventListener("click",async ev=>{
       G.difficulty=s.diff; G.fog=!!s.fog&&!G.observer; // an observer sees the whole map
       if(!G.observer){ const nm=(s.empire||"").trim().slice(0,24); try{ localStorage.setItem("eb.empireName",nm); }catch{}
         if(nm){ const p=G.countries[G.player], dup=G.countries.find(c=>c!==p&&c.name.toLowerCase()===nm.toLowerCase()); if(dup) dup.name=p.name; p.name=nm; } }
-      setAuto(false); NEWS={key:newsKey(G),items:[]}; UI.news=null; UI.sel=null; UI.tab=G.observer?"world":"economy"; UI.attackTarget=null; UI.setup=null; save(); closeModal(); render(); return; }
+      setAuto(false); NEWS=newsFresh(G.gid); UI.news=null; UI.sel=null; UI.tab=G.observer?"world":"economy"; UI.attackTarget=null; UI.setup=null; save(); closeModal(); render(); return; }
   }
   if(G) render();
 });
