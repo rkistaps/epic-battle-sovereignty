@@ -322,7 +322,7 @@ const R = {
   genCostBase: 30, genCostMind: 2.6, speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
   coastalShore: 0.03,              // share of shore land that makes a state coastal (Islands/Oceanic land types)
   // wood & iron (epic-battle: 1.4 wood and 1 iron per worker; doubled here for this game's smaller populations)
-  woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, resBuy: 1.6, startWood: 150, startIron: 60,
+  woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, resBuy: 1.6, resSell: 0.5, // base prices; buying costs ×1.6, selling earns ×0.5 startWood: 150, startIron: 60,
   shoreYield: 1, shoreMax: 0.25,                 // +1% harvest per 1% of land on the shore, max +25%
   narrowFront: 3, wideFront: 15, narrowBonus: 0.4, // defenders +40% on a border of <=3 km, fading to 0 at 15 km
   seaBonus: 0.15,                  // pre-made maps: defenders +15% against an attack that only crosses a sea route (replaces the narrow-front bonus)
@@ -332,6 +332,8 @@ const R = {
   idleStart: 5, idleFull: 25,                     // AI stalemate breaker: bolder after 5 years without fighting, boldest at 25
   aiDefense: 0.3,                                 // AI keeps an army of at least 30% of its strongest neighbor's strength (more if recently attacked)
   aiSciMax: 0.25,                                 // AI keeps scientists under 25% of its people (room for an army)
+  aiResLean: 3,                                   // AI wood/iron workers lean toward its better resource: (iron yield ÷ wood yield)^3 (0 = fixed split)
+  aiPersonValue: 60, aiTroopYears: 5, aiTroopLoss: 0.1, // AI troop choice: a person's worth in money (higher when births are slow or peasants short), years of upkeep counted, share lost per year at toughness 1
   aiKeepPop: 0.72, aiKeepCap: 0.35, aiRebuild: 0.3, // AI peasant reserve (scientists count as peasants): 72% of pop / 35% of capacity (see aiPeasantFloor); rebuilds 30% of a shortfall per year
   // how strongly each civilization/leader bonus applies here (tuned so no type dominates)
   // defense and population compound strongly in this game, so their bonuses apply at 40% (simulated so no type dominates)
@@ -443,16 +445,16 @@ function foodUse(c){ let f=c.peasants+c.sci; const tr=c.troops||{spear:c.soldier
 function workers(c){ const w=c.work||{}, f=k=>Math.floor(c.peasants*(w[k]||0)/100), wood=f("wood"), iron=f("iron"), sci=f("sci"); return {wood,iron,sci,farm:c.peasants-wood-iron-sci}; }
 function researchPoints(c){ return workers(c).sci*(1+R.sciPerLevel*lvl(c,"sci"))*M(c,"science")*wonderMul(c,"sci"); }
 function production(c){ const w=workers(c); return {wood:Math.round(w.wood*R.woodPerWorker*M(c,"wood")*(1+R.woodPerLevel*lvl(c,"wood"))*wonderMul(c,"wood")), iron:Math.round(w.iron*R.ironPerWorker*M(c,"iron")*(1+R.ironPerLevel*lvl(c,"iron"))*wonderMul(c,"iron"))}; } // Forestry / Mining +6%/level
-// ---------- troop types (from epic-battle: attack/defense ÷ 4 so a Spearman = 1; toughness = health+armor ÷ 23) ----------
+// ---------- troop types (from epic-battle: attack/defense ÷ 4, wood troops then +25%; toughness divides battle losses) ----------
 // Costs (food/wood/iron/gold) and upkeep (food/gold per year) are epic-battle's. All available from the start.
 // Every troop is one person, so elite troops are the way to get more strength per head.
 const TROOPS = [
-  {id:"spear",  name:"Spearman",  icon:"🔱", atk:1,    def:1,    tough:1,    food:2,  wood:10, iron:0,   gold:0,   upFood:2, upGold:0, hold:1},
-  {id:"archer", name:"Archers",   icon:"🏹", atk:0.75, def:1.5,  tough:1.39, food:7,  wood:50, iron:0,   gold:0,   upFood:2, upGold:0, hold:1},
-  {id:"axe",    name:"Axeman",    icon:"🪓", atk:1.25, def:0.5,  tough:1.39, food:5,  wood:35, iron:0,   gold:0,   upFood:3, upGold:0, hold:1},
-  {id:"pike",   name:"Pikeman",   icon:"🛡️", atk:1.25, def:2.25, tough:1.52, food:2,  wood:0,  iron:35,  gold:0,   upFood:2, upGold:0, hold:1},
-  {id:"sword",  name:"Swordsman", icon:"⚔️", atk:1.75, def:1.75, tough:1.61, food:5,  wood:0,  iron:50,  gold:0,   upFood:2, upGold:0, hold:1},
-  {id:"cav",    name:"Cavalry",   icon:"🐎", atk:3,    def:2,    tough:1.74, food:10, wood:10, iron:100, gold:100, upFood:5, upGold:10, hold:2},
+  {id:"spear",  name:"Spearman",  icon:"🔱", atk:1.25, def:1.25, tough:1,    food:2,  wood:10, iron:0,   gold:0,   upFood:2, upGold:0, hold:1},
+  {id:"archer", name:"Archers",   icon:"🏹", atk:0.9,  def:1.85, tough:1.15, food:3,  wood:20, iron:0,   gold:0,   upFood:2, upGold:0, hold:1},
+  {id:"axe",    name:"Axeman",    icon:"🪓", atk:1.85, def:0.5,  tough:0.9,  food:5,  wood:35, iron:0,   gold:0,   upFood:3, upGold:0, hold:1},
+  {id:"pike",   name:"Pikeman",   icon:"🛡️", atk:1.25, def:2.25, tough:1.6,  food:2,  wood:0,  iron:35,  gold:0,   upFood:2, upGold:0, hold:1},
+  {id:"sword",  name:"Swordsman", icon:"⚔️", atk:1.75, def:1.75, tough:1.7,  food:5,  wood:0,  iron:50,  gold:0,   upFood:2, upGold:0, hold:1},
+  {id:"cav",    name:"Cavalry",   icon:"🐎", atk:3,    def:2,    tough:2,    food:10, wood:10, iron:100, gold:100, upFood:5, upGold:6,  hold:2},
 ];
 const TROOP=Object.fromEntries(TROOPS.map(t=>[t.id,t]));
 const RES=["food","wood","iron","gold"], STOCK={food:"grain",wood:"wood",iron:"iron",gold:"money"}; // troop cost key → state field
@@ -481,12 +483,11 @@ function removeTroops(c,n,mode){
     for(const k of Object.keys(tr).sort((a,b)=>tr[b]-tr[a])){ if(left<=0) break; const m=Math.min(left,tr[k]); tr[k]-=m; left-=m; } }
   c.soldiers=troopCount(tr); return n;
 }
-// battle losses (epic-battle rule): each type takes damage in proportion to the damage it dealt,
-// divided by its toughness. f = fraction of the army's total toughness destroyed.
-function casualties(tr,f,stat){
-  const dealt=troopSum(tr,stat); let T=0; for(const k in tr) T+=tr[k]*(TROOP[k]?.tough||1);
-  const D=f*T, out={}; let n=0; if(!dealt||!T) return {out,n};
-  for(const k in tr){ if(!tr[k]) continue; const t=TROOP[k]||TROOP.spear; const m=Math.min(tr[k],Math.round(D*(tr[k]*t[stat]/dealt)/t.tough)); if(m>0){ out[k]=m; n+=m; } }
+// battle losses: each troop type loses f ÷ its toughness of its soldiers (f = losses at toughness 1),
+// so tougher troops survive better in any army, mixed or not
+function casualties(tr,f){
+  const out={}; let n=0;
+  for(const k in tr){ if(!tr[k]) continue; const m=Math.min(tr[k],Math.round(f*tr[k]/(TROOP[k]?.tough||1))); if(m>0){ out[k]=m; n+=m; } }
   return {out,n};
 }
 function applyLosses(c,pool,loss){ const tr=troopsOf(c); for(const k in loss){ pool[k]=Math.max(0,(pool[k]||0)-loss[k]); tr[k]=Math.max(0,(tr[k]||0)-loss[k]); } c.soldiers=troopCount(tr); }
@@ -1114,7 +1115,7 @@ const act = {
 };
 function resPrice(r){ return r==="wood"?R.woodPrice:R.ironPrice; }
 // what this state gets when selling wood/iron: Finance research raises it like the grain price
-function resSellPrice(c,r){ return +(resPrice(r)*(1+R.finPricePerLevel*lvl(c,"fin"))).toFixed(2); }
+function resSellPrice(c,r){ return +(resPrice(r)*R.resSell*(1+R.finPricePerLevel*lvl(c,"fin"))).toFixed(2); }
 function committed(c){ return c.attacks.reduce((s,a)=>s+a.soldiers,0); }
 
 // ---------- AI ----------
@@ -1125,10 +1126,23 @@ function aiPeasantFloor(c,strict){
   // capacity without the housing bonus: more housing should mean room to grow, not a bigger forced reserve
   const a=R.aiKeepPop*popOf(c), b=R.aiKeepCap*popCap(c)/M(c,"capacity");
   return Math.max(50,Math.round(strict?Math.max(a,b):Math.min(a,b))); }
+// AI troop choice: strength per cost, with wood and iron at their market value (what the state has in stock doesn't matter).
+// Cost per soldier = training + years of upkeep + the person, plus replacing expected losses (fewer for tough troops),
+// so states short on people lean to quality troops.
+function aiTroopCost(g,c,t,n,pv){
+  const train=t.food*g.price+t.wood*resPrice("wood")+t.iron*resPrice("iron")+t.gold, Y=R.aiTroopYears;
+  return Y*((t.upFood-1)*g.price+t.upGold)+(train+pv)*(1+Y*R.aiTroopLoss/(t.tough||1));
+}
+// what one more soldier's person is worth: more when births are slow, when few peasants are spare, and when money is plentiful
+function aiPersonValue(g,c,n,floorStrict){
+  const room=Math.max(1,c.peasants-aiPeasantFloor(c,floorStrict)), rich=Math.min(2,Math.max(0,c.money-wages(c)*6)/5000);
+  return R.aiPersonValue*(R.birthRate/Math.max(1e-4,growthRate(c)))*(1+3*Math.min(1,n/room))*(1+rich);
+}
+function aiTroopOrder(g,c,n,role,pv){ return TROOPS.filter(t=>troopUnlocked(c,t.id)&&t[role]>0).map(t=>[t,t[role]/aiTroopCost(g,c,t,n,pv)]).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
 function aiRecruit(g,c,n,role,floorStrict=true){
   n=Math.min(n,Math.max(0,c.peasants-aiPeasantFloor(c,floorStrict))); if(n<=0) return 0;
   const tr=troopsOf(c); role=role||(troopSum(tr,"atk")<troopSum(tr,"def")?"atk":"def");
-  const opts=TROOPS.filter(t=>troopUnlocked(c,t.id)).sort((a,b)=>b[role]-a[role]);
+  const opts=aiTroopOrder(g,c,n,role,aiPersonValue(g,c,n,floorStrict));
   for(const t of opts){ const k=aiCanPay(g,c,t,n); if(k>=Math.max(1,n*0.5)) return aiBuyAndHire(g,c,t,k); }
   const t=opts.map(t=>[t,aiCanPay(g,c,t,n)]).sort((a,b)=>b[1]*b[0][role]-a[1]*a[0][role])[0];
   return t&&t[1]>0?aiBuyAndHire(g,c,t[0],t[1]):0;
@@ -1171,8 +1185,13 @@ function aiTurn(g,c){
     const netNoSci=projectedNet(g,c)+workers(c).sci*R.sciWage, payable=Math.max(0,netNoSci*0.9+Math.max(0,c.money-1000)*0.15)/R.sciWage;
     let sciShare=Math.min(t<milStart?0.25:t<60?0.22:0.18, R.aiSciMax, payable/P, 0.9-farmShare); if(panic) sciShare*=0.5;
     sciShare=Math.max(0,sciShare);
-    const spare=Math.max(0,1-farmShare-sciShare), ironShare=early?0.3:0.55;
+    // wood vs iron: lean toward whichever this state produces better (bonuses and research, vs the base yields)
+    const yW=M(c,"wood")*(1+R.woodPerLevel*lvl(c,"wood"))*wonderMul(c,"wood"), yI=M(c,"iron")*(1+R.ironPerLevel*lvl(c,"iron"))*wonderMul(c,"iron");
+    const base=early?0.3:0.55, tilt=Math.pow(yI/yW,R.aiResLean);
+    const spare=Math.max(0,1-farmShare-sciShare), ironShare=Math.min(0.9,Math.max(0.1,base*tilt/(base*tilt+1-base)));
     c.work={wood:Math.floor(spare*(1-ironShare)*100), iron:Math.floor(spare*ironShare*100), sci:Math.floor(sciShare*100)}; }
+  // wood and iron: sell what is above a reserve (3 years of production), so a wood-rich state can pay for iron troops
+  for(const r of ["wood","iron"]){ const keep=Math.max(200,3*production(c)[r]); if((c[r]||0)>keep) act.sellRes(g,c,r,Math.floor((c[r]-keep)*0.5)); }
   // grain planning: this year's food arrives before eating; keep a reserve, trade the rest
   const food=Math.round(foodUse(c)*1.04), prod=foodProduction(c), reserve=Math.round(food*0.3);
   if(c.grain+prod<food+reserve){ act.buy(g,c,food+reserve-c.grain-prod); }
@@ -1265,8 +1284,9 @@ function aiTurn(g,c){
 function aiUpgrade(g,c){
   const tr=troopsOf(c); if(!tr.spear) return;
   const role=troopSum(tr,"atk")<troopSum(tr,"def")?"atk":"def";
-  const best=TROOPS.filter(t=>troopUnlocked(c,t.id)&&t.id!=="spear").sort((a,b)=>b[role]-a[role])[0]; if(!best) return;
   if(c.money<wages(c)*6+2000) return;
+  // retraining keeps the same people, so count people as scarce; only switch to a troop stronger per head than a spearman
+  const best=aiTroopOrder(g,c,tr.spear,role,aiPersonValue(g,c,Infinity,true)).find(t=>t[role]>TROOP.spear[role]); if(!best) return;
   const n=Math.min(tr.spear-committedOf(c,"spear"),aiCanPay(g,c,best,Math.floor(tr.spear*0.25))); if(n<=0) return;
   // retrain: the spearmen go back to the fields, the new troops are hired from them (same people)
   tr.spear-=n; c.soldiers-=n; c.peasants+=n; aiBuyAndHire(g,c,best,n);
@@ -1436,10 +1456,10 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   const strD=troopSum(gTr,"def")*pD*genFactor(dg)*(1+R.defenderBonus)*(1+fb)*rr(g,1-R.battleLuck,1+R.battleLuck);
   let taken=0,lossA=0,lossD=0,win=false;
   let decisive=1;
-  if(troopCount(gTr)<=0||strD<=0){ win=true; const L=casualties(atkTr,R.raidLoss,"atk"); applyLosses(A,atkTr,L.out); lossA=L.n; }
+  if(troopCount(gTr)<=0||strD<=0){ win=true; const L=casualties(atkTr,R.raidLoss); applyLosses(A,atkTr,L.out); lossA=L.n; }
   else {
     const r=strA/strD, fA=R.battleLoss*strD/(strA+strD)*(r>1?1:R.loserPenalty), fD=R.battleLoss*strA/(strA+strD);
-    const LA=casualties(atkTr,fA,"atk"), LD=casualties(gTr,fD,"def");
+    const LA=casualties(atkTr,fA), LD=casualties(gTr,fD);
     for(const k in LD.out) LD.out[k]=Math.min(pool[k]||0,Math.round(LD.out[k])); // whole soldiers only
     LD.n=Object.values(LD.out).reduce((s,v)=>s+v,0);
     applyLosses(A,atkTr,LA.out); applyLosses(D,pool,LD.out); lossA=LA.n; lossD=LD.n;
@@ -2233,7 +2253,7 @@ function pBarracks(){
       <td class="r">${fmt(tr[t.id]||0)}</td>
       <td style="white-space:nowrap">${open?`<input type="number" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`:""}</td></tr>`; }).join("")}
   </table>
-  <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, each troop type takes losses in proportion to the damage it deals, softened by its toughness. Attacks send your most offensive troops first (${ATTACK_ORDER.map(k=>TROOP[k].name).join(", ")}); the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
+  <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, losses are divided by toughness: a troop with toughness 2 loses half as many as a Spearman. Attacks send your most offensive troops first (${ATTACK_ORDER.map(k=>TROOP[k].name).join(", ")}); the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
 }
 // work shares: each job up to WORK_MAX %, all jobs together up to WORK_TOTAL % (farmers are everyone else)
 const WORK_MAX=80, WORK_TOTAL=90, WORK_KEYS=["wood","iron","sci"];
@@ -2498,19 +2518,19 @@ const SETTINGS_META=[
   ["Map",[["mapLabels","State names on the map (zoom in to see the style; small states keep classic text)","select"]]],
   ["Start",[["startPeasants","Starting peasants"],["startGrain","Starting grain"],["startMoney","Starting money"],["startWood","Starting wood"],["startIron","Starting iron"]]],
   ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["minPop","A state below this population collapses"]]],
-  ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Wood sell price"],["ironPrice","Iron sell price"],["resBuy","Wood/iron buy price (× sell price)"],["grainBuy","Grain buy price (× market price)"],["priceMin","Lowest grain price"],["priceMax","Highest grain price"],["priceMean","Grain price drifts toward"],["priceDrift","Largest grain price change per year"]]],
+  ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Wood sell price"],["ironPrice","Iron sell price"],["resBuy","Wood/iron buy price (× base price)"],["resSell","Wood/iron sell price (× base price)"],["grainBuy","Grain buy price (× market price)"],["priceMin","Lowest grain price"],["priceMax","Highest grain price"],["priceMean","Grain price drifts toward"],["priceDrift","Largest grain price change per year"]]],
   ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["sizeRef","Level cost grows with size: population at ×1 (0 = off)"],["sizeExp","Level cost grows with size: exponent (× (pop ÷ that)^exponent)"],["catchUpPer","Catching up: cheaper per level behind the world average","%"],["catchUpMax","Catching up: at most this much cheaper","%"],["leadPer","Leading: dearer per level ahead of the world average","%"],["leadMax","Leading: at most this many times the cost (1 = off)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Exploring: land per battle and settling per level","%"],["sciMax","Max research bonus: Science (0 = no cap)","%"],["agriMax","Max research bonus: Agriculture","%"],["finMax","Max research bonus: Finance","%"],["densMax","Max research bonus: Pop. density (share of base capacity)","%"],["growMax","Max research bonus: Pop. growth (share of base birth rate)","%"],["atkMax","Max research bonus: Attack","%"],["defMax","Max research bonus: Defense","%"],["woodMax","Max research bonus: Forestry","%"],["ironMax","Max research bonus: Mining","%"],["exploreMax","Max research bonus: Exploring","%"]]],
-  ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share of army toughness)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
+  ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
   ["Relations (−100 hostile … +100 friendly)",[["relPeace","Peace: gain per year with a neighbor that didn't attack you"],["relForgive","Peace: share of bad feeling that fades per year","%"],["relHit","Attacked: loss toward the attacker"],["relHitLand","Attacked: extra loss per 1% of your land taken"],["relHitFail","Attacked but held them off: loss"],["relWitness","Witness: loss for the attacker's other neighbors"],["relWitnessNear","Witness: loss if they also border the victim"],["relAlly","Ally attacked: loss for the victim's alliance members"],["relJustified","Justified war: witness penalty × (striking back)"],["relJustYears","Justified war: counts if they attacked you within (years)"],["relSize","Size threat: loss per year per extra × the neighbors' average size"],["relSizeFrom","Size threat: starts above this × average"],["relSizeMax","Size threat: most lost per year"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −relation ÷ this"],["relFriendMargin","Computer: extra margin needed vs a +100 friend","%"],["relHateMargin","Computer: smaller margin vs a −100 enemy","%"],["relGuard","Computer: threat from a neighbor ± by its relation","%"]]],
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year"]]],
   ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
-  ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiKeepPop","Peasant reserve: share of population","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
+  ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiKeepPop","Peasant reserve: share of population","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
   ["Coalition (balance of power)",[["coalition","Coalitions on","bool"],["coalitionShare","A leader is a runaway above this × an average share"],["coalitionMin","…but at least this share of all land","%"],["coalitionMax","…and at most this share of all land","%"],["coalJoint","Joint-attack optimism per extra member"],["coalJointMax","Joint-attack optimism cap (×)"],["coalMargin","Lower attack margin against the leader","%"],["coalArm","Extra army share for members","%"]]],
 ];
 const TABLE_META={
   troops:{title:"Troops",cols:[["name","Name","text"],["icon","Icon","icon"],["atk","Attack"],["def","Defense"],["tough","Toughness"],["food","🌾 cost"],["wood","🌲 cost"],["iron","⛏️ cost"],["gold","💰 cost"],["upFood","🌾 upkeep"],["upGold","💰 upkeep"],["hold","Holds km²"]],
-    note:"Strength is per soldier (a Spearman = 1). Toughness softens losses. Costs are paid when training; upkeep every year."},
+    note:"Strength is per soldier. Battle losses are divided by toughness. Costs are paid when training; upkeep every year."},
   civs:{title:"Civilizations",cols:[["name","Name","text"],...TRAIT_COLS],note:"Multipliers: 1 = no effect, 1.2 = +20%. Civilization, leader and land bonuses add together."},
   leaders:{title:"Leaders",cols:[["name","Name","text"],...TRAIT_COLS,["mil","War-minded chance","%"],["guard","Army kept home (×)"]],note:"War-minded chance: how likely a computer state with this leader is militaristic. Army kept home multiplies its defense target."},
   lands:{title:"Land types",cols:[["name","Name","text"],...TRAIT_COLS,["coastal","Coastal only","bool"]],note:"Coastal-only land types go to states with enough shore land (see General → Land)."},
@@ -2668,7 +2688,7 @@ function helpModal(){
   <li>Population grows toward capacity (land × density). Pop. density and growth research raise it.</li></ul>
   <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last. Big states pay more per level (cost × √(population ÷ ${fmt(R.sizeRef)})). Ideas spread: an area costs ${Math.round(R.catchUpPer*100)}% less per level you are behind the world average (at most −${Math.round(R.catchUpMax*100)}%) and ${Math.round(R.leadPer*100)}% more per level you are ahead (at most ×${R.leadMax}). Each area's research bonus has a max (e.g. +${Math.round(R.atkMax*100)}% attack, +${Math.round(R.sciMax*100)}% research): early levels give the full amount, later ones less and less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can take the total past it.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""}</li></ul>
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Economy tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
-  <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Attackers fight with attack, guards with defense; attacks send your most offensive troops first. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
+  <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; attacks send your most offensive troops first. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
   <h3>War</h3><ul class="log">
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
