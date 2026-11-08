@@ -294,9 +294,15 @@ const R = {
   grainBuy: 1.6, priceMin: 0.7, priceMax: 1.6, priceMean: 1.1, priceDrift: 0.15, // grain market
   // research: cost per level = researchCostBase × (level+1)^researchCostExp; effect per level
   researchCostBase: 5, researchCostExp: 2.5,
-  levelKnee: 25,                   // diminishing returns: levels count in full up to 25, beyond that with the square root
+  sizeRef: 1000, sizeExp: 0.5,     // big states pay more per level: cost × (population ÷ 1000)^0.5 (never below ×1)
+  catchUpPer: 0.05, catchUpMax: 0.5, // behind the world average level in an area: −5% cost per level behind, at most −50%
+  leadPer: 0.05, leadMax: 3,       // ahead of it: +5% cost per level ahead, at most ×3
+  levelKnee: 0,                    // old diminishing returns: levels count in full up to this, beyond that with the square root (0 = off; the caps below replace it)
+  // research cap: an area's research bonus approaches its max and never passes it (as a share of the base: 2.5 = +250%).
+  // Early levels give the full per-level amount. Civilization, leader, land and wonder bonuses multiply on top, so totals can go higher. 0 = no cap
+  sciMax: 1.5, agriMax: 2.5, finMax: 1.5, densMax: 2, growMax: 1, atkMax: 2.5, defMax: 2.5, woodMax: 2.5, ironMax: 2.5, exploreMax: 1,
   techEdgeMax: 3,                  // in battle, one side's attack/defense research counts at most 3× the other side's
-  sciPerLevel: 0.1, agriPerLevel: 0.06, finTaxPerLevel: 0.07, finPricePerLevel: 0.02, densPerLevel: 0.5, growPerLevel: 0.006,
+  sciPerLevel: 0.1, agriPerLevel: 0.06, finTaxPerLevel: 0.07, finPricePerLevel: 0.02, densPerLevel: 0.15, growPerLevel: 0.0006,
   atkPerLevel: 0.08, defPerLevel: 0.08, woodPerLevel: 0.08, ironPerLevel: 0.08, explorePerLevel: 0.05,
   // battle
   defenderBonus: 0.15, battleLoss: 0.7, loserPenalty: 1.2, raidLoss: 0.02, battleLuck: 0.15, narrowWinShare: 0.25,
@@ -336,7 +342,16 @@ const R = {
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
 
-function levelCost(L){ return Math.round(R.researchCostBase*Math.pow(L+1,R.researchCostExp)); }
+function levelCost(L,mul=1){ return Math.round(R.researchCostBase*Math.pow(L+1,R.researchCostExp)*mul); }
+// average level of each area across living states (catch-up pricing compares against it)
+function worldAvgLv(g){ const A=g.countries.filter(c=>c.alive&&c.lv), o={}; for(const a of AREAS) o[a]=A.length?A.reduce((s,c)=>s+(c.lv[a]||0),0)/A.length:0; return o; }
+// what scales a state's level cost in an area: its size, and how far it is ahead of or behind the world average
+function costParts(g,c,a){
+  const size=R.sizeRef>0?Math.pow(Math.max(1,popOf(c)/R.sizeRef),R.sizeExp):1;
+  const d=(c.lv[a]||0)-((g.avgLv||(g.avgLv=worldAvgLv(g)))[a]||0);
+  const edge=d<0?Math.max(1-R.catchUpMax,1+R.catchUpPer*d):Math.min(Math.max(1,R.leadMax),1+R.leadPer*d);
+  return {size,edge,d,mul:size*edge};
+}
 // ---------- civilizations & leaders (values from the epic-battle project) ----------
 // Each is a set of multipliers. A state's modifier for a stat = 1 + (civ − 1) + (leader − 1) + (land − 1):
 // bonuses add up rather than multiply, so combinations stay moderate.
@@ -407,7 +422,13 @@ const WONDERS = {sci:{name:"Great Library",icon:"📜",bonus:0.25}, agri:{name:"
 const WONDER_EFFECT = {sci:"research",agri:"food",fin:"taxes",dens:"population capacity",grow:"birth rate",atk:"attack strength",def:"defense strength",wood:"wood",iron:"iron",explore:"land taken & settling"};
 // diminishing returns: a level counts in full up to R.levelKnee, then grows with its square root (smooth at the knee)
 function effLevel(L){ const K=R.levelKnee; return K>0&&L>K ? K*(2*Math.sqrt(L/K)-1) : L; }
-function lvl(c,a){ return effLevel(c.lv[a]||0); }
+// per-level setting of each area (its main effect) and the base it's measured against
+const RES_PER={sci:"sciPerLevel",agri:"agriPerLevel",fin:"finTaxPerLevel",dens:"densPerLevel",grow:"growPerLevel",atk:"atkPerLevel",def:"defPerLevel",wood:"woodPerLevel",iron:"ironPerLevel",explore:"explorePerLevel"};
+const resBase=a=>a==="dens"?R.popPerKm:a==="grow"?R.birthRate:1;
+// effective level: with a cap, bonus = per×L ÷ (1 + per×L ÷ cap), so it starts at the full rate and approaches the cap
+function lvl(c,a){ const L=effLevel(c.lv[a]||0), mx=R[a+"Max"], per=R[RES_PER[a]]; return mx>0&&per>0 ? L/(1+L*per/(mx*resBase(a))) : L; }
+// research bonus of an area as a share of its base (0.6 = +60%)
+function resBonus(c,a){ return R[RES_PER[a]]*lvl(c,a)/resBase(a); }
 function wonderMul(c,a){ return c.wb&&c.wb[a] ? 1+(WONDERS[a]?.bonus??0.25) : 1; }
 function wonderPct(a){ return Math.round((WONDERS[a]?.bonus??0.25)*100); }
 function popCap(c){ return Math.round(c.land*(R.popPerKm+R.densPerLevel*lvl(c,"dens"))*M(c,"capacity")*wonderMul(c,"dens")); }
@@ -1299,6 +1320,7 @@ function endTurn(g){
   g.log=[]; g.battles=[]; g.collapsed=[];
   if(g.hegemon===undefined) computeHegemon(g); // older saves
   migrateResearch(g); migrateRelations(g);
+  g.avgLv=worldAvgLv(g); // research costs compare against the average at the start of the year
   C.forEach(c=>{ if(c.civ) c.mod=computeMods(civOf(c),leaderOf(c),landOf(c)); }); // settings may have changed
   C.forEach(c=>{ if(c.alive&&c.ai) aiTurn(g,c); if(!c.ai) c.eff=1; c.lostThis=0; });
   // battles
@@ -1515,7 +1537,7 @@ function economy(g,c){
   const tot=AREAS.reduce((s,a)=>s+Math.max(0,c.alloc[a]||0),0)||1;
   for(const a of AREAS){
     c.rp[a]+=pts*Math.max(0,c.alloc[a]||0)/tot;
-    while(c.rp[a]>=levelCost(c.lv[a])){ c.rp[a]-=levelCost(c.lv[a]); c.lv[a]++; L(`🔬 ${AREA_NAMES[a]} reached level ${c.lv[a]}.`); }
+    let cost; while(c.rp[a]>=(cost=levelCost(c.lv[a],costParts(g,c,a).mul))){ c.rp[a]-=cost; c.lv[a]++; L(`🔬 ${AREA_NAMES[a]} reached level ${c.lv[a]}.`); }
   }
   // generals
   for(const gen of c.generals.slice()){
@@ -1549,7 +1571,7 @@ function applySettings(o){
   ATTACK_ORDER.splice(0,ATTACK_ORDER.length,...TROOPS.slice().sort((a,b)=>(b.atk/b.def)-(a.atk/a.def)||b.atk-a.atk).map(t=>t.id));
 }
 
-if(typeof module!=="undefined") module.exports={newGame,endTurn,researchPoints,applySettings,DEFAULTS,SETTING_TABLES,foodProduction,migrateResearch,AREAS,foodUse,workers,production,affordable,TROOPS,TROOP,troopsOf,armyAtk,armyDef,troopCount,CIVS,LEADERS,LANDS,TRAITS,M,atkPower,defPower,setTraits,pickTraits,computeHegemon,lvl,WONDERS,wondersOf,frontWidth,frontBonus,shoreBonus,computeShore,act,aiTurn,neighbors,adjacency,popOf,popCap,levelCost,genPrice,taxIncome,wages,sellPrice,buyPrice,genFactor,speedCap,AREAS,AREA_NAMES,R};
+if(typeof module!=="undefined") module.exports={worldAvgLv,costParts,newGame,endTurn,researchPoints,applySettings,DEFAULTS,SETTING_TABLES,foodProduction,migrateResearch,AREAS,foodUse,workers,production,affordable,TROOPS,TROOP,troopsOf,armyAtk,armyDef,troopCount,CIVS,LEADERS,LANDS,TRAITS,M,atkPower,defPower,setTraits,pickTraits,computeHegemon,lvl,WONDERS,wondersOf,frontWidth,frontBonus,shoreBonus,computeShore,act,aiTurn,neighbors,adjacency,popOf,popCap,levelCost,genPrice,taxIncome,wages,sellPrice,buyPrice,genFactor,speedCap,AREAS,AREA_NAMES,R};
 
 </script>
 <script>
@@ -2237,12 +2259,12 @@ function pScience(){
   return `<div class="row"><span>Research output: <b>${fmt(pts)}</b> points/yr from ${fmt(workers(c).sci)} scientists <span class="small mut">(set how many in Economy → Work)</span>.</span></div>
   <div class="row small"><span class="mut">Presets:</span><button class="sm" data-preset="sci" title="Everything into Science: research grows fastest, but nothing else levels up">Science run</button><button class="sm" data-preset="econ">Economy</button><button class="sm" data-preset="bal">Balanced</button><button class="sm" data-preset="war">War</button></div>
   <table class="tight"><tr><th>Area</th><th class="r">Lvl</th><th>Progress</th><th>Share</th></tr>
-  ${AREAS.map(a=>{const cost=levelCost(c.lv[a]); const share=Math.round(100*c.alloc[a]/tot); const eta=pts*c.alloc[a]/tot>0?Math.ceil((cost-c.rp[a])/(pts*c.alloc[a]/tot)):null;
-    return `<tr><td><b>${AREA_NAMES[a]}</b><div class="small mut">${eff[a]}</div>${c.lv[a]>R.levelKnee&&R.levelKnee>0?`<div class="small mut">Counts as level ${+lvl(c,a).toFixed(1)} (diminishing returns above ${R.levelKnee})</div>`:""}${c.wb?.[a]?`<div class="small good">${WONDERS[a].icon} ${WONDERS[a].name}: +${wonderPct(a)}% ${WONDER_EFFECT[a]}</div>`:""}</td><td class="r"><span class="lvbox">${c.lv[a]}</span></td>
-    <td style="min-width:110px"><div class="bar"><i style="width:${Math.min(100,100*c.rp[a]/cost)}%"></i></div><div class="small mut">${fmt(c.rp[a])}/${fmt(cost)}${eta?` · ${eta}y`:""}</div></td>
+  ${AREAS.map(a=>{const cp=costParts(G,c,a), cost=levelCost(c.lv[a],cp.mul); const share=Math.round(100*c.alloc[a]/tot); const eta=pts*c.alloc[a]/tot>0?Math.ceil((cost-c.rp[a])/(pts*c.alloc[a]/tot)):null;
+    return `<tr><td><b>${AREA_NAMES[a]}</b><div class="small mut">${eff[a]}</div>${c.lv[a]>0?`<div class="small mut" title="${R[a+"Max"]>0?"Each level adds a bit less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can go past it.":"No cap"}">Research bonus <b>+${Math.round(resBonus(c,a)*100)}%</b>${R[a+"Max"]>0?` of max +${Math.round(R[a+"Max"]*100)}%`:""}</div>`:""}${c.wb?.[a]?`<div class="small good">${WONDERS[a].icon} ${WONDERS[a].name}: +${wonderPct(a)}% ${WONDER_EFFECT[a]}</div>`:""}</td><td class="r"><span class="lvbox">${c.lv[a]}</span></td>
+    <td style="min-width:110px"><div class="bar"><i style="width:${Math.min(100,100*c.rp[a]/cost)}%"></i></div><div class="small mut">${fmt(c.rp[a])}/${fmt(cost)}${eta?` · ${eta}y`:""}</div>${Math.abs(cp.mul-1)>0.005?`<div class="small mut" title="Size ×${cp.size.toFixed(2)} (bigger states pay more) · world average level ${(c.lv[a]-cp.d).toFixed(1)}: ${cp.d<0?"behind, so cheaper":"ahead, so dearer"} ×${cp.edge.toFixed(2)}">cost ×${cp.mul.toFixed(2)}${Math.abs(cp.d)>=0.5?` · <span class="${cp.d<0?"good":"bad"}">${cp.d<0?"":"+"}${cp.d.toFixed(0)} vs world</span>`:""}</div>`:""}</td>
     <td style="white-space:nowrap">${(lk=>`<input type="range" min="0" max="100" value="${share}" data-alloc="${a}" style="width:70px"${lk?" disabled":""}> <input type="text" inputmode="numeric" maxlength="3" value="${share}" data-allocpct="${a}" style="width:38px;text-align:right" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-lock="${a}" title="${lk?"Locked: other areas can't change this share. Click to unlock":"Lock this share so changing other areas leaves it alone"}">${lk?"🔒":"🔓"}</button>`)(!!c.allocLock?.[a])}</td></tr>`}).join("")}
   </table>
-  <div class="small mut" style="margin-top:6px">Drag a slider or type an exact %; the other unlocked areas rescale so the total stays 100%. Lock 🔒 an area to keep its share fixed. Each level in an area costs more than the last, and levels above ${R.levelKnee} have diminishing returns (they count with the square root). In battle, the side with better Attack/Defense research gets at most ${R.techEdgeMax}× the other side's research bonus.</div>
+  <div class="small mut" style="margin-top:6px">Drag a slider or type an exact %; the other unlocked areas rescale so the total stays 100%. Lock 🔒 an area to keep its share fixed. Each level in an area costs more than the last. Bigger states pay more per level (×√(population ÷ ${fmt(R.sizeRef)})), and an area is up to ${Math.round(R.catchUpMax*100)}% cheaper when you're behind the world average and up to ×${R.leadMax} dearer when you're ahead. Each area's research bonus approaches a max and never passes it. Civilization, leader, land and wonder bonuses multiply on top, so your total can go higher.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""} In battle, the side with better Attack/Defense research gets at most ${R.techEdgeMax}× the other side's research bonus.</div>
   ${bonusTable(c)}`;
 }
 
@@ -2433,7 +2455,7 @@ const SETTINGS_META=[
   ["Start",[["startPeasants","Starting peasants"],["startGrain","Starting grain"],["startMoney","Starting money"],["startWood","Starting wood"],["startIron","Starting iron"]]],
   ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["minPop","A state below this population collapses"]]],
   ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Wood sell price"],["ironPrice","Iron sell price"],["resBuy","Wood/iron buy price (× sell price)"],["grainBuy","Grain buy price (× market price)"],["priceMin","Lowest grain price"],["priceMax","Highest grain price"],["priceMean","Grain price drifts toward"],["priceDrift","Largest grain price change per year"]]],
-  ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Exploring: land per battle and settling per level","%"]]],
+  ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["sizeRef","Level cost grows with size: population at ×1 (0 = off)"],["sizeExp","Level cost grows with size: exponent (× (pop ÷ that)^exponent)"],["catchUpPer","Catching up: cheaper per level behind the world average","%"],["catchUpMax","Catching up: at most this much cheaper","%"],["leadPer","Leading: dearer per level ahead of the world average","%"],["leadMax","Leading: at most this many times the cost (1 = off)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Exploring: land per battle and settling per level","%"],["sciMax","Max research bonus: Science (0 = no cap)","%"],["agriMax","Max research bonus: Agriculture","%"],["finMax","Max research bonus: Finance","%"],["densMax","Max research bonus: Pop. density (share of base capacity)","%"],["growMax","Max research bonus: Pop. growth (share of base birth rate)","%"],["atkMax","Max research bonus: Attack","%"],["defMax","Max research bonus: Defense","%"],["woodMax","Max research bonus: Forestry","%"],["ironMax","Max research bonus: Mining","%"],["exploreMax","Max research bonus: Exploring","%"]]],
   ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share of army toughness)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
   ["Relations (−100 hostile … +100 friendly)",[["relPeace","Peace: gain per year with a neighbor that didn't attack you"],["relForgive","Peace: share of bad feeling that fades per year","%"],["relHit","Attacked: loss toward the attacker"],["relHitLand","Attacked: extra loss per 1% of your land taken"],["relHitFail","Attacked but held them off: loss"],["relWitness","Witness: loss for the attacker's other neighbors"],["relWitnessNear","Witness: loss if they also border the victim"],["relAlly","Ally attacked: loss for the victim's alliance members"],["relJustified","Justified war: witness penalty × (striking back)"],["relJustYears","Justified war: counts if they attacked you within (years)"],["relSize","Size threat: loss per year per extra × the neighbors' average size"],["relSizeFrom","Size threat: starts above this × average"],["relSizeMax","Size threat: most lost per year"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −relation ÷ this"],["relFriendMargin","Computer: extra margin needed vs a +100 friend","%"],["relHateMargin","Computer: smaller margin vs a −100 enemy","%"],["relGuard","Computer: threat from a neighbor ± by its relation","%"]]],
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year"]]],
@@ -2599,7 +2621,7 @@ function helpModal(){
   <li>Taxes and selling surplus grain are your income. Scientists cost ${R.sciWage}/yr and cavalry needs gold upkeep. If you can't pay, they quit.</li>
   <li><b>Shore farmland:</b> land touching water harvests more: +1% for every 1% of your land on the shore, up to +${R.shoreMax*100}%.</li>
   <li>Population grows toward capacity (land × density). Pop. density and growth research raise it.</li></ul>
-  <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last, and levels above ${R.levelKnee} have diminishing returns (they count with the square root).</li></ul>
+  <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last. Big states pay more per level (cost × √(population ÷ ${fmt(R.sizeRef)})). Ideas spread: an area costs ${Math.round(R.catchUpPer*100)}% less per level you are behind the world average (at most −${Math.round(R.catchUpMax*100)}%) and ${Math.round(R.leadPer*100)}% more per level you are ahead (at most ×${R.leadMax}). Each area's research bonus has a max (e.g. +${Math.round(R.atkMax*100)}% attack, +${Math.round(R.sciMax*100)}% research): early levels give the full amount, later ones less and less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can take the total past it.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""}</li></ul>
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Economy tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Attackers fight with attack, guards with defense; attacks send your most offensive troops first. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
