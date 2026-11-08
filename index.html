@@ -302,8 +302,8 @@ const R = {
   // Early levels give the full per-level amount. Civilization, leader, land and wonder bonuses multiply on top, so totals can go higher. 0 = no cap
   sciMax: 1.5, agriMax: 2.5, finMax: 1.5, densMax: 2, growMax: 1, atkMax: 2.5, defMax: 2.5, woodMax: 2.5, ironMax: 2.5, exploreMax: 1,
   techEdgeMax: 3,                  // in battle, one side's attack/defense research counts at most 3× the other side's
-  sciPerLevel: 0.1, agriPerLevel: 0.06, finTaxPerLevel: 0.07, finPricePerLevel: 0.02, densPerLevel: 0.15, growPerLevel: 0.0006,
-  atkPerLevel: 0.08, defPerLevel: 0.08, woodPerLevel: 0.08, ironPerLevel: 0.08, explorePerLevel: 0.05,
+  sciPerLevel: 0.075, agriPerLevel: 0.045, finTaxPerLevel: 0.05, finPricePerLevel: 0.015, densPerLevel: 0.15, growPerLevel: 0.0006,
+  atkPerLevel: 0.06, defPerLevel: 0.06, woodPerLevel: 0.06, ironPerLevel: 0.06, explorePerLevel: 0.04,
   // battle
   defenderBonus: 0.15, battleLoss: 0.7, loserPenalty: 1.2, raidLoss: 0.02, battleLuck: 0.15, narrowWinShare: 0.25,
   capturedPeasants: 0.8, lootGrain: 0.5,
@@ -433,7 +433,7 @@ function wonderMul(c,a){ return c.wb&&c.wb[a] ? 1+(WONDERS[a]?.bonus??0.25) : 1;
 function wonderPct(a){ return Math.round((WONDERS[a]?.bonus??0.25)*100); }
 function popCap(c){ return Math.round(c.land*(R.popPerKm+R.densPerLevel*lvl(c,"dens"))*M(c,"capacity")*wonderMul(c,"dens")); }
 function growthRate(c){ return (R.birthRate+R.growPerLevel*lvl(c,"grow"))*M(c,"births")*wonderMul(c,"grow"); }
-// food per year: farmers × rate × Agriculture (+6%/level) × shore farmland × civilization/leader/land food bonus
+// food per year: farmers × rate × Agriculture (+4.5%/level) × shore farmland × civilization/leader/land food bonus
 function foodPerFarmer(c){ return R.foodPerFarmer*(1+R.agriPerLevel*lvl(c,"agri"))*(1+shoreBonus(c))*M(c,"food")*wonderMul(c,"agri"); }
 function foodProduction(c){ return Math.round(workers(c).farm*foodPerFarmer(c)); }
 function popOf(c){ return c.peasants+c.sci+c.soldiers; }
@@ -441,7 +441,7 @@ function foodUse(c){ let f=c.peasants+c.sci; const tr=c.troops||{spear:c.soldier
 // peasants at work: woodcutters and miners by the work split; everyone else farms
 function workers(c){ const w=c.work||{}, f=k=>Math.floor(c.peasants*(w[k]||0)/100), wood=f("wood"), iron=f("iron"), sci=f("sci"); return {wood,iron,sci,farm:c.peasants-wood-iron-sci}; }
 function researchPoints(c){ return workers(c).sci*(1+R.sciPerLevel*lvl(c,"sci"))*M(c,"science")*wonderMul(c,"sci"); }
-function production(c){ const w=workers(c); return {wood:Math.round(w.wood*R.woodPerWorker*M(c,"wood")*(1+R.woodPerLevel*lvl(c,"wood"))*wonderMul(c,"wood")), iron:Math.round(w.iron*R.ironPerWorker*M(c,"iron")*(1+R.ironPerLevel*lvl(c,"iron"))*wonderMul(c,"iron"))}; } // Forestry / Mining +8%/level
+function production(c){ const w=workers(c); return {wood:Math.round(w.wood*R.woodPerWorker*M(c,"wood")*(1+R.woodPerLevel*lvl(c,"wood"))*wonderMul(c,"wood")), iron:Math.round(w.iron*R.ironPerWorker*M(c,"iron")*(1+R.ironPerLevel*lvl(c,"iron"))*wonderMul(c,"iron"))}; } // Forestry / Mining +6%/level
 // ---------- troop types (from epic-battle: attack/defense ÷ 4 so a Spearman = 1; toughness = health+armor ÷ 23) ----------
 // Costs (food/wood/iron/gold) and upkeep (food/gold per year) are epic-battle's. All available from the start.
 // Every troop is one person, so elite troops are the way to get more strength per head.
