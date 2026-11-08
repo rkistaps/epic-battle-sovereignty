@@ -65,6 +65,7 @@ table.atab th,table.atab td{white-space:nowrap}
 table.atab td.r,table.atab th.r{padding-left:12px}
 table.atab td.nm{width:100%;max-width:0}
 table.atab .nmtxt{overflow:hidden;text-overflow:ellipsis}
+table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(--mut);font-variant-numeric:tabular-nums}
 .pips{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;max-width:100%}
 .pips i{display:block;width:6px;height:6px;border-radius:1px}
 .pips i.off{background:#3a3f4a !important}
@@ -2384,8 +2385,8 @@ function pWorld(){
   <h3>Rankings</h3>
   ${hidden?`<div class="small mut">🌫 ${fmt(hidden)} other states are hidden by fog of war.</div>`:""}
   ${all.length>LIMIT?`<div class="small mut">Showing the top ${LIMIT} of ${fmt(all.length)} states.</div>`:""}
-  <table class="rank atab"><tr><th>State</th>${th("land","Land")}${th("pop","Pop")}${th("atk","Attack","Army attack power: every troop's attack × research, civilization, leader, land and wonder bonuses")}${th("def","Defense","Army defense power: every troop's defense × research, civilization, leader, land and wonder bonuses")}${th("sci","Science","Total science levels across all areas (hover a number for each area)")}</tr>
-  ${C.map(c=>`<tr class="click ${UI.sel===c.id?'sel':''}" data-pick="${c.id}"><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt"><span class="sw" style="background:${c.color}"></span>${c.id===G.player?"★ ":""}${allyPrefix(c)}${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r">${c.alive?researchCell(c):"—"}</td></tr>`).join("")}</table>
+  <table class="rank atab"><tr><th class="pl" title="Place">#</th><th>State</th>${th("land","Land")}${th("pop","Pop")}${th("atk","Attack","Army attack power: every troop's attack × research, civilization, leader, land and wonder bonuses")}${th("def","Defense","Army defense power: every troop's defense × research, civilization, leader, land and wonder bonuses")}${th("sci","Science","Total science levels across all areas (hover a number for each area)")}</tr>
+  ${C.map(c=>`<tr class="click ${UI.sel===c.id?'sel':''}" data-pick="${c.id}"><td class="pl">${c.alive?all.indexOf(c)+1:"—"}</td><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt"><span class="sw" style="background:${c.color}"></span>${c.id===G.player?"★ ":""}${allyPrefix(c)}${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r">${c.alive?researchCell(c):"—"}</td></tr>`).join("")}</table>
   <h3>Recent wars</h3>
   ${recent.length?recent.map(b=>`<div class="small"><b>Year ${b.turn}</b>${b.list.length?"":" <span class='mut'>peace</span>"}<ul class="log" style="margin:2px 0 6px;padding-left:18px">${b.list.map(battleLine).join("")}</ul></div>`).join(""):`<div class="mut small">No turns played yet.</div>`}`;
 }
@@ -2412,9 +2413,9 @@ function pAlliances(){
   const fog=G.fog?`<div class="small mut">🌫 Totals include states hidden by fog of war.</div>`:"";
   return `<h3>Alliance rankings</h3>${fog}
   <table class="rank atab">
-  <tr><th>Alliance</th>${th("states","States","States still standing (the strip under each name: one square per member, grey = fallen)")}${th("land","Land","km²")}${th("pop","Pop")}${th("atk","Attack","Sum of the members' army attack power")}${th("def","Defense","Sum of the members' army defense power")}${th("sci","Science","Sum of the members' science levels")}</tr>
-  ${rows.map(r=>{ const num=(v,f)=>`<td class="r" title="${fmt(v)}">${r.states?f(v):"—"}</td>`;
-    return `<tr class="${r.mine?"sel":""}"><td class="nm" title="${esc(r.t.name)}: ${r.states} of ${r.all} states standing"><div class="nmtxt"><b class="small" style="color:${inkOnDark(r.t.color)}">${esc(allyTag(G,r.t.id))}</b> ${r.mine?"★ ":""}${esc(r.t.name)}${r.states?"":` <span class="small bad">defeated</span>`}</div>${memberStrip(r.t.color,r.states,r.all)}</td>
+  <tr><th class="pl" title="Place">#</th><th>Alliance</th>${th("states","States","States still standing (the strip under each name: one square per member, grey = fallen)")}${th("land","Land","km²")}${th("pop","Pop")}${th("atk","Attack","Sum of the members' army attack power")}${th("def","Defense","Sum of the members' army defense power")}${th("sci","Science","Sum of the members' science levels")}</tr>
+  ${rows.map((r,i)=>{ const num=(v,f)=>`<td class="r" title="${fmt(v)}">${r.states?f(v):"—"}</td>`;
+    return `<tr class="${r.mine?"sel":""}"><td class="pl">${r.states?i+1:"—"}</td><td class="nm" title="${esc(r.t.name)}: ${r.states} of ${r.all} states standing"><div class="nmtxt"><b class="small" style="color:${inkOnDark(r.t.color)}">${esc(allyTag(G,r.t.id))}</b> ${r.mine?"★ ":""}${esc(r.t.name)}${r.states?"":` <span class="small bad">defeated</span>`}</div>${memberStrip(r.t.color,r.states,r.all)}</td>
     <td class="r" title="${r.states} of ${r.all} standing"><b>${fmt(r.states)}</b><span class="mut small">/${fmt(r.all)}</span></td>${num(r.land,fmtK)}${num(r.pop,fmtK)}${num(r.atk,fmtK)}${num(r.def,fmtK)}${num(r.sci,fmtK)}</tr>`; }).join("")}</table>
   <div class="small mut" style="margin-top:6px">Click a column to sort. Members of each alliance are listed with their tag in the World tab.</div>`;
 }
