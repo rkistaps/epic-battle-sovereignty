@@ -2085,20 +2085,30 @@ function bordersUnowned(g,id){ const {W,cells}=g, N=cells.length;
     if((x>0&&cells[i-1]===-1)||(x<W-1&&cells[i+1]===-1)||(i>=W&&cells[i-W]===-1)||(i+W<N&&cells[i+W]===-1)||linkedTo(g,i,-1)) return true; }
   return false; }
 // take over another state: you rule it, the computer rules your old one (relations stay with the land)
-const canTakeOver=()=>!!G&&!observing()&&!G.worldOver;
+// works from observer mode too (then nobody is handed back to the computer)
+const canTakeOver=()=>!!G&&!G.worldOver;
 function takeOver(id){
   const n=G.countries[id]; if(!canTakeOver()||!n||!n.alive||id===G.player) return;
-  const old=G.countries[G.player]; old.ai=true; old.attacks=[];
-  n.ai=false; n.attacks=[]; G.player=id;
+  const old=G.countries[G.player]; if(old){ old.ai=true; old.attacks=[]; }
+  n.ai=false; n.attacks=[]; G.player=id; G.observer=false;
   if(G.over==="lose") G.over=false; // back in the game after a defeat
   if(AUTO.on) setAuto(false);
   UI.sel=null; UI.attackTarget=null; UI.takeConfirm=null; UI.tab="economy";
   save(); render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom()));
   flash(`You now rule ${n.name}.`);
 }
+// give your state to the computer and keep watching as an observer
+const canGiveAway=()=>!!G&&!observing()&&me().alive&&!G.worldOver;
+function giveAway(){
+  if(!canGiveAway()) return;
+  const old=me(); old.ai=true; old.attacks=[];
+  G.player=OBSERVER; G.observer=true;
+  UI.sel=null; UI.attackTarget=null; UI.takeConfirm=null; UI.giveConfirm=false; UI.tab="world";
+  save(); render(); flash(`The computer now rules ${old.name}. You're watching.`);
+}
 function watchNote(){
   const c=me(), alive=G.countries.filter(x=>x.alive).length;
-  if(observing()) return `<div class="note">👁 <b>Observer mode.</b> ${G.worldOver?`The war is over${winnerLine()}.`:`Every state is run by the computer. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to watch.`}</div>
+  if(observing()) return `<div class="note">👁 <b>Observer mode.</b> ${G.worldOver?`The war is over${winnerLine()}.`:`Every state is run by the computer. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to watch, or click a state on the map and press <b>Take over</b> to rule it.`}</div>
   <div class="row"><button class="sm" data-tab="world">See rankings</button><button class="sm" data-a="newGame">New game</button></div>`;
   return `<div class="note">☠ <b>${esc(c.name)}</b> fell in year ${c.diedTurn}${c.killer!=null?` to ${esc(G.countries[c.killer].name)}`:""}.
     ${G.worldOver?`The war is over${winnerLine()}.`:`You're watching the rest of the world. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to keep going, or click a state on the map and press <b>Take over</b> to rule it.`}</div>
@@ -2396,9 +2406,12 @@ function inspect(c){
   return `<div class="gen sel"><div class="row"><span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}</b>${c.id===G.player?" (you)":""}<span class="grow"></span><button class="sm" data-pick="-1">✕</button></div>
   ${c.alive?`<div class="kv small"><span class="mut">Land</span><b>${fmt(c.land)} km²</b><span class="mut">Population</span><b>${fmt(popOf(c))}</b><span class="mut">Soldiers</span><b>${fmt(c.soldiers)} <span class="small mut">(atk ${fmtPow(armyAtk(c))} / def ${fmtPow(armyDef(c))})</span></b><span class="mut">Generals</span><b>${c.generals.length}</b>${traitName(c)?`<span class="mut">People</span><b>${esc(traitName(c))}</b>`:""}<span class="mut">Science levels</span><b class="small" style="font-weight:500">${AREAS.map(x=>`${AREA_NAMES[x]} ${c.lv[x]}`).join(" · ")}</b>${wondersOf(G,c.id).length?`<span class="mut">Wonders</span><b>${wondersOf(G,c.id).map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", ")}</b>`:""}
   ${c.id!==G.player&&!observing()?`<span class="mut">Relations with you</span><b>${relCell(relOf(G,c,G.player))}</b><span class="mut">Borders you</span><b>${adj?"yes":"no"}</b>`:""}</div>
-  ${c.id!==G.player&&!observing()?(UI.takeConfirm===c.id
-    ?`<div class="row small"><span>Rule <b>${esc(c.name)}</b> from now on? The computer takes over ${me().alive?esc(me().name):"nothing"}.</span><button class="sm pri" data-takeover="${c.id}">Yes, take over</button><button class="sm" data-takeask="-1">Cancel</button></div>`
-    :`<div class="row">${adj?`<button class="sm" data-target="${c.id}">Plan attack</button>`:""}${canTakeOver()?`<button class="sm" data-takeask="${c.id}" title="Swap: you rule this state, the computer rules yours">Take over</button>`:""}</div>`):""}`:`<div class="small bad">Destroyed in year ${c.diedTurn}${c.killer!=null?` by ${esc(G.countries[c.killer].name)}`:""}.</div>`}</div>`;
+  ${c.id!==G.player?(UI.takeConfirm===c.id
+    ?`<div class="row small"><span>Rule <b>${esc(c.name)}</b> from now on?${me().alive?` The computer takes over ${esc(me().name)}.`:""}</span><button class="sm pri" data-takeover="${c.id}">Yes, take over</button><button class="sm" data-takeask="-1">Cancel</button></div>`
+    :`<div class="row">${adj?`<button class="sm" data-target="${c.id}">Plan attack</button>`:""}${canTakeOver()?`<button class="sm" data-takeask="${c.id}" title="${me().alive?"Swap: you rule this state, the computer rules yours":"Rule this state from now on"}">Take over</button>`:""}</div>`)
+  :canGiveAway()?(UI.giveConfirm
+    ?`<div class="row small"><span>Hand <b>${esc(c.name)}</b> to the computer and keep watching? You can take over any state later.</span><button class="sm pri" data-giveaway="1">Yes, hand over</button><button class="sm" data-giveask="0">Cancel</button></div>`
+    :`<div class="row"><button class="sm" data-giveask="1" title="The computer rules your state from now on; you watch as an observer">Hand to computer</button></div>`):""}`:`<div class="small bad">Destroyed in year ${c.diedTurn}${c.killer!=null?` by ${esc(G.countries[c.killer].name)}`:""}.</div>`}</div>`;
 }
 // fog of war: show a battle if you can see either side
 function seenBattle(b){ return b.att===G.player||b.def===G.player||isKnown(b.att)||isKnown(b.def); }
@@ -2615,6 +2628,7 @@ function turnReport(prev){
 function helpModal(){
   modal(`<h2>Rules &amp; tips</h2>
   <p><b>Goal:</b> conquer every other state. You start with the same land and resources as everyone else. Each turn is one year, and everyone moves at the same time.</p>
+  <p><b>Switching sides:</b> click any state on the map and press <b>Take over</b> to rule it (the computer gets yours). This also works in observer mode and after a defeat. Click your own state and press <b>Hand to computer</b> to give it away and keep watching.</p>
   <h3>Economy</h3><ul class="log">
   <li>Peasants who don't cut wood or mine are farmers: each grows ${R.foodPerFarmer} grain a year, more with Agriculture research, shore farmland and food bonuses. All peasants pay taxes.</li>
   <li>Everyone eats 1 grain a year, and people eat <i>before</i> the harvest. If seed plus food is more than your stock, people starve, soldiers first.</li>
@@ -2797,6 +2811,8 @@ document.addEventListener("click",async ev=>{
     return; }
   if(d.takeask!=null){ UI.takeConfirm=+d.takeask<0?null:+d.takeask; render(); return; }
   if(d.takeover!=null){ takeOver(+d.takeover); return; }
+  if(d.giveask!=null){ UI.giveConfirm=d.giveask==="1"; render(); return; }
+  if(d.giveaway!=null){ giveAway(); return; }
   if(d.target!=null){ UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkN=null; UI.tab="war"; render(); return; }
   if(d.cancel!=null){ me().attacks.splice(+d.cancel,1); render(); return; }
   if(d.defgen){ me().defGen=+d.defgen; render(); return; }
