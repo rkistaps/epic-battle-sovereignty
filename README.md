@@ -2,6 +2,8 @@
 
 *A turn-based game of war and economy on a continent split between many crowns.*
 
+**[▶ Play now](https://rkistaps.github.io/the-sovereign/)**
+
 ![Europe at the dawn of Year 1, in a 1000-state game on the world map](docs/map.png)
 
 ## The Lore
@@ -26,4 +28,6 @@ Only one can take the throne and become **the Sovereign** again.
 
 ## Playing
 
-Open `index.html` in a modern browser. No install or build step is needed.
+**[▶ Play in your browser](https://rkistaps.github.io/the-sovereign/)**
+
+Or open `index.html` locally in a modern browser. No install or build step is needed.
