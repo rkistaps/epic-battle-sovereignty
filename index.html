@@ -110,6 +110,32 @@ td.r,th.r{text-align:right}
 @media(max-width:560px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .log li{margin:3px 0}
 .hidden{display:none}
+.modal.setup{max-width:640px}
+.shead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.shead h2{margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 16px;background:var(--panel2)}
+.seg button.on{background:var(--acc);color:#1a1a1a;font-weight:600}
+.sg{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 12px;align-items:center}
+.sg>.hidden{display:none}
+.sh{grid-column:1/-1;margin-top:10px;padding-bottom:3px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.pks{display:flex;flex-wrap:wrap;gap:8px}
+.pk{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--mut)}
+.pk select{min-width:130px;font-size:14px;color:var(--txt)}
+#sTraits:not(:empty){margin-top:6px}
+.cks{display:flex;flex-wrap:wrap;gap:6px 18px}
+.ck{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ck.hidden{display:none}
+.info{color:var(--mut);cursor:help;font-size:13px}
+.info:hover,.info:focus{color:var(--acc)}
+.qp{display:inline-flex;gap:3px}
+.qp button.on{border-color:var(--acc);color:var(--acc)}
+#sMore{margin-top:12px}
+#sMore summary{cursor:pointer;color:var(--mut);font-size:13px;padding:4px 0}
+#sMore summary:hover{color:var(--txt)}
+#sMore>.sg{margin-top:4px}
+.sfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+@media(max-width:520px){.sg{grid-template-columns:1fr;gap:4px}.sg>span:empty{display:none}.shead{flex-wrap:wrap}}
 table.tight td,table.tight th{padding:4px 3px}
 .modal.settings{max-width:1100px}
 .stabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
@@ -2558,47 +2584,68 @@ function loadSetup(){
 }
 function saveSetup(){ const s=UI.setup; if(!s) return; const out={}; for(const k of Object.keys(setupDefaults())) out[k]=s[k];
   try{ localStorage.setItem(SETUP_KEY,JSON.stringify(out)); }catch{} }
+// state counts the slider snaps to; the number box next to it takes any value from 2 to 1000
+const N_STEPS=[2,3,4,5,6,8,10,12,16,20,24,32,40,50,64,80,100,128,160,200,250,320,400,500,640,800,1000];
+const nStep=n=>{ let b=0; N_STEPS.forEach((v,i)=>{ if(Math.abs(v-n)<Math.abs(N_STEPS[b]-n)) b=i; }); return b; };
+const info=t=>`<span class="info" title="${esc(t)}" tabindex="0">ⓘ</span>`;
 function setupModal(){
   const s=UI.setup||(UI.setup=loadSetup());
   const saved=SAVED, preset=s.map&&s.map!=="random", obs=!!s.observer, hideObs=obs?"hidden":"";
-  modal(`<h2>New game</h2>
+  const sel=(id,label,list,cur)=>`<label class="pk"><span>${label}</span><select id="${id}"><option value="random">🎲 Random</option>${list.map(x=>`<option value="${x.id}" ${cur===x.id?"selected":""}>${x.name}</option>`).join("")}</select></label>`;
+  const chk=(id,on,label,tip,cls="")=>`<label class="ck ${cls}"><input type="checkbox" id="${id}" ${on?"checked":""}> ${label}${tip?" "+info(tip):""}</label>`;
+  const more=s.more||s.relNoise||(s.choose&&!obs);
+  modal(`<div class="shead"><h2>New game</h2>
+    <div class="seg" role="tablist"><button data-smode="play" class="${obs?"":"on"}" title="Lead one state">Play</button><button data-smode="watch" class="${obs?"on":""}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
   ${saved&&!saved.over?`<div class="note">You have a saved game (${esc(saved.name)}, year ${saved.turn}). <button class="sm pri" data-a="continue">Continue it</button></div>`:""}
-  <div class="row"><label><input type="checkbox" id="sObs" ${obs?"checked":""}> 👁 Observer mode <span class="small mut">(you don't play: every state is run by the computer and you watch the war unfold)</span></label></div>
-  <div class="row ${hideObs}">Your empire <input type="text" id="sName" maxlength="24" value="${esc(s.empire||"")}" placeholder="Random name" style="width:180px" spellcheck="false"> <span class="small mut">leave empty for a random name</span></div>
-  <div class="row">Map <select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select>
-    <span class="small mut">${preset?"pre-made map: dashed lines are sea routes that count as borders (defenders get a small sea-crossing bonus)":"a new random landscape every game"}</span></div>
-  <div class="row">States <input type="range" id="sN" min="2" max="1000" value="${s.n}"> <b id="sNV">${s.n}</b></div>
-  <div class="row">Territory size <input type="range" id="sT" min="50" max="200" value="${s.terr}"> <b id="sTV">${s.terr}</b> <span class="small mut">(${Math.round(s.terr*5.5)} km² each${preset?"; the World map has a fixed size, so with fewer states each one gets more":""})</span></div>
-  <div class="row ${preset?"hidden":""}">Water <input type="range" id="sW" min="0" max="40" value="${s.water}"> <b id="sWV">${s.water}%</b>
-    <select id="sWS">${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select>
-    <span class="small mut">water makes chokepoints; the map grows so land per state stays the same</span></div>
-  <div class="row ${hideObs}">Your people <select id="sCiv"><option value="random">Random civilization</option>${CIVS.map(x=>`<option value="${x.id}" ${s.civ===x.id?"selected":""}>${x.name}</option>`).join("")}</select>
-    <select id="sLead"><option value="random">Random leader</option>${LEADERS.map(x=>`<option value="${x.id}" ${s.leader===x.id?"selected":""}>${x.name}</option>`).join("")}</select>
-    <select id="sLand"><option value="random">Random land</option>${LANDS.map(x=>`<option value="${x.id}" ${s.landType===x.id?"selected":""}>${x.name}</option>`).join("")}</select></div>
-  <div class="row small ${hideObs}" id="sTraits">${setupTraits()}</div>
-  <div class="row ${hideObs}"><label><input type="checkbox" id="sF"${s.fog?"checked":""}> Fog of war <span class="small mut">(you only see your neighbors)</span></label></div>
-  <div class="row"><label><input type="checkbox" id="sAl" ${s.al?"checked":""}> Alliances <span class="small mut">(allies never attack each other and win together)</span></label></div>
-  <div class="row ${s.al?"":"hidden"}" style="padding-left:22px"><select id="sAlMode"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
-    <input type="number" id="sAlN" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}" style="width:70px">
-    <select id="sAlLay"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
-    <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>
-  <div class="row"><label><input type="checkbox" id="sWo" ${s.wonders?"checked":""}> Wonders <span class="small mut">(10 landmarks, one per science area: holding one boosts that area's effect, +25% by default)</span></label></div>
-  <div class="row"><label><input type="checkbox" id="sRn" ${s.relNoise?"checked":""}> Random starting relations <span class="small mut">(each pair of states starts between −${R.relNoiseAmp} and +${R.relNoiseAmp} instead of 0)</span></label></div>
-  <div class="row ${hideObs}"><label><input type="checkbox" id="sC" ${s.choose?"checked":""}> Let me choose my state on the map</label></div>
+  ${obs?`<p class="small mut" style="margin:0 0 4px">You won't play: every state is run by the computer.</p>`:""}
+  <div class="sg">
+    <div class="sh ${hideObs}">You</div>
+    <span class="${hideObs}">Empire</span><div class="${hideObs}"><input type="text" id="sName" maxlength="24" value="${esc(s.empire||"")}" placeholder="Random name" style="width:200px" spellcheck="false"></div>
+    <span class="${hideObs}">People</span><div class="${hideObs}"><div class="pks">${sel("sCiv","Civilization",CIVS,s.civ)}${sel("sLead","Leader",LEADERS,s.leader)}${sel("sLand","Land",LANDS,s.landType)}</div>
+      <div class="small" id="sTraits">${setupTraits()}</div></div>
+
+    <div class="sh">World</div>
+    <span>Map</span><div><select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select>
+      ${info(preset?"Pre-made map. Dashed lines are sea routes that count as borders; defenders get a small sea-crossing bonus.":"A new random landscape every game.")}</div>
+    <span>States</span><div class="row" style="margin:0"><input type="range" id="sN" min="0" max="${N_STEPS.length-1}" value="${nStep(s.n)}"><input type="number" id="sNV" min="2" max="1000" value="${s.n}" style="width:70px">
+      <span class="qp">${[8,16,50,200,1000].map(v=>`<button class="sm ${s.n===v?"on":""}" data-nset="${v}">${v}</button>`).join("")}</span></div>
+    <span>Territory</span><div class="row" style="margin:0"><input type="range" id="sT" min="50" max="200" value="${s.terr}"> <b id="sTV">${s.terr}</b> <span class="small mut" id="sTK">${fmt(Math.round(s.terr*5.5))} km² each</span>
+      ${preset?info("The World map has a fixed size, so with fewer states each one gets more land."):""}</div>
+    <span class="${preset?"hidden":""}">Water</span><div class="row ${preset?"hidden":""}" style="margin:0"><input type="range" id="sW" min="0" max="40" value="${s.water}"> <b id="sWV">${s.water}%</b>
+      ${info("Water makes chokepoints. The map grows so land per state stays the same.")}</div>
+
+    <div class="sh">Rules</div>
+    <span></span><div class="cks">${chk("sF",s.fog,"Fog of war","You only see your neighbors.",hideObs)}${chk("sWo",s.wonders,"Wonders","10 landmarks, one per science area. Holding one boosts that area's effect (+25% by default).")}${chk("sAl",s.al,"Alliances","Allies never attack each other and win together.")}</div>
+    <span class="${s.al?"":"hidden"}"></span><div class="row ${s.al?"":"hidden"}" style="margin:0"><select id="sAlMode"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
+      <input type="number" id="sAlN" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}" style="width:70px">
+      <select id="sAlLay"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
+      <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>
+  </div>
+  <details id="sMore" ${more?"open":""}><summary>More options</summary><div class="sg">
+    <span class="${preset?"hidden":""}">Water style</span><div class="${preset?"hidden":""}"><select id="sWS">${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div>
+    <span></span><div class="cks">${chk("sRn",s.relNoise,"Random starting relations",`Each pair of states starts between −${R.relNoiseAmp} and +${R.relNoiseAmp} instead of 0.`)}${chk("sC",s.choose,"Choose my state on the map","",hideObs)}</div>
+  </div>
   <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
     <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
-    <div class="small" id="pvPick">${pickText()}</div></div>
-  <div class="row" style="margin-top:12px"><button class="pri" data-a="start">Start</button>${G?`<button data-a="close">Cancel</button>`:""}</div>`);
+    <div class="small" id="pvPick">${pickText()}</div></div></details>
+  <div class="sfoot">${G?`<button data-a="close">Cancel</button>`:""}<button class="pri" data-a="start">${obs?"Watch":"Start"}</button></div>`,"setup");
   if(s.choose&&!obs) drawPreview();
 }
+// set the number of states and sync the slider, number box and quick picks (skip = the control being edited)
+function setStates(v,skip){ const s=UI.setup; s.n=v; s.preview=null; s.pick=null;
+  if(skip!=="sN"&&$("sN")) $("sN").value=nStep(v); if(skip!=="sNV"&&$("sNV")) $("sNV").value=v;
+  document.querySelectorAll("[data-nset]").forEach(b=>b.classList.toggle("on",+b.dataset.nset===v));
+  if($("sAlInfo")) $("sAlInfo").innerHTML=allyInfo(); }
+document.addEventListener("toggle",e=>{ if(e.target.id==="sMore"&&UI.setup) UI.setup.more=e.target.open; },true);
 // alliance settings from the new-game window (null = no alliances)
 function allyOpts(){ const s=UI.setup; return s&&s.al?{mode:s.alMode,n:s.alN,layout:s.alLay}:null; }
 function allyCount(){ const s=UI.setup; const T=s.alMode==="size"?Math.ceil(s.n/Math.max(1,s.alN)):s.alN; return Math.max(2,Math.min(s.n,T)); }
 function allyInfo(){ const s=UI.setup, T=allyCount(), lo=Math.floor(s.n/T), hi=Math.ceil(s.n/T);
   return `= ${fmt(T)} alliances of ${lo===hi?lo:lo+"–"+hi} states`; }
-function setupTraits(){ const s=UI.setup;
-  if(s.civ==="random"||s.leader==="random"||s.landType==="random") return '<span class="mut">Pick all three to see your bonuses. Random picks are shown in the Economy tab once the game starts.</span>';
-  return traitChips(computeMods(CIVS.find(x=>x.id===s.civ),LEADERS.find(x=>x.id===s.leader),LANDS.find(x=>x.id===s.landType))); }
+function setupTraits(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id);
+  const civ=f(CIVS,s.civ), lead=f(LEADERS,s.leader), land=f(LANDS,s.landType);
+  if(!civ&&!lead&&!land) return ""; // all random: shown in the Economy tab once the game starts
+  return traitChips(computeMods(civ,lead,land)); }
 function pickText(){ const s=UI.setup; return !s.preview?"Generating map…":s.pick!=null?`Selected: <b>${esc(s.preview.countries[s.pick].name)}</b>`:"No state selected (random)."; }
 function setPickText(){ const l=$("pvPick"); if(l) l.innerHTML=pickText(); }
 async function makePreview(){
@@ -2653,6 +2700,8 @@ document.addEventListener("click",async ev=>{
   if(d.wlock){ const c=me(); c.workLock={...c.workLock,[d.wlock]:!c.workLock?.[d.wlock]}; render(); return; }
   if(d.lock){ const c=me(); c.allocLock={...c.allocLock,[d.lock]:!c.allocLock?.[d.lock]}; render(); return; }
   if(d.preset){ me().allocLock={}; const P={sci:{sci:100},econ:{sci:30,agri:20,fin:15,dens:10,grow:5,wood:10,iron:10},bal:{sci:16,agri:12,fin:8,dens:8,grow:12,atk:12,def:12,wood:7,iron:9,explore:4},war:{sci:10,agri:10,fin:6,dens:8,grow:12,atk:20,def:16,wood:6,iron:9,explore:3}}; me().alloc={...zeroAreas(),...P[d.preset]}; render(); return; }
+  if(d.smode&&UI.setup){ UI.setup.observer=d.smode==="watch"; saveSetup(); setupModal(); return; }
+  if(d.nset&&UI.setup){ setStates(+d.nset,""); saveSetup(); if(UI.setup.choose&&!UI.setup.observer) drawPreview(); return; }
   const a=d.a; if(!a) return;
   const c=G?me():null, num=id=>Math.max(0,Math.floor(+($(id)?.value||0)));
   switch(a){
@@ -2713,9 +2762,11 @@ document.addEventListener("input",ev=>{
   if(t.id==="atkN"){ UI.atkN=+t.value; return; }
   const s=UI.setup; if(!s) return;
   if(t.id==="sName"){ s.empire=t.value; return; }
-  if(t.id==="sN"){ s.n=+t.value; $("sNV").textContent=s.n; s.preview=null; s.pick=null; if($("sAlInfo")) $("sAlInfo").innerHTML=allyInfo(); }
+  if(t.id==="sN"||t.id==="sNV"){ const v=t.id==="sN"?N_STEPS[+t.value]:Math.floor(+t.value);
+    if(t.id==="sNV"&&!(v>=2&&v<=1000)) return; // finish typing; clamped on change
+    setStates(v,t.id); }
   if(t.id==="sAlN"){ const v=Math.floor(+t.value); if(v>=1){ s.alN=s.alMode==="count"?Math.max(2,v):v; $("sAlInfo").innerHTML=allyInfo(); } return; }
-  if(t.id==="sT"){ s.terr=+t.value; $("sTV").textContent=s.terr; s.preview=null; s.pick=null; }
+  if(t.id==="sT"){ s.terr=+t.value; $("sTV").textContent=s.terr; $("sTK").textContent=fmt(Math.round(s.terr*5.5))+" km² each"; s.preview=null; s.pick=null; }
   if(t.id==="sW"){ s.water=+t.value; $("sWV").textContent=s.water+"%"; s.preview=null; s.pick=null; }
 });
 document.addEventListener("change",ev=>{
@@ -2737,7 +2788,8 @@ document.addEventListener("change",ev=>{
   if(t.id==="sAl"||t.id==="sAlMode"||t.id==="sAlLay"){ if(t.id==="sAl") s.al=t.checked; else if(t.id==="sAlMode"){ s.alMode=t.value; if(s.alMode==="count") s.alN=Math.max(2,s.alN); } else s.alLay=t.value;
     s.preview=null; s.pick=null; setupModal(); return; }
   if(t.id==="sAlN"){ s.preview=null; s.pick=null; if(s.choose&&!s.observer) drawPreview(); return; }
-  if(["sN","sT","sW","sWS"].includes(t.id)&&s.choose) drawPreview();
+  if(t.id==="sNV"){ const v=Math.max(2,Math.min(1000,Math.floor(+t.value)||s.n)); setStates(v,""); }
+  if(["sN","sNV","sT","sW","sWS"].includes(t.id)&&s.choose) drawPreview();
   if(t.id==="sC"){ s.choose=t.checked; setupModal(); }
   if(t.id==="sF"){ s.fog=t.checked; }
   if(t.id==="sCiv"||t.id==="sLead"||t.id==="sLand"){ s[{sCiv:"civ",sLead:"leader",sLand:"landType"}[t.id]]=t.value; $("sTraits").innerHTML=setupTraits(); }
