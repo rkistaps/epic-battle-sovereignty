@@ -129,6 +129,19 @@ td.r,th.r{text-align:right}
 .sl section>.sh{margin-top:0}
 .shead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 .shead h2{margin:0;font-size:28px;color:var(--s-acc)}
+.modal.welcome{--s-surf:#1F2024;--s-in:#121316;--s-div:#34363C;--s-inb:#3A3C42;--s-t1:#ECEAE3;--s-mut:#A3A39A;--s-acc:#E3B964;--s-acch:#F0CC82;
+  max-width:420px;padding:32px;border-radius:16px;background:var(--s-surf);border-color:var(--s-div);color:var(--s-t1);text-align:center}
+.welcome .brand{font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--s-acc)}
+.welcome h2{margin:8px 0 20px;font-size:28px;color:var(--s-t1)}
+.welcome .lead{margin:-6px 0 24px;color:var(--s-mut);font-size:14.5px;line-height:1.5}
+.welcome .save{padding:14px 16px;border:1px solid var(--s-div);border-radius:10px;background:var(--s-in);margin-bottom:20px}
+.welcome .save b{display:block;font-size:17px;font-weight:600}
+.welcome .save span{font-size:13px;color:var(--s-mut)}
+.welcome .acts{display:flex;flex-direction:column;gap:10px}
+.welcome .acts button{height:46px;border-radius:8px;font-size:15px}
+.welcome button.pri{background:var(--s-acc);border-color:var(--s-acc)} .welcome button.pri:hover{background:var(--s-acch)}
+.welcome button.out{background:transparent;border-color:var(--s-inb)}
+.welcome :focus-visible{outline:2px solid var(--s-acc);outline-offset:2px}
 .seg{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--s-div);border-radius:10px;background:var(--s-in)}
 .seg button{border:0;background:transparent;padding:7px 18px;color:var(--s-t2)}
 .seg button[aria-pressed=true]{background:var(--s-acc);color:#1a1a1a;font-weight:600}
@@ -2649,7 +2662,6 @@ function setupModal(){
   modal(`<div class="sl">
   <div class="shead"><h2>New game</h2>
     <div class="seg" role="group" aria-label="Game mode"><button type="button" data-smode="play" aria-pressed="${!obs}">Play</button><button type="button" data-smode="watch" aria-pressed="${obs}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
-  ${saved&&!saved.over?`<div class="note">You have a saved game (${esc(saved.name)}, year ${saved.turn}). <button class="sm pri" data-a="continue">Continue it</button></div>`:""}
   <section class="${hideObs}"><h3 class="sh">You</h3>
     <label class="fld"><span>Empire name</span><input type="text" id="sName" maxlength="24" value="${esc(s.empire||"")}" placeholder="Random name" spellcheck="false"></label>
     <div class="g3">${sel("sCiv","Civilization",CIVS,s.civ)}${sel("sLead","Leader",LEADERS,s.leader)}${sel("sLand","Land",LANDS,s.landType)}</div></section>
@@ -2670,11 +2682,19 @@ function setupModal(){
       <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
       <div class="small" id="pvPick">${pickText()}</div></div>
   </div></div>
-  <div class="sfoot"><button type="button" class="rnd" data-srand>🎲 Randomize all</button><span class="grow"></span>${G?`<button data-a="close" class="out">Cancel</button>`:""}<button class="pri" data-a="start">Start</button></div>
+  <div class="sfoot"><button type="button" class="rnd" data-srand>🎲 Randomize all</button><span class="grow"></span>${UI.fromWelcome?`<button data-a="welcome" class="out">Back</button>`:G?`<button data-a="close" class="out">Cancel</button>`:""}<button class="pri" data-a="start">Start</button></div>
   </div>
   <aside class="ssum" aria-live="polite"><h3 class="sh">Your game</h3><div id="sSum">${setupSummary()}</div><div id="sTraits">${setupTraits()}</div></aside>`,"setup");
   if(s.choose&&!obs&&s.more) drawPreview();
 }
+// first window when the page opens: continue an unfinished saved game, or set up a new one
+function welcomeModal(){ const s=SAVED&&!SAVED.over?SAVED:null;
+  modal(`<div class="brand">👑 EPIC BATTLE: SOVEREIGNTY</div>${s?`<h2>Welcome back</h2>
+  <div class="save"><b>${esc(s.name)}</b><span>Year ${s.turn} · saved in this browser</span></div>
+  <div class="acts"><button class="pri" data-a="continue">Continue</button><button class="out" data-a="welcomeNew">New game</button></div>`
+  :`<h2>Welcome</h2><p class="lead">The Sovereign is dead. Every state on the continent wants the throne. Only one will take it.</p>
+  <div class="acts"><button class="pri" data-a="welcomeNew">New game</button></div>`}`,"welcome");
+  $("modal").querySelector(".acts .pri")?.focus({focusVisible:false}); }
 // the "Your game" panel: a live summary of the choices on the left
 function setupSummary(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id)?.name, rnd=w=>"Random "+w;
   const civ=f(CIVS,s.civ), lead=f(LEADERS,s.leader), land=f(LANDS,s.landType);
@@ -2792,7 +2812,9 @@ document.addEventListener("click",async ev=>{
     case "settingsResetAll": UI.sdraft=JSON.parse(JSON.stringify(DEFAULTS)); settingsModal(); return;
     case "settingsExport": exportSettings(); return;
     case "settingsImport": $("settingsFile").click(); return;
-    case "newGame": UI.setup=null; setupModal(); return;
+    case "newGame": UI.setup=null; UI.fromWelcome=false; setupModal(); return;
+    case "welcomeNew": UI.setup=null; UI.fromWelcome=true; setupModal(); return;
+    case "welcome": welcomeModal(); return;
     case "continue": { const g=await loadSave(); if(!g){ flash("Saved game not found."); return; } G=g; setAuto(false); closeModal(); UI.sel=null; render(); return; }
     case "report": if(G&&UI.lastPrev!=null) turnReport(UI.lastPrev); return;
     case "reroll": UI.setup.preview=null; setupModal(); return;
@@ -2947,7 +2969,7 @@ $("autoSec").addEventListener("change",e=>{ AUTO.sec=+e.target.value; AUTO.left=
 $("autoStop").addEventListener("change",e=>{ AUTO.stop=e.target.checked; saveAuto(); });
 $("bHelp").addEventListener("click",()=>{ if(!UI.busy) helpModal(); });
 $("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; settingsModal("general"); });
-$("bNew").addEventListener("click",()=>{ if(UI.busy) return; UI.setup=null; setupModal(); });
+$("bNew").addEventListener("click",()=>{ if(UI.busy) return; UI.setup=null; UI.fromWelcome=false; setupModal(); });
 window.addEventListener("resize",()=>mainView.resize()); // map height follows the window
 { // draggable divider between map and side panel (wide screens only)
   const sp=$("split"), main=sp.parentElement, KEY="eb.sideWidth";
@@ -2968,7 +2990,7 @@ function flash(msg){ const n=document.createElement("div"); n.textContent=msg; n
 (async function(){
   const s=await loadSave();
   G = s&&!s.over ? s : await ENGINE.call("newGame",{nStates:8,terr:100,difficulty:1});
-  render(); setupModal();
+  render(); welcomeModal();
 })();
 
 </script>
