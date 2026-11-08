@@ -14,7 +14,7 @@ button.pri{background:var(--acc);color:#1a1a1a;border-color:var(--acc);font-weig
 button.sm{padding:2px 7px;font-size:12px}
 button:disabled{opacity:.45;cursor:default}
 input[data-allocpct]:disabled{opacity:.6}
-input[type=number],input[data-allocpct],#sName{width:80px;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit}
+input[inputmode],input[data-allocpct],#sName{width:80px;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit}
 input[type=range]{accent-color:var(--acc)}
 select{background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px;font:inherit}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
@@ -136,7 +136,7 @@ td.r,th.r{text-align:right}
 .modal.setup .sl{padding:28px 32px 24px}
 .modal.setup .mut{color:var(--s-mut)}
 .modal.setup input[type=range],.modal.setup input[type=checkbox]{accent-color:var(--s-acc)}
-.modal.setup input[type=text],.modal.setup input[type=number],.modal.setup select{height:44px;background:var(--s-in);border:1px solid var(--s-inb);border-radius:8px;color:var(--s-t1);padding:0 12px;font-size:14px;width:100%}
+.modal.setup input[type=text],.modal.setup input[inputmode],.modal.setup select{height:44px;background:var(--s-in);border:1px solid var(--s-inb);border-radius:8px;color:var(--s-t1);padding:0 12px;font-size:14px;width:100%}
 .modal.setup select:disabled{opacity:.45}
 .modal.setup button{border-radius:8px}
 .modal.setup button.pri{background:var(--s-acc);border-color:var(--s-acc);height:44px;padding:0 24px;font-size:15px}
@@ -169,7 +169,7 @@ td.r,th.r{text-align:right}
 .fld{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:14px;color:var(--s-t2);min-width:0}
 .fld>span{display:flex;align-items:center;gap:4px}
 .fld .lr{justify-content:space-between}
-.fld .lr input[type=number]{width:84px;height:30px;text-align:right;font-weight:600}
+.fld .lr input[inputmode]{width:84px;height:30px;text-align:right;font-weight:600}
 .fld input[type=range]{width:100%;margin:0}
 .g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .g3 .fld{margin-bottom:0}
@@ -215,18 +215,18 @@ table.tight td,table.tight th{padding:4px 3px}
 .stabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
 .stabs button.on{background:var(--acc);color:#1a1a1a;border-color:var(--acc)}
 .sgrid{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:3px 10px;align-items:center;margin-bottom:6px}
-.sgrid input[type=number]{width:90px}
+.sgrid input[inputmode]{width:90px}
 details.sgrp{border-bottom:1px solid var(--line,#2c313a)} details.sgrp>summary{cursor:pointer;list-style:none;padding:8px 0;user-select:none}
 details.sgrp>summary::-webkit-details-marker{display:none}
 details.sgrp>summary h3{display:inline;margin:0} details.sgrp>summary::before{content:"▸";display:inline-block;width:16px;color:var(--mut);transition:transform .15s}
 details.sgrp[open]>summary::before{transform:rotate(90deg)} details.sgrp>.sgrid{margin:2px 0 10px 16px}
 .stable{overflow-x:auto;margin-bottom:6px}
-.stable input[type=number]{width:62px;padding:3px 4px}
+.stable input[inputmode]{width:62px;padding:3px 4px}
 .stable input[type=text]{width:110px;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:3px 4px;font:inherit}
 .stable input.icon{width:44px}
 input.chg{border-color:var(--acc);background:#2b2618}
 .tgrid{display:grid;grid-template-columns:90px 90px minmax(0,1fr);gap:6px 8px;align-items:center;margin:6px 0}
-.tgrid input[type=number]{width:100%}
+.tgrid input[inputmode]{width:100%}
 .tbtns{display:flex;gap:4px;flex-wrap:wrap}
 .wgrid{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin:6px 0}
 .wgrid .wkval{white-space:nowrap;text-align:right}
@@ -2309,9 +2309,9 @@ function pMarket(){
     <tr><td>💰 Money</td><td class="r">${fmt(c.money)}</td><td class="r ${taxIncome(c)>=wages(c)?"good":"bad"}">${taxIncome(c)>=wages(c)?"+":""}${fmt(taxIncome(c)-wages(c))}</td><td></td><td></td></tr></table>
   <h3>Trade</h3>
   <div class="tgrid">
-    <span>🌾 Grain</span><input type="number" id="nGrain" value="500" min="0"><span class="tbtns"><button data-a="sell">Sell @ ${sellPrice(G,c)}</button><button data-a="buy">Buy @ ${buyPrice(G)}</button><button data-a="sellSurplus" title="Sell stored grain beyond what next year needs plus a 20% reserve">Sell surplus</button></span>
-    <span>🌲 Wood</span><input type="number" id="nWood" value="100" min="0"><span class="tbtns"><button data-a="sellWood">Sell @ ${resSellPrice(c,"wood")}</button><button data-a="buyWood">Buy @ ${(R.woodPrice*R.resBuy).toFixed(2)}</button></span>
-    <span>⛏️ Iron</span><input type="number" id="nIron" value="100" min="0"><span class="tbtns"><button data-a="sellIron">Sell @ ${resSellPrice(c,"iron")}</button><button data-a="buyIron">Buy @ ${(R.ironPrice*R.resBuy).toFixed(2)}</button></span>
+    <span>🌾 Grain</span><input type="text" inputmode="numeric" id="nGrain" value="500" min="0"><span class="tbtns"><button data-a="sell">Sell @ ${sellPrice(G,c)}</button><button data-a="buy">Buy @ ${buyPrice(G)}</button><button data-a="sellSurplus" title="Sell stored grain beyond what next year needs plus a 20% reserve">Sell surplus</button></span>
+    <span>🌲 Wood</span><input type="text" inputmode="numeric" id="nWood" value="100" min="0"><span class="tbtns"><button data-a="sellWood">Sell @ ${resSellPrice(c,"wood")}</button><button data-a="buyWood">Buy @ ${(R.woodPrice*R.resBuy).toFixed(2)}</button></span>
+    <span>⛏️ Iron</span><input type="text" inputmode="numeric" id="nIron" value="100" min="0"><span class="tbtns"><button data-a="sellIron">Sell @ ${resSellPrice(c,"iron")}</button><button data-a="buyIron">Buy @ ${(R.ironPrice*R.resBuy).toFixed(2)}</button></span>
   </div>
   <label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell surplus grain every year <span class="mut">(sold when you end the turn, keeping next year's needs plus a 20% reserve)</span></label>
   <div class="small mut">Grain prices move every year (between ${R.priceMin} and ${R.priceMax}); wood and iron prices are fixed. Finance research raises what you get when selling any of them (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%). Buying is not affected. Money per year is taxes minus wages, before trading.</div>`;
@@ -2331,9 +2331,9 @@ function pBarracks(){
   <table class="tight"><tr><th>Troop</th><th class="r">Owned</th><th>Train / dismiss</th></tr>
   ${TROOPS.map(t=>{ const open=troopUnlocked(c,t.id), max=open?Math.max(0,Math.min(affordable(c,t),c.peasants-50)):0;
     return `<tr class="${open?"":"mut"}"><td>${t.icon} <b>${t.name}</b>
-        <div class="small mut" style="white-space:nowrap" title="Strength per soldier with your bonuses · training cost · wage per year">atk ${(t.atk*atkPower(c)).toFixed(2)} · def ${(t.def*defPower(c)).toFixed(2)} · ${[["food","🌾"],["wood","🌲"],["iron","⛏️"],["gold","💰"]].filter(([r])=>t[r]>0).map(([r,i])=>t[r]+i).join(" ")} · upkeep ${t.upFood}🌾${t.upGold?` ${t.upGold}💰`:""}/yr${t.hold?` · holds ${t.hold} km²`:""}</div></td>
+        <div class="small mut" title="Strength per soldier with your bonuses · training cost · wage per year">atk ${(t.atk*atkPower(c)).toFixed(2)} · def ${(t.def*defPower(c)).toFixed(2)} · ${[["food","🌾"],["wood","🌲"],["iron","⛏️"],["gold","💰"]].filter(([r])=>t[r]>0).map(([r,i])=>t[r]+i).join(" ")} · upkeep ${t.upFood}🌾${t.upGold?` ${t.upGold}💰`:""}/yr${t.hold?` · holds ${t.hold} km²`:""}</div></td>
       <td class="r">${fmt(tr[t.id]||0)}</td>
-      <td style="white-space:nowrap">${open?`<input type="number" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-max="${t.id}" data-n="${max}" title="Enter the most you can train now (${fmt(max)})">Max</button> <button class="sm" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`:""}</td></tr>`; }).join("")}
+      <td style="white-space:nowrap">${open?`<input type="text" inputmode="numeric" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-max="${t.id}" data-n="${max}" title="Enter the most you can train now (${fmt(max)})">Max</button> <button class="sm" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`:""}</td></tr>`; }).join("")}
   </table>
   <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, losses are divided by toughness: a troop with toughness 2 loses half as many as a Spearman. Attacks send your most offensive troops first (${ATTACK_ORDER.map(k=>TROOP[k].name).join(", ")}); the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
 }
@@ -2464,7 +2464,7 @@ function attackForm(c,j,idle,guards,myUnit){
   const verdict=o.soldiers===0?'<span class="good">Undefended: easy win</span>':r>1.6?'<span class="good">Favorable</span>':r>1.1?'<span class="acc">Risky</span>':'<span class="bad">Likely defeat</span>';
   return `<div class="gen sel"><b>Attack ${esc(o.name)}</b>
   <div class="row">General <select id="atkGen">${idle.map(g=>`<option value="${g.id}" ${g.id===gsel?"selected":""}>${esc(g.name)} · skill ${g.skill.toFixed(0)} · morale ${g.morale} · spd ${g.speed}</option>`).join("")}</select></div>
-  <div class="row">Soldiers <input type="number" id="atkN" value="${n}" min="1" max="${guards}"> <span class="small mut">of ${fmt(guards)} available</span></div>
+  <div class="row">Soldiers <input type="text" inputmode="numeric" id="atkN" value="${n}" min="1" max="${guards}"> <span class="small mut">of ${fmt(guards)} available</span></div>
   <div class="small">Sending: ${mixText(send)} <span class="mut">(most offensive troops first)</span></div>
   <div class="small">Rough odds (if all their soldiers defend): your strength ${fmt(mine)} vs ${fmt(est)} → ratio ${r===Infinity?"∞":r.toFixed(2)}: ${verdict}. Land if you win decisively: up to <b>${fmt(conquest(gen,n,1,c,holdUnits(send)))}</b> km² <span class="mut">(speed limit ${speedCap(gen)} + army bonus ${Math.round(R.armyLand*Math.sqrt(n))}; a narrow win takes a quarter of that; at most ${R.occupy} km² per surviving soldier)</span>.</div>
   <div class="small">Border with them: <b>${sea?"sea route only":fw+" km"}</b>${sea?(fb>0?` · <span class="bad">sea crossing, their defenders +${Math.round(fb*100)}%</span> (included above)`:" · sea crossing, no defense bonus"):fb>0?` · <span class="bad">narrow front, their defenders +${Math.round(fb*100)}%</span> (included above)`:" · open front, no defense bonus"}.</div>
@@ -2773,7 +2773,7 @@ function settingsModal(tab){
     if(kind==="select") return `<select data-sk="${path}" data-kind="text" class="${chg}">${LABEL_STYLES.map(([k,l])=>`<option value="${k}" ${cur===k?"selected":""}>${l}</option>`).join("")}</select>`;
     if(kind==="text"||kind==="icon") return `<input type="text" data-sk="${path}" data-kind="text" value="${esc(cur)}" class="${chg} ${kind==="icon"?"icon":""}">`;
     const shown=kind==="%"?+(cur*100).toFixed(4):cur;
-    return `<input type="number" step="any" data-sk="${path}" data-kind="${kind||""}" value="${shown}" class="${chg}" title="Default: ${kind==="%"?+(def*100).toFixed(4)+"%":def}">`; };
+    return `<input type="text" inputmode="decimal" data-sk="${path}" data-kind="${kind||""}" value="${shown}" class="${chg}" title="Default: ${kind==="%"?+(def*100).toFixed(4)+"%":def}">`; };
   let body="";
   if(UI.stab==="general") body=SETTINGS_META.map(([grp,rows])=>{ const nChg=rows.filter(([k])=>JSON.stringify(getPath(v.R,k))!==JSON.stringify(getPath(d.R,k))).length;
     return `<details class="sgrp" data-sgrp="${esc(grp)}" ${UI.sopen?.[grp]?"open":""}><summary><h3>${esc(grp)}</h3> <span class="small mut">${rows.length} setting${rows.length>1?"s":""}${nChg?` · <span class="acc">${nChg} changed</span>`:""}</span></summary><div class="sgrid">${rows.map(([k,label,kind])=>
@@ -2957,7 +2957,7 @@ function setupModal(){
   const rule=([id,key,label,short,full,po])=>{ const f=typeof full==="function"?full():full;
     return `<div class="rule ${po&&obs?"hidden":""}"><label><input type="checkbox" id="${id}" ${s[key]?"checked":""}><span><b>${label}</b><small>${short}</small></span></label>${info(label,f,"r")}</div>`
       +(id==="sAl"?`<div class="alopts ${s.al?"":"hidden"}"><select id="sAlMode" aria-label="Alliance setup"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
-        <input type="number" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}">
+        <input type="text" inputmode="numeric" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}">
         <select id="sAlLay" aria-label="Alliance layout"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
         <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>`:""); };
   modal(`<div class="sl">
@@ -2969,7 +2969,7 @@ function setupModal(){
   <section><h3 class="sh">World</h3>
     <div class="fld"><span><label for="sMap">Map</label> ${info("Map",preset?"Pre-made map. Dashed lines are sea routes that count as borders; defenders get a small sea-crossing bonus.":"A new random landscape every game.")}</span>
       <select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select></div>
-    <div class="fld"><span class="lr"><label for="sN">States</label><input type="number" id="sNV" min="2" max="1000" value="${s.n}" aria-label="Number of states (2 to 1000)"></span>
+    <div class="fld"><span class="lr"><label for="sN">States</label><input type="text" inputmode="numeric" id="sNV" min="2" max="1000" value="${s.n}" aria-label="Number of states (2 to 1000)"></span>
       <input type="range" id="sN" min="0" max="${N_STEPS.length-1}" value="${nStep(s.n)}" aria-valuetext="${s.n} states"></div></section>
   <div class="more"><button type="button" class="mbtn" data-smore aria-expanded="${!!s.more}" aria-controls="sMore"><span class="chev" aria-hidden="true">›</span><b>More options</b><span class="mut">Territory size, water, rules</span></button>
   <div id="sMore" role="region" aria-label="More options" ${s.more?"":"hidden"}>
@@ -3155,7 +3155,7 @@ document.addEventListener("input",ev=>{
   if(t.dataset.alloc){ const box=t.parentElement.querySelector("[data-allocpct]"); if(box) box.value=t.value; return; } // live: show the number while dragging
   if(["gAge","gSpeed","gMind"].includes(t.id)){ const f=UI.genForm; f.age=+$("gAge").value; f.speed=+$("gSpeed").value; f.mind=+$("gMind").value;
     $("gAgeV").textContent=f.age; $("gSpeedV").textContent=f.speed; $("gMindV").textContent=f.mind; $("gPrice").textContent=fmt(genPrice(f.age,f.speed,f.mind)); $("gCap").textContent=speedCap(f); return; }
-  if(t.id==="atkN"){ UI.atkN=+t.value; return; }
+  if(t.id==="atkN"){ UI.atkN=Math.max(0,Math.floor(+t.value)||0); return; }
   const s=UI.setup; if(!s) return;
   if(t.id==="sName"){ s.empire=t.value; return; }
   if(t.id==="sN"||t.id==="sNV"){ const v=t.id==="sN"?N_STEPS[+t.value]:Math.floor(+t.value);
