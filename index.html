@@ -203,7 +203,7 @@ const GEN_FIRST = ["Ivan","Karl","Pavel","Otto","Lev","Anton","Boris","Emil","Fe
 const GEN_LAST = ["Volkov","Brandt","Orlov","Kessler","Zorin","Lind","Novak","Sokol","Reiner","Petrov","Halden","Dragan","Marek","Stein","Kuzmin","Varga","Holt","Belov","Wolff","Radek"];
 
 const R = {
-  mapLabels: "classic",            // how state names look on a zoomed-in map: classic | atlas | plate
+  mapLabels: "atlas",              // how state names look on a zoomed-in map: atlas | classic | plate
   startPeasants: 800, startGrain: 2600, startMoney: 300,
   foodPerFarmer: 3,                // epic-battle style: every farmer produces food each year (no sowing)
   taxPerPeasant: 0.6,
@@ -1877,7 +1877,7 @@ class MapView{
       ctx.restore();
     }
     // labels for visible states that are big enough on screen
-    const L=labelSpots(g), fsC=Math.max(10,Math.min(15,this.z*1.4)), fs=fsC*this.dpr, style=R.mapLabels||"classic";
+    const L=labelSpots(g), fsC=Math.max(10,Math.min(15,this.z*1.4)), fs=fsC*this.dpr, style=R.mapLabels||"atlas";
     ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.lineWidth=3*this.dpr; ctx.strokeStyle="#000b"; ctx.fillStyle="#fff";
     g.countries.forEach((c,id)=>{ const b=L.best[id]; if(b<0||!L.cnt[id]||(known&&!known[id])) return;
       const must=id===sel||(id===pl&&this.o.star);
@@ -2347,7 +2347,7 @@ try{ SETTINGS=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}")||{}; }catch(e
 applySettings(SETTINGS);
 const TRAIT_COLS=[["attack","Attack"],["defense","Defense"],["food","Food"],["wood","Wood"],["iron","Iron"],["science","Science"],["growth","Growth"],["housing","Housing"],["explore","Explore"]];
 // General tab: [group, [[key, label, kind]]] — kind "%" shows ×100, "bool" a checkbox
-const LABEL_STYLES=[["classic","Classic white text"],["atlas","Old atlas lettering + stats"],["plate","Name plates + stats"]];
+const LABEL_STYLES=[["atlas","Old atlas lettering + stats"],["classic","Classic white text"],["plate","Name plates + stats"]];
 const SETTINGS_META=[
   ["Map",[["mapLabels","State names on the map (zoom in to see the style; small states keep classic text)","select"]]],
   ["Start",[["startPeasants","Starting peasants"],["startGrain","Starting grain"],["startMoney","Starting money"],["startWood","Starting wood"],["startIron","Starting iron"]]],
