@@ -2,7 +2,7 @@
 
 ## Project
 
-The Sovereign is a turn-based war and economy strategy game. Each turn is one year. All states move at once. The goal is to conquer every other state on a procedurally generated map.
+Epic Battle: Sovereignty is a turn-based war and economy strategy game. Each turn is one year. All states move at once. The goal is to conquer every other state on a procedurally generated map.
 
 ## Structure
 
