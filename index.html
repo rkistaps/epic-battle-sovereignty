@@ -110,32 +110,73 @@ td.r,th.r{text-align:right}
 @media(max-width:560px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .log li{margin:3px 0}
 .hidden{display:none}
-.modal.setup{max-width:640px}
-.shead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
-.shead h2{margin:0}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
-.seg button{border:0;border-radius:0;padding:5px 16px;background:var(--panel2)}
-.seg button.on{background:var(--acc);color:#1a1a1a;font-weight:600}
-.sg{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 12px;align-items:center}
-.sg>.hidden{display:none}
-.sh{grid-column:1/-1;margin-top:10px;padding-bottom:3px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
-.pks{display:flex;flex-wrap:wrap;gap:8px}
-.pk{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--mut)}
-.pk select{min-width:130px;font-size:14px;color:var(--txt)}
-#sTraits:not(:empty){margin-top:6px}
-.cks{display:flex;flex-wrap:wrap;gap:6px 18px}
-.ck{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-.ck.hidden{display:none}
-.info{color:var(--mut);cursor:help;font-size:13px}
-.info:hover,.info:focus{color:var(--acc)}
-.qp{display:inline-flex;gap:3px}
-.qp button.on{border-color:var(--acc);color:var(--acc)}
-#sMore{margin-top:12px}
-#sMore summary{cursor:pointer;color:var(--mut);font-size:13px;padding:4px 0}
-#sMore summary:hover{color:var(--txt)}
-#sMore>.sg{margin-top:4px}
-.sfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
-@media(max-width:520px){.sg{grid-template-columns:1fr;gap:4px}.sg>span:empty{display:none}.shead{flex-wrap:wrap}}
+/* New game window: two columns (settings + live summary); tokens from the design handoff */
+.modal.setup{--s-surf:#1F2024;--s-sum:#18191D;--s-in:#121316;--s-div:#34363C;--s-inb:#3A3C42;--s-t1:#ECEAE3;--s-t2:#C9C8C0;--s-mut:#A3A39A;--s-acc:#E3B964;--s-acch:#F0CC82;
+  max-width:1000px;padding:0;border-radius:16px;background:var(--s-surf);border-color:var(--s-div);color:var(--s-t1);display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.modal.setup .sl{padding:28px 32px 24px}
+.modal.setup .mut{color:var(--s-mut)}
+.modal.setup input[type=range],.modal.setup input[type=checkbox]{accent-color:var(--s-acc)}
+.modal.setup input[type=text],.modal.setup input[type=number],.modal.setup select{height:44px;background:var(--s-in);border:1px solid var(--s-inb);border-radius:8px;color:var(--s-t1);padding:0 12px;font-size:14px;width:100%}
+.modal.setup select:disabled{opacity:.45}
+.modal.setup button{border-radius:8px}
+.modal.setup button.pri{background:var(--s-acc);border-color:var(--s-acc);height:44px;padding:0 24px;font-size:15px}
+.modal.setup button.pri:hover{background:var(--s-acch)}
+.modal.setup button.out{background:transparent;border-color:var(--s-inb);height:44px;padding:0 20px;font-size:15px}
+.modal.setup :focus-visible{outline:2px solid var(--s-acc);outline-offset:2px}
+.modal.setup .hidden{display:none!important}
+.modal.setup #sName{width:100%}
+.sl section{margin-top:20px}
+.sl section>.sh{margin-top:0}
+.shead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.shead h2{margin:0;font-size:28px;color:var(--s-acc)}
+.seg{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--s-div);border-radius:10px;background:var(--s-in)}
+.seg button{border:0;background:transparent;padding:7px 18px;color:var(--s-t2)}
+.seg button[aria-pressed=true]{background:var(--s-acc);color:#1a1a1a;font-weight:600}
+.sh{margin:22px 0 10px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--s-mut)}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:14px;color:var(--s-t2);min-width:0}
+.fld>span{display:flex;align-items:center;gap:4px}
+.fld .lr{justify-content:space-between}
+.fld .lr input[type=number]{width:84px;height:30px;text-align:right;font-weight:600}
+.fld input[type=range]{width:100%;margin:0}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.g3 .fld{margin-bottom:0}
+.wrow{display:flex;gap:10px;align-items:center}.wrow select{width:170px!important;flex:none}
+.more{border-top:1px solid var(--s-div);border-bottom:1px solid var(--s-div);margin-top:18px}
+.mbtn{display:flex;align-items:center;gap:10px;width:100%;background:none!important;border:0!important;padding:16px 0;font-size:15px;color:var(--s-t1);text-align:left}
+.mbtn .mut{margin-left:auto;font-size:13px}
+.mbtn .chev{color:var(--s-acc);font-size:20px;line-height:1;transition:transform .15s}
+.mbtn[aria-expanded=true] .chev{transform:rotate(90deg)}
+#sMore{padding-bottom:12px}
+#sMore>.fld:first-child{margin-top:2px}
+.rules{display:flex;flex-direction:column;gap:4px}
+.rule{display:flex;align-items:center;gap:6px}
+.rule label{display:flex;align-items:flex-start;gap:10px;flex:1;cursor:pointer;padding:5px 0}
+.rule input{margin-top:3px;width:16px;height:16px}
+.rule b{display:block;font-weight:500}
+.rule small{display:block;color:var(--s-mut);font-size:12.5px}
+.alopts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:2px 0 8px 26px}
+.alopts select{width:auto!important}.alopts input{width:80px!important}
+.info{position:relative;background:none!important;border:0!important;padding:0 3px!important;color:var(--s-mut);font-size:14px;line-height:1;cursor:help}
+#infoTip{position:fixed;z-index:40;max-width:260px;background:#0d0e10;border:1px solid #3A3C42;border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.4;color:#ECEAE3;box-shadow:0 6px 18px #0009;pointer-events:none}
+.info:hover,.info:focus{color:var(--s-acc)}
+.sfoot{display:flex;align-items:center;gap:10px;margin-top:20px}
+.rnd{background:none!important;border:0!important;color:var(--s-acc);font-weight:600;padding:8px 4px!important}
+.rnd:hover{color:var(--s-acch)}
+.modal.setup{background:linear-gradient(to right,var(--s-surf) calc(100% - 341px),var(--s-div) calc(100% - 341px),var(--s-div) calc(100% - 340px),var(--s-sum) calc(100% - 340px))}
+.ssum{position:sticky;top:0;align-self:start;min-height:min(100%,calc(90vh - 2px));padding:28px 28px 24px;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ssum>.sh{margin-top:6px}
+.sname{font-size:20px;font-weight:600;color:var(--s-t1);overflow-wrap:anywhere;margin-top:6px}
+.ssum .sub{color:var(--s-t2);font-size:13.5px}
+.sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin:20px 0 0}
+.sumgrid dt{font-size:12px;color:var(--s-mut)}
+.sumgrid dd{margin:2px 0 0;font-size:15px;color:var(--s-t1)}
+.rchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.rchip{background:#2A2620;color:var(--s-acc);border-radius:999px;padding:2px 10px;font-size:12.5px}
+#sTraits{margin-top:auto;padding-top:24px}
+.bonus{border:1px solid var(--s-div);border-radius:10px;padding:12px 14px;font-size:13px;line-height:2}
+.bonus.empty{border-style:dashed;color:var(--s-t2);line-height:1.45}
+@media(max-width:800px){.modal.setup{grid-template-columns:1fr;background:var(--s-surf)}.ssum{position:static;min-height:0;background:var(--s-sum);border-top:1px solid var(--s-div);border-radius:0 0 16px 16px}.modal.setup .sl{padding:22px 18px}.ssum{padding:22px 18px}}
+@media(max-width:520px){.g3{grid-template-columns:1fr}.mbtn .mut{display:none}.wrow select{width:130px!important}}
 table.tight td,table.tight th{padding:4px 3px}
 .modal.settings{max-width:1100px}
 .stabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
@@ -2572,7 +2613,7 @@ function helpModal(){
 // new-game choices are remembered in this browser: saved on every change, restored when the window opens
 const SETUP_KEY="eb.setup";
 function setupDefaults(){ let lastName=""; try{ lastName=localStorage.getItem("eb.empireName")||""; }catch{}
-  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region"}; }
+  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region",more:false}; }
 function loadSetup(){
   const d=setupDefaults(); let o={}; try{ o=JSON.parse(localStorage.getItem(SETUP_KEY)||"{}")||{}; }catch{}
   for(const k of Object.keys(d)) if(k in o&&typeof o[k]===typeof d[k]) d[k]=o[k]; // only known settings, of the right kind
@@ -2584,68 +2625,92 @@ function loadSetup(){
 }
 function saveSetup(){ const s=UI.setup; if(!s) return; const out={}; for(const k of Object.keys(setupDefaults())) out[k]=s[k];
   try{ localStorage.setItem(SETUP_KEY,JSON.stringify(out)); }catch{} }
-// state counts the slider snaps to; the number box next to it takes any value from 2 to 1000
+// state counts the slider snaps to; the number box above it takes any value from 2 to 1000
 const N_STEPS=[2,3,4,5,6,8,10,12,16,20,24,32,40,50,64,80,100,128,160,200,250,320,400,500,640,800,1000];
 const nStep=n=>{ let b=0; N_STEPS.forEach((v,i)=>{ if(Math.abs(v-n)<Math.abs(N_STEPS[b]-n)) b=i; }); return b; };
-const info=t=>`<span class="info" title="${esc(t)}" tabindex="0">ⓘ</span>`;
+// info icon: a real button whose tooltip shows on hover and on keyboard focus
+const info=(label,t,cls="")=>`<button type="button" class="info ${cls}" aria-label="${esc(label)}: ${esc(t)}" data-tip="${esc(t)}">ⓘ</button>`;
+const SETUP_RULES=[ // [id, setup key, label, one-line description, full explanation, player only]
+  ["sF","fog","Fog of war","See only your neighbors","You only see your neighbors. Everything else stays hidden.",true],
+  ["sAl","al","Alliances","Allies win together","Allies never attack each other and win together.",false],
+  ["sWo","wonders","Wonders","Landmarks that boost one science area","10 landmarks, one per science area. Holding one boosts that area's effect (+25% by default).",false],
+  ["sRn","relNoise","Random starting relations","States start a little friendly or hostile",()=>`Each pair of states starts between −${R.relNoiseAmp} and +${R.relNoiseAmp} instead of 0.`,false],
+  ["sC","choose","Choose my state on the map","Pick your starting state on a preview","Generates the map now so you can click the state you want to lead.",true]];
 function setupModal(){
   const s=UI.setup||(UI.setup=loadSetup());
   const saved=SAVED, preset=s.map&&s.map!=="random", obs=!!s.observer, hideObs=obs?"hidden":"";
-  const sel=(id,label,list,cur)=>`<label class="pk"><span>${label}</span><select id="${id}"><option value="random">🎲 Random</option>${list.map(x=>`<option value="${x.id}" ${cur===x.id?"selected":""}>${x.name}</option>`).join("")}</select></label>`;
-  const chk=(id,on,label,tip,cls="")=>`<label class="ck ${cls}"><input type="checkbox" id="${id}" ${on?"checked":""}> ${label}${tip?" "+info(tip):""}</label>`;
-  const more=s.more||s.relNoise||(s.choose&&!obs);
-  modal(`<div class="shead"><h2>New game</h2>
-    <div class="seg" role="tablist"><button data-smode="play" class="${obs?"":"on"}" title="Lead one state">Play</button><button data-smode="watch" class="${obs?"on":""}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
+  const sel=(id,label,list,cur)=>`<label class="fld"><span>${label}</span><select id="${id}"><option value="random">Random</option>${list.map(x=>`<option value="${x.id}" ${cur===x.id?"selected":""}>${x.name}</option>`).join("")}</select></label>`;
+  const rule=([id,key,label,short,full,po])=>{ const f=typeof full==="function"?full():full;
+    return `<div class="rule ${po&&obs?"hidden":""}"><label><input type="checkbox" id="${id}" ${s[key]?"checked":""}><span><b>${label}</b><small>${short}</small></span></label>${info(label,f,"r")}</div>`
+      +(id==="sAl"?`<div class="alopts ${s.al?"":"hidden"}"><select id="sAlMode" aria-label="Alliance setup"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
+        <input type="number" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}">
+        <select id="sAlLay" aria-label="Alliance layout"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
+        <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>`:""); };
+  modal(`<div class="sl">
+  <div class="shead"><h2>New game</h2>
+    <div class="seg" role="group" aria-label="Game mode"><button type="button" data-smode="play" aria-pressed="${!obs}">Play</button><button type="button" data-smode="watch" aria-pressed="${obs}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
   ${saved&&!saved.over?`<div class="note">You have a saved game (${esc(saved.name)}, year ${saved.turn}). <button class="sm pri" data-a="continue">Continue it</button></div>`:""}
-  ${obs?`<p class="small mut" style="margin:0 0 4px">You won't play: every state is run by the computer.</p>`:""}
-  <div class="sg">
-    <div class="sh ${hideObs}">You</div>
-    <span class="${hideObs}">Empire</span><div class="${hideObs}"><input type="text" id="sName" maxlength="24" value="${esc(s.empire||"")}" placeholder="Random name" style="width:200px" spellcheck="false"></div>
-    <span class="${hideObs}">People</span><div class="${hideObs}"><div class="pks">${sel("sCiv","Civilization",CIVS,s.civ)}${sel("sLead","Leader",LEADERS,s.leader)}${sel("sLand","Land",LANDS,s.landType)}</div>
-      <div class="small" id="sTraits">${setupTraits()}</div></div>
-
-    <div class="sh">World</div>
-    <span>Map</span><div><select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select>
-      ${info(preset?"Pre-made map. Dashed lines are sea routes that count as borders; defenders get a small sea-crossing bonus.":"A new random landscape every game.")}</div>
-    <span>States</span><div class="row" style="margin:0"><input type="range" id="sN" min="0" max="${N_STEPS.length-1}" value="${nStep(s.n)}"><input type="number" id="sNV" min="2" max="1000" value="${s.n}" style="width:70px">
-      <span class="qp">${[8,16,50,200,1000].map(v=>`<button class="sm ${s.n===v?"on":""}" data-nset="${v}">${v}</button>`).join("")}</span></div>
-    <span>Territory</span><div class="row" style="margin:0"><input type="range" id="sT" min="50" max="200" value="${s.terr}"> <b id="sTV">${s.terr}</b> <span class="small mut" id="sTK">${fmt(Math.round(s.terr*5.5))} km² each</span>
-      ${preset?info("The World map has a fixed size, so with fewer states each one gets more land."):""}</div>
-    <span class="${preset?"hidden":""}">Water</span><div class="row ${preset?"hidden":""}" style="margin:0"><input type="range" id="sW" min="0" max="40" value="${s.water}"> <b id="sWV">${s.water}%</b>
-      ${info("Water makes chokepoints. The map grows so land per state stays the same.")}</div>
-
-    <div class="sh">Rules</div>
-    <span></span><div class="cks">${chk("sF",s.fog,"Fog of war","You only see your neighbors.",hideObs)}${chk("sWo",s.wonders,"Wonders","10 landmarks, one per science area. Holding one boosts that area's effect (+25% by default).")}${chk("sAl",s.al,"Alliances","Allies never attack each other and win together.")}</div>
-    <span class="${s.al?"":"hidden"}"></span><div class="row ${s.al?"":"hidden"}" style="margin:0"><select id="sAlMode"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
-      <input type="number" id="sAlN" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}" style="width:70px">
-      <select id="sAlLay"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
-      <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>
+  <section class="${hideObs}"><h3 class="sh">You</h3>
+    <label class="fld"><span>Empire name</span><input type="text" id="sName" maxlength="24" value="${esc(s.empire||"")}" placeholder="Random name" spellcheck="false"></label>
+    <div class="g3">${sel("sCiv","Civilization",CIVS,s.civ)}${sel("sLead","Leader",LEADERS,s.leader)}${sel("sLand","Land",LANDS,s.landType)}</div></section>
+  <section><h3 class="sh">World</h3>
+    <div class="fld"><span><label for="sMap">Map</label> ${info("Map",preset?"Pre-made map. Dashed lines are sea routes that count as borders; defenders get a small sea-crossing bonus.":"A new random landscape every game.")}</span>
+      <select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select></div>
+    <div class="fld"><span class="lr"><label for="sN">States</label><input type="number" id="sNV" min="2" max="1000" value="${s.n}" aria-label="Number of states (2 to 1000)"></span>
+      <input type="range" id="sN" min="0" max="${N_STEPS.length-1}" value="${nStep(s.n)}" aria-valuetext="${s.n} states"></div></section>
+  <div class="more"><button type="button" class="mbtn" data-smore aria-expanded="${!!s.more}" aria-controls="sMore"><span class="chev" aria-hidden="true">›</span><b>More options</b><span class="mut">Territory size, water, rules</span></button>
+  <div id="sMore" role="region" aria-label="More options" ${s.more?"":"hidden"}>
+    <div class="fld"><span class="lr"><span><label for="sT">Territory size</label>${preset?" "+info("Territory size","The World map has a fixed size, so with fewer states each one gets more land."):""}</span><span><b id="sTV">${s.terr}</b> <span class="mut" id="sTK">${fmt(Math.round(s.terr*5.5))} km² each</span></span></span>
+      <input type="range" id="sT" min="50" max="200" value="${s.terr}"></div>
+    <div class="fld ${preset?"hidden":""}"><span class="lr"><span><label for="sW">Water</label> ${info("Water","Water makes chokepoints. The map grows so land per state stays the same.")}</span><b id="sWV">${s.water}%</b></span>
+      <div class="wrow"><input type="range" id="sW" min="0" max="40" value="${s.water}"><select id="sWS" aria-label="Water type" ${s.water?"":"disabled"}>${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div></div>
+    <h3 class="sh">Rules</h3>
+    <div class="rules">${SETUP_RULES.map(rule).join("")}</div>
+    <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
+      <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
+      <div class="small" id="pvPick">${pickText()}</div></div>
+  </div></div>
+  <div class="sfoot"><button type="button" class="rnd" data-srand>🎲 Randomize all</button><span class="grow"></span>${G?`<button data-a="close" class="out">Cancel</button>`:""}<button class="pri" data-a="start">Start</button></div>
   </div>
-  <details id="sMore" ${more?"open":""}><summary>More options</summary><div class="sg">
-    <span class="${preset?"hidden":""}">Water style</span><div class="${preset?"hidden":""}"><select id="sWS">${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div>
-    <span></span><div class="cks">${chk("sRn",s.relNoise,"Random starting relations",`Each pair of states starts between −${R.relNoiseAmp} and +${R.relNoiseAmp} instead of 0.`)}${chk("sC",s.choose,"Choose my state on the map","",hideObs)}</div>
-  </div>
-  <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
-    <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
-    <div class="small" id="pvPick">${pickText()}</div></div></details>
-  <div class="sfoot">${G?`<button data-a="close">Cancel</button>`:""}<button class="pri" data-a="start">${obs?"Watch":"Start"}</button></div>`,"setup");
-  if(s.choose&&!obs) drawPreview();
+  <aside class="ssum" aria-live="polite"><h3 class="sh">Your game</h3><div id="sSum">${setupSummary()}</div><div id="sTraits">${setupTraits()}</div></aside>`,"setup");
+  if(s.choose&&!obs&&s.more) drawPreview();
 }
-// set the number of states and sync the slider, number box and quick picks (skip = the control being edited)
+// the "Your game" panel: a live summary of the choices on the left
+function setupSummary(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id)?.name, rnd=w=>"Random "+w;
+  const civ=f(CIVS,s.civ), lead=f(LEADERS,s.leader), land=f(LANDS,s.landType);
+  const people=!civ&&!lead&&!land?"Random civilization, leader and land":[civ||rnd("civilization"),lead||rnd("leader"),land||rnd("land")].join(" · ");
+  const preset=s.map&&s.map!=="random", rules=SETUP_RULES.filter(r=>s[r[1]]&&!(r[5]&&s.observer)).map(r=>`<span class="rchip">${r[2]}</span>`).join("");
+  const water=preset?"Fixed":s.water?`${s.water}% ${({lakes:"lakes",rivers:"rivers",mixed:"lakes + rivers"})[s.wstyle]||""}`:"None";
+  return `${s.observer?`<div class="sname">Observer mode</div><div class="sub">The computer runs every state</div>`:`<div class="sname">${esc((s.empire||"").trim()||"Random empire")}</div><div class="sub">${people}</div>`}
+  <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)}</dd></div>
+    <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
+    <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`; }
+function updateSummary(){ const s=UI.setup; if(!s||!$("sSum")) return;
+  $("sSum").innerHTML=setupSummary(); $("sTraits").innerHTML=setupTraits();
+  if($("sWS")) $("sWS").disabled=!s.water; }
+// "Randomize all": a random valid value for every setting; the window stays open to review
+function randomizeSetup(){ const s=UI.setup, ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[ri(0,a.length-1)], coin=()=>Math.random()<0.5;
+  s.empire=""; s.civ=pick(CIVS).id; s.leader=pick(LEADERS).id; s.landType=pick(LANDS).id;
+  s.map=pick(["random",...Object.keys(PRESET_MAPS)]);
+  s.n=pick(N_STEPS.filter(v=>v<=200)); s.terr=ri(5,20)*10; s.water=ri(0,8)*5; s.wstyle=pick(["lakes","rivers","mixed"]);
+  s.fog=coin(); s.wonders=coin(); s.relNoise=coin(); s.al=coin(); s.alMode=pick(["count","size"]); s.alLay=pick(["region","scattered"]);
+  s.alN=s.alMode==="count"?ri(2,Math.max(2,Math.min(6,s.n))):ri(1,Math.max(1,Math.floor(s.n/2)));
+  s.preview=null; s.pick=null; saveSetup(); setupModal(); }
+// set the number of states and sync the slider and number box (skip = the control being edited)
 function setStates(v,skip){ const s=UI.setup; s.n=v; s.preview=null; s.pick=null;
   if(skip!=="sN"&&$("sN")) $("sN").value=nStep(v); if(skip!=="sNV"&&$("sNV")) $("sNV").value=v;
-  document.querySelectorAll("[data-nset]").forEach(b=>b.classList.toggle("on",+b.dataset.nset===v));
+  if($("sN")) $("sN").setAttribute("aria-valuetext",v+" states");
   if($("sAlInfo")) $("sAlInfo").innerHTML=allyInfo(); }
-document.addEventListener("toggle",e=>{ if(e.target.id==="sMore"&&UI.setup) UI.setup.more=e.target.open; },true);
 // alliance settings from the new-game window (null = no alliances)
 function allyOpts(){ const s=UI.setup; return s&&s.al?{mode:s.alMode,n:s.alN,layout:s.alLay}:null; }
 function allyCount(){ const s=UI.setup; const T=s.alMode==="size"?Math.ceil(s.n/Math.max(1,s.alN)):s.alN; return Math.max(2,Math.min(s.n,T)); }
 function allyInfo(){ const s=UI.setup, T=allyCount(), lo=Math.floor(s.n/T), hi=Math.ceil(s.n/T);
   return `= ${fmt(T)} alliances of ${lo===hi?lo:lo+"–"+hi} states`; }
 function setupTraits(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id);
+  if(s.observer) return "";
   const civ=f(CIVS,s.civ), lead=f(LEADERS,s.leader), land=f(LANDS,s.landType);
-  if(!civ&&!lead&&!land) return ""; // all random: shown in the Economy tab once the game starts
-  return traitChips(computeMods(civ,lead,land)); }
+  if(!civ||!lead||!land) return '<div class="bonus empty">Pick civilization, leader and land to preview your bonuses here.</div>';
+  return '<div class="bonus"><div class="sh" style="margin:0 0 4px">Your bonuses</div>'+traitChips(computeMods(civ,lead,land))+"</div>"; }
 function pickText(){ const s=UI.setup; return !s.preview?"Generating map…":s.pick!=null?`Selected: <b>${esc(s.preview.countries[s.pick].name)}</b>`:"No state selected (random)."; }
 function setPickText(){ const l=$("pvPick"); if(l) l.innerHTML=pickText(); }
 async function makePreview(){
@@ -2700,8 +2765,9 @@ document.addEventListener("click",async ev=>{
   if(d.wlock){ const c=me(); c.workLock={...c.workLock,[d.wlock]:!c.workLock?.[d.wlock]}; render(); return; }
   if(d.lock){ const c=me(); c.allocLock={...c.allocLock,[d.lock]:!c.allocLock?.[d.lock]}; render(); return; }
   if(d.preset){ me().allocLock={}; const P={sci:{sci:100},econ:{sci:30,agri:20,fin:15,dens:10,grow:5,wood:10,iron:10},bal:{sci:16,agri:12,fin:8,dens:8,grow:12,atk:12,def:12,wood:7,iron:9,explore:4},war:{sci:10,agri:10,fin:6,dens:8,grow:12,atk:20,def:16,wood:6,iron:9,explore:3}}; me().alloc={...zeroAreas(),...P[d.preset]}; render(); return; }
-  if(d.smode&&UI.setup){ UI.setup.observer=d.smode==="watch"; saveSetup(); setupModal(); return; }
-  if(d.nset&&UI.setup){ setStates(+d.nset,""); saveSetup(); if(UI.setup.choose&&!UI.setup.observer) drawPreview(); return; }
+  if(d.smode&&UI.setup){ UI.setup.observer=d.smode==="watch"; saveSetup(); setupModal(); $("modal").querySelector('[data-smode][aria-pressed="true"]')?.focus(); return; }
+  if(d.smore!=null&&UI.setup){ const s=UI.setup; s.more=!s.more; saveSetup(); t.setAttribute("aria-expanded",s.more); $("sMore").hidden=!s.more; if(s.more&&s.choose&&!s.observer) drawPreview(); return; }
+  if(d.srand!=null&&UI.setup){ randomizeSetup(); $("modal").querySelector("[data-srand]")?.focus(); return; }
   const a=d.a; if(!a) return;
   const c=G?me():null, num=id=>Math.max(0,Math.floor(+($(id)?.value||0)));
   switch(a){
@@ -2796,8 +2862,23 @@ document.addEventListener("change",ev=>{
   if(t.id==="sRn"){ s.relNoise=t.checked; }
   if(t.id==="sWo"){ s.wonders=t.checked; s.preview=null; s.pick=null; if(s.choose) drawPreview(); }
 });
+// info tooltips: one floating box placed next to the hovered, focused or tapped ⓘ (works in every browser, never clipped)
+{ let tipFor=null;
+  const box=()=>$("infoTip")||document.body.appendChild(Object.assign(document.createElement("div"),{id:"infoTip",role:"tooltip",hidden:true}));
+  const show=el=>{ const b=box(); tipFor=el; b.textContent=el.dataset.tip; b.hidden=false;
+    const r=el.getBoundingClientRect(), w=b.offsetWidth, hh=b.offsetHeight;
+    let x=Math.min(Math.max(8,r.left+r.width/2-w/2),innerWidth-w-8), y=r.bottom+6; if(y+hh>innerHeight-8) y=r.top-hh-6;
+    b.style.left=x+"px"; b.style.top=y+"px"; };
+  const hide=()=>{ tipFor=null; const b=$("infoTip"); if(b) b.hidden=true; };
+  document.addEventListener("pointerover",e=>{ const el=e.target.closest?.(".info[data-tip]"); if(el) show(el); });
+  document.addEventListener("pointerout",e=>{ const el=e.target.closest?.(".info[data-tip]"); if(el&&!el.contains(e.relatedTarget)&&document.activeElement!==el) hide(); });
+  document.addEventListener("focusin",e=>{ if(e.target.matches?.(".info[data-tip]")) show(e.target); else if(tipFor) hide(); });
+  document.addEventListener("focusout",e=>{ if(e.target===tipFor) hide(); });
+  document.addEventListener("click",e=>{ const el=e.target.closest?.(".info[data-tip]"); if(el){ tipFor===el&&!$("infoTip").hidden&&e.pointerType!=="mouse"?hide():show(el); } else if(tipFor) hide(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&tipFor) hide(); });
+  document.addEventListener("scroll",()=>{ if(tipFor) tipFor.isConnected?show(tipFor):hide(); },true); }
 // remember new-game choices (runs after the handlers above have updated UI.setup)
-for(const ev of ["input","change"]) document.addEventListener(ev,e=>{ if(UI.setup&&e.target.closest?.("#modal")) saveSetup(); });
+for(const ev of ["input","change"]) document.addEventListener(ev,e=>{ if(UI.setup&&e.target.closest?.("#modal")){ saveSetup(); updateSummary(); } });
 // End a turn. Used by the End turn button and by auto-run.
 async function endTurnNow(){
   if(!canPlay()||UI.busy) return; UI.busy=true; $("end").disabled=true;
