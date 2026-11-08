@@ -778,7 +778,7 @@ function assignAlliances(g,o,rnd){
   const target=Array.from({length:T},(_,k)=>Math.floor(n/T)+(k<n%T?1:0)), team=new Array(n).fill(-1), cnt=new Array(T).fill(0);
   if(o.layout==="scattered"){ // deal shuffled states out like cards
     shuffle([...Array(n).keys()],rnd).forEach((id,i)=>{ let k=i%T; while(cnt[k]>=target[k]) k=(k+1)%T; team[id]=k; cnt[k]++; });
-  } else { // in a region: grow solid blocks from far-apart seeds, then even out sizes without breaking blocks apart
+  } else { // in a region: grow blocks from far-apart seeds, even out sizes, then swap states so nobody is walled in by allies
     const sx=new Float64Array(n), sy=new Float64Array(n), sc=new Float64Array(n), {W,cells}=g, adj=adjacency(g);
     for(let i=0;i<cells.length;i++){ const o2=cells[i]; if(o2>=0){ sx[o2]+=i%W; sy[o2]+=(i/W)|0; sc[o2]++; } }
     for(let i=0;i<n;i++){ sx[i]/=Math.max(1,sc[i]); sy[i]/=Math.max(1,sc[i]); }
@@ -816,6 +816,36 @@ function assignAlliances(g,o,rnd){
         const short=[...adj[s]].map(j=>team[j]).filter(t=>sur(t)<0), whole=short.length&&staysWhole(A,s);
         for(let t=0;t<T;t++) if(sur(t)<0){ const d=d2(s,seeds[t])+(short.includes(t)?0:1e12)+(whole?0:1e6); if(d<bd){ bd=d; best=s; B=t; } } }
       team[best]=B; cnt[A]--; cnt[B]++; }
+    // 3) nobody locked in: every state should border at least 1, ideally 2, states outside its alliance
+    // (allies can't attack each other). Swap pairs of states between alliances, so sizes stay even, while
+    // that lowers the shortfall; no outside neighbor costs 10, only one costs 1, and nearby partners are preferred.
+    const foes=new Int32Array(n); for(let i=0;i<n;i++) for(const j of adj[i]) if(team[j]!==team[i]) foes[i]++;
+    const pen=i=>{ const d=adj[i].size, f=foes[i]; return (d>=1&&f<1?10:0)+(d>=2&&f<2?1:0); };
+    const setT=(i,t)=>{ const A=team[i]; for(const j of adj[i]){ const was=team[j]!==A, now=team[j]!==t; if(was!==now){ const d=now?1:-1; foes[i]+=d; foes[j]+=d; } } team[i]=t; };
+    const swapGain=(s,x)=>{ const A=team[s], B=team[x], aff=new Set([s,x,...adj[s],...adj[x]]); let b=0,a=0;
+      for(const i of aff) b+=pen(i); setT(s,B); setT(x,A); for(const i of aff) a+=pen(i); setT(x,B); setT(s,A); return b-a; };
+    let span=1; for(let i=0;i<n;i++) span=Math.max(span,d2(i,seeds[0])); span=Math.sqrt(span);
+    for(let pass=0;pass<30;pass++){
+      const members=Array.from({length:T},()=>[]), badOf=Array.from({length:T},()=>[]), bad=[];
+      for(let i=0;i<n;i++){ members[team[i]].push(i); if(pen(i)>0){ bad.push(i); badOf[team[i]].push(i); } }
+      if(!bad.length) break;
+      let swaps=0;
+      for(const v of shuffle(bad,rnd)){ if(pen(v)===0) continue;
+        const A=team[v]; let best=null, bg=0;
+        for(const s of [v,...[...adj[v]].filter(j=>team[j]===A)]){
+          // alliances nearby (2 steps out); deep inside a block, any alliance
+          const near=new Set(); for(const j of adj[s]) for(const k of [j,...adj[j]]) if(team[k]!==A) near.add(team[k]);
+          const Bs=near.size?[...near]:[...Array(T).keys()].filter(t=>t!==A);
+          for(const B of Bs){
+            const xs=new Set(); for(const j of adj[s]) for(const k of adj[j]) if(team[k]===B) xs.add(k);
+            for(let r=0;r<6;r++){ const L=r<3?badOf[B]:members[B]; if(L.length) xs.add(L[Math.floor(rnd()*L.length)]); }
+            for(const x of xs){ if(team[x]!==B||x===s) continue;
+              const gain=swapGain(s,x)-0.5*Math.min(1,Math.sqrt(d2(s,x))/span);
+              if(gain>bg){ bg=gain; best=[s,x]; } } } }
+        if(best){ const [s,x]=best, B=team[x]; setT(s,B); setT(x,A); swaps++; }
+      }
+      if(!swaps) break;
+    }
   }
   const names=shuffle(ANAMES.slice(),rnd), used=new Set(names);
   for(let i=1;names.length<T;i++) if(!used.has("Alliance "+i)){ names.push("Alliance "+i); used.add("Alliance "+i); }
