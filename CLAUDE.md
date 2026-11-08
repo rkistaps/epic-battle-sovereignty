@@ -31,4 +31,10 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
 
 ## Assets
 
-- `docs/map.png`: map screenshot used in the README. To regenerate it, run headless Chrome (e.g. puppeteer-core) and call `ENGINE.call("newGame", {nStates:16, terr:100, difficulty:1, water:15, waterStyle:"lakes", seed:424242})`. Then `render()`, click `[data-map=fit]`, hide `.mapctl`, and screenshot `#mapbox canvas`.
+- `docs/map.png`: the README screenshot, which shows Europe in a 1000-state world-map game with the default atlas lettering. To regenerate it:
+  1. Run headless Chrome (e.g. puppeteer-core) at a 1800×1100 viewport.
+  2. Start a game with `ENGINE.call("newGame", {nStates:1000, terr:100, difficulty:1, map:"world", seed:424242})`.
+  3. Call `render()` and hide `.mapctl`.
+  4. Find the cell for lon 14 / lat 49: `x=(lon-WORLD.lon0)/360*g.W` and `y=(WORLD.latN-lat)/(WORLD.H/WORLD.res)*g.H`.
+  5. Call `mainView.centerOnCell(y*g.W+x, mainView.cw/(48/360*g.W))`. This shows about 48° of longitude.
+  6. Screenshot `#mapbox canvas`, cropping the bottom 24px.
