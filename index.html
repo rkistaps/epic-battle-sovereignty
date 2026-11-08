@@ -341,7 +341,7 @@ const R = {
   genCostBase: 30, genCostMind: 2.6, speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
   coastalShore: 0.03,              // share of shore land that makes a state coastal (Islands/Oceanic land types)
   // wood & iron (epic-battle: 1.4 wood and 1 iron per worker; doubled here for this game's smaller populations)
-  woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, resBuy: 1.6, resSell: 0.5, // base prices; buying costs ×1.6, selling earns ×0.5 startWood: 150, startIron: 60,
+  woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, resBuy: 1.6, resSell: 0.5, startWood: 150, startIron: 60, // base prices; buying costs ×1.6, selling earns ×0.5
   shoreYield: 1, shoreMax: 0.25,                 // +1% harvest per 1% of land on the shore, max +25%
   narrowFront: 3, wideFront: 15, narrowBonus: 0.4, // defenders +40% on a border of <=3 km, fading to 0 at 15 km
   seaBonus: 0.15,                  // pre-made maps: defenders +15% against an attack that only crosses a sea route (replaces the narrow-front bonus)
@@ -2333,7 +2333,7 @@ function pBarracks(){
     return `<tr class="${open?"":"mut"}"><td>${t.icon} <b>${t.name}</b>
         <div class="small mut" style="white-space:nowrap" title="Strength per soldier with your bonuses · training cost · wage per year">atk ${(t.atk*atkPower(c)).toFixed(2)} · def ${(t.def*defPower(c)).toFixed(2)} · ${[["food","🌾"],["wood","🌲"],["iron","⛏️"],["gold","💰"]].filter(([r])=>t[r]>0).map(([r,i])=>t[r]+i).join(" ")} · upkeep ${t.upFood}🌾${t.upGold?` ${t.upGold}💰`:""}/yr${t.hold?` · holds ${t.hold} km²`:""}</div></td>
       <td class="r">${fmt(tr[t.id]||0)}</td>
-      <td style="white-space:nowrap">${open?`<input type="number" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`:""}</td></tr>`; }).join("")}
+      <td style="white-space:nowrap">${open?`<input type="number" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-max="${t.id}" data-n="${max}" title="Enter the most you can train now (${fmt(max)})">Max</button> <button class="sm" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`:""}</td></tr>`; }).join("")}
   </table>
   <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, losses are divided by toughness: a troop with toughness 2 loses half as many as a Spearman. Attacks send your most offensive troops first (${ATTACK_ORDER.map(k=>TROOP[k].name).join(", ")}); the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
 }
@@ -3069,6 +3069,7 @@ document.addEventListener("click",async ev=>{
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
   if(d.tab){ UI.tab=d.tab; render(); return; }
+  if(d.max){ const el=$("trn-"+d.max); if(el){ el.value=d.n; el.focus(); } return; }
   if(d.train||d.untrain){ const id=d.train||d.untrain, n=Math.max(0,Math.floor(+($("trn-"+id)?.value||0)));
     if(d.train){ const got=act.hireTroop(G,me(),id,n); if(got<n) flash(got?`Trained ${got}: not enough resources or peasants for more.`:"Not enough resources or peasants."); }
     else act.fireTroop(G,me(),id,n);
