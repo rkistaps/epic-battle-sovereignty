@@ -86,6 +86,10 @@ td.r,th.r{text-align:right}
 .mut{color:var(--mut)} .good{color:var(--good)} .bad{color:var(--bad)} .acc{color:var(--acc)}
 .bar{height:6px;background:#0f1114;border-radius:3px;overflow:hidden;flex:1;min-width:60px}
 .bar i{display:block;height:100%;background:var(--info)}
+.odds{position:relative;height:10px;background:#0f1114;border-radius:5px;margin:6px 0 2px}
+.odds i{display:block;height:100%;border-radius:5px}
+.odds b{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--mut)}
+.oddsl{position:relative;height:16px} .oddsl span{position:absolute;transform:translateX(-50%);white-space:nowrap}
 .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:5px}
 .gen{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0}
 .note{background:#2b2618;border:1px solid #5a4a22;border-radius:8px;padding:8px;margin:8px 0;font-size:13px}
@@ -527,6 +531,8 @@ function troopUnlocked(c,id){ return !!TROOP[id]; } // no unlocks: every troop t
 function addTroops(c,id,n){ const tr=troopsOf(c); tr[id]=(tr[id]||0)+n; c.soldiers+=n; }
 // take n troops out of a pool in a given order (pool is changed); returns what was taken
 function takeTroops(pool,n,order){ const out={}; for(const k of order){ if(n<=0) break; const m=Math.min(n,pool[k]||0); if(m>0){ out[k]=m; pool[k]-=m; n-=m; } } return out; }
+// take a chosen mix ({type:count}) out of a pool, capped to what's there (pool is changed)
+function takeMix(pool,mix){ const out={}; for(const k in mix){ const m=Math.min(Math.max(0,Math.floor(mix[k]||0)),pool[k]||0); if(m>0){ out[k]=m; pool[k]-=m; } } return out; }
 // remove n troops from a state: "prop" spreads it over all types (famine, desertion), "cheap" goes cheapest first (dismissal)
 function removeTroops(c,n,mode){
   const tr=troopsOf(c); n=Math.min(n,troopCount(tr)); if(n<=0) return 0; let left=n;
@@ -1469,7 +1475,7 @@ function endTurn(g){
   C.forEach(c=>{ if(!c.alive)return;
     c.attacks=c.attacks.filter(a=>C[a.target].alive && c.generals.some(x=>x.id===a.gen) && adjNow[c.id].has(a.target) && !allied(g,c.id,a.target));
     const pool={...troopsOf(c)}; let tot=0;
-    c.attacks.forEach(a=>{ a.soldiers=Math.max(0,Math.min(a.soldiers,c.soldiers-tot)); a.troops=takeTroops(pool,a.soldiers,ATTACK_ORDER); tot+=a.soldiers; });
+    c.attacks.forEach(a=>{ a.troops=a.mix?takeMix(pool,a.mix):takeTroops(pool,Math.max(0,Math.min(a.soldiers,c.soldiers-tot)),ATTACK_ORDER); a.soldiers=troopCount(a.troops); tot+=a.soldiers; });
     c.attacks=c.attacks.filter(a=>a.soldiers>0);
     guards[c.id]=pool; // troops left home defend
     const busy=new Set(c.attacks.map(a=>a.gen));
@@ -1733,6 +1739,7 @@ if(typeof module!=="undefined") module.exports={worldAvgLv,costParts,newGame,end
 // ===== Epic Battle: Sovereignty — UI =====
 let G=null; const UI={tab:"economy",sel:null,setup:null,known:null,busy:false};
 try{ if(localStorage.getItem("eb.wondersOpen")==="0") UI.wondersOpen=false; }catch{}
+UI.atkPreset="p90"; try{ const p=localStorage.getItem("eb.atkPreset"); if(["p90","x2","off","all"].includes(p)) UI.atkPreset=p; }catch{}
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString("en-US");
 // army power: exact below a million, then short (1.5M, 16.1M, 250M, 2.3B)
@@ -2369,8 +2376,8 @@ function foodNote(c){
    : `⚠ Not enough food: ${fmt(prod)} grown + ${fmt(c.grain)} stored, but your people need ${fmt(food)}. About ${fmt((food-have)/2)} people will starve (soldiers first). Move peasants to farming or buy grain.`;
 }
 
-// troops that would go on a new attack: the most offensive first, after the attacks already planned
-function plannedPools(c){ const pool={...troopsOf(c)}; for(const a of c.attacks) takeTroops(pool,a.soldiers,ATTACK_ORDER); return pool; }
+// troops still at home after the attacks already planned
+function plannedPools(c){ const pool={...troopsOf(c)}; for(const a of c.attacks) a.mix?takeMix(pool,a.mix):takeTroops(pool,a.soldiers,ATTACK_ORDER); return pool; }
 function mixText(tr){ return TROOPS.filter(t=>tr[t.id]>0).map(t=>`${t.icon} ${fmt(tr[t.id])} ${t.name}`).join(", ")||"none"; }
 // stored grain beyond next year's shortfall plus a 20% reserve (what "Sell surplus" sells)
 function surplusGrain(c){ const food=foodUse(c), keep=Math.max(0,food-foodProduction(c))+Math.round(food*0.2); return Math.max(0,c.grain-keep); }
@@ -2410,7 +2417,7 @@ function pBarracks(){
       <td class="r">${fmt(tr[t.id]||0)}</td>
       <td style="white-space:nowrap">${open?`<input type="text" inputmode="numeric" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-max="${t.id}" data-n="${max}" title="Enter the most you can train now (${fmt(max)})">Max</button> <button class="sm" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`:""}</td></tr>`; }).join("")}
   </table>
-  <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, losses are divided by toughness: a troop with toughness 2 loses half as many as a Spearman. Attacks send your most offensive troops first (${ATTACK_ORDER.map(k=>TROOP[k].name).join(", ")}); the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
+  <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, losses are divided by toughness: a troop with toughness 2 loses half as many as a Spearman. On the War tab you pick which troops go on each attack; the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
 }
 // work shares: each job up to WORK_MAX %, all jobs together up to WORK_TOTAL % (farmers are everyone else)
 const WORK_MAX=80, WORK_TOTAL=90, WORK_KEYS=["wood","iron","sci"];
@@ -2510,41 +2517,76 @@ function pWar(){
   const busy=new Set(c.attacks.map(a=>a.gen));
   const dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
   const idle=c.generals.filter(g=>!busy.has(g.id));
-  const myUnit=atkPower(c);
   return `${coalitionBanner()}<h3>Defense</h3>
   <div class="kv"><span class="mut">Border guards</span><b>${fmt(guards)} <span class="small mut">(defense ${fmtPow(armyDef(c,plannedPools(c)))})</span></b><span class="mut">Defending general</span><b>${dg?esc(dg.name)+` (skill ${dg.skill.toFixed(0)})`:'<span class="bad">none</span>'}</b></div>
   ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
   <h3>Orders this year</h3>
-  ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${fmt(a.soldiers)} soldiers</td><td>→ ${esc(G.countries[a.target].name)}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}
+  ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${a.mix?mixShort(a.mix):fmt(a.soldiers)+" soldiers"}</td><td>→ ${esc(G.countries[a.target].name)}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}
   <h3>Neighbors</h3>
   ${nb.length?`<table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th class="r" title="Length of your shared border. Narrow borders give the defender a bonus.">Border</th><th></th></tr>
   ${nb.map(j=>{const o=G.countries[j];
    return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${G.hegemon&&G.hegemon.id===j?' <span class="acc" title="Leading state: the coalition is fighting it">⚖</span>':''}</td><td class="r">${fmt(o.land)}</td><td class="r">${fmt(popOf(o))}</td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id))}</td><td class="r" style="white-space:nowrap">${frontCell(c.id,j)}</td><td><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
-  ${UI.attackTarget!=null && nb.includes(UI.attackTarget) ? attackForm(c,UI.attackTarget,idle,guards,myUnit):""}
+  ${UI.attackTarget!=null && nb.includes(UI.attackTarget) ? attackForm(c,UI.attackTarget,idle):""}
   <div class="small mut" style="margin-top:8px">Battles resolve at year end, all at once. Soldiers you send don't guard your own borders that year. If several armies attack the same state, its guards are split between them by attack strength, so joint attacks fight at their combined odds (each still wins or loses on its own). Win and you take land: (your general's speed limit + an army bonus that grows with your surviving soldiers) × how decisive the win was, from 25% for a narrow win to 100% at twice their strength. Relations = how they feel about you (−100 hostile … +100 friendly). Computer states attack those they dislike first.</div>`;
 }
 // a relation value with its label, colored: red when hostile, green when friendly
 function relCell(v){ const r=Math.round(v); return `<span class="${r<=-50?"bad":r>=20?"good":r<=-20?"acc":""}" style="white-space:nowrap" title="${relLabel(r)}">${r>0?"+":""}${r} <span class="small">${relLabel(r)}</span></span>`; }
 function frontCell(a,d){ const sea=seaOnlyFront(G,a,d), w=frontWidth(G,a,d), b=frontBonusAD(G,a,d); return `${sea?"sea":w+" km"}${b>0?` <span class="bad small" title="${sea?"Sea crossing":"Narrow front"}: their defenders get this bonus">+${Math.round(b*100)}%</span>`:""}`; }
-function attackForm(c,j,idle,guards,myUnit){
+const ATK_PRESETS=[["p90","90% of all","90% of each troop type"],["x2","2× their defense","The fewest troops (most offensive first) whose attack is twice their estimated defense: enough for full land if the estimate holds. Battles have luck, so a win isn't certain."],["off","Offensive only","Every troop whose attack is higher than its defense"],["all","Everything","All troops at home"],["none","Clear","Send nothing"]];
+// rough odds of an attack: their estimated defense and your attack per point of troop attack
+function atkOdds(c,o,gen){ const theirDef=o.generals.find(x=>x.id===o.defGen), fb=frontBonusAD(G,c.id,o.id), [pA,pD]=clashPowers(c,o);
+  return {est:troopSum(troopsOf(o),"def")*pD*genFactor(theirDef)*(1+R.defenderBonus)*(1+fb), per:pA*genFactor(gen)}; }
+// "2× their defense": add troops, most offensive first, until attack reaches twice their defense (or all are in)
+function doubleMix(home,c,o,gen){ const {est,per}=atkOdds(c,o,gen), m={}; let need=2*est;
+  for(const k of ATTACK_ORDER){ const h=home[k]||0, u=TROOP[k].atk*per; m[k]=need>0&&u>0?Math.min(h,Math.ceil(need/u-1e-9)):0; need-=m[k]*u; }
+  return m; }
+function presetMix(home,p){
+  if(p==="x2"){ const c=me(), o=G.countries[UI.attackTarget], gen=c.generals.find(g=>g.id===UI.atkGen); if(o&&gen&&atkOdds(c,o,gen).est>0) return doubleMix(home,c,o,gen); p="p90"; } // undefended: 90%
+  const m={}; for(const t of TROOPS){ const h=home[t.id]||0; m[t.id]=p==="all"?h:p==="off"?(t.atk>t.def?h:0):p==="none"?0:Math.round(h*0.9); } return m; }
+// the troops picked for the attack being planned, capped to what's home
+function atkMix(home){ if(!UI.atkMix){ UI.atkMix=presetMix(home,UI.atkPreset); UI.atkEdited=false; } const m={}; for(const t of TROOPS) m[t.id]=Math.min(UI.atkMix[t.id]||0,home[t.id]||0); return m; }
+function mixShort(tr){ return TROOPS.filter(t=>tr[t.id]>0).map(t=>`<span title="${t.name}" style="white-space:nowrap">${t.icon} ${fmt(tr[t.id])}</span>`).join(" ")||"none"; }
+// odds, odds bar and land for the attack being planned (refreshed live while typing)
+function atkSummary(c,o,gen,send){
+  const n=troopCount(send), {est,per}=atkOdds(c,o,gen), mine=troopSum(send,"atk")*per, r=est>0?mine/est:Infinity;
+  if(n<=0) return `<div class="small mut">Pick some troops to send.</div>`;
+  const x2=UI.atkPreset==="x2"&&!UI.atkEdited?(est<=0?`<div class="small mut">They have no soldiers, so 2× doesn't apply: sending 90% of each.</div>`:r<2?`<div class="small bad">Even all your troops at home fall short of 2× their defense.</div>`:""):"";
+  const cls=o.soldiers===0||r>1.6?"good":r>1.1?"acc":"bad";
+  const verdict=o.soldiers===0?"Undefended: easy win":r>1.6?"Favorable":r>1.1?"Risky":"Likely defeat";
+  const pos=x=>Math.min(100,x/2.5*100);
+  return `${x2}<div class="small">Your attack <b>${fmt(mine)}</b> vs their defense <b>${fmt(est)}</b> → ratio ${r===Infinity?"∞":r.toFixed(2)}: <b class="${cls}">${verdict}</b> <span class="mut">(if all their soldiers defend)</span></div>
+  <div class="odds" title="Your attack ÷ their defense"><i style="width:${r===Infinity?100:pos(r)}%;background:var(--${cls})"></i><b style="left:${pos(1)}%"></b><b style="left:${pos(2)}%"></b></div>
+  <div class="oddsl small mut"><span style="left:${pos(1)}%">even</span><span style="left:${pos(2)}%">2×: full land</span></div>
+  <div class="small">Land if you win decisively: up to <b>${fmt(conquest(gen,n,1,c,holdUnits(send)))}</b> km² <span class="mut">(speed limit ${speedCap(gen)} + army bonus ${Math.round(R.armyLand*Math.sqrt(n))}; a narrow win takes a quarter of that; at most ${R.occupy} km² per surviving soldier)</span>.</div>`;
+}
+function attackForm(c,j,idle){
   const o=G.countries[j];
   if(!idle.length) return `<div class="note">Every general is busy or you have none. Hire one on the Generals tab.</div>`;
-  const gsel=UI.atkGen && idle.some(g=>g.id===UI.atkGen)?UI.atkGen:idle.slice().sort((a,b)=>genFactor(b)-genFactor(a))[0].id;
-  const gen=idle.find(g=>g.id===gsel); const n=Math.min(UI.atkN??Math.round(guards*0.6),guards);
-  const theirDef=o.generals.find(x=>x.id===o.defGen);
-  const fw=frontWidth(G,c.id,j), sea=seaOnlyFront(G,c.id,j), fb=frontBonusAD(G,c.id,j);
-  const [pA,pD]=clashPowers(c,o);
-  const est=troopSum(troopsOf(o),"def")*pD*genFactor(theirDef)*(1+R.defenderBonus)*(1+fb);
-  const send=takeTroops(plannedPools(c),n,ATTACK_ORDER), mine=troopSum(send,"atk")*pA*genFactor(gen); const r=est>0?mine/est:Infinity;
-  const verdict=o.soldiers===0?'<span class="good">Undefended: easy win</span>':r>1.6?'<span class="good">Favorable</span>':r>1.1?'<span class="acc">Risky</span>':'<span class="bad">Likely defeat</span>';
+  const gsel=UI.atkGen && idle.some(g=>g.id===UI.atkGen)?UI.atkGen:idle.slice().sort((a,b)=>genFactor(b)-genFactor(a))[0].id; UI.atkGen=gsel;
+  const gen=idle.find(g=>g.id===gsel), home=plannedPools(c), mix=atkMix(home), rows=TROOPS.filter(t=>home[t.id]>0);
+  const fw=frontWidth(G,c.id,j), sea=seaOnlyFront(G,c.id,j), fb=frontBonusAD(G,c.id,j), n=troopCount(mix);
   return `<div class="gen sel"><b>Attack ${esc(o.name)}</b>
   <div class="row">General <select id="atkGen">${idle.map(g=>`<option value="${g.id}" ${g.id===gsel?"selected":""}>${esc(g.name)} · skill ${g.skill.toFixed(0)} · morale ${g.morale} · spd ${g.speed}</option>`).join("")}</select></div>
-  <div class="row">Soldiers <input type="text" inputmode="numeric" id="atkN" value="${n}" min="1" max="${guards}"> <span class="small mut">of ${fmt(guards)} available</span></div>
-  <div class="small">Sending: ${mixText(send)} <span class="mut">(most offensive troops first)</span></div>
-  <div class="small">Rough odds (if all their soldiers defend): your strength ${fmt(mine)} vs ${fmt(est)} → ratio ${r===Infinity?"∞":r.toFixed(2)}: ${verdict}. Land if you win decisively: up to <b>${fmt(conquest(gen,n,1,c,holdUnits(send)))}</b> km² <span class="mut">(speed limit ${speedCap(gen)} + army bonus ${Math.round(R.armyLand*Math.sqrt(n))}; a narrow win takes a quarter of that; at most ${R.occupy} km² per surviving soldier)</span>.</div>
+  ${rows.length?`<div class="row small">Quick pick ${ATK_PRESETS.map(([k,l,tip])=>`<button class="sm${UI.atkPreset===k&&!UI.atkEdited?" pri":""}" data-atkpre="${k}" title="${tip}">${l}</button>`).join("")}</div>
+  <table class="tight"><tr><th>Troop</th><th class="r">Home</th><th>Send</th><th class="r" title="Stays home and guards">Stays</th></tr>
+  ${rows.map(t=>`<tr><td>${t.icon} <b>${t.name}</b><div class="small mut">atk ${(t.atk*atkPower(c)).toFixed(2)} · def ${(t.def*defPower(c)).toFixed(2)}</div></td><td class="r">${fmt(home[t.id])}</td>
+    <td style="white-space:nowrap"><input type="text" inputmode="numeric" data-atkmix="${t.id}" value="${mix[t.id]}" style="width:52px"> <button class="sm" data-atkset="${t.id}" data-n="0" title="Send none">0</button> <button class="sm" data-atkset="${t.id}" data-n="${home[t.id]}" title="Send all ${fmt(home[t.id])}">Max</button></td>
+    <td class="r" id="atkStay-${t.id}">${fmt(home[t.id]-mix[t.id])}</td></tr>`).join("")}
+  <tr><td><b>Total</b></td><td class="r">${fmt(troopCount(home))}</td><td><b id="atkTot">${fmt(n)}</b></td><td class="r" id="atkStayT">${fmt(troopCount(home)-n)}</td></tr></table>`
+  :`<div class="note">No soldiers left at home. Train some in the Barracks or cancel an order.</div>`}
+  <div id="atkSum">${atkSummary(c,o,gen,mix)}</div>
   <div class="small">Border with them: <b>${sea?"sea route only":fw+" km"}</b>${sea?(fb>0?` · <span class="bad">sea crossing, their defenders +${Math.round(fb*100)}%</span> (included above)`:" · sea crossing, no defense bonus"):fb>0?` · <span class="bad">narrow front, their defenders +${Math.round(fb*100)}%</span> (included above)`:" · open front, no defense bonus"}.</div>
   ${gen.morale<70?`<div class="small bad">This general's morale is low (${gen.morale}). He'll fight badly.</div>`:""}
   <div class="row"><button class="pri" data-a="orderAttack">Order attack</button><button data-a="closeAttack">Close</button></div></div>`;
+}
+// after typing in a Send box: update totals and odds without redrawing the form
+function refreshAtk(){
+  const c=me(), o=G.countries[UI.attackTarget], gen=c.generals.find(g=>g.id===UI.atkGen); if(!o||!gen||!$("atkSum")) return;
+  const home=plannedPools(c), mix=atkMix(home), n=troopCount(mix);
+  for(const t of TROOPS){ const el=$("atkStay-"+t.id); if(el) el.textContent=fmt((home[t.id]||0)-mix[t.id]); }
+  if($("atkTot")) $("atkTot").textContent=fmt(n); if($("atkStayT")) $("atkStayT").textContent=fmt(troopCount(home)-n);
+  document.querySelectorAll("[data-atkpre]").forEach(b=>b.classList.toggle("pri",!UI.atkEdited&&b.dataset.atkpre===UI.atkPreset));
+  $("atkSum").innerHTML=atkSummary(c,o,gen,mix);
 }
 
 function pWorld(){
@@ -2979,6 +3021,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Pick troops for each attack","2026-11-09 18:11",["Attack window: choose how many of each troop type to send","Quick picks: 90% of all, 2× their defense, Offensive only, Everything, Clear (your last pick is remembered)","0 and Max buttons for each troop type","Odds bar shows your attack against their defense","Orders list shows which troops go on each attack"]],
 ["Hot-seat multiplayer","2026-11-09 17:49",["New Hot-seat mode in the New game window: any number of players on one device","Each player sets a state name, civilization, leader and land, and can pick a starting state on the map","Random starting states are kept away from other players","Handover screen between players hides the last player's screen","Each player gets their own year report, home news, fog of war and news archive","Turn order can rotate each year","Humans and alliances: Free for all or All humans together","A fallen player can take over a computer state, watch, or leave","Auto-run is off while two or more players are in the game"]],
 ["Window buttons always visible","2026-11-09 17:07",["Every window keeps its title and buttons in place; only the middle scrolls","New game: Start, Back and Randomize all stay at the bottom"]],
 ["Change log","2026-11-09 16:59",["New Change log button in the header","Each update lists what changed; click a title to see it"]],
@@ -3014,7 +3057,7 @@ function helpModal(){
   <li>Population grows toward capacity (land × density). Pop. density and growth research raise it.</li></ul>
   <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last. Big states pay more per level (cost × √(population ÷ ${fmt(R.sizeRef)})). Ideas spread: an area costs ${Math.round(R.catchUpPer*100)}% less per level you are behind the world average (at most −${Math.round(R.catchUpMax*100)}%) and ${Math.round(R.leadPer*100)}% more per level you are ahead (at most ×${R.leadMax}). Each area's research bonus has a max (e.g. +${Math.round(R.atkMax*100)}% attack, +${Math.round(R.sciMax*100)}% research): early levels give the full amount, later ones less and less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can take the total past it.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""}</li></ul>
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Economy tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
-  <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; attacks send your most offensive troops first. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
+  <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; you pick which troops go on each attack (War tab), the rest stay home and guard. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
   <h3>War</h3><ul class="log"><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
@@ -3230,7 +3273,9 @@ document.addEventListener("click",async ev=>{
   if(d.takeover!=null){ takeOver(+d.takeover); return; }
   if(d.giveask!=null){ UI.giveConfirm=d.giveask==="1"; render(); return; }
   if(d.giveaway!=null){ giveAway(); return; }
-  if(d.target!=null){ UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkN=null; UI.tab="war"; render(); return; }
+  if(d.target!=null){ UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkMix=null; UI.tab="war"; render(); return; }
+  if(d.atkpre){ UI.atkPreset=d.atkpre; UI.atkMix=null; if(d.atkpre!=="none") try{ localStorage.setItem("eb.atkPreset",d.atkpre); }catch{} render(); return; }
+  if(d.atkset){ if(UI.atkMix){ UI.atkMix[d.atkset]=+d.n; UI.atkEdited=true; } const el=document.querySelector(`[data-atkmix="${d.atkset}"]`); if(el) el.value=d.n; refreshAtk(); return; }
   if(d.cancel!=null){ me().attacks.splice(+d.cancel,1); render(); return; }
   if(d.defgen){ me().defGen=+d.defgen; render(); return; }
   if(d.dismiss){ act.dismissGeneral(G,me(),+d.dismiss); render(); return; }
@@ -3259,9 +3304,9 @@ document.addEventListener("click",async ev=>{
     case "sellSurplus": act.sell(G,c,surplusGrain(c)); break;
     case "buyGen": { const f=UI.genForm; if(!act.buyGeneral(G,c,f.age,f.speed,f.mind)) flash("Not enough money."); break; }
     case "orderAttack": {
-      const gen=+$("atkGen").value, n=num("atkN"); const avail=c.soldiers-committed(c);
-      if(n<=0||n>avail){ flash("Not enough soldiers available."); return; }
-      c.attacks.push({target:UI.attackTarget,gen,soldiers:n}); if(c.defGen===gen){ const other=c.generals.find(g=>g.id!==gen&&!c.attacks.some(x=>x.gen===g.id)); c.defGen=other?other.id:gen; }
+      const gen=+$("atkGen").value, home=plannedPools(c), mix=takeMix({...home},atkMix(home)), n=troopCount(mix);
+      if(n<=0){ flash("Pick some troops to send."); return; }
+      c.attacks.push({target:UI.attackTarget,gen,soldiers:n,mix}); UI.atkMix=null; if(c.defGen===gen){ const other=c.generals.find(g=>g.id!==gen&&!c.attacks.some(x=>x.gen===g.id)); c.defGen=other?other.id:gen; }
       UI.attackTarget=null; break; }
     case "closeAttack": UI.attackTarget=null; break;
     case "close": UI.sdraft=null; closeModal(); return;
@@ -3315,7 +3360,7 @@ document.addEventListener("input",ev=>{
   if(t.dataset.alloc){ const box=t.parentElement.querySelector("[data-allocpct]"); if(box) box.value=t.value; return; } // live: show the number while dragging
   if(["gAge","gSpeed","gMind"].includes(t.id)){ const f=UI.genForm; f.age=+$("gAge").value; f.speed=+$("gSpeed").value; f.mind=+$("gMind").value;
     $("gAgeV").textContent=f.age; $("gSpeedV").textContent=f.speed; $("gMindV").textContent=f.mind; $("gPrice").textContent=fmt(genPrice(f.age,f.speed,f.mind)); $("gCap").textContent=speedCap(f); return; }
-  if(t.id==="atkN"){ UI.atkN=Math.max(0,Math.floor(+t.value)||0); return; }
+  if(t.dataset.atkmix){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; if(UI.atkMix){ UI.atkMix[t.dataset.atkmix]=+v||0; UI.atkEdited=true; refreshAtk(); } return; }
   const s=UI.setup; if(!s) return;
   if(t.id==="sName"){ s.empire=t.value; return; }
   if(t.dataset.pf){ const [i,k]=t.dataset.pf.split("."), q=s.players[+i]; if(q) q[k]=k==="name"?t.value.slice(0,24):t.value; return; }
@@ -3334,8 +3379,8 @@ document.addEventListener("change",ev=>{
   if(t.id==="settingsFile"&&t.files&&t.files[0]){ const f=t.files[0]; f.text().then(importSettings); t.value=""; return; }
   if(t.dataset.workpct){ setWorkShare(me(),t.dataset.workpct,t.value); render(); return; }
   if(t.dataset.alloc||t.dataset.allocpct){ setAllocShare(me(),t.dataset.alloc||t.dataset.allocpct,t.value); render(); return; }
-  if(t.id==="atkGen"){ UI.atkGen=+t.value; render(); return; }
-  if(t.id==="atkN"){ render(); return; }
+  if(t.id==="atkGen"){ UI.atkGen=+t.value; if(UI.atkPreset==="x2"&&!UI.atkEdited) UI.atkMix=null; render(); return; }
+  if(t.dataset.atkmix){ const k=t.dataset.atkmix; t.value=Math.min(UI.atkMix?.[k]||0,plannedPools(me())[k]||0); return; }
   const s=UI.setup; if(!s) return;
   if(t.id==="sD"){ s.diff=+t.value; }
   // rebuild the preview when the slider is released (big maps take a moment)
