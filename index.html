@@ -96,6 +96,9 @@ td.r,th.r{text-align:right}
 #bAuto.on{border-color:var(--acc);color:var(--acc)}
 #toast{position:fixed;right:16px;bottom:16px;z-index:15;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;box-shadow:0 4px 16px #0008;max-width:calc(100vw - 32px)}
 .overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:14px}
+.overlay.solid{background:var(--bg)} /* hot-seat handover: hides the previous player's screen */
+.handover h2{display:flex;align-items:center;justify-content:center;gap:10px}
+.hsw{width:22px;height:22px;border-radius:6px;display:inline-block;flex:none}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:hidden;padding:18px;display:flex;flex-direction:column}
 /* every window: header and footer stay put, only .mbody scrolls (modal() wraps the middle in .mbody) */
 .modal>*{flex:none}
@@ -205,6 +208,23 @@ td.r,th.r{text-align:right}
 .info:hover,.info:focus{color:var(--s-acc)}
 .sfoot{display:flex;align-items:center;gap:10px}
 .modal.setup>.sfoot{margin:0;padding:14px 32px;border-top:1px solid var(--s-div)}
+/* hot-seat players list in the New game window */
+.prow,.phdr{display:grid;grid-template-columns:22px minmax(0,1.4fr) repeat(3,minmax(0,1fr)) minmax(0,.9fr) 28px;gap:8px;align-items:center}
+.phdr{font-size:12px;color:var(--s-mut);padding-bottom:4px;border-bottom:1px solid var(--s-div)}
+.prow{padding:8px 0;border-bottom:1px solid var(--s-div)}
+.prow .pn{color:var(--s-mut);font-size:13px;text-align:center}
+.modal.setup .prow select,.modal.setup .prow input[type=text]{height:36px;font-size:13px;padding:0 8px;width:100%}
+.prow .pst{font-size:13px;color:var(--s-t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pst .acc{color:var(--s-acc)}
+.modal.setup .prow .px,.modal.setup .pst button{background:none;border:0;color:var(--s-mut);font-size:18px;padding:0 4px;height:auto}
+.modal.setup .prow .px:disabled{opacity:.3}
+.modal.setup .addp{background:none;border:1px dashed var(--s-inb);color:var(--s-acc);width:100%;margin-top:10px;height:38px;font-weight:600}
+.seg2{display:inline-flex;gap:4px;padding:3px;border:1px solid var(--s-div);border-radius:8px;background:var(--s-in)}
+.modal.setup .seg2 button{border:0;background:transparent;padding:6px 12px;color:var(--s-t2);font-size:13px}
+.modal.setup .seg2 button[aria-pressed=true]{background:#2A2620;color:var(--s-acc);font-weight:600}
+@media(max-width:520px){.shead{flex-wrap:wrap}.seg button{padding:7px 12px}}
+.hal{flex-direction:row!important;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:8px}
+@media(max-width:800px){.phdr{display:none}.prow{grid-template-columns:22px minmax(0,1fr) 28px}.prow>select,.prow>.pst{grid-column:2}}
 .rnd{background:none!important;border:0!important;color:var(--s-acc);font-weight:600;padding:8px 4px!important}
 .rnd:hover{color:var(--s-acch)}
 .modal.setup>.sbody{background:linear-gradient(to right,var(--s-surf) calc(100% - 341px),var(--s-div) calc(100% - 341px),var(--s-div) calc(100% - 340px),var(--s-sum) calc(100% - 340px))}
@@ -777,20 +797,52 @@ function newGame(opts){
   const g = {seed, gid:newGid(seed), rs:Math.floor(rnd()*1e9), W,H,cells,takenAt:new Int16Array(cells.length),takenFrom:new Int16Array(cells.length).fill(-1),countries,turn:1,price:1.1, water:Math.round(frac*100), waterStyle:style, map:preset||"random", links,
     difficulty:opts.difficulty??1, relNoise:!!opts.relNoise, player:-1, log:[], battles:[], allBattles:[], over:false, genId:1, worldEvents:[]};
   // observer mode: nobody is the player (g.player = OBSERVER) and every state is run by the computer
-  let p = opts.observer ? OBSERVER : opts.player;
-  if(p==null||(p<0&&p!==OBSERVER)) p=Math.floor(rnd()*n);
-  g.player=p; if(p===OBSERVER) g.observer=true; else { countries[p].ai=false; pickTraits(countries[p],opts.civ,opts.leader); }
+  // hot-seat: several humans share this device (set up at the end, once land types and alliances exist)
+  const hot=!opts.observer&&Array.isArray(opts.humans)&&opts.humans.length>=2;
+  let p = opts.observer ? OBSERVER : hot ? -1 : opts.player;
+  if(!hot&&(p==null||(p<0&&p!==OBSERVER))) p=Math.floor(rnd()*n);
+  g.player=p; if(p===OBSERVER) g.observer=true; else if(!hot){ countries[p].ai=false; pickTraits(countries[p],opts.civ,opts.leader); }
   recount(g); computeShore(g);
   // land type: random, but Islands/Oceanic only for coastal states (3%+ shore land)
   countries.forEach(c=>{ const coastal=c.shore>=c.land*R.coastalShore, pool=LANDS.filter(l=>coastal||!l.coastal);
     setTraits(c,c.civ,c.leader,pool[Math.floor(rnd()*pool.length)].id); });
-  if(!g.observer) pickTraits(countries[p],opts.civ,opts.leader,opts.landType);
+  if(!g.observer&&!hot) pickTraits(countries[p],opts.civ,opts.leader,opts.landType);
   if(opts.wonders) placeWonders(g,rnd);
   g.hegemon=null;
   refreshWonders(g);
   if(opts.alliances) assignAlliances(g,opts.alliances,rnd);
+  if(hot) setupHumans(g,opts,rnd);
   return g;
 }
+
+// ---------- hot-seat ----------
+// o = {humans:[{name,civ,leader,landType}], picks:[state id or null], allHumans, rotate}
+// Picked states first; the rest get random states that don't border another human (when possible).
+function setupHumans(g,o,rnd){
+  const C=g.countries, adj=adjacency(g), ids=[], taken=new Set(), picks=o.picks||[];
+  o.humans.forEach((h,i)=>{ const q=picks[i]; if(q!=null&&C[q]&&!taken.has(q)){ ids[i]=q; taken.add(q); } });
+  const order=shuffle([...C.keys()],rnd);
+  o.humans.forEach((h,i)=>{ if(ids[i]!=null) return;
+    let q=order.find(j=>!taken.has(j)&&![...taken].some(t=>adj[t].has(j))); if(q==null) q=order.find(j=>!taken.has(j));
+    ids[i]=q; taken.add(q); });
+  C.forEach(c=>c.ai=true);
+  o.humans.forEach((h,i)=>{ const c=C[ids[i]]; c.ai=false; pickTraits(c,h.civ,h.leader,h.landType);
+    const nm=String(h.name||"").trim().slice(0,24);
+    if(nm){ const dup=C.find(x=>x!==c&&x.name.toLowerCase()===nm.toLowerCase()); if(dup) dup.name=c.name; c.name=nm; } });
+  if(o.allHumans) joinHumans(g,ids);
+  g.player=ids[0]; g.observer=false;
+  // order = this year's turn order, at = whose turn it is; rep = who still has to see last year's report
+  g.hot={ids:ids.slice(),order:ids.slice(),at:0,first:0,rotate:o.rotate!==false,rep:[],prev:{}};
+}
+// "All humans together": humans share one alliance (with alliances on, a computer member swaps out for each)
+function joinHumans(g,ids){
+  const C=g.countries;
+  if(!g.teams){ g.teams=[{id:0,name:"Players' Alliance",tag:"PA",color:ALLY_COLORS[0]}]; ids.forEach(i=>C[i].team=0); return; }
+  const T=C[ids[0]].team;
+  for(const h of ids.slice(1)){ const c=C[h]; if(c.team===T) continue; const x=C.find(o=>o.team===T&&!ids.includes(o.id)); if(x) x.team=c.team; c.team=T; }
+}
+// a message for a human state's year report
+function note(g,id,m){ const c=g.countries[id]; if(c&&!c.ai) (c.log||(c.log=[])).push(m); }
 
 // ---------- alliances ----------
 // Allies never attack each other and win together: the game ends when every surviving state is in one alliance.
@@ -1405,6 +1457,7 @@ function endTurn(g){
   C.forEach(c=>{ if(c.wood==null){ c.wood=0; c.iron=0; c.work={wood:15,iron:5}; } }); // older saves: no wood/iron yet
   if(!g.takenFrom) g.takenFrom=new Int16Array(g.cells.length).fill(-1);
   g.log=[]; g.battles=[]; g.collapsed=[];
+  C.forEach(c=>{ if(c.ai) delete c.log; else c.log=[]; }); // each human's home news
   if(g.hegemon===undefined) computeHegemon(g); // older saves
   migrateResearch(g); migrateRelations(g);
   g.avgLv=worldAvgLv(g); // research costs compare against the average at the start of the year
@@ -1442,8 +1495,8 @@ function endTurn(g){
   computeShore(g); // borders moved; shore farmland may have changed hands
   refreshWonders(g);
   for(const e of g.wonderEvents){ const W_=WONDERS[e.area].name;
-    if(e.to===g.player) g.log.push(`🏛 You captured the ${W_}! Your ${WONDER_EFFECT[e.area]} is +${wonderPct(e.area)}%.`);
-    else if(e.from===g.player) g.log.push(e.to>=0?`🏛 You lost the ${W_} to ${C[e.to].name}.`:`🏛 You lost the ${W_}: its land is now unowned.`); }
+    if(e.to>=0) note(g,e.to,`🏛 You captured the ${W_}! Your ${WONDER_EFFECT[e.area]} is +${wonderPct(e.area)}%.`);
+    if(e.from>=0) note(g,e.from,e.to>=0?`🏛 You lost the ${W_} to ${C[e.to].name}.`:`🏛 You lost the ${W_}: its land is now unowned.`); }
   C.forEach(c=>{ if(c.alive) economy(g,c); });
   // market
   g.price=+Math.min(R.priceMax,Math.max(R.priceMin,g.price+rr(g,-R.priceDrift,R.priceDrift)+(R.priceMean-g.price)*0.1)).toFixed(2);
@@ -1456,15 +1509,16 @@ function endTurn(g){
   // player defaults for next turn
   const alive=C.filter(c=>c.alive);
   // with alliances the war ends when all survivors are allies; the whole alliance wins (even members who fell)
-  const teamsLeft=g.teams?new Set(alive.map(c=>c.team)):null, done=g.teams?teamsLeft.size<=1:alive.length<=1;
+  const teamsLeft=g.teams?new Set(alive.map(c=>c.team??"s"+c.id)):null, done=g.teams?teamsLeft.size<=1:alive.length<=1;
   const winTeam=g.teams&&done&&alive.length?alive[0].team:null;
-  if(me.observer){ if(done) g.over="end"; }
+  if(g.hot){ if(done) g.over="end"; } // hot-seat: one player's defeat doesn't end the game
+  else if(me.observer){ if(done) g.over="end"; }
   else if(g.teams&&done&&me.team===winTeam){ g.over="win"; }
   else if(!me.alive){ g.over="lose"; }
   else if(!g.teams&&alive.length===1){ g.over="win"; }
   if(done){ g.worldOver=true; g.winner=alive.length===1?alive[0].id:null; g.winnerTeam=winTeam; }
-  // re-validate player's defGen
-  if(me.defGen!=null && !me.generals.some(x=>x.id===me.defGen)) me.defGen = me.generals[0]?.id ?? null;
+  // re-validate each human's defending general
+  C.forEach(c=>{ if(!c.ai&&c.defGen!=null&&!c.generals.some(x=>x.id===c.defGen)) c.defGen=c.generals[0]?.id??null; });
   return g;
 }
 
@@ -1573,7 +1627,7 @@ function settle(g){
       cells[i]=id; own[id].push(i); c.land++; g.takenAt[i]=g.turn; g.takenFrom[i]=-1; k++;
       nb(i,j2=>{ if(cells[j2]===-1) q.push(j2); });
     }
-    if(k){ ADJ.delete(g); if(id===g.player) g.log.push(`🏕 Settlers claimed ${k} km² of unowned land.`); }
+    if(k){ ADJ.delete(g); note(g,id,`🏕 Settlers claimed ${k} km² of unowned land.`); }
   }
 }
 function frontierCells(g,a,d){
@@ -1597,7 +1651,7 @@ function transferCells(g,a,d,n,frontier){
 
 const fmt0=n=>Math.round(n).toLocaleString("en-US");
 function economy(g,c){
-  const isMe=!c.ai, L=(m)=>{ if(isMe) g.log.push(m); };
+  const isMe=!c.ai, L=(m)=>{ if(isMe) note(g,c.id,m); };
   // farming: this year's food comes in first
   const harvest=foodProduction(c); c.grain+=harvest; c.lastHarvest=harvest;
   L(`Farming: ${fmt0(workers(c).farm)} farmers grew ${fmt0(harvest)} grain.`);
@@ -1738,7 +1792,7 @@ function rleDec(s){ const out=[]; for(const t of s.split(",")){ const [v,n]=t.sp
 const GRID_KEYS=["cells","takenAt","takenFrom"];
 function fromLocal(){ const s=localStorage.getItem(OLD_KEY); if(!s) return null; const g=JSON.parse(s); for(const k of GRID_KEYS) if(g[k]&&g[k].rle!=null) g[k]=rleDec(g[k].rle); return g; }
 let SAVED=null; // {name,turn,over} of the stored game, for the setup screen
-const saveMeta=g=>g?{name:g.countries[g.player]?.name??"observer mode",turn:g.turn,over:g.over}:null;
+const saveMeta=g=>g?{name:g.hot?`Hot-seat · ${g.hot.ids.length} players`:g.countries[g.player]?.name??"observer mode",turn:g.turn,over:g.over}:null;
 // ---------- news archive: every battle you could see, saved next to the game ----------
 // Compact rows: [year, attacker (-1 = famine collapse), defender, sent, guards, lossA, lossD, taken, win, destroyed, narrowFrontBonus, report]
 // report = index of the battle's full report in its chunk's report list (-1 = none).
@@ -1789,10 +1843,14 @@ async function loadNews(g){
 const unpackBattle=a=>({turn:a[0],att:a[1],def:a[2],sent:a[3],guards:a[4],lossA:a[5],lossD:a[6],taken:a[7],win:!!a[8],elim:!!a[9],fb:a[10]});
 // add the year that just ended (call after render, so fog-of-war knowledge is current)
 function archiveTurn(){
-  const n=newsFor(G);
-  for(const b of G.battles) if(!G.fog||seenBattle(b)) newsAdd(n,packBattle(b),b.d?packDetail(b.d):null);
-  for(const id of G.collapsed||[]) if(!G.fog||id===G.player||neighborsBefore(id)) newsAdd(n,[G.turn-1,-1,id,0,0,0,0,0,0,1,0,-1],null);
+  const n=newsFor(G), hv=G.hot&&G.fog?G.hot.ids:null; // hot-seat with fog: row[12] = the humans who saw it
+  const add=(row,det,test)=>{ if(hv){ const v=hv.filter(id=>asPlayer(id,test)); if(!v.length) return; row[12]=v; } else if(G.fog&&!test()) return; newsAdd(n,row,det); };
+  for(const b of G.battles) add(packBattle(b),b.d?packDetail(b.d):null,()=>seenBattle(b));
+  for(const id of G.collapsed||[]) add([G.turn-1,-1,id,0,0,0,0,0,0,1,0,-1],null,()=>id===G.player||neighborsBefore(id));
 }
+// run fn as if `id` were the player (fog of war included)
+function asPlayer(id,fn){ const p=G.player, k=UI.known; G.player=id; UI.known=knownSet(G); try{ return fn(); } finally{ G.player=p; UI.known=k; } }
+const newsSeen=a=>!a[12]||a[12].includes(G.player);
 // older saves: start the archive from the recent history they still keep
 function backfillNews(g){ const n=newsFor(g); if(n.items.length||!g.allBattles) return; for(const yr of g.allBattles) for(const b of yr.list) newsAdd(n,packBattle(b),null); }
 function save(){
@@ -2197,7 +2255,8 @@ function renderAllyMap(){
 function renderHeader(){
   const c=me();
   $("hYear").textContent=G.turn;
-  $("hState").innerHTML=observing()?`👁 <b>Observer</b> <span class="mut">(${fmt(G.countries.filter(x=>x.alive).length)} states left)</span>`:`<span class="sw" style="background:${c.color}"></span><b>${c.alive?"":"☠ "}${esc(c.name)}</b>${c.alive?"":` <span class="mut">(watching)</span>`}`;
+  const turnOf=G.hot?` <span class="mut">· player ${G.hot.at+1} of ${G.hot.order.length}</span>`:"";
+  $("hState").innerHTML=observing()?`👁 <b>Observer</b> <span class="mut">(${fmt(G.countries.filter(x=>x.alive).length)} states left)</span>`:`<span class="sw" style="background:${c.color}"></span><b>${c.alive?"":"☠ "}${esc(c.name)}</b>${c.alive?"":` <span class="mut">(watching)</span>`}${turnOf}`;
   // your own numbers mean nothing to an observer: hide them (each value sits in a header item with its icon)
   for(const id of ["hMoney","hGrain","hWood","hIron","hLand","hPop","hPrice"]){ const el=$(id), box=el?.closest(".hi")||el?.parentElement; if(box&&box.id!=="hState") box.style.display=observing()?"none":""; }
   const meBtn=document.querySelector('#mapbox [data-map="me"]'); if(meBtn) meBtn.style.display=observing()?"none":"";
@@ -2209,8 +2268,9 @@ function renderHeader(){
   $("hPop").textContent=fmt(popOf(c));
   $("hPrice").textContent=`${sellPrice(G,c)} / buy ${buyPrice(G)}`;
   }
-  $("end").disabled=!canPlay()||UI.busy; $("bAuto").disabled=!canPlay(); if(!canPlay()&&AUTO.on) setAuto(false);
-  $("end").textContent=watching()?"Next year ▶":"End turn ▶";
+  $("end").disabled=!canPlay()||UI.busy; $("bAuto").disabled=!canPlay()||!!G.hot; if((!canPlay()||G.hot)&&AUTO.on) setAuto(false);
+  $("end").textContent=G.hot?(hotLast()?"End year ▶":"Done ▶"):watching()?"Next year ▶":"End turn ▶";
+  $("end").title=G.hot?(hotLast()?"You're the last player this year: the year runs now":"Hand over to the next player"):"";
 }
 
 // ---------- tabs ----------
@@ -2234,8 +2294,9 @@ function bordersUnowned(g,id){ const {W,cells}=g, N=cells.length;
 // works from observer mode too (then nobody is handed back to the computer)
 const canTakeOver=()=>!!G&&!G.worldOver;
 function takeOver(id){
-  const n=G.countries[id]; if(!canTakeOver()||!n||!n.alive||id===G.player) return;
+  const n=G.countries[id]; if(!canTakeOver()||!n||!n.alive||id===G.player||isHuman(id)) return;
   const old=G.countries[G.player]; if(old){ old.ai=true; old.attacks=[]; }
+  if(G.hot) for(const L of [G.hot.ids,G.hot.order]){ const i=L.indexOf(G.player); if(i>=0) L[i]=id; } // keeps their place in the turn order
   n.ai=false; n.attacks=[]; G.player=id; G.observer=false;
   if(G.over==="lose") G.over=false; // back in the game after a defeat
   if(AUTO.on) setAuto(false);
@@ -2248,6 +2309,7 @@ const canGiveAway=()=>!!G&&!observing()&&me().alive&&!G.worldOver;
 function giveAway(){
   if(!canGiveAway()) return;
   const old=me(); old.ai=true; old.attacks=[];
+  if(G.hot){ UI.giveConfirm=false; flash(`The computer now rules ${old.name}.`); hotRemove(old.id); return; }
   G.player=OBSERVER; G.observer=true;
   UI.sel=null; UI.attackTarget=null; UI.takeConfirm=null; UI.giveConfirm=false; UI.tab="world";
   save(); render(); flash(`The computer now rules ${old.name}. You're watching.`);
@@ -2257,8 +2319,8 @@ function watchNote(){
   if(observing()) return `<div class="note">👁 <b>Observer mode.</b> ${G.worldOver?`The war is over${winnerLine()}.`:`Every state is run by the computer. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to watch, or click a state on the map and press <b>Take over</b> to rule it.`}</div>
   <div class="row"><button class="sm" data-tab="world">See rankings</button><button class="sm" data-a="newGame">New game</button></div>`;
   return `<div class="note">☠ <b>${esc(c.name)}</b> fell in year ${c.diedTurn}${c.killer!=null?` to ${esc(G.countries[c.killer].name)}`:""}.
-    ${G.worldOver?`The war is over${winnerLine()}.`:`You're watching the rest of the world. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to keep going, or click a state on the map and press <b>Take over</b> to rule it.`}</div>
-  <div class="row"><button class="sm" data-tab="world">See rankings</button><button class="sm" data-a="newGame">New game</button></div>`;
+    ${G.worldOver?`The war is over${winnerLine()}.`:G.hot?`${fmt(alive)} states remain. Click a computer state on the map and press <b>Take over</b> to rule it, or press <b>${hotLast()?"End year":"Done"}</b> to watch.`:`You're watching the rest of the world. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to keep going, or click a state on the map and press <b>Take over</b> to rule it.`}</div>
+  <div class="row"><button class="sm" data-tab="world">See rankings</button>${G.hot?`<button class="sm" data-a="hotLeave">Leave the game</button>`:`<button class="sm" data-a="newGame">New game</button>`}</div>`;
 }
 // civilization + leader: names and the bonuses that actually apply
 function traitName(c){ const cv=civOf(c), ld=leaderOf(c), ln=landOf(c); return cv&&ld?`${cv.name} · ${ld.name} leader${ln?` · ${ln.name}`:""}`:""; }
@@ -2554,7 +2616,7 @@ function inspect(c){
   ${c.id!==G.player&&!observing()?`<span class="mut">Relations with you</span><b>${relCell(relOf(G,c,G.player))}</b><span class="mut">Borders you</span><b>${adj?"yes":"no"}</b>`:""}</div>
   ${c.id!==G.player?(UI.takeConfirm===c.id
     ?`<div class="row small"><span>Rule <b>${esc(c.name)}</b> from now on?${me().alive?` The computer takes over ${esc(me().name)}.`:""}</span><button class="sm pri" data-takeover="${c.id}">Yes, take over</button><button class="sm" data-takeask="-1">Cancel</button></div>`
-    :`<div class="row">${adj?`<button class="sm" data-target="${c.id}">Plan attack</button>`:""}${canTakeOver()?`<button class="sm" data-takeask="${c.id}" title="${me().alive?"Swap: you rule this state, the computer rules yours":"Rule this state from now on"}">Take over</button>`:""}</div>`)
+    :`<div class="row">${adj?`<button class="sm" data-target="${c.id}">Plan attack</button>`:""}${canTakeOver()&&!isHuman(c.id)?`<button class="sm" data-takeask="${c.id}" title="${me().alive?"Swap: you rule this state, the computer rules yours":"Rule this state from now on"}">Take over</button>`:""}</div>`)
   :canGiveAway()?(UI.giveConfirm
     ?`<div class="row small"><span>Hand <b>${esc(c.name)}</b> to the computer and keep watching? You can take over any state later.</span><button class="sm pri" data-giveaway="1">Yes, hand over</button><button class="sm" data-giveask="0">Cancel</button></div>`
     :`<div class="row"><button class="sm" data-giveask="1" title="The computer rules your state from now on; you watch as an observer">Hand to computer</button></div>`):""}`:`<div class="small bad">Destroyed in year ${c.diedTurn}${c.killer!=null?` by ${esc(G.countries[c.killer].name)}`:""}.</div>`}</div>`;
@@ -2570,7 +2632,9 @@ function pNews(){
   const inAl=id=>id>=0&&C[id]&&C[id].team===st.al;
   const q=st.q.trim().toLowerCase(), hit=id=>id>=0&&C[id]&&(isKnown(id)||id===G.player||!C[id].alive)&&C[id].name.toLowerCase().includes(q);
   const rows=[];
+  let total=0;
   for(let i=N.items.length-1;i>=0;i--){ const a=N.items[i];
+    if(!newsSeen(a)) continue; total++;
     if(st.al!=="all"&&!inAl(a[1])&&!inAl(a[2])) continue;
     if(st.f==="mine"&&a[1]!==G.player&&a[2]!==G.player) continue;
     if(st.f==="fallen"&&!a[9]) continue;
@@ -2584,9 +2648,9 @@ function pNews(){
     html+= a[1]===-1 ? `<li><span class="sw" style="background:${C[a[2]].color}"></span><b>${esc(C[a[2]].name)}</b> collapsed from famine. <span class="mut">Its land became unowned.</span></li>` : battleLine(Object.assign(unpackBattle(a),a[11]>=0?{ref:"n"+i}:{}));
   }
   if(yr!==null) html+="</ul>";
-  const first=N.items.length?N.items[0][0]:null;
+  const first=N.items.find(newsSeen)?.[0]??null;
   return `<h3>News</h3>
-  <div class="small mut">${fmt(N.items.length)} event${N.items.length===1?"":"s"} recorded${first!=null?` since year ${first}`:""}${G.fog?" (only what you could see at the time)":""}.</div>
+  <div class="small mut">${fmt(total)} event${total===1?"":"s"} recorded${first!=null?` since year ${first}`:""}${G.fog?" (only what you could see at the time)":""}.</div>
   <div class="row"><select id="newsF"><option value="all" ${st.f==="all"?"selected":""}>All battles</option><option value="mine" ${st.f==="mine"?"selected":""}>Involving you</option><option value="fallen" ${st.f==="fallen"?"selected":""}>States destroyed</option></select>
     ${G.teams?`<select id="newsA"><option value="all" ${st.al==="all"?"selected":""}>All alliances</option>${G.teams.map(t=>`<option value="${t.id}" ${st.al===t.id?"selected":""}>${esc(allyTag(G,t.id))} ${!observing()&&me().team===t.id?"★ ":""}${esc(t.name)}</option>`).join("")}</select>`:""}
     <input type="text" id="newsQ" value="${esc(st.q)}" placeholder="Search a state…" style="flex:1;min-width:120px;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit"></div>
@@ -2622,7 +2686,7 @@ async function openReport(ref){
 // the battles Previous/Next step through: the whole archive, or the year that just ended
 function reportList(ref){
   if(ref[0]==="c") return G.battles.map((b,i)=>b.d&&seenBattle(b)?"c"+i:null).filter(Boolean);
-  const out=[]; NEWS.items.forEach((a,i)=>{ if(a[11]>=0) out.push("n"+i); }); return out;
+  const out=[]; NEWS.items.forEach((a,i)=>{ if(a[11]>=0&&newsSeen(a)) out.push("n"+i); }); return out;
 }
 function reportHtml(b,d,ref){
   const C=G.countries, A=C[b.att], D=C[b.def], mine=b.att===G.player||b.def===G.player;
@@ -2843,7 +2907,7 @@ function modal(html,cls){ const m=$("modal"), c="modal"+(cls?" "+cls:""), ov=$("
     if(j>i&&k[j-1].matches(".row,.rep-foot,.acts")&&k[j-1].querySelector("button")) j--;
     if(j>i){ const b=document.createElement("div"); b.className="mbody"; m.insertBefore(b,k[j]||null); k.slice(i,j).forEach(e=>b.appendChild(e)); } }
   const f=m.lastElementChild; if(f&&f.matches(".row,.rep-foot,.acts")&&f.querySelector("button")) f.classList.add("mfoot");
-  const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.remove("hidden"); }
+  const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.toggle("solid",/\bhandover\b/.test(c)); ov.classList.remove("hidden"); }
 function closeModal(){ $("ov").classList.add("hidden"); }
 
 // prev = your state's numbers before the turn: {land, money, grain, pop}
@@ -2885,12 +2949,13 @@ function turnReport(prev){
   const collapsed=(G.collapsed||[]).filter(id=>id!==G.player&&(!G.fog||neighborsBefore(id)));
   const fallen=others.filter(b=>b.elim).length+collapsed.length;
   const collapseLines=collapsed.map(id=>`<li><span class="sw" style="background:${G.countries[id].color}"></span><b>${esc(G.countries[id].name)}</b> collapsed from famine. <span class="mut">Its land is now unowned.</span></li>`).join("");
-  const yr=G.turn-1, diedNow=G.over==="lose"&&c.diedTurn===yr, W_=G.worldOver&&G.winner!=null?G.countries[G.winner]:null;
+  const yr=G.turn-1, diedNow=(G.over==="lose"||!!G.hot)&&!c.alive&&c.diedTurn===yr, W_=G.worldOver&&G.winner!=null?G.countries[G.winner]:null;
   const WT=G.worldOver&&G.winnerTeam!=null&&G.teams?G.teams[G.winnerTeam]:null;
-  const head=G.over==="win"&&WT?`<h2>🏆 Victory!</h2><p>Your alliance, <b>${esc(WT.name)}</b>, has won the war in year ${yr}.${c.alive?"":` ${esc(c.name)} fell along the way, but its allies finished the job.`}</p>`:
-    G.over==="win"?`<h2>🏆 Victory!</h2><p>${esc(c.name)} rules the entire continent in year ${yr}.</p>`:
+  const win=G.over==="win"||(!!G.hot&&!!G.worldOver&&(WT?c.team===WT.id:G.winner===c.id)); // hot-seat: did this player win?
+  const head=win&&WT?`<h2>🏆 Victory!</h2><p>Your alliance, <b>${esc(WT.name)}</b>, has won the war in year ${yr}.${c.alive?"":` ${esc(c.name)} fell along the way, but its allies finished the job.`}</p>`:
+    win?`<h2>🏆 Victory!</h2><p>${esc(c.name)} rules the entire continent in year ${yr}.</p>`:
     WT&&!diedNow?`<h2>🏁 ${esc(WT.name)} wins the war</h2><p class="mut">Year ${yr}. Only its members are left standing.</p>`:
-    diedNow?`<h2>☠ Defeat</h2><p>${esc(c.name)} has fallen in year ${yr}${c.killer!=null?` to ${esc(G.countries[c.killer].name)}`:" to famine. Its land is now unowned"}.</p>${G.worldOver?"":`<p class="mut small">You can keep watching (press Next year or use Auto to see who wins), or take over another state: click it on the map and press Take over.</p>`}`:
+    diedNow?`<h2>☠ Defeat</h2><p>${esc(c.name)} has fallen in year ${yr}${c.killer!=null?` to ${esc(G.countries[c.killer].name)}`:" to famine. Its land is now unowned"}.</p>${G.worldOver?"":G.hot?`<p class="mut small">Take over a computer state, watch the others play, or leave the game.</p>`:`<p class="mut small">You can keep watching (press Next year or use Auto to see who wins), or take over another state: click it on the map and press Take over.</p>`}`:
     W_?`<h2>🏁 ${esc(W_.name)} unites the continent</h2><p class="mut">Year ${yr}. The last state standing.</p>`:
     watching()?`<h2>Year ${yr} report <span class="mut small" style="font-weight:400">· ${observing()?"observer":"watching"}</span></h2>`:
     `<h2>Year ${yr} report</h2>`;
@@ -2901,19 +2966,20 @@ function turnReport(prev){
     ${observing()?`<div class="small mut">${fmt(G.countries.filter(x=>x.alive).length)} states remain · grain price next year: <b>${G.price}</b></div>`:`<div class="stats">${stat("Land","land"," km²")}${stat("Money","money")}${stat("Grain","grain")}${stat("Population","pop")}</div>
     <div class="small mut">Grain price next year: <b>${G.price}</b></div>
     ${mine.length?`<h3>Your battles</h3><ul class="log">${mine.map(battleLine).join("")}</ul>`:""}
-    <h3>Home</h3><ul class="log">${G.log.map(l=>`<li>${esc(l)}</li>`).join("")||"<li class='mut'>Quiet year.</li>"}</ul>`}
+    <h3>Home</h3><ul class="log">${(c.log||G.log||[]).map(l=>`<li>${esc(l)}</li>`).join("")||"<li class='mut'>Quiet year.</li>"}</ul>`}
     ${coalitionNews()}
     ${wonderNews()}
     <h3>Elsewhere${others.length||collapsed.length?` <span class="mut small" style="text-transform:none;letter-spacing:0">· ${fmt(others.length)} battle${others.length!==1?"s":""}${fallen?`, ${fallen} state${fallen>1?"s":""} destroyed`:""}</span>`:""}</h3>
     ${others.length||collapsed.length?`<div class="rep-scroll"><ul class="log small">${collapseLines}${others.map(battleLine).join("")}</ul></div>`:`<div class="mut small">No other wars${G.fog?" that you could see":""} this year.</div>`}
   </div>
-  <div class="rep-foot">${!canPlay()?`<button class="pri" data-a="newGame">New game</button><button data-a="close">View map</button>`:diedNow?`<button class="pri" data-a="close">Keep watching</button><button data-a="pickTakeover">Take over a state</button><button data-a="newGame">New game</button>`:`<button class="pri" data-a="close">Continue</button>`}<span class="small mut">Enter or Esc to close</span></div>`,"report");
+  <div class="rep-foot">${!canPlay()?`<button class="pri" data-a="newGame">New game</button><button data-a="close">View map</button>`:G.hot&&!c.alive?`<button class="pri" data-a="pickTakeover">Take over a state</button><button data-a="close">Watch</button><button data-a="hotLeave">Leave the game</button>`:diedNow?`<button class="pri" data-a="close">Keep watching</button><button data-a="pickTakeover">Take over a state</button><button data-a="newGame">New game</button>`:`<button class="pri" data-a="close">Continue</button>`}<span class="small mut">Enter or Esc to close</span></div>`,"report");
   $("modal").querySelector(".rep-foot .pri")?.focus({preventScroll:true});
 }
 
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Hot-seat multiplayer","2026-11-09 17:49",["New Hot-seat mode in the New game window: any number of players on one device","Each player sets a state name, civilization, leader and land, and can pick a starting state on the map","Random starting states are kept away from other players","Handover screen between players hides the last player's screen","Each player gets their own year report, home news, fog of war and news archive","Turn order can rotate each year","Humans and alliances: Free for all or All humans together","A fallen player can take over a computer state, watch, or leave","Auto-run is off while two or more players are in the game"]],
 ["Window buttons always visible","2026-11-09 17:07",["Every window keeps its title and buttons in place; only the middle scrolls","New game: Start, Back and Randomize all stay at the bottom"]],
 ["Change log","2026-11-09 16:59",["New Change log button in the header","Each update lists what changed; click a title to see it"]],
 ["Plain number boxes; Barracks fits the side panel","2026-11-08 17:19",["Number boxes have no up/down arrows and open a number keyboard on phones","War tab soldier count ignores letters","Barracks troop stats wrap, so the side panel no longer scrolls sideways"]],
@@ -2939,6 +3005,7 @@ function helpModal(){
   modal(`<h2>Rules &amp; tips</h2>
   <p><b>Goal:</b> conquer every other state. You start with the same land and resources as everyone else. Each turn is one year, and everyone moves at the same time.</p>
   <p><b>Switching sides:</b> click any state on the map and press <b>Take over</b> to rule it (the computer gets yours). This also works in observer mode and after a defeat. Click your own state and press <b>Hand to computer</b> to give it away and keep watching.</p>
+  <p><b>Hot-seat:</b> several players share this device. Each takes a turn behind a handover screen, and the last one's <b>End year</b> runs the year. Everyone then sees their own report and fog of war. Orders like training and trading happen at once, so with <i>Rotate turn order</i> on, who goes first changes every year. A fallen player can take over a computer state, watch, or leave. Players can't take over another player's state, and auto-run is off while two or more players are in the game.</p>
   <h3>Economy</h3><ul class="log">
   <li>Peasants who don't cut wood or mine are farmers: each grows ${R.foodPerFarmer} grain a year, more with Agriculture research, shore farmland and food bonuses. All peasants pay taxes.</li>
   <li>Everyone eats 1 grain a year, and people eat <i>before</i> the harvest. If seed plus food is more than your stock, people starve, soldiers first.</li>
@@ -2972,7 +3039,9 @@ function helpModal(){
 // new-game choices are remembered in this browser: saved on every change, restored when the window opens
 const SETUP_KEY="eb.setup";
 function setupDefaults(){ let lastName=""; try{ lastName=localStorage.getItem("eb.empireName")||""; }catch{}
-  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region",more:false}; }
+  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region",more:false,
+    hot:false,players:[newPlayer(),newPlayer()],allHumans:false,rotate:true}; }
+const newPlayer=()=>({name:"",civ:"random",leader:"random",landType:"random"});
 function loadSetup(){
   const d=setupDefaults(); let o={}; try{ o=JSON.parse(localStorage.getItem(SETUP_KEY)||"{}")||{}; }catch{}
   for(const k of Object.keys(d)) if(k in o&&typeof o[k]===typeof d[k]) d[k]=o[k]; // only known settings, of the right kind
@@ -2980,6 +3049,10 @@ function loadSetup(){
   if(d.leader!=="random"&&!LEADERS.some(x=>x.id===d.leader)) d.leader="random";
   if(d.landType!=="random"&&!LANDS.some(x=>x.id===d.landType)) d.landType="random";
   if(d.map!=="random"&&!PRESET_MAPS[d.map]) d.map="random";
+  const ok=(L,v)=>v!=="random"&&L.some(x=>x.id===v)?v:"random";
+  d.players=(Array.isArray(d.players)?d.players:[]).filter(x=>x&&typeof x==="object").map(x=>({name:String(x.name||"").slice(0,24),civ:ok(CIVS,x.civ),leader:ok(LEADERS,x.leader),landType:ok(LANDS,x.landType)}));
+  while(d.players.length<2) d.players.push(newPlayer());
+  if(d.hot) d.n=Math.max(d.n,d.players.length);
   return {...d,preview:null,pick:null};
 }
 function saveSetup(){ const s=UI.setup; if(!s) return; const out={}; for(const k of Object.keys(setupDefaults())) out[k]=s[k];
@@ -2997,20 +3070,28 @@ const SETUP_RULES=[ // [id, setup key, label, one-line description, full explana
   ["sC","choose","Choose my state on the map","Pick your starting state on a preview","Generates the map now so you can click the state you want to lead.",true]];
 function setupModal(){
   const s=UI.setup||(UI.setup=loadSetup());
-  const saved=SAVED, preset=s.map&&s.map!=="random", obs=!!s.observer, hideObs=obs?"hidden":"";
+  const saved=SAVED, preset=s.map&&s.map!=="random", obs=!!s.observer, hot=!!s.hot&&!obs, hideObs=obs||hot?"hidden":"";
+  const psel=(i,k,label,list,cur)=>`<select data-pf="${i}.${k}" aria-label="${label}, player ${i+1}"><option value="random">Random</option>${list.map(x=>`<option value="${x.id}" ${cur===x.id?"selected":""}>${x.name}</option>`).join("")}</select>`;
   const sel=(id,label,list,cur)=>`<label class="fld"><span>${label}</span><select id="${id}"><option value="random">Random</option>${list.map(x=>`<option value="${x.id}" ${cur===x.id?"selected":""}>${x.name}</option>`).join("")}</select></label>`;
   const rule=([id,key,label,short,full,po])=>{ const f=typeof full==="function"?full():full;
+    if(id==="sC"&&hot){ label="Choose states on the map"; short="Pick starting states on a preview"; }
     return `<div class="rule ${po&&obs?"hidden":""}"><label><input type="checkbox" id="${id}" ${s[key]?"checked":""}><span><b>${label}</b><small>${short}</small></span></label>${info(label,f,"r")}</div>`
       +(id==="sAl"?`<div class="alopts ${s.al?"":"hidden"}"><select id="sAlMode" aria-label="Alliance setup"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
         <input type="text" inputmode="numeric" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}">
         <select id="sAlLay" aria-label="Alliance layout"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
         <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>`:""); };
   modal(`<div class="shead"><h2>New game</h2>
-    <div class="seg" role="group" aria-label="Game mode"><button type="button" data-smode="play" aria-pressed="${!obs}">Play</button><button type="button" data-smode="watch" aria-pressed="${obs}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
+    <div class="seg" role="group" aria-label="Game mode"><button type="button" data-smode="play" aria-pressed="${!obs&&!hot}">Solo</button><button type="button" data-smode="hot" aria-pressed="${hot}" title="Several players take turns on this device">Hot-seat</button><button type="button" data-smode="watch" aria-pressed="${obs}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
   <div class="mbody sbody"><div class="sl">
   <section class="${hideObs}"><h3 class="sh">You</h3>
     <label class="fld"><span>Empire name</span><input type="text" id="sName" maxlength="24" value="${esc(s.empire||"")}" placeholder="Random name" spellcheck="false"></label>
     <div class="g3">${sel("sCiv","Civilization",CIVS,s.civ)}${sel("sLead","Leader",LEADERS,s.leader)}${sel("sLand","Land",LANDS,s.landType)}</div></section>
+  <section class="${hot?"":"hidden"}"><h3 class="sh">Players · <span id="pCount">${s.players.length}</span></h3>
+    <div class="phdr"><span></span><span>State name</span><span>Civilization</span><span>Leader</span><span>Land</span><span>Start</span><span></span></div>
+    ${s.players.map((q,i)=>`<div class="prow"><span class="pn">${i+1}</span><input type="text" data-pf="${i}.name" maxlength="24" value="${esc(q.name)}" placeholder="Random name" spellcheck="false" aria-label="State name, player ${i+1}">${psel(i,"civ","Civilization",CIVS,q.civ)}${psel(i,"leader","Leader",LEADERS,q.leader)}${psel(i,"landType","Land",LANDS,q.landType)}<span class="pst" id="pst${i}">${pstHtml(i)}</span><button type="button" class="px" data-prm="${i}" ${s.players.length<=2?"disabled":""} title="Remove player" aria-label="Remove player ${i+1}">×</button></div>`).join("")}
+    <button type="button" class="addp" data-padd>+ Add player</button>
+    <div class="rules" style="margin-top:12px"><div class="rule"><label><input type="checkbox" id="sRot" ${s.rotate?"checked":""}><span><b>Rotate turn order each year</b><small>Who goes first moves down one place every year</small></span></label></div></div>
+    <div class="fld hal"><span>Humans and alliances</span><span class="seg2" role="group" aria-label="Humans and alliances"><button type="button" data-hal="0" aria-pressed="${!s.allHumans}">Free for all</button><button type="button" data-hal="1" aria-pressed="${!!s.allHumans}" title="All human players share one alliance">All humans together</button></span></div></section>
   <section><h3 class="sh">World</h3>
     <div class="fld"><span><label for="sMap">Map</label> ${info("Map",preset?"Pre-made map. Dashed lines are sea routes that count as borders; defenders get a small sea-crossing bonus.":"A new random landscape every game.")}</span>
       <select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select></div>
@@ -3024,7 +3105,7 @@ function setupModal(){
       <div class="wrow"><input type="range" id="sW" min="0" max="40" value="${s.water}"><select id="sWS" aria-label="Water type" ${s.water?"":"disabled"}>${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div></div>
     <h3 class="sh">Rules</h3>
     <div class="rules">${SETUP_RULES.map(rule).join("")}</div>
-    <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
+    <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it${hot?" for the next player":""}. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
       <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
       <div class="small" id="pvPick">${pickText()}</div></div>
   </div></div>
@@ -3047,6 +3128,12 @@ function setupSummary(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id)?.name,
   const people=!civ&&!lead&&!land?"Random civilization, leader and land":[civ||rnd("civilization"),lead||rnd("leader"),land||rnd("land")].join(" · ");
   const preset=s.map&&s.map!=="random", rules=SETUP_RULES.filter(r=>s[r[1]]&&!(r[5]&&s.observer)).map(r=>`<span class="rchip">${r[2]}</span>`).join("");
   const water=preset?"Fixed":s.water?`${s.water}% ${({lakes:"lakes",rivers:"rivers",mixed:"lakes + rivers"})[s.wstyle]||""}`:"None";
+  const P=s.players.length;
+  if(s.hot&&!s.observer) return `<div class="sname">Hot-seat · ${P} players</div><div class="sub">Each player takes a turn on this device, then the year runs</div>
+  <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)} <span class="sub">· ${fmt(Math.max(0,s.n-P))} computer</span></dd></div>
+    <div><dt>Alliances</dt><dd>${s.allHumans?"All humans together":"Free for all"}</dd></div><div><dt>Turn order</dt><dd>${s.rotate?"Rotates yearly":"Fixed"}</dd></div>
+    <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
+    <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`;
   return `${s.observer?`<div class="sname">Observer mode</div><div class="sub">The computer runs every state</div>`:`<div class="sname">${esc((s.empire||"").trim()||"Random empire")}</div><div class="sub">${people}</div>`}
   <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)}</dd></div>
     <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
@@ -3057,13 +3144,15 @@ function updateSummary(){ const s=UI.setup; if(!s||!$("sSum")) return;
 // "Randomize all": a random valid value for every setting; the window stays open to review
 function randomizeSetup(){ const s=UI.setup, ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[ri(0,a.length-1)], coin=()=>Math.random()<0.5;
   s.empire=""; s.civ=pick(CIVS).id; s.leader=pick(LEADERS).id; s.landType=pick(LANDS).id;
+  s.players=s.players.map(()=>({name:"",civ:pick(CIVS).id,leader:pick(LEADERS).id,landType:pick(LANDS).id}));
   s.map=pick(["random",...Object.keys(PRESET_MAPS)]);
-  s.n=pick(N_STEPS.filter(v=>v<=200)); s.terr=ri(5,20)*10; s.water=ri(0,8)*5; s.wstyle=pick(["lakes","rivers","mixed"]);
+  s.n=Math.max(s.hot?s.players.length:2,pick(N_STEPS.filter(v=>v<=200))); s.terr=ri(5,20)*10; s.water=ri(0,8)*5; s.wstyle=pick(["lakes","rivers","mixed"]);
   s.fog=coin(); s.wonders=coin(); s.relNoise=coin(); s.al=coin(); s.alMode=pick(["count","size"]); s.alLay=pick(["region","scattered"]);
   s.alN=s.alMode==="count"?ri(2,Math.max(2,Math.min(6,s.n))):ri(1,Math.max(1,Math.floor(s.n/2)));
   s.preview=null; s.pick=null; saveSetup(); setupModal(); }
 // set the number of states and sync the slider and number box (skip = the control being edited)
-function setStates(v,skip){ const s=UI.setup; s.n=v; s.preview=null; s.pick=null;
+const minStates=()=>UI.setup.hot&&!UI.setup.observer?Math.max(2,UI.setup.players.length):2;
+function setStates(v,skip){ const s=UI.setup; v=Math.max(v,minStates()); if(skip==="sN"&&v!==N_STEPS[+$("sN").value]) skip=""; s.n=v; s.preview=null; s.pick=null;
   if(skip!=="sN"&&$("sN")) $("sN").value=nStep(v); if(skip!=="sNV"&&$("sNV")) $("sNV").value=v;
   if($("sN")) $("sN").setAttribute("aria-valuetext",v+" states");
   if($("sAlInfo")) $("sAlInfo").innerHTML=allyInfo(); }
@@ -3074,11 +3163,21 @@ function allyInfo(){ const s=UI.setup, T=allyCount(), lo=Math.floor(s.n/T), hi=M
   return `= ${fmt(T)} alliances of ${lo===hi?lo:lo+"–"+hi} states`; }
 function setupTraits(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id);
   if(s.observer) return "";
+  if(s.hot) return '<div class="bonus empty">Auto-run is off while two or more players are in the game. Each player sees their own fog of war and report.</div>';
   const civ=f(CIVS,s.civ), lead=f(LEADERS,s.leader), land=f(LANDS,s.landType);
   if(!civ||!lead||!land) return '<div class="bonus empty">Pick civilization, leader and land to preview your bonuses here.</div>';
   return '<div class="bonus"><div class="sh" style="margin:0 0 4px">Your bonuses</div>'+traitChips(computeMods(civ,lead,land))+"</div>"; }
-function pickText(){ const s=UI.setup; return !s.preview?"Generating map…":s.pick!=null?`Selected: <b>${esc(s.preview.countries[s.pick].name)}</b>`:"No state selected (random)."; }
-function setPickText(){ const l=$("pvPick"); if(l) l.innerHTML=pickText(); }
+// hot-seat picks belong to one preview map; a new map starts them over
+function picksOf(s){ if(s.picksFor!==s.preview){ s.picks=[]; s.picksFor=s.preview; } return s.picks; }
+const nextPick=s=>s.players.findIndex((_,i)=>picksOf(s)[i]==null);
+function pstHtml(i){ const s=UI.setup; if(!s.choose||!s.preview) return '<span class="mut">Random</span>';
+  const k=picksOf(s)[i]; if(k!=null) return `<b>${esc(s.preview.countries[k].name)}</b><button type="button" data-pclr="${i}" title="Clear" aria-label="Clear pick">×</button>`;
+  return nextPick(s)===i?'<span class="acc">Click the map</span>':'<span class="mut">Random</span>'; }
+function setPstText(){ const s=UI.setup; s.players.forEach((_,i)=>{ const el=$("pst"+i); if(el) el.innerHTML=pstHtml(i); }); }
+function pickText(){ const s=UI.setup;
+  if(s.hot&&!s.observer){ if(!s.preview) return "Generating map…"; const i=nextPick(s); return i<0?"Every player has a state.":`Next: <b>player ${i+1}</b>. Players without a state start at random, away from the others.`; }
+  return !s.preview?"Generating map…":s.pick!=null?`Selected: <b>${esc(s.preview.countries[s.pick].name)}</b>`:"No state selected (random)."; }
+function setPickText(){ const l=$("pvPick"); if(l) l.innerHTML=pickText(); setPstText(); }
 async function makePreview(){
   const s=UI.setup, tok=s.tok=(s.tok||0)+1; s.preview=null; s.pick=null; setPickText();
   const g=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,alliances:allyOpts()});
@@ -3088,9 +3187,12 @@ async function makePreview(){
 function drawPreview(){
   const s=UI.setup, cv=$("pvc"); if(!cv) return;
   if(!UI.pvView||UI.pvView.cv!==cv){ UI.pvView?.destroy(); UI.pvView=new MapView(cv,{
-    sel:()=>UI.setup?.pick??null, player:()=>-1, land:false, star:false,
+    sel:()=>{ const s=UI.setup; if(!s) return null; if(s.hot&&!s.observer){ const P=picksOf(s).filter(x=>x!=null); return P.length?P[P.length-1]:null; } return s.pick??null; }, player:()=>-1, land:false, star:false,
     height:(w,g)=>Math.min(window.innerHeight*0.45,Math.max(220,w*g.H/g.W)),
-    onPick:o=>{ const s=UI.setup; if(!s||!s.preview||o<0) return; s.pick=o; setPickText(); UI.pvView.refresh(); } }); }
+    onPick:o=>{ const s=UI.setup; if(!s||!s.preview||o<0) return;
+      if(s.hot&&!s.observer){ const P=picksOf(s), i=nextPick(s); if(P.includes(o)){ flash("Another player already has that state."); return; } if(i<0){ flash("Every player has a state. Clear one first."); return; } P[i]=o; }
+      else s.pick=o;
+      setPickText(); UI.pvView.refresh(); } }); }
   if(!s.preview){ makePreview(); return; }
   UI.pvView.setGame(s.preview); UI.pvView.refresh();
 }
@@ -3138,7 +3240,11 @@ document.addEventListener("click",async ev=>{
   if(d.wlock){ const c=me(); c.workLock={...c.workLock,[d.wlock]:!c.workLock?.[d.wlock]}; render(); return; }
   if(d.lock){ const c=me(); c.allocLock={...c.allocLock,[d.lock]:!c.allocLock?.[d.lock]}; render(); return; }
   if(d.preset){ me().allocLock={}; const P={sci:{sci:100},econ:{sci:30,agri:20,fin:15,dens:10,grow:5,wood:10,iron:10},bal:{sci:16,agri:12,fin:8,dens:8,grow:12,atk:12,def:12,wood:7,iron:9,explore:4},war:{sci:10,agri:10,fin:6,dens:8,grow:12,atk:20,def:16,wood:6,iron:9,explore:3}}; me().alloc={...zeroAreas(),...P[d.preset]}; render(); return; }
-  if(d.smode&&UI.setup){ UI.setup.observer=d.smode==="watch"; saveSetup(); setupModal(); $("modal").querySelector('[data-smode][aria-pressed="true"]')?.focus(); return; }
+  if(d.padd!=null&&UI.setup){ const s=UI.setup; s.players.push(newPlayer()); if(s.n<s.players.length) setStates(s.players.length,""); saveSetup(); setupModal(); $("modal").querySelector("[data-padd]")?.focus(); return; }
+  if(d.prm!=null&&UI.setup){ const s=UI.setup, i=+d.prm; if(s.players.length>2){ s.players.splice(i,1); picksOf(s).splice(i,1); } saveSetup(); setupModal(); return; }
+  if(d.pclr!=null&&UI.setup){ picksOf(UI.setup)[+d.pclr]=null; setPickText(); UI.pvView?.refresh(); return; }
+  if(d.hal!=null&&UI.setup){ UI.setup.allHumans=d.hal==="1"; saveSetup(); t.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t)); updateSummary(); return; }
+  if(d.smode&&UI.setup){ const s=UI.setup; s.observer=d.smode==="watch"; s.hot=d.smode==="hot"; if(s.hot&&s.n<s.players.length) setStates(s.players.length,""); s.pick=null; saveSetup(); setupModal(); $("modal").querySelector('[data-smode][aria-pressed="true"]')?.focus(); return; }
   if(d.smore!=null&&UI.setup){ const s=UI.setup; s.more=!s.more; saveSetup(); t.setAttribute("aria-expanded",s.more); $("sMore").hidden=!s.more; if(s.more&&s.choose&&!s.observer) drawPreview(); return; }
   if(d.srand!=null&&UI.setup){ randomizeSetup(); $("modal").querySelector("[data-srand]")?.focus(); return; }
   const a=d.a; if(!a) return;
@@ -3168,22 +3274,31 @@ document.addEventListener("click",async ev=>{
     case "newGame": UI.setup=null; UI.fromWelcome=false; setupModal(); return;
     case "welcomeNew": UI.setup=null; UI.fromWelcome=true; setupModal(); return;
     case "welcome": welcomeModal(); return;
-    case "continue": { const g=await loadSave(); if(!g){ flash("Saved game not found."); return; } G=g; setAuto(false); closeModal(); UI.sel=null; render(); return; }
+    case "continue": { const g=await loadSave(); if(!g){ flash("Saved game not found."); return; } G=g; setAuto(false); closeModal(); UI.sel=null; render(); if(G.hot&&!G.over) hotHandover(); return; }
+    case "hotBegin": hotBegin(); return;
+    case "hotLeave": closeModal(); hotRemove(G.player); return;
+    case "soloBegin": { const r=UI.soloRep; UI.soloRep=null; UI.sel=null; UI.attackTarget=null; UI.tab=me().alive?"economy":"world"; closeModal(); render(); if(me().alive) mainView.centerOn(G.player,Math.max(mainView.z,mainView.focusZoom())); if(r) turnReport(r); return; }
     case "report": if(G&&UI.lastPrev!=null) turnReport(UI.lastPrev); return;
     case "reroll": UI.setup.preview=null; setupModal(); return;
     case "start": {
-      const s=UI.setup;
-      if(s.choose&&!s.observer&&s.preview&&s.pick!=null){ G=s.preview; G.player=s.pick; G.relNoise=!!s.relNoise; G.countries.forEach(x=>x.ai=x.id!==s.pick); pickTraits(G.countries[s.pick],s.civ,s.leader,s.landType); }
+      const s=UI.setup, hot=s.hot&&!s.observer;
+      let ho=null; // hot-seat setup for the engine
+      if(hot){ const names=s.players.map(q=>q.name.trim().toLowerCase()).filter(Boolean);
+        if(new Set(names).size<names.length){ flash("Two players have the same state name."); return; }
+        if(s.n<s.players.length) setStates(s.players.length,"");
+        ho={humans:s.players.map(q=>({...q})),picks:s.choose&&s.preview?picksOf(s).slice():[],allHumans:!!s.allHumans,rotate:!!s.rotate}; }
+      if(hot&&s.choose&&s.preview){ G=s.preview; G.relNoise=!!s.relNoise; setupHumans(G,ho,Math.random); }
+      else if(!hot&&s.choose&&!s.observer&&s.preview&&s.pick!=null){ G=s.preview; G.player=s.pick; G.relNoise=!!s.relNoise; G.countries.forEach(x=>x.ai=x.id!==s.pick); pickTraits(G.countries[s.pick],s.civ,s.leader,s.landType); }
       else {
         UI.busy=true; modal(`<h2>Generating map…</h2><p class="mut">${fmt(s.n)} states.</p>`);
-        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,alliances:allyOpts()}); }
+        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,alliances:allyOpts(),...(ho||{})}); }
         catch(e){ console.error(e); UI.busy=false; flash("Map generation failed."); setupModal(); return; }
         UI.busy=false;
       }
       G.difficulty=s.diff; G.fog=!!s.fog&&!G.observer; // an observer sees the whole map
-      if(!G.observer){ const nm=(s.empire||"").trim().slice(0,24); try{ localStorage.setItem("eb.empireName",nm); }catch{}
+      if(!G.observer&&!G.hot){ const nm=(s.empire||"").trim().slice(0,24); try{ localStorage.setItem("eb.empireName",nm); }catch{}
         if(nm){ const p=G.countries[G.player], dup=G.countries.find(c=>c!==p&&c.name.toLowerCase()===nm.toLowerCase()); if(dup) dup.name=p.name; p.name=nm; } }
-      setAuto(false); NEWS=newsFresh(G.gid); UI.news=null; UI.sel=null; UI.tab=G.observer?"world":"economy"; UI.attackTarget=null; UI.setup=null; save(); closeModal(); render(); return; }
+      setAuto(false); NEWS=newsFresh(G.gid); UI.news=null; UI.sel=null; UI.tab=G.observer?"world":"economy"; UI.attackTarget=null; UI.setup=null; save(); closeModal(); render(); if(G.hot) hotHandover(); return; }
   }
   if(G) render();
 });
@@ -3203,6 +3318,7 @@ document.addEventListener("input",ev=>{
   if(t.id==="atkN"){ UI.atkN=Math.max(0,Math.floor(+t.value)||0); return; }
   const s=UI.setup; if(!s) return;
   if(t.id==="sName"){ s.empire=t.value; return; }
+  if(t.dataset.pf){ const [i,k]=t.dataset.pf.split("."), q=s.players[+i]; if(q) q[k]=k==="name"?t.value.slice(0,24):t.value; return; }
   if(t.id==="sN"||t.id==="sNV"){ const v=t.id==="sN"?N_STEPS[+t.value]:Math.floor(+t.value);
     if(t.id==="sNV"&&!(v>=2&&v<=1000)) return; // finish typing; clamped on change
     setStates(v,t.id); }
@@ -3229,12 +3345,13 @@ document.addEventListener("change",ev=>{
   if(t.id==="sAl"||t.id==="sAlMode"||t.id==="sAlLay"){ if(t.id==="sAl") s.al=t.checked; else if(t.id==="sAlMode"){ s.alMode=t.value; if(s.alMode==="count") s.alN=Math.max(2,s.alN); } else s.alLay=t.value;
     s.preview=null; s.pick=null; setupModal(); return; }
   if(t.id==="sAlN"){ s.preview=null; s.pick=null; if(s.choose&&!s.observer) drawPreview(); return; }
-  if(t.id==="sNV"){ const v=Math.max(2,Math.min(1000,Math.floor(+t.value)||s.n)); setStates(v,""); }
+  if(t.id==="sNV"){ const v=Math.max(minStates(),Math.min(1000,Math.floor(+t.value)||s.n)); setStates(v,""); }
   if(["sN","sNV","sT","sW","sWS"].includes(t.id)&&s.choose) drawPreview();
   if(t.id==="sC"){ s.choose=t.checked; setupModal(); }
   if(t.id==="sF"){ s.fog=t.checked; }
   if(t.id==="sCiv"||t.id==="sLead"||t.id==="sLand"){ s[{sCiv:"civ",sLead:"leader",sLand:"landType"}[t.id]]=t.value; $("sTraits").innerHTML=setupTraits(); }
   if(t.id==="sRn"){ s.relNoise=t.checked; }
+  if(t.id==="sRot"){ s.rotate=t.checked; }
   if(t.id==="sWo"){ s.wonders=t.checked; s.preview=null; s.pick=null; if(s.choose) drawPreview(); }
 });
 // info tooltips: one floating box placed next to the hovered, focused or tapped ⓘ (works in every browser, never clipped)
@@ -3257,12 +3374,14 @@ for(const ev of ["input","change"]) document.addEventListener(ev,e=>{ if(UI.setu
 // End a turn. Used by the End turn button and by auto-run.
 async function endTurnNow(){
   if(!canPlay()||UI.busy) return; UI.busy=true; $("end").disabled=true;
-  const prev=snapshot(me());
-  { const c=me(); if(c.autoSell&&c.alive&&!observing()){ const n=surplusGrain(c); if(n>0) act.sell(G,c,n); } } // after the snapshot, so the report shows the sale
+  const prev=snapshot(me()), prevs={};
+  // auto-sell after the snapshot, so the report shows the sale (hot-seat: for every human)
+  for(const c of G.hot?G.hot.ids.map(id=>G.countries[id]):[me()]){ if(G.hot) prevs[c.id]=snapshot(c); if(c.autoSell&&c.alive&&!observing()){ const n=surplusGrain(c); if(n>0) act.sell(G,c,n); } }
   if(AUTO.on) showToast(`<span class="mut">Year ${G.turn}…</span>`);
   else modal(`<h2>Year ${G.turn}…</h2><p class="mut">The world is moving${ENGINE.inWorker?" (processing in the background)":""}.</p>`);
   try{ G=await ENGINE.call("endTurn",G); }
   catch(e){ console.error(e); UI.busy=false; setAuto(false); closeModal(); render(); flash("Turn failed: "+e.message); return; }
+  if(G.hot){ UI.busy=false; UI.attackTarget=null; hotNewYear(prevs); return; }
   UI.busy=false; UI.attackTarget=null; UI.lastPrev=prev; AUTO.left=AUTO.sec*1000; render(); archiveTurn(); save();
   const attacked=G.battles.some(b=>b.def===G.player);
   const justDied=G.over==="lose"&&me().diedTurn===G.turn-1;
@@ -3270,7 +3389,57 @@ async function endTurnNow(){
   else if(AUTO.on) toastReport(prev);
   else turnReport(prev);
 }
-$("end").addEventListener("click",()=>endTurnNow());
+$("end").addEventListener("click",()=>{ if(G?.hot&&!hotLast()&&canPlay()&&!UI.busy) hotDone(); else endTurnNow(); });
+
+// ---------- hot-seat turn flow ----------
+// Each year every human in G.hot.order takes a turn behind a handover screen; the last one runs the year.
+// After the year, each player first sees their own report, then plays.
+const hotLast=()=>G.hot.at>=G.hot.order.length-1;
+const isHuman=id=>!!G.hot&&G.hot.ids.includes(id);
+function hotHandover(){
+  const h=G.hot, id=h.order[h.at], c=G.countries[id];
+  modal(`<div class="brand">YEAR ${G.turn} · PLAYER ${h.at+1} OF ${h.order.length}</div>
+  <h2><span class="hsw" style="background:${c.color}"></span>${esc(c.name)}</h2>
+  <p class="lead">${c.alive?"Your turn.":"Your state has fallen."} Everyone else, look away.</p>
+  <div class="acts"><button class="pri" data-a="hotBegin">${h.rep.includes(id)?"See last year's report":"Begin"}</button></div>`,"welcome handover");
+  $("modal").querySelector(".acts .pri")?.focus({focusVisible:false});
+}
+function hotBegin(){
+  const h=G.hot, id=h.order[h.at], c=G.countries[id];
+  G.player=id; UI.sel=null; UI.attackTarget=null; UI.takeConfirm=null; UI.giveConfirm=false; UI.news=null; UI.repBack=null; UI.tab=c.alive?"economy":"world";
+  closeModal(); render(); if(c.alive) mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom()));
+  if(h.rep.includes(id)){ h.rep=h.rep.filter(x=>x!==id); save(); turnReport(h.prev[id]); }
+}
+function hotDone(){ G.hot.at++; save(); hotHandover(); }
+// after the year: next year's order (rotated if on), and everyone still has to see their report
+function hotNewYear(prevs){
+  const h=G.hot; archiveTurn(); h.prev=prevs;
+  if(G.over){ // the war is over: nothing left to hide, show the result once (from a winner's side if a human won)
+    const W=h.ids.find(id=>G.winnerTeam!=null&&G.teams?G.countries[id].team===G.winnerTeam:G.winner===id);
+    G.player=W??h.order[0]; h.rep=[]; save(); UI.sel=null; UI.tab="world"; render(); turnReport(prevs[G.player]); return; }
+  h.rep=h.ids.slice(); h.first++; const n=h.ids.length, f=h.rotate?h.first%n:0;
+  h.order=h.ids.map((_,i)=>h.ids[(f+i)%n]); h.at=0;
+  save(); hotHandover();
+}
+// a player leaves the turn order (left the game or handed their state to the computer)
+function hotRemove(id){
+  const h=G.hot, pos=h.order.indexOf(id);
+  h.ids=h.ids.filter(x=>x!==id); h.rep=h.rep.filter(x=>x!==id);
+  if(pos>=0){ h.order.splice(pos,1); if(pos<h.at) h.at--; }
+  if(h.ids.length<2){ hotToSolo(); return; }
+  if(h.at>=h.order.length){ h.at=h.order.length-1; G.player=h.order[h.at]; endTurnNow(); return; } // they were last this year: run it
+  save(); hotHandover();
+}
+// one human left: it becomes a normal game
+function hotToSolo(){
+  const h=G.hot, id=h.ids[0]; G.hot=null;
+  if(id==null){ G.player=OBSERVER; G.observer=true; save(); closeModal(); render(); return; }
+  const c=G.countries[id]; UI.soloRep=h.rep.includes(id)?h.prev[id]:null;
+  G.player=id; if(!c.alive) G.over="lose"; save();
+  modal(`<div class="brand">YEAR ${G.turn}</div><h2><span class="hsw" style="background:${c.color}"></span>${esc(c.name)}</h2>
+  <p class="lead">You're the last player. The game goes on as a one-player game.</p>
+  <div class="acts"><button class="pri" data-a="soloBegin">Continue</button></div>`,"welcome handover");
+}
 document.addEventListener("keydown",e=>{
   if($("ov").classList.contains("hidden")){ // no dialog open: Escape clears the map selection
     if(e.key==="Escape"&&UI.sel!=null&&!UI.busy&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){ UI.sel=null; render(); }
