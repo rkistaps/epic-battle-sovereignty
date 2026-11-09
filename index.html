@@ -741,13 +741,25 @@ function newGame(opts){
       if(x>0&&cells[i-1]!==-2&&dist[i-1]>d){dist[i-1]=d;bq[t++]=i-1;} if(x<W-1&&cells[i+1]!==-2&&dist[i+1]>d){dist[i+1]=d;bq[t++]=i+1;}
       if(i>=W&&cells[i-W]!==-2&&dist[i-W]>d){dist[i-W]=d;bq[t++]=i-W;} if(i+W<W*H&&cells[i+W]!==-2&&dist[i+W]>d){dist[i+W]=d;bq[t++]=i+W;}
       const L=lk.get(i); if(L) for(const j of L) if(dist[j]>d){dist[j]=d;bq[t++]=j;} } };
+  // landmasses (touching land, sea routes not counted) get seeds in proportion to their area, so a small
+  // island doesn't get a whole state boxed in on it; islands too small for one are reached over sea routes or stay unowned
+  const comp=new Int32Array(W*H).fill(-1), areas=[];
+  for(const s0 of landIdx){ if(comp[s0]>=0) continue; const k=areas.length; let h=0,t=0; comp[s0]=k; bq[t++]=s0;
+    while(h<t){ const i=bq[h++], x=i%W;
+      if(x>0&&cells[i-1]!==-2&&comp[i-1]<0){comp[i-1]=k;bq[t++]=i-1;} if(x<W-1&&cells[i+1]!==-2&&comp[i+1]<0){comp[i+1]=k;bq[t++]=i+1;}
+      if(i>=W&&cells[i-W]!==-2&&comp[i-W]<0){comp[i-W]=k;bq[t++]=i-W;} if(i+W<W*H&&cells[i+W]!==-2&&comp[i+W]<0){comp[i+W]=k;bq[t++]=i+W;} }
+    areas.push(t); }
+  const quota=areas.map(a=>a*n/landIdx.length), want=quota.map(Math.floor); // largest remainder: the leftover seeds go to the biggest fractions
+  quota.map((q,k)=>[q-want[k],k]).sort((a,b)=>b[0]-a[0]).slice(0,n-want.reduce((s,v)=>s+v,0)).forEach(([,k])=>want[k]++);
+  const byComp=areas.map(()=>[]); for(const i of landIdx) if(want[comp[i]]) byComp[comp[i]].push(i);
   const seeds=[];
-  for(let i=0;i<n;i++){
-    let best=-1,bd=-1;
-    for(let k=0;k<30;k++){ const id=landIdx[Math.floor(rnd()*landIdx.length)]; if(cells[id]===-1&&dist[id]>bd){bd=dist[id];best=id;} }
-    if(best<0) best=landIdx.find(j=>cells[j]===-1);
-    cells[best]=i; seeds.push({x:best%W,y:(best/W)|0}); relax(best);
-  }
+  areas.map((a,k)=>k).filter(k=>want[k]).sort((a,b)=>areas[b]-areas[a]).forEach(k=>{ const L=byComp[k];
+    for(let s=0;s<want[k];s++){
+      let best=-1,bd=-1;
+      for(let r=0;r<30;r++){ const id=L[Math.floor(rnd()*L.length)]; if(cells[id]===-1&&dist[id]>bd){bd=dist[id];best=id;} }
+      if(best<0) best=L.find(j=>cells[j]===-1);
+      cells[best]=seeds.length; seeds.push({x:best%W,y:(best/W)|0}); relax(best);
+    } });
   // round-robin growth, smallest first
   const fronts = seeds.map(()=>[]), counts=new Array(n).fill(0);
   const nb = (i)=>{const x=i%W,y=(i/W)|0,o=[];if(x>0)o.push(i-1);if(x<W-1)o.push(i+1);if(y>0)o.push(i-W);if(y<H-1)o.push(i+W);const L=lk.get(i);if(L)o.push(...L);return o;};
@@ -772,7 +784,7 @@ function newGame(opts){
     // shuffle tail lightly
     if(f.length>2){const a=f.length-1,b=Math.floor(rnd()*f.length);[f[a],f[b]]=[f[b],f[a]];}
   }
-  for(let i=0;i<cells.length;i++) if(cells[i]===-1) cells[i]=-2; // unreachable land (shouldn't happen): make it water
+  // land nobody could reach (an island too small for its own state, with no sea route) stays unowned
   balanceStates(cells,W,H,counts);
   smoothStates(cells,W,H,counts);
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
@@ -3024,6 +3036,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["More even starting land","2026-11-09 18:42",["Each island or continent gets a number of states that fits its size","World map: far fewer tiny starting states on small islands","Islands too small for a state go to a neighbor across the sea, or start unowned"]],
 ["Peace years","2026-11-09 18:21",["New game: set how many years of peace the game starts with (0 = none), under More options","Nobody can attack during the peace, computer states included","War tab shows how many peace years are left"]],
 ["Pick troops for each attack","2026-11-09 18:11",["Attack window: choose how many of each troop type to send","Quick picks: 90% of all, 2× their defense, Offensive only, Everything, Clear (your last pick is remembered)","0 and Max buttons for each troop type","Odds bar shows your attack against their defense","Orders list shows which troops go on each attack"]],
 ["Hot-seat multiplayer","2026-11-09 17:49",["New Hot-seat mode in the New game window: any number of players on one device","Each player sets a state name, civilization, leader and land, and can pick a starting state on the map","Random starting states are kept away from other players","Handover screen between players hides the last player's screen","Each player gets their own year report, home news, fog of war and news archive","Turn order can rotate each year","Humans and alliances: Free for all or All humans together","A fallen player can take over a computer state, watch, or leave","Auto-run is off while two or more players are in the game"]],
