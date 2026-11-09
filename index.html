@@ -336,7 +336,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   </span>
 </header>
 <main>
-  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
+  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
     <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
@@ -1531,6 +1531,14 @@ function relOf(g,c,j){ const v=c.rel?.[j]; return v!=null?v:relBase(g,c.id,j); }
 function relAdd(g,c,j,d){ if(!c.rel) c.rel={}; c.rel[j]=Math.max(-100,Math.min(100,+(relOf(g,c,j)+d).toFixed(1))); }
 // relations map view: red (−100) → grey (0) → green (+100); your own state in white
 const REL_YOU="#f0f0f0";
+// all of last year's harvests together compared with normal (1 = normal), and a weather effect as text
+function worldWx(g){ const A=g.countries.filter(c=>c.alive&&c.lastWx!=null); if(!A.length) return null;
+  let w=0,n=0; for(const c of A){ const h=Math.max(1,c.lastHarvest||1)/c.lastWx; w+=h*c.lastWx; n+=h; } return w/n; }
+const wxPct=v=>(v>=1?"+":"−")+Math.round(Math.abs(v-1)*100)+"%";
+const wxWord=v=>Math.abs(v-1)<0.03?"normal weather":v>1?"good weather":"bad weather";
+// weather view: how much weather changed a harvest (1 = normal): brown for bad, green for good
+function wxColor(w){ const t=Math.max(-1,Math.min(1,(w-1)/0.25)), mid=[138,143,152], end=t<0?[176,96,40]:[60,170,80], k=Math.abs(t)**0.8;
+  return "#"+mid.map((m,i)=>Math.round(m+(end[i]-m)*k).toString(16).padStart(2,"0")).join(""); }
 function relColor(v){ const t=Math.max(-1,Math.min(1,v/100)), mid=[138,143,152], end=t<0?[200,50,40]:[60,170,80], k=Math.abs(t);
   return "#"+mid.map((m,i)=>Math.round(m+(end[i]-m)*k).toString(16).padStart(2,"0")).join(""); }
 // face on the map labels: friendly / neutral / hostile (same cut-offs as the Friendly and Wary labels)
@@ -2230,6 +2238,7 @@ class MapView{
   }
   // alliance view paints each state in its alliance's color
   colorOf(c){ const g=this.g;
+    if(this.o.wx?.()&&g) return wxColor(c.lastWx??1);
     if(this.o.rel?.()&&g&&g.countries[g.player]) return c.id===g.player?REL_YOU:relColor(relOf(g,c,g.player));
     return this.o.ally?.()&&g?.teams&&c.team!=null?g.teams[c.team].color:c.color; }
   // alliance letter after a state's name, e.g. " (b)"
@@ -2357,7 +2366,7 @@ function placeTip(tip,ev){ // fixed-position, so it can't make the pane scroll; 
   const left=x+14+w>r.right?x-14-w:x+14, top=y+10+h>r.bottom?y-10-h:y+10;
   tip.style.left=Math.max(r.left,left)+"px"; tip.style.top=Math.max(r.top,top)+"px"; }
 const mainView=new MapView($("map"),{
-  sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView,
+  sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView,
   height:()=>Math.max(320, window.innerHeight-($("mapbox").getBoundingClientRect().top+window.scrollY+$("mapwrap").scrollTop)-72), // fill the window below the map's top edge (ignores scrolling)
   focus:g=>g.fog?g.player:null,
   onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="war") UI.tab="world"; render(); },
@@ -2365,7 +2374,7 @@ const mainView=new MapView($("map"),{
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
     if(w&&wo>=0&&isKnown(wo)){ tip.innerHTML=`<b>${WONDERS[w.area].icon} ${WONDERS[w.area].name}</b><br>+${wonderPct(w.area)}% ${WONDER_EFFECT[w.area]} for its holder<br><span class="mut">Held by</span> ${esc(G.countries[wo].name)}${wo===G.player?" (you)":""}`;
       placeTip(tip,ev); return; }
-    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}`:`<span class="mut">Unexplored land</span>`;
+    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${UI.wxView&&c.lastWx!=null?`<br><span style="color:${wxColor(c.lastWx)}">Last harvest ${c.lastWx>=1?"+":"−"}${Math.round(Math.abs(c.lastWx-1)*100)}% (weather)</span>`:""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}`:`<span class="mut">Unexplored land</span>`;
     placeTip(tip,ev); },
 });
 
@@ -2380,7 +2389,10 @@ function renderAllyMap(){
   const on=!!G?.teams, b=$("allyBtn"), lg=$("allyLegend"), rb=$("relBtn"), relOn=!!G&&!observing(); if(!on) UI.allyView=false; if(!relOn) UI.relView=false;
   b.classList.toggle("hidden",!on); b.classList.toggle("on",!!UI.allyView); b.textContent=UI.allyView?"States":"Alliances";
   rb.classList.toggle("hidden",!relOn); rb.classList.toggle("on",!!UI.relView); rb.textContent=UI.relView?"States":"Relations";
-  lg.classList.toggle("hidden",!UI.allyView&&!UI.relView);
+  const wb=$("wxBtn"); if(!G) UI.wxView=false; wb.classList.toggle("hidden",!G); wb.classList.toggle("on",!!UI.wxView); wb.textContent=UI.wxView?"States":"Weather";
+  lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView);
+  if(UI.wxView){ const open=legendOpen(), wa=worldWx(G);
+    lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Weather · last harvest <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${[[1.25,"Good +25%"],[1.12,"+12%"],[1,"Normal"],[0.88,"−12%"],[0.75,"Bad −25%"]].map(([v,l])=>`<div><span class="sw" style="background:${wxColor(v)}"></span>${l}</div>`).join("")}<div class="mut" title="All harvests together, compared with normal">World: ${wa!=null?wxPct(wa):"—"}</div></div>`); return; }
   if(UI.relView){ const open=legendOpen();
     lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Relations with you <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${[[-100,"Furious"],[-65,"Hostile"],[-35,"Wary"],[0,"Neutral"],[60,"Friendly"]].map(([v,l])=>`<div><span class="sw" style="background:${relColor(v)}"></span>${l}</div>`).join("")}<div><span class="sw" style="background:${REL_YOU}"></span>You</div></div>`); return; }
   if(UI.allyView){ const left=G.teams.map(t=>G.countries.filter(c=>c.alive&&c.team===t.id).length);
@@ -2476,7 +2488,7 @@ function yearAhead(c){ const food=foodUse(c), prod=foodProduction(c), wk=workers
   const sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)), row=(l,v,cls,tip="")=>`<div class="yar"${tip?` title="${tip}"`:""}><span class="mut">${l}</span><b class="${cls}">${v}</b></div>`;
   const card=(icon,name,n,rows,foot)=>`<div class="yac"><div class="yah"><span>${icon} ${name}</span><b class="${n>=0?"good":"bad"}">${sg(n)}<span class="small mut">/yr</span></b></div>${rows}<div class="yaf"${icon==="🌾"?" title=\"10% of stored grain spoils each year\"":""}>${foot}</div></div>`;
   return `<div class="ya">
-  ${card("🌾","Grain",prod-food,row("Harvest",`+${fmt(prod)}`,"good",`${fmt(wk.farm)} farmers × ${(prod/Math.max(1,wk.farm)).toFixed(2)} grain each`)+row("Eaten",`−${fmt(food)}`,"bad","1 per person, soldiers their troop's upkeep"),`In store <b>${fmt(c.grain)}</b> · spoils 10%/yr`)}
+  ${card("🌾","Grain",prod-food,row("Harvest",`+${fmt(prod)}`,"good",`${fmt(wk.farm)} farmers × ${(prod/Math.max(1,wk.farm)).toFixed(2)} grain each`)+(c.lastWx!=null?row("Last year",`${wxWord(c.lastWx)} ${wxPct(c.lastWx)}`,Math.abs(c.lastWx-1)<0.03?"":c.lastWx>1?"good":"bad","How weather changed last year's harvest"):"")+row("Eaten",`−${fmt(food)}`,"bad","1 per person, soldiers their troop's upkeep"),`In store <b>${fmt(c.grain)}</b> · spoils 10%/yr`)}
   ${card("💰","Money",net,row("Taxes",`+${fmt(tax)}`,"good")+row("Scientists",`−${fmt(sw)}`,"bad")+(cw>0?row("Cavalry",`−${fmt(cw)}`,"bad"):""),`In store <b>${fmt(c.money)}</b>`)}</div>
   <div class="note ${c.grain+prod>=food?'':'warn'}">${foodNote(c)}</div>
   ${net<0&&c.money+net<0?`<div class="note warn">You can't pay wages next year. Unpaid soldiers and scientists will leave. Sell grain or dismiss staff.</div>`:""}`; }
@@ -2572,6 +2584,7 @@ function pMarket(){
   <h3>World market</h3>
   ${mktChart()}
   ${mktWhy()}
+  ${(()=>{ const w=worldWx(G); return w==null?"":`<div class="small" style="margin:4px 0">🌦 World harvest last year: <b class="${Math.abs(w-1)<0.03?"":w>1?"good":"bad"}">${Math.abs(w-1)<0.005?"normal":`${Math.round(Math.abs(w-1)*100)}% ${w>1?"above":"below"} normal`}</b> <span class="mut">(weather; turn on the Weather map to see where)</span></div>`; })()}
   <div class="small mut">Every state sells into one world stock and buys from it. Prices are set once a year: a full stock makes a resource cheap, a short one makes it dear. When the stock runs out, outside merchants sell at a high price. Surplus = stored grain beyond next year's needs plus a 20% reserve; auto-sell sells it when you end the turn. Finance research raises selling prices (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%).</div>`;
 }
 // a copy of state c after training n of troop id (paid, peasants become soldiers); free=true skips the cost
@@ -3246,7 +3259,8 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["World market and weather","2026-11-09 20:47",["Grain, wood and iron trade on a world market: selling fills a world stock, buying empties it","Prices change once a year with supply and demand instead of at random; wood and iron prices now move too","When a stock runs out, outside merchants sell at a high price","Market tab: price chart, small price lines and why prices moved","Weather: good and bad harvests by region and world-wide","Computer states farm less when grain is cheap and more when it is dear","New World market const CHANGELOG=[ weather settings"]],
+["Weather map","2026-11-09 20:55",["New Weather button on the map colors states by how weather changed their last harvest","Hover a state to see its harvest change","Overview: grain card shows last year's weather","Market: shows how the world harvest did last year"]],
+["World market and weather","2026-11-09 20:47",["Grain, wood and iron trade on a world market: selling fills a world stock, buying empties it","Prices change once a year with supply and demand instead of at random; wood and iron prices now move too","When a stock runs out, outside merchants sell at a high price","Market tab: price chart, small price lines and why prices moved","Weather: good and bad harvests by region and world-wide","Computer states farm less when grain is cheap and more when it is dear","New World market & weather settings"]],
 ["Window buttons fixed","2026-11-09 20:11",["Buttons at the bottom of windows (like Continue and New game) are full size again"]],
 ["Clearer Market","2026-11-09 20:05",["Stock cards for grain, money, wood and iron with change per year and prices","Grain price gauge shows if the price is low or high, and which way it moved","Sell and Buy buttons with Half and Max to fill in the amount","See what you'll get or pay before you trade","Surplus and auto-sell moved into the grain trade box","Overview: Growth shows the expected growth for the coming year"]],
 ["Better World rankings","2026-11-09 19:52",["'# by land' option keeps land places while sorting by another column","Fallen states listed by the year they fell, most recent first","Fallen states keep their last science total","Selected state and your own state are highlighted in the rankings","'Alliance colors' option colors each state by its alliance","Shows how many states are still alive","Click Land or Pop in the header to find yourself in the rankings"]],
@@ -3492,8 +3506,9 @@ document.addEventListener("click",async ev=>{
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
     else if(d.map==="me"&&G&&me().alive) v.centerOn(G.player,Math.max(v.z,v.focusZoom()));
-    else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=UI.wxView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=UI.wxView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=false; renderAllyMap(); v.refresh(); }
     return; }
   if(d.rep){ openReport(d.rep); return; }
   if(d.repback!=null){ const bk=UI.repBack; UI.repBack=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); return; }
