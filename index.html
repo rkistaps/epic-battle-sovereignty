@@ -270,9 +270,15 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .tgrid{display:grid;grid-template-columns:90px 90px minmax(0,1fr);gap:6px 8px;align-items:center;margin:6px 0}
 .tgrid input[inputmode]{width:100%}
 .tbtns{display:flex;gap:4px;flex-wrap:wrap}
-.wgrid{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin:6px 0}
+.wgrid{display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin:6px 0}
 .wgrid .wkval{white-space:nowrap;text-align:right}
-.wgrid input[data-workpct]{width:34px;text-align:right;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit}
+.wout{display:block;font-size:11px;color:var(--mut);white-space:nowrap}
+.ya{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:4px 0 8px}
+.yac{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-variant-numeric:tabular-nums}
+.yah{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;margin-bottom:6px} .yah b{font-size:18px}
+.yar{display:flex;justify-content:space-between;padding:2px 0} .yar b{font-weight:600}
+.yaf{border-top:1px solid var(--line);margin-top:7px;padding-top:6px;font-size:12px;color:var(--mut)} .yaf b{color:var(--txt)}
+.wgrid input[data-workpct]{width:40px;text-align:right;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit}
 .wgrid input[data-workpct]:disabled{opacity:.6}
 .wgrid input[type=range]{width:100%;margin:0}
 .wgrid b{text-align:right;font-variant-numeric:tabular-nums}
@@ -460,7 +466,7 @@ const LANDS = [
   {id:"volcanic", name:"Volcanic",    attack:1.4,defense:1,  food:1,  wood:0.7,iron:1.2,science:1.4,growth:0.9,housing:1.1,explore:0.8},
 ];
 // the stats a modifier exists for
-const TRAITS = {attack:"Attack", defense:"Defense", food:"Harvest", wood:"Wood", iron:"Iron", science:"Research", growth:"Pop. growth", housing:"Pop. capacity", explore:"Conquest & settling"};
+const TRAITS = {attack:"Attack", defense:"Defense", food:"Harvest", wood:"Wood", iron:"Iron", science:"Research", growth:"Pop. growth", housing:"Pop. capacity", explore:"Expansion"};
 const civOf=c=>CIVS.find(x=>x.id===c.civ), leaderOf=c=>LEADERS.find(x=>x.id===c.leader), landOf=c=>LANDS.find(x=>x.id===c.landType);
 function computeMods(civ,leader,land){
   const v=(o,k)=>!o?1:o[k], m={};
@@ -2385,38 +2391,45 @@ function traitChips(mod){
   const parts=Object.keys(TRAITS).map(k=>[k,Math.round((mod[k]-1)*100)]).filter(([,v])=>v!==0).sort((a,b)=>b[1]-a[1]);
   return parts.map(([k,v])=>`<span class="chip2 ${v>0?"good":"bad"}">${TRAITS[k]} ${v>0?"+":""}${v}%</span>`).join(" ")||'<span class="mut">no bonuses</span>';
 }
+// years until the population reaches 95% of capacity at today's birth rate (null = not growing)
+function yearsToFull(c){ const cap=popCap(c), rest=popOf(c)-c.peasants, r=growthRate(c); let P=c.peasants;
+  for(let y=0;y<500;y++){ const p=P+rest; if(p>=cap*0.95) return y; const b=Math.round(P*r*(1-p/cap)); if(b<=0) return null; P+=b; } return null; }
+const farmShare=c=>100-WORK_KEYS.reduce((s,k)=>s+(c.work[k]||0),0);
+// what each job produces now (shown under its name, updated while dragging)
+function jobOut(c,k){ const wk=workers(c), pr=production(c);
+  return {farm:`${fmt(wk.farm)} · +${fmt(foodProduction(c))} grain/yr`, wood:`${fmt(wk.wood)} · +${fmt(pr.wood)} wood/yr`, iron:`${fmt(wk.iron)} · +${fmt(pr.iron)} iron/yr`,
+    sci:`${fmt(wk.sci)} · +${fmt(researchPoints(c))} research, −${fmt(wk.sci*R.sciWage)} 💰/yr`}[k]; }
+// the year ahead: grain and money in and out (redrawn while dragging a Work slider)
+function yearAhead(c){ const food=foodUse(c), prod=foodProduction(c), wk=workers(c), tax=taxIncome(c), sw=wk.sci*R.sciWage, cw=wages(c)-sw, net=tax-wages(c);
+  const sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)), row=(l,v,cls,tip="")=>`<div class="yar"${tip?` title="${tip}"`:""}><span class="mut">${l}</span><b class="${cls}">${v}</b></div>`;
+  const card=(icon,name,n,rows,foot)=>`<div class="yac"><div class="yah"><span>${icon} ${name}</span><b class="${n>=0?"good":"bad"}">${sg(n)}<span class="small mut">/yr</span></b></div>${rows}<div class="yaf"${icon==="🌾"?" title=\"10% of stored grain spoils each year\"":""}>${foot}</div></div>`;
+  return `<div class="ya">
+  ${card("🌾","Grain",prod-food,row("Harvest",`+${fmt(prod)}`,"good",`${fmt(wk.farm)} farmers × ${(prod/Math.max(1,wk.farm)).toFixed(2)} grain each`)+row("Eaten",`−${fmt(food)}`,"bad","1 per person, soldiers their troop's upkeep"),`In store <b>${fmt(c.grain)}</b> · spoils 10%/yr`)}
+  ${card("💰","Money",net,row("Taxes",`+${fmt(tax)}`,"good")+row("Scientists",`−${fmt(sw)}`,"bad")+(cw>0?row("Cavalry",`−${fmt(cw)}`,"bad"):""),`In store <b>${fmt(c.money)}</b>`)}</div>
+  <div class="note ${c.grain+prod>=food?'':'warn'}">${foodNote(c)}</div>
+  ${net<0&&c.money+net<0?`<div class="note warn">You can't pay wages next year. Unpaid soldiers and scientists will leave. Sell grain or dismiss staff.</div>`:""}`; }
 function pEconomy(){
-  const c=me(), food=foodUse(c), prod=foodProduction(c), wk=workers(c), pr=production(c); c.work=c.work||{wood:0,iron:0};
-  const ok=c.grain+prod>=food;
-  const net=taxIncome(c)-wages(c);
+  const c=me(); c.work=c.work||{wood:0,iron:0};
+  const cap=popCap(c), pop=popOf(c), full=Math.min(100,Math.round(100*pop/cap)), yf=yearsToFull(c);
+  const card=(l,v,sub)=>`<div class="stat"><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span></div>`;
+  const job=(k,l)=>{ const fm=k==="farm", v=fm?farmShare(c):c.work[k]||0, lk=!!c.workLock?.[k];
+    return `<span>${l}<small class="wout" id="wo-${k}">${jobOut(c,k)}</small></span><input type="range" min="0" max="${fm?100:WORK_MAX}" value="${v}" data-work="${k}"${lk?" disabled":""}>
+      <span class="wkval"><input type="text" inputmode="numeric" maxlength="3" value="${v}" data-workpct="${k}" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-wlock="${k}" title="${lk?"Locked: changing other jobs won't change this one. Click to unlock":"Lock this share so changing other jobs leaves it alone"}">${lk?"🔒":"🔓"}</button></span>`; };
   return `
   ${traitName(c)?`<div class="gen"><b>🏛 ${esc(traitName(c))}</b><div style="margin-top:4px">${traitChips(c.mod)}</div></div>`:""}
   <h3>Population</h3>
-  <div class="kv"><span class="mut">Peasants</span><b>${fmt(c.peasants)} <span class="small mut">(see Work)</span></b><span class="mut">Soldiers</span><b>${fmt(c.soldiers)}</b>
-  <span class="mut">Total / capacity</span><b>${fmt(popOf(c))} / ${fmt(popCap(c))}</b><span class="mut">Growth (last year)</span><b>${c.lastBirths!=null?(c.lastBirths>=0?"+":"")+fmt(c.lastBirths):"—"}</b></div>
+  <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    ${card("People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
+    ${card("Growth",c.lastBirths!=null?(c.lastBirths>=0?"+":"")+fmt(c.lastBirths):"—",yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
+    ${card("Peasants",fmt(c.peasants),`${fmt(c.soldiers)} soldiers`)}</div>
   <h3>Work</h3>
-  <div class="wgrid">
-    ${[["wood","🌲 Woodcutters"],["iron","⛏️ Miners"],["sci","🔬 Scientists"]].map(([k,l])=>{ const v=c.work[k]||0, lk=!!c.workLock?.[k];
-      return `<span>${l}</span><input type="range" min="0" max="${WORK_MAX}" value="${v}" data-work="${k}"${lk?" disabled":""}>
-      <span class="wkval"><input type="text" inputmode="numeric" maxlength="2" value="${v}" data-workpct="${k}" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-wlock="${k}" title="${lk?"Locked: raising other jobs won't take people from this one. Click to unlock":"Lock this share so raising other jobs leaves it alone"}">${lk?"🔒":"🔓"}</button></span>`; }).join("")}
-    <span>👨‍🌾 Farmers</span><span class="small mut">everyone else</span><b id="wkFarmV">${100-c.work.wood-c.work.iron-(c.work.sci||0)}%</b>
-  </div>
-  <div class="small" id="wkNote">${workNote(c)}</div>
-  <div class="small mut">Drag a slider or type an exact %. Each job takes at most ${WORK_MAX}%, and at least ${100-WORK_TOTAL}% of peasants keep farming. Raise a job past that and the other unlocked jobs give up people; lock 🔒 a job to keep its share.</div>
-  <div class="small mut">Peasants farm, cut wood, mine iron or do research, and all pay tax; each scientist also costs ${R.sciWage}/yr. People eat 1 grain/yr, soldiers their troop's food upkeep. Soldiers are trained in the <button class="sm" data-tab="barracks">Barracks</button>.</div>
-  <div class="small mut">Buy and sell grain, wood and iron in the <button class="sm" data-tab="market">Market</button>.</div>
-  <h3>Food</h3>
-  <div class="kv"><span class="mut">Farmers</span><b>${fmt(wk.farm)} <span class="small mut">(× ${(prod/Math.max(1,wk.farm)).toFixed(2)} grain each)</span></b>
-    <span class="mut">Production</span><b class="good">+${fmt(prod)}/yr</b>
-    <span class="mut">Consumption</span><b class="bad">−${fmt(food)}/yr</b>
-    <span class="mut">Net</span><b class="${prod>=food?'good':'bad'}">${prod>=food?"+":""}${fmt(prod-food)}/yr</b>
-    <span class="mut">In store</span><b>${fmt(c.grain)} <span class="small mut">(10% spoils each year)</span></b></div>
+  <div class="wgrid">${job("farm","👨‍🌾 Farmers")}${job("wood","🌲 Woodcutters")}${job("iron","⛏️ Miners")}${job("sci","🔬 Scientists")}</div>
+  <div class="small mut">Shares of your ${fmt(c.peasants)} peasants. Each job takes at most ${WORK_MAX}% and at least ${100-WORK_TOTAL}% keep farming. Lock 🔒 a job to keep its share while you move the others.</div>
+  <h3>Year ahead</h3>
+  <div id="yearAhead">${yearAhead(c)}</div>
   ${bordersUnowned(G,c.id)?`<div class="small">🏕 You border unowned land: settlers claim about <b>${fmt(Math.round(R.settleBase+c.land*R.settleRate))}</b> km² of it per year.</div>`:""}
   ${c.shore?`<div class="small">🌊 Shore farmland: <b>${fmt(c.shore)}</b> km² of ${fmt(c.land)} → <b class="good">+${Math.round(shoreBonus(c)*100)}%</b> harvest${shoreBonus(c)>=R.shoreMax?" (max)":""}.</div>`:""}
-  <div class="note ${ok?'':'warn'}" id="foodNote">${foodNote(c)}</div>
-  <h3>Budget forecast</h3>
-  <div class="kv"><span class="mut">Taxes</span><b class="good">+${fmt(taxIncome(c))}</b><span class="mut">Scientists' wages</span><b class="bad">−${fmt(wk.sci*R.sciWage)}</b>${wages(c)>wk.sci*R.sciWage?`<span class="mut">Cavalry wages</span><b class="bad">−${fmt(wages(c)-wk.sci*R.sciWage)}</b>`:""}<span class="mut">Net (before grain sales)</span><b class="${net>=0?'good':'bad'}">${net>=0?"+":""}${fmt(net)}</b></div>
-  ${net<0&&c.money+net<0?`<div class="note warn">You can't pay wages next year. Unpaid soldiers and scientists will leave. Sell grain or dismiss staff.</div>`:""}`;
+  <div class="small mut" style="margin-top:6px">Everyone eats 1 grain/yr, soldiers their troop's upkeep. Trade in the <button class="sm" data-tab="market">Market</button>, train soldiers in the <button class="sm" data-tab="barracks">Barracks</button>.</div>`;
 }
 function workNote(c){ const wk=workers(c), pr=production(c); return `🔬 ${fmt(wk.sci)} scientists (+${fmt(researchPoints(c))} research, −${fmt(wk.sci*R.sciWage)} money/yr) · 👨‍🌾 ${fmt(wk.farm)} farmers (+${fmt(foodProduction(c))} grain/yr) · 🌲 ${fmt(wk.wood)} woodcutters (+${fmt(pr.wood)} wood/yr) · ⛏️ ${fmt(wk.iron)} miners (+${fmt(pr.iron)} iron/yr)`; }
 function foodNote(c){
@@ -2447,17 +2460,45 @@ function pMarket(){
   <label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell surplus grain every year <span class="mut">(sold when you end the turn, keeping next year's needs plus a 20% reserve)</span></label>
   <div class="small mut">Grain prices move every year (between ${R.priceMin} and ${R.priceMax}); wood and iron prices are fixed. Finance research raises what you get when selling any of them (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%). Buying is not affected. Money per year is taxes minus wages, before trading.</div>`;
 }
+// a copy of state c after training n of troop id (paid, peasants become soldiers); free=true skips the cost
+function afterTrain(c,id,n,free){ const t=TROOP[id], x={...c,troops:{...troopsOf(c)}};
+  n=Math.max(0,Math.min(Math.floor(n)||0,free?Infinity:affordable(c,t),c.peasants-50)); x.peasants-=n; x.troops[id]=(x.troops[id]||0)+n; x.soldiers+=n;
+  if(!free) for(const r of RES) x[STOCK[r]]=(c[STOCK[r]]||0)-t[r]*n; x.trained=n; return x; }
+// stock and change per year: grain = harvest − what everyone eats, money = taxes − wages
+function supplies(c){ const pr=production(c);
+  return [["🌾","Grain",c.grain,foodProduction(c)-foodUse(c)],["🌲","Wood",c.wood||0,pr.wood],["⛏️","Iron",c.iron||0,pr.iron],["💰","Money",c.money,taxIncome(c)-wages(c)]]; }
+// the Supplies table; with x (a copy after training) each number shows "now → after"
+function supplyTable(c,x){
+  const A=supplies(c), B=x?supplies(x):null, sg=v=>(v>0?"+":v<0?"−":"")+fmt(Math.abs(v)), to=(u,v,f)=>u===v?f(u):`${f(u)} → <b class="${v<u?"bad":"good"}">${f(v)}</b>`;
+  return `<table class="tight"><tr><th>Supply</th><th class="r">In store</th><th class="r">Per year</th><th></th></tr>
+  ${A.map(([ic,nm,st,py],i)=>{ const [, , st2,py2]=B?B[i]:[0,0,st,py], left=py2<0?Math.floor(st2/-py2):null;
+    return `<tr><td>${ic} ${nm}</td><td class="r">${to(st,st2,fmt)}</td><td class="r ${B&&py2!==py?"":py2<0?"bad":py2>0?"good":""}">${to(py,py2,sg)}</td>
+      <td class="small ${py2<0?"bad":"mut"}">${py2<0?(left<1?"⚠ runs out next year":`⚠ lasts ~${fmt(left)} yr${left===1?"":"s"}`):i===0&&py2>0?"✓ growing":""}</td></tr>`; }).join("")}</table>`; }
+// how many more Spearmen grain can feed before it stops growing
+function roomNote(c){ const g=x=>foodProduction(x)-foodUse(x), now=g(c);
+  if(now<0) return `<span class="bad">Grain is shrinking by ${fmt(-now)}/yr. Move peasants to farming or buy grain before training more.</span>`;
+  let lo=0, hi=Math.max(0,c.peasants-50); if(g(afterTrain(c,"spear",hi,true))>=0) return `Grain can feed every spare peasant as a Spearman.`;
+  while(lo<hi){ const m=(lo+hi+1)>>1; if(g(afterTrain(c,"spear",m,true))>=0) lo=m; else hi=m-1; }
+  return `Room to grow: about <b>${fmt(lo)}</b> more Spearmen before grain stops growing.`; }
+// live preview while typing in a Train box (or when it gets focus)
+function trainPreview(id){ const c=me(), box=$("supply"); if(!box) return;
+  const want=id?Math.floor(+($("trn-"+id)?.value||0)):0, x=id&&want>0?afterTrain(c,id,want):null;
+  box.innerHTML=supplyTable(c,x&&x.trained?x:null);
+  $("supplyCap").innerHTML=x?(x.trained?`Preview: training <b>${fmt(x.trained)} ${TROOP[id].name}</b>${x.trained<want?` <span class="bad">(only ${fmt(x.trained)} possible now)</span>`:""}`:`<span class="bad">Can't train any ${TROOP[id].name} now: not enough resources or peasants.</span>`):roomNote(c); }
 function pBarracks(){
-  const c=me(), tr=troopsOf(c), home=plannedPools(c);
+  const c=me(), tr=troopsOf(c), home=plannedPools(c), away=c.soldiers-troopCount(home);
   const upFood=TROOPS.reduce((s,t)=>s+(tr[t.id]||0)*t.upFood,0), upGold=TROOPS.reduce((s,t)=>s+(tr[t.id]||0)*t.upGold,0);
+  const card=(l,v,sub,tip="")=>`<div class="stat"${tip?` title="${tip}"`:""}><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span></div>`;
   return `<h3>Army</h3>
-  <div class="kv"><span class="mut">Soldiers</span><b>${fmt(c.soldiers)}</b>
-    <span class="mut">Attack strength</span><b>${fmtPow(armyAtk(c))}</b>
-    <span class="mut">Defense strength</span><b>${fmtPow(armyDef(c))}</b>
-    <span class="mut">Guarding at home</span><b>${fmt(troopCount(home))} <span class="mut small">(defense ${fmtPow(armyDef(c,home))})</span></b>
-    <span class="mut">Upkeep</span><b class="bad">−${fmt(upFood)} 🌾${upGold?` −${fmt(upGold)} 💰`:""}/yr</b>
-    <span class="mut">Stock</span><b>${fmt(c.grain)} 🌾 · ${fmt(c.wood||0)} 🌲 · ${fmt(c.iron||0)} ⛏️ · ${fmt(c.money)} 💰</b>
-    <span class="mut">Attack / Defense research</span><b>${c.lv.atk} / ${c.lv.def}</b></div>
+  ${c.soldiers?`<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    ${card("Soldiers",fmt(c.soldiers),away?`${fmt(away)} away on attack`:"all at home")}
+    ${card("Attack",fmtPow(armyAtk(c)),`research lvl ${c.lv.atk}`,"Attack strength of your whole army")}
+    ${card("Home defense",fmtPow(armyDef(c,home)),away?`lvl ${c.lv.def} · full army ${fmtPow(armyDef(c))}`:`research lvl ${c.lv.def}`,"Defense of the soldiers guarding at home this year")}</div>`
+  :`<div class="note warn">No soldiers. Your borders are unguarded: any attack wins and takes as much land as it can.</div>`}
+  <h3>Supplies</h3>
+  <div id="supply">${supplyTable(c)}</div>
+  <div class="small mut" style="margin:4px 0">${upFood||upGold?`Army upkeep: <span class="bad">−${fmt(upFood)} 🌾${upGold?` · −${fmt(upGold)} 💰`:""}</span> per year (included above)`:"No army upkeep."}</div>
+  <div class="small" id="supplyCap" style="margin-bottom:6px">${roomNote(c)}</div>
   <h3>Train &amp; dismiss</h3>
   <table class="tight"><tr><th>Troop</th><th class="r">Owned</th><th>Train / dismiss</th></tr>
   ${TROOPS.map(t=>{ const open=troopUnlocked(c,t.id), max=open?Math.max(0,Math.min(affordable(c,t),c.peasants-50)):0;
@@ -2474,19 +2515,33 @@ const WORK_MAX=80, WORK_TOTAL=90, WORK_KEYS=["wood","iron","sci"];
 function setWorkShare(c,k,pct){
   const w=c.work, lock=c.workLock||{}, others=WORK_KEYS.filter(x=>x!==k);
   pct=Math.max(0,Math.min(WORK_MAX,Math.round(+pct||0)));
-  const free=WORK_TOTAL-others.reduce((s,x)=>s+(w[x]||0),0);
+  const cap=lock.farm?WORK_KEYS.reduce((s,x)=>s+(w[x]||0),0):WORK_TOTAL; // farmers locked: jobs only trade among themselves
+  const free=cap-others.reduce((s,x)=>s+(w[x]||0),0);
   let need=pct-free;
   const give=others.filter(x=>!lock[x]).sort((a,b)=>(w[b]||0)-(w[a]||0));
   for(const x of give){ if(need<=0) break; const t=Math.min(w[x]||0,need); w[x]=(w[x]||0)-t; need-=t; }
   w[k]=need>0?pct-need:pct; // not enough unlocked room: stops at what's free
 }
+// set the farmers' share: the unlocked jobs scale together, keeping their mix from base (the shares when a drag began)
+function setFarmShare(c,pct,base){
+  const w=c.work, lock=c.workLock||{}, open=WORK_KEYS.filter(x=>!lock[x]); base=base||{...w}; if(!open.length) return;
+  const L=WORK_KEYS.filter(x=>lock[x]).reduce((s,x)=>s+(w[x]||0),0);
+  let U=Math.max(0,Math.min(open.length*WORK_MAX,100-Math.max(100-WORK_TOTAL,Math.min(100,Math.round(+pct||0)))-L)); // people left for unlocked jobs
+  const B=open.reduce((s,x)=>s+(base[x]||0),0), raw={}; let left=U, todo=open.slice();
+  while(todo.length){ const tb=todo.reduce((s,x)=>s+(B?(base[x]||0):1),0); let capped=false; // shares by the base mix, each up to WORK_MAX
+    for(const x of todo){ raw[x]=tb?left*(B?(base[x]||0):1)/tb:left/todo.length; if(raw[x]>WORK_MAX){ raw[x]=WORK_MAX; left-=WORK_MAX; todo=todo.filter(y=>y!==x); capped=true; break; } }
+    if(!capped) break; }
+  const fl=open.map(x=>[x,Math.floor(raw[x]||0)]); let rest=U-fl.reduce((s,[,v])=>s+v,0); // whole numbers, leftovers to the biggest fractions
+  fl.sort((p,q)=>((raw[q[0]]||0)%1)-((raw[p[0]]||0)%1)); for(const f of fl){ if(rest<=0) break; if(f[1]<WORK_MAX){ f[1]++; rest--; } }
+  for(const [x,v] of fl) w[x]=v;
+}
+const setShare=(c,k,v)=>k==="farm"?setFarmShare(c,v):setWorkShare(c,k,v);
 // refresh the Work numbers in place (keeps the slider being dragged under the pointer)
 function paintWork(c,skip){
-  for(const k of WORK_KEYS){ const v=c.work[k]||0;
-    const r=document.querySelector(`[data-work="${k}"]`), b=document.querySelector(`[data-workpct="${k}"]`);
-    if(r&&r!==skip) r.value=v; if(b&&b!==skip) b.value=v; }
-  $("wkFarmV").textContent=(100-WORK_KEYS.reduce((s,k)=>s+(c.work[k]||0),0))+"%"; $("wkNote").innerHTML=workNote(c);
-  const fn=$("foodNote"); if(fn){ fn.innerHTML=foodNote(c); fn.classList.toggle("warn",c.grain+foodProduction(c)<foodUse(c)); }
+  for(const k of ["farm",...WORK_KEYS]){ const v=k==="farm"?farmShare(c):c.work[k]||0;
+    const r=document.querySelector(`[data-work="${k}"]`), b=document.querySelector(`[data-workpct="${k}"]`), o=$("wo-"+k);
+    if(r&&r!==skip) r.value=v; if(b&&b!==skip) b.value=v; if(o) o.textContent=jobOut(c,k); }
+  if($("yearAhead")) $("yearAhead").innerHTML=yearAhead(c);
 }
 // set one area's share exactly; locked areas keep their share, the other unlocked areas rescale so the total is 100
 function setAllocShare(c,a,pct){
@@ -3073,6 +3128,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Clearer Barracks and Overview","2026-11-09 19:33",["Barracks: army cards, a Supplies table with change per year, and how many more Spearmen your grain can feed","Barracks: typing in a Train box previews the effect on your supplies","Overview: population cards with % of capacity and years until nearly full","Overview: Farmers get their own slider and lock","Overview: each job shows its people and output","Overview: Year ahead cards for grain and money"]],
 ["Clearer names and totals","2026-11-09 19:19",["Economy tab is now called Overview","Budget shows scientists' and cavalry wages separately","Exploring research is now called Expansion","Science tab shows your total level and the world average","News: Clear button resets the filters"]],
 ["Tidier header","2026-11-09 19:13",["New Menu button with New game, Last year's report, Rules & tips, Change log and Settings","Last year's report can be opened again from the menu","Header numbers show just icons; hover for the name","Grain price removed from the header (see Market)","Auto-run: one button, with speed and 'Stop when I'm attacked' under the small arrow","End turn button fills up while auto-run counts down"]],
 ["Fewer oversized starting states","2026-11-09 19:06",["A pocket of land too small for its own state now counts toward the area next to it, so that area gets enough states to share it","River and lake maps: no more starting states twice the usual size"]],
@@ -3321,7 +3377,7 @@ document.addEventListener("click",async ev=>{
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
   if(d.tab){ UI.tab=d.tab; render(); return; }
-  if(d.max){ const el=$("trn-"+d.max); if(el){ el.value=d.n; el.focus(); } return; }
+  if(d.max){ const el=$("trn-"+d.max); if(el){ el.value=d.n; el.focus(); trainPreview(d.max); } return; }
   if(d.train||d.untrain){ const id=d.train||d.untrain, n=Math.max(0,Math.floor(+($("trn-"+id)?.value||0)));
     if(d.train){ const got=act.hireTroop(G,me(),id,n); if(got<n) flash(got?`Trained ${got}: not enough resources or peasants for more.`:"Not enough resources or peasants."); }
     else act.fireTroop(G,me(),id,n);
@@ -3412,12 +3468,13 @@ document.addEventListener("click",async ev=>{
 });
 document.addEventListener("input",ev=>{
   const t=ev.target;
+  if(t.id?.startsWith("trn-")){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; trainPreview(t.id.slice(4)); return; }
   if(t.dataset.sk&&UI.sdraft){ const k=t.dataset.kind; let v= k==="bool"?t.checked : k==="text"?t.value : k==="lines"?[...new Set(t.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))] : +t.value; if(k==="%") v=v/100;
     if(k!=="text"&&k!=="bool"&&k!=="lines"&&!isFinite(v)) return; setPath(UI.sdraft,t.dataset.sk,v);
     if(k==="lines"&&$("namesN")) $("namesN").textContent=fmt(v.length);
     const def=getPath(JSON.parse(JSON.stringify(DEFAULTS)),t.dataset.sk.replace(/^R\./,"R."));
     t.classList.toggle("chg",JSON.stringify(v)!==JSON.stringify(def)); return; }
-  if(t.dataset.work){ const c=me(); setWorkShare(c,t.dataset.work,t.value); if(+t.value!==c.work[t.dataset.work]) t.value=c.work[t.dataset.work]; paintWork(c,t); return; }
+  if(t.dataset.work){ const c=me(), k=t.dataset.work; if(k==="farm"){ UI.farmBase=UI.farmBase||{...c.work}; setFarmShare(c,t.value,UI.farmBase); } else setShare(c,k,t.value); const v=k==="farm"?farmShare(c):c.work[k]; if(+t.value!==v) t.value=v; paintWork(c,t); return; }
   if(t.dataset.workpct){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; return; } // digits only; applied on change
   if(t.dataset.allocpct){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; return; } // digits only
   if(t.dataset.alloc){ const box=t.parentElement.querySelector("[data-allocpct]"); if(box) box.value=t.value; return; } // live: show the number while dragging
@@ -3437,11 +3494,11 @@ document.addEventListener("input",ev=>{
 });
 document.addEventListener("change",ev=>{
   const t=ev.target;
-  if(t.dataset.work){ render(); return; } // refresh the Food section after a slider is released
+  if(t.dataset.work){ UI.farmBase=null; render(); return; } // refresh the Food section after a slider is released
   if(t.id==="autoSell"){ me().autoSell=t.checked; save(); return; }
   if(t.id==="newsF"||t.id==="newsQ"||t.id==="newsA"){ const st=UI.news; if(t.id==="newsF") st.f=t.value; else if(t.id==="newsA") st.al=t.value==="all"?"all":+t.value; else st.q=t.value; st.page=0; render(); return; }
   if(t.id==="settingsFile"&&t.files&&t.files[0]){ const f=t.files[0]; f.text().then(importSettings); t.value=""; return; }
-  if(t.dataset.workpct){ setWorkShare(me(),t.dataset.workpct,t.value); render(); return; }
+  if(t.dataset.workpct){ setShare(me(),t.dataset.workpct,t.value); render(); return; }
   if(t.dataset.alloc||t.dataset.allocpct){ setAllocShare(me(),t.dataset.alloc||t.dataset.allocpct,t.value); render(); return; }
   if(t.id==="atkGen"){ UI.atkGen=+t.value; if(UI.atkPreset==="x2"&&!UI.atkEdited) UI.atkMix=null; render(); return; }
   if(t.dataset.atkmix){ const k=t.dataset.atkmix; t.value=Math.min(UI.atkMix?.[k]||0,plannedPools(me())[k]||0); return; }
@@ -3476,6 +3533,8 @@ document.addEventListener("change",ev=>{
   document.addEventListener("pointerout",e=>{ const el=e.target.closest?.(".info[data-tip]"); if(el&&!el.contains(e.relatedTarget)&&document.activeElement!==el) hide(); });
   document.addEventListener("focusin",e=>{ if(e.target.matches?.(".info[data-tip]")) show(e.target); else if(tipFor) hide(); });
   document.addEventListener("focusout",e=>{ if(e.target===tipFor) hide(); });
+  document.addEventListener("focusin",e=>{ if(e.target.id?.startsWith("trn-")) trainPreview(e.target.id.slice(4)); });
+  document.addEventListener("focusout",e=>{ if(e.target.id?.startsWith("trn-")&&!e.relatedTarget?.closest?.("[data-max],[data-train],[data-untrain]")) trainPreview(null); });
   document.addEventListener("click",e=>{ const el=e.target.closest?.(".info[data-tip]"); if(el){ tipFor===el&&!$("infoTip").hidden&&e.pointerType!=="mouse"?hide():show(el); } else if(tipFor) hide(); });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&tipFor) hide(); });
   document.addEventListener("scroll",()=>{ if(tipFor) tipFor.isConnected?show(tipFor):hide(); },true); }
