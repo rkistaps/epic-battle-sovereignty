@@ -3128,6 +3128,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Peace years checkbox","2026-11-09 19:42",["New game: Peace years is now a checkbox under Rules; tick it to set how many years","Unticked means war from year 1"]],
 ["Clearer Barracks and Overview","2026-11-09 19:33",["Barracks: army cards, a Supplies table with change per year, and how many more Spearmen your grain can feed","Barracks: typing in a Train box previews the effect on your supplies","Overview: population cards with % of capacity and years until nearly full","Overview: Farmers get their own slider and lock","Overview: each job shows its people and output","Overview: Year ahead cards for grain and money"]],
 ["Clearer names and totals","2026-11-09 19:19",["Economy tab is now called Overview","Budget shows scientists' and cavalry wages separately","Exploring research is now called Expansion","Science tab shows your total level and the world average","News: Clear button resets the filters"]],
 ["Tidier header","2026-11-09 19:13",["New Menu button with New game, Last year's report, Rules & tips, Change log and Settings","Last year's report can be opened again from the menu","Header numbers show just icons; hover for the name","Grain price removed from the header (see Market)","Auto-run: one button, with speed and 'Stop when I'm attacked' under the small arrow","End turn button fills up while auto-run counts down"]],
@@ -3173,7 +3174,7 @@ function helpModal(){
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Overview tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; you pick which troops go on each attack (War tab), the rest stay home and guard. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Overview tab lists your bonuses.</li></ul>
-  <h3>War</h3><ul class="log"><li><b>Peace years:</b> set in New game, under More options. Nobody can attack during the first years of the game; 0 means war from year 1.</li><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
+  <h3>War</h3><ul class="log"><li><b>Peace years:</b> tick it in New game (More options → Rules) and set how many. Nobody can attack during those first years.</li><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
   <li>Strength = soldiers × Attack/Defense research × general (skill and morale) × your civilization's and leader's attack (when attacking) or defense (when defending) bonus. A research lead counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy. Defenders get +15%. A state with no guards loses as much land as the attacker's general and army can take.</li>
   <li>The winner takes land and the peasants on it: (general's Speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness. Decisiveness runs from 25% for a narrow win to 100% at twice the defender's strength (or no defenders). Each surviving soldier can hold at most ${R.occupy} km².</li>
@@ -3196,7 +3197,7 @@ function helpModal(){
 // new-game choices are remembered in this browser: saved on every change, restored when the window opens
 const SETUP_KEY="eb.setup";
 function setupDefaults(){ let lastName=""; try{ lastName=localStorage.getItem("eb.empireName")||""; }catch{}
-  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region",peace:0,more:false,
+  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region",peaceOn:false,peace:5,more:false,
     hot:false,players:[newPlayer(),newPlayer()],allHumans:false,rotate:true}; }
 const newPlayer=()=>({name:"",civ:"random",leader:"random",landType:"random"});
 function loadSetup(){
@@ -3210,7 +3211,8 @@ function loadSetup(){
   d.players=(Array.isArray(d.players)?d.players:[]).filter(x=>x&&typeof x==="object").map(x=>({name:String(x.name||"").slice(0,24),civ:ok(CIVS,x.civ),leader:ok(LEADERS,x.leader),landType:ok(LANDS,x.landType)}));
   while(d.players.length<2) d.players.push(newPlayer());
   if(d.hot) d.n=Math.max(d.n,d.players.length);
-  d.peace=Math.max(0,Math.min(999,Math.floor(d.peace)||0));
+  if(o.peace>0&&!("peaceOn" in o)) d.peaceOn=true; // setups saved before the checkbox: a peace length meant it was on
+  d.peace=Math.max(1,Math.min(999,Math.floor(d.peace)||5));
   return {...d,preview:null,pick:null};
 }
 function saveSetup(){ const s=UI.setup; if(!s) return; const out={}; for(const k of Object.keys(setupDefaults())) out[k]=s[k];
@@ -3223,6 +3225,7 @@ const info=(label,t,cls="")=>`<button type="button" class="info ${cls}" aria-lab
 const SETUP_RULES=[ // [id, setup key, label, one-line description, full explanation, player only]
   ["sF","fog","Fog of war","See only your neighbors","You only see your neighbors. Everything else stays hidden.",true],
   ["sAl","al","Alliances","Allies win together","Allies never attack each other and win together.",false],
+  ["sPc","peaceOn","Peace years","Nobody can attack at the start","No state can attack anyone during the first years of the game.",false],
   ["sWo","wonders","Wonders","Landmarks that boost one science area","10 landmarks, one per science area. Holding one boosts that area's effect (+25% by default).",false],
   ["sRn","relNoise","Random starting relations","States start a little friendly or hostile",()=>`Each pair of states starts between −${R.relNoiseAmp} and +${R.relNoiseAmp} instead of 0.`,false],
   ["sC","choose","Choose my state on the map","Pick your starting state on a preview","Generates the map now so you can click the state you want to lead.",true]];
@@ -3237,7 +3240,8 @@ function setupModal(){
       +(id==="sAl"?`<div class="alopts ${s.al?"":"hidden"}"><select id="sAlMode" aria-label="Alliance setup"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
         <input type="text" inputmode="numeric" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}">
         <select id="sAlLay" aria-label="Alliance layout"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
-        <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>`:""); };
+        <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>`:"")
+      +(id==="sPc"?`<div class="alopts ${s.peaceOn?"":"hidden"}"><input type="text" inputmode="numeric" id="sPeace" maxlength="3" value="${s.peace}" aria-label="Peace years"> <span class="small mut">years without war</span></div>`:""); };
   modal(`<div class="shead"><h2>New game</h2>
     <div class="seg" role="group" aria-label="Game mode"><button type="button" data-smode="play" aria-pressed="${!obs&&!hot}">Solo</button><button type="button" data-smode="hot" aria-pressed="${hot}" title="Several players take turns on this device">Hot-seat</button><button type="button" data-smode="watch" aria-pressed="${obs}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
   <div class="mbody sbody"><div class="sl">
@@ -3263,7 +3267,6 @@ function setupModal(){
       <div class="wrow"><input type="range" id="sW" min="0" max="40" value="${s.water}"><select id="sWS" aria-label="Water type" ${s.water?"":"disabled"}>${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div></div>
     <h3 class="sh">Rules</h3>
     <div class="rules">${SETUP_RULES.map(rule).join("")}</div>
-    <div class="fld" style="margin-top:12px"><span class="lr"><span><label for="sPeace">Peace years</label> ${info("Peace years","No state can attack anyone during the first years of the game. 0 = war allowed from year 1.")}</span><input type="text" inputmode="numeric" id="sPeace" maxlength="3" value="${s.peace}" aria-label="Peace years (0 or more)"></span></div>
     <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it${hot?" for the next player":""}. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
       <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
       <div class="small" id="pvPick">${pickText()}</div></div>
@@ -3285,19 +3288,19 @@ function welcomeModal(){ const s=SAVED&&!SAVED.over?SAVED:null;
 function setupSummary(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id)?.name, rnd=w=>"Random "+w;
   const civ=f(CIVS,s.civ), lead=f(LEADERS,s.leader), land=f(LANDS,s.landType);
   const people=!civ&&!lead&&!land?"Random civilization, leader and land":[civ||rnd("civilization"),lead||rnd("leader"),land||rnd("land")].join(" · ");
-  const preset=s.map&&s.map!=="random", rules=SETUP_RULES.filter(r=>s[r[1]]&&!(r[5]&&s.observer)).map(r=>`<span class="rchip">${r[2]}</span>`).join("");
+  const preset=s.map&&s.map!=="random", rules=SETUP_RULES.filter(r=>s[r[1]]&&r[0]!=="sPc"&&!(r[5]&&s.observer)).map(r=>`<span class="rchip">${r[2]}</span>`).join("");
   const water=preset?"Fixed":s.water?`${s.water}% ${({lakes:"lakes",rivers:"rivers",mixed:"lakes + rivers"})[s.wstyle]||""}`:"None";
   const P=s.players.length;
   if(s.hot&&!s.observer) return `<div class="sname">Hot-seat · ${P} players</div><div class="sub">Each player takes a turn on this device, then the year runs</div>
   <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)} <span class="sub">· ${fmt(Math.max(0,s.n-P))} computer</span></dd></div>
     <div><dt>Alliances</dt><dd>${s.allHumans?"All humans together":"Free for all"}</dd></div><div><dt>Turn order</dt><dd>${s.rotate?"Rotates yearly":"Fixed"}</dd></div>
     <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
-    <div><dt>Peace</dt><dd>${s.peace?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
+    <div><dt>Peace</dt><dd>${s.peaceOn?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
     <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`;
   return `${s.observer?`<div class="sname">Observer mode</div><div class="sub">The computer runs every state</div>`:`<div class="sname">${esc((s.empire||"").trim()||"Random empire")}</div><div class="sub">${people}</div>`}
   <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)}</dd></div>
     <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
-    <div><dt>Peace</dt><dd>${s.peace?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
+    <div><dt>Peace</dt><dd>${s.peaceOn?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
     <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`; }
 function updateSummary(){ const s=UI.setup; if(!s||!$("sSum")) return;
   $("sSum").innerHTML=setupSummary(); $("sTraits").innerHTML=setupTraits();
@@ -3308,7 +3311,7 @@ function randomizeSetup(){ const s=UI.setup, ri=(a,b)=>a+Math.floor(Math.random(
   s.players=s.players.map(()=>({name:"",civ:pick(CIVS).id,leader:pick(LEADERS).id,landType:pick(LANDS).id}));
   s.map=pick(["random",...Object.keys(PRESET_MAPS)]);
   s.n=Math.max(s.hot?s.players.length:2,pick(N_STEPS.filter(v=>v<=200))); s.terr=ri(5,20)*10; s.water=ri(0,8)*5; s.wstyle=pick(["lakes","rivers","mixed"]);
-  s.fog=coin(); s.wonders=coin(); s.relNoise=coin(); s.al=coin(); s.alMode=pick(["count","size"]); s.alLay=pick(["region","scattered"]);
+  s.fog=coin(); s.wonders=coin(); s.relNoise=coin(); s.peaceOn=coin(); s.peace=ri(1,10); s.al=coin(); s.alMode=pick(["count","size"]); s.alLay=pick(["region","scattered"]);
   s.alN=s.alMode==="count"?ri(2,Math.max(2,Math.min(6,s.n))):ri(1,Math.max(1,Math.floor(s.n/2)));
   s.preview=null; s.pick=null; saveSetup(); setupModal(); }
 // set the number of states and sync the slider and number box (skip = the control being edited)
@@ -3459,7 +3462,7 @@ document.addEventListener("click",async ev=>{
         catch(e){ console.error(e); UI.busy=false; flash("Map generation failed."); setupModal(); return; }
         UI.busy=false;
       }
-      G.difficulty=s.diff; G.peace=s.peace||0; G.fog=!!s.fog&&!G.observer; // an observer sees the whole map
+      G.difficulty=s.diff; G.peace=s.peaceOn?s.peace:0; G.fog=!!s.fog&&!G.observer; // an observer sees the whole map
       if(!G.observer&&!G.hot){ const nm=(s.empire||"").trim().slice(0,24); try{ localStorage.setItem("eb.empireName",nm); }catch{}
         if(nm){ const p=G.countries[G.player], dup=G.countries.find(c=>c!==p&&c.name.toLowerCase()===nm.toLowerCase()); if(dup) dup.name=p.name; p.name=nm; } }
       setAuto(false); NEWS=newsFresh(G.gid); UI.news=null; UI.sel=null; UI.tab=G.observer?"world":"economy"; UI.attackTarget=null; UI.setup=null; save(); closeModal(); render(); if(G.hot) hotHandover(); return; }
@@ -3483,7 +3486,7 @@ document.addEventListener("input",ev=>{
   if(t.dataset.atkmix){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; if(UI.atkMix){ UI.atkMix[t.dataset.atkmix]=+v||0; UI.atkEdited=true; refreshAtk(); } return; }
   const s=UI.setup; if(!s) return;
   if(t.id==="sName"){ s.empire=t.value; return; }
-  if(t.id==="sPeace"){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; s.peace=Math.min(999,+v||0); updateSummary(); return; }
+  if(t.id==="sPeace"){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; if(+v>0){ s.peace=Math.min(999,+v); updateSummary(); } return; }
   if(t.dataset.pf){ const [i,k]=t.dataset.pf.split("."), q=s.players[+i]; if(q) q[k]=k==="name"?t.value.slice(0,24):t.value; return; }
   if(t.id==="sN"||t.id==="sNV"){ const v=t.id==="sN"?N_STEPS[+t.value]:Math.floor(+t.value);
     if(t.id==="sNV"&&!(v>=2&&v<=1000)) return; // finish typing; clamped on change
@@ -3518,7 +3521,8 @@ document.addEventListener("change",ev=>{
   if(t.id==="sCiv"||t.id==="sLead"||t.id==="sLand"){ s[{sCiv:"civ",sLead:"leader",sLand:"landType"}[t.id]]=t.value; $("sTraits").innerHTML=setupTraits(); }
   if(t.id==="sRn"){ s.relNoise=t.checked; }
   if(t.id==="sRot"){ s.rotate=t.checked; }
-  if(t.id==="sPeace"){ s.peace=Math.min(999,Math.floor(+t.value)||0); t.value=s.peace; updateSummary(); }
+  if(t.id==="sPeace"){ s.peace=Math.max(1,Math.min(999,Math.floor(+t.value)||s.peace)); t.value=s.peace; updateSummary(); }
+  if(t.id==="sPc"){ s.peaceOn=t.checked; setupModal(); if(s.peaceOn) $("sPeace")?.select(); return; }
   if(t.id==="sWo"){ s.wonders=t.checked; s.preview=null; s.pick=null; if(s.choose) drawPreview(); }
 });
 // info tooltips: one floating box placed next to the hovered, focused or tapped ⓘ (works in every browser, never clipped)
