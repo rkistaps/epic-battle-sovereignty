@@ -97,6 +97,12 @@ td.r,th.r{text-align:right}
 #end{font-size:15px;padding:8px 18px}
 .auto{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap}
 #bAuto{min-width:84px}
+.menu,.split{position:relative;display:inline-flex}
+.split>#bAuto{border-radius:6px 0 0 6px} .split>#bAutoOpt{border-radius:0 6px 6px 0;border-left:0;padding:5px 7px}
+.pop{position:absolute;top:calc(100% + 4px);left:0;z-index:20;display:flex;flex-direction:column;gap:2px;min-width:190px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.45);white-space:nowrap}
+.pop[hidden]{display:none} .pop.right{left:auto;right:0}
+.pop>button{text-align:left;background:none;border:0;border-radius:5px;padding:7px 10px} .pop>button:hover:not(:disabled){background:var(--panel2)}
+.prow2{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;font-size:13px}
 #bAuto.on{border-color:var(--acc);color:var(--acc)}
 #toast{position:fixed;right:16px;bottom:16px;z-index:15;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;box-shadow:0 4px 16px #0008;max-width:calc(100vw - 32px)}
 .overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:14px}
@@ -281,25 +287,29 @@ tr.click{cursor:pointer} tr.click:hover{background:var(--panel2)}
 </head>
 <body>
 <header>
+  <div class="menu"><button id="bMenu" data-pop="menuPop" aria-haspopup="true" aria-expanded="false">☰ Menu</button>
+    <div id="menuPop" class="pop" role="menu" hidden>
+      <button role="menuitem" id="bNew">New game</button>
+      <button role="menuitem" id="bRep" title="See last year's report again">Last year's report</button>
+      <button role="menuitem" id="bHelp">Rules &amp; tips</button>
+      <button role="menuitem" id="bLog" title="What changed in each update">Change log</button>
+      <button role="menuitem" id="bSettings" title="Change every rule, troop, civilization, leader and land type">Settings</button>
+    </div></div>
   <h1>👑 EPIC BATTLE: SOVEREIGNTY</h1>
-  <span class="chip">📅 Year <b id="hYear">1</b></span>
-  <span class="chip" id="hState"></span>
-  <span class="chip">💰 Money <b id="hMoney"></b></span>
-  <span class="chip">🌾 Grain <b id="hGrain"></b></span>
-  <span class="chip">🌲 Wood <b id="hWood"></b></span>
-  <span class="chip">⛏️ Iron <b id="hIron"></b></span>
-  <span class="chip">🗺️ Land <b id="hLand"></b> km²</span>
-  <span class="chip">👥 Pop <b id="hPop"></b></span>
-  <span class="chip">⚖️ Grain price <b id="hPrice"></b></span>
+  <span class="chip">📅 Year <b id="hYear">1</b> · <span id="hState"></span></span>
+  <span class="chip" title="Money">💰 <b id="hMoney"></b></span>
+  <span class="chip" title="Grain">🌾 <b id="hGrain"></b></span>
+  <span class="chip" title="Wood">🌲 <b id="hWood"></b></span>
+  <span class="chip" title="Iron">⛏️ <b id="hIron"></b></span>
+  <span class="chip" title="Land">🗺️ <b id="hLand"></b> km²</span>
+  <span class="chip" title="Population">👥 <b id="hPop"></b></span>
   <span class="grow"></span>
-  <button id="bSettings" title="Change every rule, troop, civilization, leader and land type">⚙ Settings</button>
-  <button id="bHelp">Rules &amp; tips</button>
-  <button id="bLog" title="What changed in each update">Change log</button>
-  <button id="bNew">New game</button>
   <span class="auto">
-    <button id="bAuto" title="End turns automatically">▶ Auto</button>
-    <select id="autoSec" title="Seconds per turn while auto-running"><option value="0.5">0.5 s</option><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option><option value="10">10 s</option><option value="20">20 s</option><option value="30">30 s</option><option value="60">60 s</option></select>
-    <label class="small mut" title="Stop auto-run and show the report when someone attacks you"><input type="checkbox" id="autoStop"> stop on attack</label>
+    <span class="split"><button id="bAuto" title="End turns automatically">▶ Auto</button><button id="bAutoOpt" data-pop="autoPop" aria-haspopup="true" aria-expanded="false" aria-label="Auto-run options" title="Auto-run options">▾</button>
+      <div id="autoPop" class="pop right" hidden>
+        <label class="prow2">Seconds per turn <select id="autoSec"><option value="0.5">0.5 s</option><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option><option value="10">10 s</option><option value="20">20 s</option><option value="30">30 s</option><option value="60">60 s</option></select></label>
+        <label class="prow2" title="Stop auto-run and show the report when someone attacks you"><input type="checkbox" id="autoStop"> Stop when I'm attacked</label>
+      </div></span>
     <button id="end" class="pri">End turn ▶</button>
   </span>
 </header>
@@ -2303,10 +2313,9 @@ function renderAllyMap(){
 function renderHeader(){
   const c=me();
   $("hYear").textContent=G.turn;
-  const turnOf=G.hot?` <span class="mut">· player ${G.hot.at+1} of ${G.hot.order.length}</span>`:"";
-  $("hState").innerHTML=observing()?`👁 <b>Observer</b> <span class="mut">(${fmt(G.countries.filter(x=>x.alive).length)} states left)</span>`:`<span class="sw" style="background:${c.color}"></span><b>${c.alive?"":"☠ "}${esc(c.name)}</b>${c.alive?"":` <span class="mut">(watching)</span>`}${turnOf}`;
+  $("hState").innerHTML=observing()?`👁 <b>Observer</b> <span class="mut">(${fmt(G.countries.filter(x=>x.alive).length)} states left)</span>`:`<span class="sw" style="background:${c.color}"></span><b>${c.alive?"":"☠ "}${esc(c.name)}</b>${c.alive?"":` <span class="mut">(watching)</span>`}`;
   // your own numbers mean nothing to an observer: hide them (each value sits in a header item with its icon)
-  for(const id of ["hMoney","hGrain","hWood","hIron","hLand","hPop","hPrice"]){ const el=$(id), box=el?.closest(".hi")||el?.parentElement; if(box&&box.id!=="hState") box.style.display=observing()?"none":""; }
+  for(const id of ["hMoney","hGrain","hWood","hIron","hLand","hPop"]){ const el=$(id), box=el?.closest(".hi")||el?.parentElement; if(box&&box.id!=="hState") box.style.display=observing()?"none":""; }
   const meBtn=document.querySelector('#mapbox [data-map="me"]'); if(meBtn) meBtn.style.display=observing()?"none":"";
   renderAllyMap();
   if(!observing()){
@@ -2314,9 +2323,8 @@ function renderHeader(){
   $("hGrain").textContent=fmt(c.grain); $("hWood").textContent=fmt(c.wood||0); $("hIron").textContent=fmt(c.iron||0);
   $("hLand").textContent=fmt(c.land);
   $("hPop").textContent=fmt(popOf(c));
-  $("hPrice").textContent=`${sellPrice(G,c)} / buy ${buyPrice(G)}`;
   }
-  $("end").disabled=!canPlay()||UI.busy; $("bAuto").disabled=!canPlay()||!!G.hot; if((!canPlay()||G.hot)&&AUTO.on) setAuto(false);
+  $("end").disabled=!canPlay()||UI.busy; $("bAuto").disabled=!canPlay()||!!G.hot; if((!canPlay()||G.hot)&&AUTO.on) setAuto(false); $("bAutoOpt").disabled=$("bAuto").disabled; $("bRep").disabled=!lastPrev();
   $("end").textContent=G.hot?(hotLast()?"End year ▶":"Done ▶"):watching()?"Next year ▶":"End turn ▶";
   $("end").title=G.hot?(hotLast()?"You're the last player this year: the year runs now":"Hand over to the next player"):"";
 }
@@ -3062,6 +3070,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Tidier header","2026-11-09 19:13",["New Menu button with New game, Last year's report, Rules & tips, Change log and Settings","Last year's report can be opened again from the menu","Header numbers show just icons; hover for the name","Grain price removed from the header (see Market)","Auto-run: one button, with speed and 'Stop when I'm attacked' under the small arrow","End turn button fills up while auto-run counts down"]],
 ["Fewer oversized starting states","2026-11-09 19:06",["A pocket of land too small for its own state now counts toward the area next to it, so that area gets enough states to share it","River and lake maps: no more starting states twice the usual size"]],
 ["Even more even starting land","2026-11-09 19:03",["Land behind narrow necks (peninsulas, river bends) counts as its own area when states are placed","An area needs 3/4 of a state's land to get its own state, so no more cramped starting states","World map with 100+ states: small pockets without a state start unowned for settlers to claim"]],
 ["More even starting land","2026-11-09 18:42",["Each island or continent gets a number of states that fits its size","World map: far fewer tiny starting states on small islands","Islands too small for a state go to a neighbor across the sea, or start unowned"]],
@@ -3564,7 +3573,9 @@ function autoHeld(){
 }
 function paintAuto(){
   const b=$("bAuto"); b.classList.toggle("on",AUTO.on);
-  b.textContent = !AUTO.on ? "▶ Auto" : autoHeld()&&!UI.busy ? "⏸ paused" : `⏸ ${Math.max(0,AUTO.left/1000).toFixed(AUTO.sec<1?1:0)}s`;
+  b.textContent = !AUTO.on ? "▶ Auto" : autoHeld()&&!UI.busy ? "⏸ Paused" : "⏸ Stop";
+  const p=AUTO.on?Math.max(0,Math.min(100,100*(1-AUTO.left/(AUTO.sec*1000)))):0; // End button fills up until the next turn
+  $("end").style.background=AUTO.on?`linear-gradient(90deg,var(--acc) ${p}%,color-mix(in srgb,var(--acc) 45%,var(--panel2)) ${p}%)`:"";
   b.title = AUTO.on ? "Stop auto-run" : "End turns automatically";
 }
 setInterval(()=>{
@@ -3585,6 +3596,17 @@ $("autoSec").value=String(AUTO.sec); if($("autoSec").value!==String(AUTO.sec)){ 
 $("autoStop").checked=AUTO.stop;
 $("autoSec").addEventListener("change",e=>{ AUTO.sec=+e.target.value; AUTO.left=AUTO.sec*1000; saveAuto(); paintAuto(); e.target.blur(); });
 $("autoStop").addEventListener("change",e=>{ AUTO.stop=e.target.checked; saveAuto(); });
+// last year's report for the player at the controls (hot-seat keeps one per player)
+function lastPrev(){ return G ? (G.hot ? G.hot.prev?.[G.player] : UI.lastPrev) : null; }
+// header dropdowns: the button with data-pop opens its panel; a click outside, a menu item or Escape closes it
+function closePops(){ document.querySelectorAll(".pop").forEach(p=>{ p.hidden=true; }); document.querySelectorAll("[data-pop]").forEach(b=>b.setAttribute("aria-expanded","false")); }
+document.addEventListener("click",e=>{
+  const b=e.target.closest?.("[data-pop]");
+  if(b){ const p=$(b.dataset.pop), open=p.hidden; closePops(); if(open){ if(b.id==="bMenu") $("bRep").disabled=!lastPrev(); p.hidden=false; b.setAttribute("aria-expanded","true"); } return; }
+  if(e.target.closest?.(".pop>button")||!e.target.closest?.(".pop")) closePops();
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.querySelector(".pop:not([hidden])")){ closePops(); e.stopPropagation(); } },true);
+$("bRep").addEventListener("click",()=>{ const p=lastPrev(); if(p&&!UI.busy) turnReport(p); });
 $("bHelp").addEventListener("click",()=>{ if(!UI.busy) helpModal(); });
 $("bLog").addEventListener("click",()=>{ if(!UI.busy) changelogModal(); });
 $("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; settingsModal("general"); });
