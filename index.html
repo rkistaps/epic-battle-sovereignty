@@ -1803,7 +1803,8 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   }
   const rel0=relOf(g,D,A.id), rw=relOnAttack(g,A,D,taken,win,adjNow); // the victim, its allies and the attacker's neighbors think worse of the attacker
   const rec={turn:g.turn,att:A.id,def:D.id,sent:sA,guards:gd,lossA,lossD,taken,win,gen:gen.name,defGen:dg?dg.name:null,elim:false,front:frontier.length,fb,sea,d:det};
-  if(D.land<=0 || popOf(D)<R.minPop){
+  // conquered: no land left, too few people, or no peasants left to farm (soldiers alone would only starve)
+  if(D.land<=0 || popOf(D)<R.minPop || D.peasants<R.minPop){
     const own=ownedCells(g);
     for(const i of own[D.id]) if(g.cells[i]===D.id){ g.cells[i]=A.id; g.takenAt[i]=g.turn; g.takenFrom[i]=D.id; own[A.id].push(i); A.land++; }
     own[D.id]=[]; ADJ.delete(g);
@@ -3352,6 +3353,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Fewer false famines","2026-11-09 22:50",["A state left with no peasants after a battle is conquered by the attacker","These states used to starve and show up as famine collapses, with their land left unowned"]],
 ["Weather fixes","2026-11-09 22:37",["A state's weather is now the average over all its land, not one point in its old homeland","A Great Drought or Golden Harvest absorbs what it meets instead of piling up","Two Great Droughts (or Golden Harvests) that meet grow bigger, stronger (past 25%) and last much longer","Merged systems start at full strength","Weather map tooltip shows the next harvest outlook from weather systems"]],
 ["Drifting weather","2026-11-09 21:46",["Droughts and fertile spells last 20 to 40 years and drift slowly across the map","When one ends, a new one starts elsewhere after a quiet gap","Two droughts that meet become a Great Drought, two fertile spells a Golden Harvest","Weather map shows each system as a ring with an arrow; hover for details","Overview shows the weather ahead; the year report tells you when a system reaches your lands","Every weather system value can be changed in Settings"]],
 ["Fairer randomness","2026-11-09 21:24",["Fixed some states getting bad weather every year on big maps","Random events (weather, battle luck, computer choices) are now truly independent from one draw to the next"]],
