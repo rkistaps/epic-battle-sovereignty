@@ -54,6 +54,9 @@ table.rank td:first-child{overflow:hidden;text-overflow:ellipsis;white-space:now
 .mapctl{position:absolute;top:8px;right:8px;display:flex;gap:4px}
 .mapctl button{background:#000b;min-width:30px}
 .mapctl button.on{border-color:var(--acc);color:var(--acc)}
+.mapseg{display:flex} .mapseg button{border-radius:0;margin-left:-1px} .mapseg button:not(.hidden){border-radius:0}
+.mapseg button.on{position:relative;z-index:1;background:#2b2618}
+.mapseg .first{border-radius:6px 0 0 6px} .mapseg .last{border-radius:0 6px 6px 0}
 #allyLegend{position:absolute;left:8px;bottom:8px;background:#000c;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;max-height:45%;display:flex;flex-direction:column;max-width:60%}
 #allyLegend .lgbody{overflow:auto;margin-top:4px}
 #allyLegend .lgbody div{white-space:nowrap}
@@ -336,7 +339,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   </span>
 </header>
 <main>
-  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
+  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
     <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
@@ -2391,9 +2394,11 @@ function winnerLine(){ if(G.winnerTeam!=null&&G.teams){ const t=G.teams[G.winner
 function legendOpen(){ if(UI.legendOpen==null){ let v=null; try{ v=localStorage.getItem("eb.allyLegend"); }catch{} UI.legendOpen=v!=="0"; } return UI.legendOpen; }
 function renderAllyMap(){
   const on=!!G?.teams, b=$("allyBtn"), lg=$("allyLegend"), rb=$("relBtn"), relOn=!!G&&!observing(); if(!on) UI.allyView=false; if(!relOn) UI.relView=false;
-  b.classList.toggle("hidden",!on); b.classList.toggle("on",!!UI.allyView); b.textContent=UI.allyView?"States":"Alliances";
-  rb.classList.toggle("hidden",!relOn); rb.classList.toggle("on",!!UI.relView); rb.textContent=UI.relView?"States":"Relations";
-  const wb=$("wxBtn"); if(!G) UI.wxView=false; wb.classList.toggle("hidden",!G); wb.classList.toggle("on",!!UI.wxView); wb.textContent=UI.wxView?"States":"Weather";
+  b.classList.toggle("hidden",!on); b.classList.toggle("on",!!UI.allyView); b.textContent="Alliances";
+  rb.classList.toggle("hidden",!relOn); rb.classList.toggle("on",!!UI.relView); rb.textContent="Relations";
+  const wb=$("wxBtn"); if(!G) UI.wxView=false; wb.classList.toggle("hidden",!G); wb.classList.toggle("on",!!UI.wxView); wb.textContent="Weather";
+  const st=$("stBtn"), shown=[st,b,rb,wb].filter(x=>x!==st&&!x.classList.contains("hidden")); st.classList.toggle("hidden",!shown.length); st.classList.toggle("on",!UI.allyView&&!UI.relView&&!UI.wxView);
+  const vis=[st,b,rb,wb].filter(x=>!x.classList.contains("hidden")); vis.forEach((x,i)=>{ x.classList.toggle("first",i===0); x.classList.toggle("last",i===vis.length-1); x.setAttribute("aria-pressed",x.classList.contains("on")); });
   lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView);
   if(UI.wxView){ const open=legendOpen(), wa=worldWx(G);
     lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Weather · last harvest <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${[[1.25,"Good +25%"],[1.12,"+12%"],[1,"Normal"],[0.88,"−12%"],[0.75,"Bad −25%"]].map(([v,l])=>`<div><span class="sw" style="background:${wxColor(v)}"></span>${l}</div>`).join("")}<div class="mut" title="All harvests together, compared with normal">World: ${wa!=null?wxPct(wa):"—"}</div></div>`); return; }
@@ -3263,6 +3268,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Clearer map views","2026-11-09 21:10",["Map view buttons are one switch: States, Alliances, Relations, Weather","The active view stays highlighted and keeps its name"]],
 ["Patchier weather","2026-11-09 21:05",["Weather comes in smaller regional patches a few states wide instead of whole continents","World-wide good and bad years are milder","Weather legend says normal instead of 0%"]],
 ["Weather map","2026-11-09 20:55",["New Weather button on the map colors states by how weather changed their last harvest","Hover a state to see its harvest change","Overview: grain card shows last year's weather","Market: shows how the world harvest did last year"]],
 ["World market and weather","2026-11-09 20:47",["Grain, wood and iron trade on a world market: selling fills a world stock, buying empties it","Prices change once a year with supply and demand instead of at random; wood and iron prices now move too","When a stock runs out, outside merchants sell at a high price","Market tab: price chart, small price lines and why prices moved","Weather: good and bad harvests by region and world-wide","Computer states farm less when grain is cheap and more when it is dear","New World market & weather settings"]],
@@ -3511,6 +3517,7 @@ document.addEventListener("click",async ev=>{
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
     else if(d.map==="me"&&G&&me().alive) v.centerOn(G.player,Math.max(v.z,v.focusZoom()));
+    else if(d.map==="states"){ UI.allyView=UI.relView=UI.wxView=false; renderAllyMap(); v.refresh(); }
     else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=UI.wxView=false; renderAllyMap(); v.refresh(); }
     else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=UI.wxView=false; renderAllyMap(); v.refresh(); }
     else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=false; renderAllyMap(); v.refresh(); }
