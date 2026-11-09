@@ -1210,6 +1210,8 @@ function resPrice(r){ return r==="wood"?R.woodPrice:R.ironPrice; }
 // what this state gets when selling wood/iron: Finance research raises it like the grain price
 function resSellPrice(c,r){ return +(resPrice(r)*R.resSell*(1+R.finPricePerLevel*lvl(c,"fin"))).toFixed(2); }
 function committed(c){ return c.attacks.reduce((s,a)=>s+a.soldiers,0); }
+// peace time: no state may attack during the first g.peace years
+const inPeace=g=>g.turn<=(g.peace||0);
 
 // ---------- AI ----------
 // Peasants are the only ones who have children, so the AI keeps a reserve of them.
@@ -1330,14 +1332,14 @@ function aiTurn(g,c){
   if(popOf(c)>popCap(c)*0.9){ c.alloc.dens+=10; c.alloc.sci-=10; }
   // attacks
   // stalemate breaker: the longer without a fight (or the fewer states left), the bolder
-  const idleYrs=t-(c.lastWar||0), aliveN=g.countries.filter(x=>x.alive).length;
+  const idleYrs=t-Math.max(c.lastWar||0,g.peace||0), aliveN=g.countries.filter(x=>x.alive).length;
   const bold=Math.max(Math.min(1,Math.max(0,(idleYrs-R.idleStart)/(R.idleFull-R.idleStart))), aliveN<=3?0.5:0);
   const thr=[1.7,1.35,1.2][d]*(c.persona==='mil'?0.9:1.05)*(t>90?0.85:1)*(t>140?0.85:1)*(1-0.35*bold);
   let available=c.soldiers;
   // home guard: a share of the army, more next to a strong neighbor, but always leave 30% (50% when bold) free to attack
   const minGuard=Math.round(Math.max(c.soldiers*(0.35-0.15*bold), Math.min(c.soldiers*(0.7-0.2*bold), threat*(0.5-0.2*bold)/defPower(c))));
   const gens=c.generals.filter(x=>x.morale>=70).sort((a,b)=>b.skill-a.skill);
-  if(t>=milStart && gens.length && adj.length){
+  if(t>=milStart && gens.length && adj.length && !inPeace(g)){
     const sendable=Math.max(1,available-minGuard), sendMix=takeTroops({...troopsOf(c)},sendable,ATTACK_ORDER);
     const myUnit=atkPower(c)*troopSum(sendMix,"atk")/Math.max(1,troopCount(sendMix)); // attack per soldier sent
     const holdPer=R.occupy*holdUnits(sendMix)/Math.max(1,troopCount(sendMix)); // km² each soldier sent can hold
@@ -1473,6 +1475,7 @@ function endTurn(g){
   const adjNow=adjacency(g);
   const guards={}, defGenOf={};
   C.forEach(c=>{ if(!c.alive)return;
+    if(inPeace(g)) c.attacks=[];
     c.attacks=c.attacks.filter(a=>C[a.target].alive && c.generals.some(x=>x.id===a.gen) && adjNow[c.id].has(a.target) && !allied(g,c.id,a.target));
     const pool={...troopsOf(c)}; let tot=0;
     c.attacks.forEach(a=>{ a.troops=a.mix?takeMix(pool,a.mix):takeTroops(pool,Math.max(0,Math.min(a.soldiers,c.soldiers-tot)),ATTACK_ORDER); a.soldiers=troopCount(a.troops); tot+=a.soldiers; });
@@ -2517,7 +2520,7 @@ function pWar(){
   const busy=new Set(c.attacks.map(a=>a.gen));
   const dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
   const idle=c.generals.filter(g=>!busy.has(g.id));
-  return `${coalitionBanner()}<h3>Defense</h3>
+  return `${coalitionBanner()}${inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:""}<h3>Defense</h3>
   <div class="kv"><span class="mut">Border guards</span><b>${fmt(guards)} <span class="small mut">(defense ${fmtPow(armyDef(c,plannedPools(c)))})</span></b><span class="mut">Defending general</span><b>${dg?esc(dg.name)+` (skill ${dg.skill.toFixed(0)})`:'<span class="bad">none</span>'}</b></div>
   ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
   <h3>Orders this year</h3>
@@ -2526,7 +2529,7 @@ function pWar(){
   ${nb.length?`<table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th class="r" title="Length of your shared border. Narrow borders give the defender a bonus.">Border</th><th></th></tr>
   ${nb.map(j=>{const o=G.countries[j];
    return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${G.hegemon&&G.hegemon.id===j?' <span class="acc" title="Leading state: the coalition is fighting it">⚖</span>':''}</td><td class="r">${fmt(o.land)}</td><td class="r">${fmt(popOf(o))}</td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id))}</td><td class="r" style="white-space:nowrap">${frontCell(c.id,j)}</td><td><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
-  ${UI.attackTarget!=null && nb.includes(UI.attackTarget) ? attackForm(c,UI.attackTarget,idle):""}
+  ${UI.attackTarget!=null && nb.includes(UI.attackTarget) ? (inPeace(G)?`<div class="note">Peace time: no attacks until year ${G.peace+1}.</div>`:attackForm(c,UI.attackTarget,idle)):""}
   <div class="small mut" style="margin-top:8px">Battles resolve at year end, all at once. Soldiers you send don't guard your own borders that year. If several armies attack the same state, its guards are split between them by attack strength, so joint attacks fight at their combined odds (each still wins or loses on its own). Win and you take land: (your general's speed limit + an army bonus that grows with your surviving soldiers) × how decisive the win was, from 25% for a narrow win to 100% at twice their strength. Relations = how they feel about you (−100 hostile … +100 friendly). Computer states attack those they dislike first.</div>`;
 }
 // a relation value with its label, colored: red when hostile, green when friendly
@@ -3021,6 +3024,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Peace years","2026-11-09 18:21",["New game: set how many years of peace the game starts with (0 = none), under More options","Nobody can attack during the peace, computer states included","War tab shows how many peace years are left"]],
 ["Pick troops for each attack","2026-11-09 18:11",["Attack window: choose how many of each troop type to send","Quick picks: 90% of all, 2× their defense, Offensive only, Everything, Clear (your last pick is remembered)","0 and Max buttons for each troop type","Odds bar shows your attack against their defense","Orders list shows which troops go on each attack"]],
 ["Hot-seat multiplayer","2026-11-09 17:49",["New Hot-seat mode in the New game window: any number of players on one device","Each player sets a state name, civilization, leader and land, and can pick a starting state on the map","Random starting states are kept away from other players","Handover screen between players hides the last player's screen","Each player gets their own year report, home news, fog of war and news archive","Turn order can rotate each year","Humans and alliances: Free for all or All humans together","A fallen player can take over a computer state, watch, or leave","Auto-run is off while two or more players are in the game"]],
 ["Window buttons always visible","2026-11-09 17:07",["Every window keeps its title and buttons in place; only the middle scrolls","New game: Start, Back and Randomize all stay at the bottom"]],
@@ -3059,7 +3063,7 @@ function helpModal(){
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Economy tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; you pick which troops go on each attack (War tab), the rest stay home and guard. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
-  <h3>War</h3><ul class="log"><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
+  <h3>War</h3><ul class="log"><li><b>Peace years:</b> set in New game, under More options. Nobody can attack during the first years of the game; 0 means war from year 1.</li><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
   <li>Strength = soldiers × Attack/Defense research × general (skill and morale) × your civilization's and leader's attack (when attacking) or defense (when defending) bonus. A research lead counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy. Defenders get +15%. A state with no guards loses as much land as the attacker's general and army can take.</li>
   <li>The winner takes land and the peasants on it: (general's Speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness. Decisiveness runs from 25% for a narrow win to 100% at twice the defender's strength (or no defenders). Each surviving soldier can hold at most ${R.occupy} km².</li>
@@ -3082,7 +3086,7 @@ function helpModal(){
 // new-game choices are remembered in this browser: saved on every change, restored when the window opens
 const SETUP_KEY="eb.setup";
 function setupDefaults(){ let lastName=""; try{ lastName=localStorage.getItem("eb.empireName")||""; }catch{}
-  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region",more:false,
+  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,al:false,alMode:"count",alN:2,alLay:"region",peace:0,more:false,
     hot:false,players:[newPlayer(),newPlayer()],allHumans:false,rotate:true}; }
 const newPlayer=()=>({name:"",civ:"random",leader:"random",landType:"random"});
 function loadSetup(){
@@ -3096,6 +3100,7 @@ function loadSetup(){
   d.players=(Array.isArray(d.players)?d.players:[]).filter(x=>x&&typeof x==="object").map(x=>({name:String(x.name||"").slice(0,24),civ:ok(CIVS,x.civ),leader:ok(LEADERS,x.leader),landType:ok(LANDS,x.landType)}));
   while(d.players.length<2) d.players.push(newPlayer());
   if(d.hot) d.n=Math.max(d.n,d.players.length);
+  d.peace=Math.max(0,Math.min(999,Math.floor(d.peace)||0));
   return {...d,preview:null,pick:null};
 }
 function saveSetup(){ const s=UI.setup; if(!s) return; const out={}; for(const k of Object.keys(setupDefaults())) out[k]=s[k];
@@ -3148,6 +3153,7 @@ function setupModal(){
       <div class="wrow"><input type="range" id="sW" min="0" max="40" value="${s.water}"><select id="sWS" aria-label="Water type" ${s.water?"":"disabled"}>${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div></div>
     <h3 class="sh">Rules</h3>
     <div class="rules">${SETUP_RULES.map(rule).join("")}</div>
+    <div class="fld" style="margin-top:12px"><span class="lr"><span><label for="sPeace">Peace years</label> ${info("Peace years","No state can attack anyone during the first years of the game. 0 = war allowed from year 1.")}</span><input type="text" inputmode="numeric" id="sPeace" maxlength="3" value="${s.peace}" aria-label="Peace years (0 or more)"></span></div>
     <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it${hot?" for the next player":""}. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
       <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
       <div class="small" id="pvPick">${pickText()}</div></div>
@@ -3176,10 +3182,12 @@ function setupSummary(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id)?.name,
   <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)} <span class="sub">· ${fmt(Math.max(0,s.n-P))} computer</span></dd></div>
     <div><dt>Alliances</dt><dd>${s.allHumans?"All humans together":"Free for all"}</dd></div><div><dt>Turn order</dt><dd>${s.rotate?"Rotates yearly":"Fixed"}</dd></div>
     <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
+    <div><dt>Peace</dt><dd>${s.peace?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
     <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`;
   return `${s.observer?`<div class="sname">Observer mode</div><div class="sub">The computer runs every state</div>`:`<div class="sname">${esc((s.empire||"").trim()||"Random empire")}</div><div class="sub">${people}</div>`}
   <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)}</dd></div>
     <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
+    <div><dt>Peace</dt><dd>${s.peace?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
     <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`; }
 function updateSummary(){ const s=UI.setup; if(!s||!$("sSum")) return;
   $("sSum").innerHTML=setupSummary(); $("sTraits").innerHTML=setupTraits();
@@ -3303,7 +3311,7 @@ document.addEventListener("click",async ev=>{
     case "buyIron": act.buyRes(G,c,"iron",num("nIron")); break;
     case "sellSurplus": act.sell(G,c,surplusGrain(c)); break;
     case "buyGen": { const f=UI.genForm; if(!act.buyGeneral(G,c,f.age,f.speed,f.mind)) flash("Not enough money."); break; }
-    case "orderAttack": {
+    case "orderAttack": { if(inPeace(G)){ flash("Peace time: no attacks yet."); return; }
       const gen=+$("atkGen").value, home=plannedPools(c), mix=takeMix({...home},atkMix(home)), n=troopCount(mix);
       if(n<=0){ flash("Pick some troops to send."); return; }
       c.attacks.push({target:UI.attackTarget,gen,soldiers:n,mix}); UI.atkMix=null; if(c.defGen===gen){ const other=c.generals.find(g=>g.id!==gen&&!c.attacks.some(x=>x.gen===g.id)); c.defGen=other?other.id:gen; }
@@ -3340,7 +3348,7 @@ document.addEventListener("click",async ev=>{
         catch(e){ console.error(e); UI.busy=false; flash("Map generation failed."); setupModal(); return; }
         UI.busy=false;
       }
-      G.difficulty=s.diff; G.fog=!!s.fog&&!G.observer; // an observer sees the whole map
+      G.difficulty=s.diff; G.peace=s.peace||0; G.fog=!!s.fog&&!G.observer; // an observer sees the whole map
       if(!G.observer&&!G.hot){ const nm=(s.empire||"").trim().slice(0,24); try{ localStorage.setItem("eb.empireName",nm); }catch{}
         if(nm){ const p=G.countries[G.player], dup=G.countries.find(c=>c!==p&&c.name.toLowerCase()===nm.toLowerCase()); if(dup) dup.name=p.name; p.name=nm; } }
       setAuto(false); NEWS=newsFresh(G.gid); UI.news=null; UI.sel=null; UI.tab=G.observer?"world":"economy"; UI.attackTarget=null; UI.setup=null; save(); closeModal(); render(); if(G.hot) hotHandover(); return; }
@@ -3363,6 +3371,7 @@ document.addEventListener("input",ev=>{
   if(t.dataset.atkmix){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; if(UI.atkMix){ UI.atkMix[t.dataset.atkmix]=+v||0; UI.atkEdited=true; refreshAtk(); } return; }
   const s=UI.setup; if(!s) return;
   if(t.id==="sName"){ s.empire=t.value; return; }
+  if(t.id==="sPeace"){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; s.peace=Math.min(999,+v||0); updateSummary(); return; }
   if(t.dataset.pf){ const [i,k]=t.dataset.pf.split("."), q=s.players[+i]; if(q) q[k]=k==="name"?t.value.slice(0,24):t.value; return; }
   if(t.id==="sN"||t.id==="sNV"){ const v=t.id==="sN"?N_STEPS[+t.value]:Math.floor(+t.value);
     if(t.id==="sNV"&&!(v>=2&&v<=1000)) return; // finish typing; clamped on change
@@ -3397,6 +3406,7 @@ document.addEventListener("change",ev=>{
   if(t.id==="sCiv"||t.id==="sLead"||t.id==="sLand"){ s[{sCiv:"civ",sLead:"leader",sLand:"landType"}[t.id]]=t.value; $("sTraits").innerHTML=setupTraits(); }
   if(t.id==="sRn"){ s.relNoise=t.checked; }
   if(t.id==="sRot"){ s.rotate=t.checked; }
+  if(t.id==="sPeace"){ s.peace=Math.min(999,Math.floor(+t.value)||0); t.value=s.peace; updateSummary(); }
   if(t.id==="sWo"){ s.wonders=t.checked; s.preview=null; s.pick=null; if(s.choose) drawPreview(); }
 });
 // info tooltips: one floating box placed next to the hovered, focused or tapped ⓘ (works in every browser, never clipped)
