@@ -741,17 +741,26 @@ function newGame(opts){
       if(x>0&&cells[i-1]!==-2&&dist[i-1]>d){dist[i-1]=d;bq[t++]=i-1;} if(x<W-1&&cells[i+1]!==-2&&dist[i+1]>d){dist[i+1]=d;bq[t++]=i+1;}
       if(i>=W&&cells[i-W]!==-2&&dist[i-W]>d){dist[i-W]=d;bq[t++]=i-W;} if(i+W<W*H&&cells[i+W]!==-2&&dist[i+W]>d){dist[i+W]=d;bq[t++]=i+W;}
       const L=lk.get(i); if(L) for(const j of L) if(dist[j]>d){dist[j]=d;bq[t++]=j;} } };
-  // landmasses (touching land, sea routes not counted) get seeds in proportion to their area, so a small
-  // island doesn't get a whole state boxed in on it; islands too small for one are reached over sea routes or stay unowned
-  const comp=new Int32Array(W*H).fill(-1), areas=[];
-  for(const s0 of landIdx){ if(comp[s0]>=0) continue; const k=areas.length; let h=0,t=0; comp[s0]=k; bq[t++]=s0;
-    while(h<t){ const i=bq[h++], x=i%W;
-      if(x>0&&cells[i-1]!==-2&&comp[i-1]<0){comp[i-1]=k;bq[t++]=i-1;} if(x<W-1&&cells[i+1]!==-2&&comp[i+1]<0){comp[i+1]=k;bq[t++]=i+1;}
-      if(i>=W&&cells[i-W]!==-2&&comp[i-W]<0){comp[i-W]=k;bq[t++]=i-W;} if(i+W<W*H&&cells[i+W]!==-2&&comp[i+W]<0){comp[i+W]=k;bq[t++]=i+W;} }
+  // areas: land split at water and at narrow necks (land within NR steps of water on both sides; sea routes not counted).
+  // Each area gets seeds in proportion to its size, so no state is boxed in on a small island or behind a neck.
+  const NR=3, comp=new Int32Array(W*H).fill(-1), areas=[], dw=new Int32Array(W*H).fill(1e9);
+  const each4=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<W*H)f(i+W); };
+  { let h=0,t=0; for(let i=0;i<W*H;i++) if(cells[i]===-2){ dw[i]=0; bq[t++]=i; } // steps to the nearest water
+    while(h<t){ const i=bq[h++], d=dw[i]+1; each4(i,j=>{ if(dw[j]>d){ dw[j]=d; bq[t++]=j; } }); } }
+  for(const s0 of landIdx){ if(comp[s0]>=0||dw[s0]<NR) continue; const k=areas.length; let h=0,t=0; comp[s0]=k; bq[t++]=s0; // areas on wide land
+    while(h<t){ const i=bq[h++]; each4(i,j=>{ if(cells[j]!==-2&&dw[j]>=NR&&comp[j]<0){comp[j]=k;bq[t++]=j;} }); }
     areas.push(t); }
-  const quota=areas.map(a=>a*n/landIdx.length), want=quota.map(Math.floor); // largest remainder: the leftover seeds go to the biggest fractions
-  quota.map((q,k)=>[q-want[k],k]).sort((a,b)=>b[0]-a[0]).slice(0,n-want.reduce((s,v)=>s+v,0)).forEach(([,k])=>want[k]++);
-  const byComp=areas.map(()=>[]); for(const i of landIdx) if(want[comp[i]]) byComp[comp[i]].push(i);
+  { const st=new Int32Array(W*H); let h=0,t=0; for(const i of landIdx) if(comp[i]>=0) bq[t++]=i; // then grow each back over the thin land near it
+    while(h<t){ const i=bq[h++]; if(st[i]>=NR) continue; each4(i,j=>{ if(cells[j]!==-2&&comp[j]<0){ comp[j]=comp[i]; st[j]=st[i]+1; areas[comp[i]]++; bq[t++]=j; } }); } }
+  // seeds go one at a time to the area with the most land per seed (Sainte-Laguë); an area needs 3/4 of a state's
+  // land for its first one. Thin land and seedless islands are reached by neighbors (over sea routes too).
+  const want=areas.map(()=>0);
+  for(let s=0;s<n;s++){ let b=0,bv=-1; for(let k=0;k<areas.length;k++){ const v=areas[k]/(want[k]?want[k]+0.5:0.75); if(v>bv){bv=v;b=k;} } want[b]++; }
+  const byComp=areas.map(()=>[]); for(const i of landIdx) if(comp[i]>=0&&want[comp[i]]) byComp[comp[i]].push(i);
+  // World map, 100+ states: a seedless area stays unowned (else one neighbor swallows it whole). Not in smaller
+  // World games (whole regions like Australia would start empty) or on random maps, where
+  // rivers make many such pockets and too much land would start empty.
+  if(preset==="world"&&n>=100) for(const i of landIdx) if(comp[i]>=0&&!want[comp[i]]) cells[i]=-3;
   const seeds=[];
   areas.map((a,k)=>k).filter(k=>want[k]).sort((a,b)=>areas[b]-areas[a]).forEach(k=>{ const L=byComp[k];
     for(let s=0;s<want[k];s++){
@@ -784,7 +793,8 @@ function newGame(opts){
     // shuffle tail lightly
     if(f.length>2){const a=f.length-1,b=Math.floor(rnd()*f.length);[f[a],f[b]]=[f[b],f[a]];}
   }
-  // land nobody could reach (an island too small for its own state, with no sea route) stays unowned
+  // land nobody reached (an island with no sea route) and seedless World pockets start unowned
+  for(let i=0;i<cells.length;i++) if(cells[i]===-3) cells[i]=-1;
   balanceStates(cells,W,H,counts);
   smoothStates(cells,W,H,counts);
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
@@ -3036,6 +3046,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Even more even starting land","2026-11-09 19:03",["Land behind narrow necks (peninsulas, river bends) counts as its own area when states are placed","An area needs 3/4 of a state's land to get its own state, so no more cramped starting states","World map with 100+ states: small pockets without a state start unowned for settlers to claim"]],
 ["More even starting land","2026-11-09 18:42",["Each island or continent gets a number of states that fits its size","World map: far fewer tiny starting states on small islands","Islands too small for a state go to a neighbor across the sea, or start unowned"]],
 ["Peace years","2026-11-09 18:21",["New game: set how many years of peace the game starts with (0 = none), under More options","Nobody can attack during the peace, computer states included","War tab shows how many peace years are left"]],
 ["Pick troops for each attack","2026-11-09 18:11",["Attack window: choose how many of each troop type to send","Quick picks: 90% of all, 2× their defense, Offensive only, Everything, Clear (your last pick is remembered)","0 and Max buttons for each troop type","Odds bar shows your attack against their defense","Orders list shows which troops go on each attack"]],
