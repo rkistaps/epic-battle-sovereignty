@@ -1237,7 +1237,8 @@ function frontBonusAD(g,a,d,frontier){ const f=frontier||frontierCells(g,a,d); r
 // the player's choice (missing or "random" keeps the random pick)
 function pickTraits(c,civ,leader,land){ const pick=(v,cur)=>v&&v!=="random"?v:cur; setTraits(c,pick(civ,c.civ),pick(leader,c.leader),pick(land,c.landType)); }
 function shuffle(a,rnd){for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function R01(g){ const r=mulberry32(g.rs); g.rs=(g.rs*1103515245+12345+Math.floor(r()*1e6))>>>0; return r(); }
+// game random numbers: one mulberry32 stream whose state lives in g.rs (saved with the game)
+function R01(g){ let a=g.rs=(g.rs+0x6D2B79F5)>>>0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }
 function rr(g,a,b){ return a+(b-a)*R01(g); }
 
 function recount(g){
@@ -3268,6 +3269,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Fairer randomness","2026-11-09 21:24",["Fixed some states getting bad weather every year on big maps","Random events (weather, battle luck, computer choices) are now truly independent from one draw to the next"]],
 ["Clearer map views","2026-11-09 21:10",["Map view buttons are one switch: States, Alliances, Relations, Weather","The active view stays highlighted and keeps its name"]],
 ["Patchier weather","2026-11-09 21:05",["Weather comes in smaller regional patches a few states wide instead of whole continents","World-wide good and bad years are milder","Weather legend says normal instead of 0%"]],
 ["Weather map","2026-11-09 20:55",["New Weather button on the map colors states by how weather changed their last harvest","Hover a state to see its harvest change","Overview: grain card shows last year's weather","Market: shows how the world harvest did last year"]],
