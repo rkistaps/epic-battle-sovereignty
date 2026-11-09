@@ -273,6 +273,16 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .wgrid{display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin:6px 0}
 .wgrid .wkval{white-space:nowrap;text-align:right}
 .wout{display:block;font-size:11px;color:var(--mut);white-space:nowrap}
+.gauge{position:relative;display:block;height:6px;margin:6px 0 3px;border-radius:3px;background:linear-gradient(90deg,var(--good),#3a3f4a 45%,#3a3f4a 55%,var(--acc))}
+.gauge i{position:absolute;top:-3px;width:3px;height:12px;margin-left:-1px;border-radius:2px;background:var(--txt)}
+.mrow{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px} .mhead .sm{margin-left:2px}
+.mtrade{display:grid;grid-template-columns:64px 1fr 1fr;gap:6px} .mtrade input{width:100%;box-sizing:border-box;text-align:right;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit;min-width:0}
+.mtrade button{white-space:nowrap;font-size:13px}
+.msplit{display:flex;min-width:0} .msplit>button:first-child{flex:1;min-width:0;border-radius:6px 0 0 6px;padding:5px 6px;font-weight:600} .msplit>.mmax{border-radius:0;border-left:0;padding:5px 7px;font-size:11px;color:var(--mut)} .msplit>.mmax:last-child{border-radius:0 6px 6px 0} .msplit>.mmax:hover{color:var(--txt)}
+.mprev{font-size:12px;color:var(--mut);text-align:center;white-space:nowrap;margin-top:-2px} .mprev b{font-weight:600}
+.mfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px}
+.mlink{background:none;border:0;padding:0;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px} .mlink.good{color:var(--good)} .mlink.bad{color:var(--bad)}
 .ya{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:4px 0 8px}
 .yac{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-variant-numeric:tabular-nums}
 .yah{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;margin-bottom:6px} .yah b{font-size:18px}
@@ -1564,6 +1574,7 @@ function endTurn(g){
     if(e.from>=0) note(g,e.from,e.to>=0?`🏛 You lost the ${W_} to ${C[e.to].name}.`:`🏛 You lost the ${W_}: its land is now unowned.`); }
   C.forEach(c=>{ if(c.alive) economy(g,c); });
   // market
+  g.lastPrice=g.price;
   g.price=+Math.min(R.priceMax,Math.max(R.priceMin,g.price+rr(g,-R.priceDrift,R.priceDrift)+(R.priceMean-g.price)*0.1)).toFixed(2);
   relYear(g); // peace, forgiveness and size threat
   C.forEach(c=>{ c.lostRecent.shift(); c.lostRecent.push(c.lostThis); c.history.push(c.alive?c.land:0); });
@@ -2423,7 +2434,7 @@ function pEconomy(){
   <h3>Population</h3>
   <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     ${card("People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
-    ${card("Growth",c.lastBirths!=null?(c.lastBirths>=0?"+":"")+fmt(c.lastBirths):"—",yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
+    ${card("Growth",(()=>{ const n=Math.round(c.peasants*growthRate(c)*(1-pop/cap)); return `${n>=0?"+":""}${fmt(n)}<span class="small" style="color:var(--mut)">/yr</span>`; })(),yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
     ${card("Peasants",fmt(c.peasants),`${fmt(c.soldiers)} soldiers`)}</div>
   <h3>Work</h3>
   <div class="wgrid">${job("farm","👨‍🌾 Farmers")}${job("wood","🌲 Woodcutters")}${job("iron","⛏️ Miners")}${job("sci","🔬 Scientists")}</div>
@@ -2446,22 +2457,42 @@ function plannedPools(c){ const pool={...troopsOf(c)}; for(const a of c.attacks)
 function mixText(tr){ return TROOPS.filter(t=>tr[t.id]>0).map(t=>`${t.icon} ${fmt(tr[t.id])} ${t.name}`).join(", ")||"none"; }
 // stored grain beyond next year's shortfall plus a 20% reserve (what "Sell surplus" sells)
 function surplusGrain(c){ const food=foodUse(c), keep=Math.max(0,food-foodProduction(c))+Math.round(food*0.2); return Math.max(0,c.grain-keep); }
+// market prices and what a trade box would do: sell/buy n of r ("grain","wood","iron")
+const MKT={grain:["🌾","Grain","nGrain","sell","buy"],wood:["🌲","Wood","nWood","sellWood","buyWood"],iron:["⛏️","Iron","nIron","sellIron","buyIron"]};
+function mktPrices(c,r){ return r==="grain"?[sellPrice(G,c),buyPrice(G)]:[resSellPrice(c,r),+(resPrice(r)*R.resBuy).toFixed(2)]; }
+function mktStock(c,r){ return Math.floor(r==="grain"?c.grain:(c[r]||0)); }
+function mktLabels(c,r,v){ const [sp,bp]=mktPrices(c,r), ns=Math.min(v,mktStock(c,r)), nb=Math.min(v,Math.floor(c.money/bp));
+  return [`Sell ${fmt(ns)} → <b class="good">+${fmt(Math.round(ns*sp))}</b> 💰`,`Buy ${fmt(nb)} → <b class="bad">−${fmt(Math.round(nb*bp))}</b> 💰`]; }
+// refresh one trade row's buttons while typing
+function paintMkt(r){ const box=$(MKT[r][2]); if(!box) return; const v=Math.max(0,Math.floor(+box.value)||0), [ls,lb]=mktLabels(me(),r,v);
+  $("mS-"+r).innerHTML=ls; $("mB-"+r).innerHTML=lb; }
 function pMarket(){
-  const c=me(), food=foodUse(c), prod=foodProduction(c), pr=production(c);
+  const c=me(), pr=production(c), food=foodUse(c), prod=foodProduction(c), sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v));
+  const card=(l,v,sub,extra="")=>`<div class="stat"><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span>${extra}</div>`;
+  const per=v=>`<span class="${v<0?"bad":v>0?"good":""}">${sg(v)}/yr</span>`, px=r=>{ const [sp,bp]=mktPrices(c,r); return `<span class="small" style="color:var(--mut)">sell ${sp} · buy ${bp}</span>`; };
+  // grain price: where it sits between the lowest and highest it can be, and which way it moved
+  const p=G.price, pos=Math.round(100*(p-R.priceMin)/Math.max(0.01,R.priceMax-R.priceMin)), lp=G.lastPrice;
+  const feel=pos<34?'<span class="good">low: good time to buy</span>':pos>66?'<span class="good">high: good time to sell</span>':"average";
+  const trend=lp==null||lp===p?"":p>lp?` <span class="good" title="Last year ${lp}">▲</span>`:` <span class="bad" title="Last year ${lp}">▼</span>`;
+  const surplus=surplusGrain(c);
+  const row=r=>{ const [ic,nm,id,sa,ba]=MKT[r], [sp,bp]=mktPrices(c,r), v=r==="grain"?Math.min(500,Math.max(surplus,0))||500:100, [ls,lb]=mktLabels(c,r,v);
+    const max=(n,tip)=>`<button class="mmax" data-mfill="${r}" data-n="${Math.floor(n/2)}" title="Fill in half (${fmt(Math.floor(n/2))})">Half</button><button class="mmax" data-mfill="${r}" data-n="${n}" title="${tip} (${fmt(n)})">Max</button>`;
+    return `<div class="mrow"><div class="mhead"><b>${ic} ${nm}</b><span class="small mut">sell ${sp} · buy ${bp}</span></div>
+      <div class="mtrade"><input type="text" inputmode="numeric" id="${id}" value="${v}" data-mkt="${r}" aria-label="${nm} amount">
+        <span class="msplit"><button data-a="${sa}">Sell</button>${max(mktStock(c,r),"Fill in everything you have")}</span>
+        <span class="msplit"><button data-a="${ba}">Buy</button>${max(Math.floor(c.money/bp),"Fill in the most your money buys")}</span>
+        <span></span><span class="mprev" id="mS-${r}">${ls}</span><span class="mprev" id="mB-${r}">${lb}</span></div>
+      ${r==="grain"?`<div class="mfoot"><span title="Stored grain beyond next year's needs plus a 20% reserve">Surplus ${surplus>0?`<button class="mlink ${prod>=food?"good":"bad"}" data-mfill="grain" data-n="${surplus}" title="Fill in the surplus">${fmt(surplus)}</button>`:`<b class="mut">none</b>`}${prod<food?` <span class="bad">· grain −${fmt(food-prod)}/yr</span>`:""}</span>
+        <label><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell it every year</label></div>`:""}</div>`; };
   return `<h3>Stock</h3>
-  <table class="tight"><tr><th></th><th class="r">In store</th><th class="r" title="Produced per year minus used per year">Per year</th><th class="r">Sell</th><th class="r">Buy</th></tr>
-    <tr><td>🌾 Grain</td><td class="r">${fmt(c.grain)}</td><td class="r ${prod>=food?"good":"bad"}">${prod>=food?"+":""}${fmt(prod-food)}</td><td class="r">${sellPrice(G,c)}</td><td class="r">${buyPrice(G)}</td></tr>
-    <tr><td>🌲 Wood</td><td class="r">${fmt(c.wood||0)}</td><td class="r good">+${fmt(pr.wood)}</td><td class="r">${resSellPrice(c,"wood")}</td><td class="r">${(R.woodPrice*R.resBuy).toFixed(2)}</td></tr>
-    <tr><td>⛏️ Iron</td><td class="r">${fmt(c.iron||0)}</td><td class="r good">+${fmt(pr.iron)}</td><td class="r">${resSellPrice(c,"iron")}</td><td class="r">${(R.ironPrice*R.resBuy).toFixed(2)}</td></tr>
-    <tr><td>💰 Money</td><td class="r">${fmt(c.money)}</td><td class="r ${taxIncome(c)>=wages(c)?"good":"bad"}">${taxIncome(c)>=wages(c)?"+":""}${fmt(taxIncome(c)-wages(c))}</td><td></td><td></td></tr></table>
+  <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    ${card("🌾 Grain",fmt(c.grain),per(prod-food),`${px("grain")}<span class="gauge" title="Grain price ${p}: lowest ${R.priceMin}, highest ${R.priceMax}"><i style="left:${pos}%"></i></span><span class="small" style="color:var(--mut)">Market price ${p}${trend}: ${feel}</span>`)}
+    ${card("💰 Money",fmt(c.money),per(taxIncome(c)-wages(c)),`<span class="small" style="color:var(--mut)">before trading</span>`)}
+    ${card("🌲 Wood",fmt(c.wood||0),per(pr.wood),px("wood"))}
+    ${card("⛏️ Iron",fmt(c.iron||0),per(pr.iron),px("iron"))}</div>
   <h3>Trade</h3>
-  <div class="tgrid">
-    <span>🌾 Grain</span><input type="text" inputmode="numeric" id="nGrain" value="500" min="0"><span class="tbtns"><button data-a="sell">Sell @ ${sellPrice(G,c)}</button><button data-a="buy">Buy @ ${buyPrice(G)}</button><button data-a="sellSurplus" title="Sell stored grain beyond what next year needs plus a 20% reserve">Sell surplus</button></span>
-    <span>🌲 Wood</span><input type="text" inputmode="numeric" id="nWood" value="100" min="0"><span class="tbtns"><button data-a="sellWood">Sell @ ${resSellPrice(c,"wood")}</button><button data-a="buyWood">Buy @ ${(R.woodPrice*R.resBuy).toFixed(2)}</button></span>
-    <span>⛏️ Iron</span><input type="text" inputmode="numeric" id="nIron" value="100" min="0"><span class="tbtns"><button data-a="sellIron">Sell @ ${resSellPrice(c,"iron")}</button><button data-a="buyIron">Buy @ ${(R.ironPrice*R.resBuy).toFixed(2)}</button></span>
-  </div>
-  <label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell surplus grain every year <span class="mut">(sold when you end the turn, keeping next year's needs plus a 20% reserve)</span></label>
-  <div class="small mut">Grain prices move every year (between ${R.priceMin} and ${R.priceMax}); wood and iron prices are fixed. Finance research raises what you get when selling any of them (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%). Buying is not affected. Money per year is taxes minus wages, before trading.</div>`;
+  ${row("grain")}${row("wood")}${row("iron")}
+  <div class="small mut">Surplus = stored grain beyond next year's needs plus a 20% reserve; auto-sell sells it when you end the turn. The grain price moves every year between ${R.priceMin} and ${R.priceMax}; wood and iron prices are fixed. Finance research raises selling prices (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%).</div>`;
 }
 // a copy of state c after training n of troop id (paid, peasants become soldiers); free=true skips the cost
 function afterTrain(c,id,n,free){ const t=TROOP[id], x={...c,troops:{...troopsOf(c)}};
@@ -3134,6 +3165,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Clearer Market","2026-11-09 20:05",["Stock cards for grain, money, wood and iron with change per year and prices","Grain price gauge shows if the price is low or high, and which way it moved","Sell and Buy buttons with Half and Max to fill in the amount","See what you'll get or pay before you trade","Surplus and auto-sell moved into the grain trade box","Overview: Growth shows the expected growth for the coming year"]],
 ["Better World rankings","2026-11-09 19:52",["'# by land' option keeps land places while sorting by another column","Fallen states listed by the year they fell, most recent first","Fallen states keep their last science total","Selected state and your own state are highlighted in the rankings","'Alliance colors' option colors each state by its alliance","Shows how many states are still alive","Click Land or Pop in the header to find yourself in the rankings"]],
 ["Peace years checkbox","2026-11-09 19:42",["New game: Peace years is now a checkbox under Rules; tick it to set how many years","Unticked means war from year 1"]],
 ["Clearer Barracks and Overview","2026-11-09 19:33",["Barracks: army cards, a Supplies table with change per year, and how many more Spearmen your grain can feed","Barracks: typing in a Train box previews the effect on your supplies","Overview: population cards with % of capacity and years until nearly full","Overview: Farmers get their own slider and lock","Overview: each job shows its people and output","Overview: Year ahead cards for grain and money"]],
@@ -3409,6 +3441,7 @@ document.addEventListener("click",async ev=>{
   if(d.dismiss){ act.dismissGeneral(G,me(),+d.dismiss); render(); return; }
   if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
   if(d.find){ if(!G||observing()) return; UI.tab="world"; UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
+  if(d.mfill){ const box=$(MKT[d.mfill][2]); if(box){ box.value=d.n; paintMkt(d.mfill); box.focus(); } return; }
   if(d.wsort){ const s=UI.wsort||{k:"land",dir:-1}; UI.wsort=s.k===d.wsort?{k:s.k,dir:-s.dir}:{k:d.wsort,dir:-1}; render(); return; }
   if(d.asort){ const s=UI.asort||{k:"land",dir:-1}; UI.asort=s.k===d.asort?{k:s.k,dir:-s.dir}:{k:d.asort,dir:-1}; render(); return; }
   if(d.wlock){ const c=me(); c.workLock={...c.workLock,[d.wlock]:!c.workLock?.[d.wlock]}; render(); return; }
@@ -3479,6 +3512,7 @@ document.addEventListener("click",async ev=>{
 });
 document.addEventListener("input",ev=>{
   const t=ev.target;
+  if(t.dataset.mkt){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; paintMkt(t.dataset.mkt); return; }
   if(t.id?.startsWith("trn-")){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; trainPreview(t.id.slice(4)); return; }
   if(t.dataset.sk&&UI.sdraft){ const k=t.dataset.kind; let v= k==="bool"?t.checked : k==="text"?t.value : k==="lines"?[...new Set(t.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))] : +t.value; if(k==="%") v=v/100;
     if(k!=="text"&&k!=="bool"&&k!=="lines"&&!isFinite(v)) return; setPath(UI.sdraft,t.dataset.sk,v);
