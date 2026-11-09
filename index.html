@@ -288,6 +288,8 @@ table.btab td:nth-child(2),table.btab th:nth-child(2){background:#ffffff08}
 .kv{display:grid;grid-template-columns:auto auto;gap:2px 14px;justify-content:start}
 .sel{outline:2px solid var(--acc)}
 tr.click{cursor:pointer} tr.click:hover{background:var(--panel2)}
+tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{background:rgba(224,179,84,.2)} tr.sel>td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+.hfind{background:none;border:0;padding:0;font:inherit;color:var(--mut);cursor:pointer} .hfind:hover{color:var(--txt)} .hfind:hover b{text-decoration:underline}
 .small{font-size:12px}
 </style>
 </head>
@@ -307,8 +309,8 @@ tr.click{cursor:pointer} tr.click:hover{background:var(--panel2)}
   <span class="chip" title="Grain">🌾 <b id="hGrain"></b></span>
   <span class="chip" title="Wood">🌲 <b id="hWood"></b></span>
   <span class="chip" title="Iron">⛏️ <b id="hIron"></b></span>
-  <span class="chip" title="Land">🗺️ <b id="hLand"></b> km²</span>
-  <span class="chip" title="Population">👥 <b id="hPop"></b></span>
+  <button class="chip hfind" data-find="land" title="Land: click to find yourself in the rankings">🗺️ <b id="hLand"></b> km²</button>
+  <button class="chip hfind" data-find="pop" title="Population: click to find yourself in the rankings">👥 <b id="hPop"></b></button>
   <span class="grow"></span>
   <span class="auto">
     <span class="split"><button id="bAuto" title="End turns automatically">▶ Auto</button><button id="bAutoOpt" data-pop="autoPop" aria-haspopup="true" aria-expanded="false" aria-label="Auto-run options" title="Auto-run options">▾</button>
@@ -1796,6 +1798,7 @@ if(typeof module!=="undefined") module.exports={worldAvgLv,costParts,newGame,end
 // ===== Epic Battle: Sovereignty — UI =====
 let G=null; const UI={tab:"economy",sel:null,setup:null,known:null,busy:false};
 try{ if(localStorage.getItem("eb.wondersOpen")==="0") UI.wondersOpen=false; }catch{}
+try{ UI.wLandRank=localStorage.getItem("eb.wLandRank")==="1"; UI.wAllyCol=localStorage.getItem("eb.wAllyCol")==="1"; }catch{}
 UI.atkPreset="p90"; try{ const p=localStorage.getItem("eb.atkPreset"); if(["p90","x2","off","all"].includes(p)) UI.atkPreset=p; }catch{}
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString("en-US");
@@ -2699,7 +2702,9 @@ function pWorld(){
   if(!["land","pop","atk","def","sci"].includes(UI.wsort?.k)) UI.wsort=null;
   const S=UI.wsort||{k:"land",dir:-1}, sciTot=c=>AREAS.reduce((s,a)=>s+c.lv[a],0);
   const val={land:c=>c.land,pop:c=>c.alive?popOf(c):-1,atk:c=>c.alive?armyAtk(c):-1,def:c=>c.alive?armyDef(c):-1,sci:c=>c.alive?sciTot(c):-1}[S.k];
-  const all=G.countries.filter(c=>isKnown(c.id)).sort((a,b)=>(b.alive-a.alive)||S.dir*(val(a)-val(b))||b.land-a.land||(a.diedTurn??0)-(b.diedTurn??0));
+  const all=G.countries.filter(c=>isKnown(c.id)).sort((a,b)=>(b.alive-a.alive)||(a.alive?S.dir*(val(a)-val(b))||b.land-a.land:(b.diedTurn??0)-(a.diedTurn??0)||b.land-a.land));
+  const landRank=new Map(all.filter(c=>c.alive).sort((a,b)=>b.land-a.land).map((c,i)=>[c.id,i+1])), nAlive=G.countries.filter(c=>c.alive).length;
+  const swatch=c=>UI.wAllyCol&&G.teams&&c.team!=null?G.teams[c.team].color:c.color;
   const th=(k,label,title="")=>`<th class="r"${title?` title="${title}"`:""}><button class="thsort${S.k===k?" on":""}" data-wsort="${k}">${label}<span class="sarr">${S.k===k?(S.dir<0?"▾":"▴"):""}</span></button></th>`;
   const hidden=G.countries.length-all.length, LIMIT=150;
   const C=all.slice(0,LIMIT); for(const id of [G.player,UI.sel]) if(id!=null&&isKnown(id)&&!C.some(c=>c.id===id)) C.push(G.countries[id]);
@@ -2709,9 +2714,10 @@ function pWorld(){
   ${wonderList()}
   <h3>Rankings</h3>
   ${hidden?`<div class="small mut">🌫 ${fmt(hidden)} other states are hidden by fog of war.</div>`:""}
-  ${all.length>LIMIT?`<div class="small mut">Showing the top ${LIMIT} of ${fmt(all.length)} states.</div>`:""}
+  <div class="small mut">${all.length>LIMIT?`Showing the top ${LIMIT} of ${fmt(all.length)} states. `:""}Alive ${fmt(nAlive)} / ${fmt(G.countries.length)} states.</div>
+  <div class="row small"><label title="The # column shows each state's place by land, whatever you sort by"><input type="checkbox" id="wLandRank" ${UI.wLandRank?"checked":""}> # by land</label>${G.teams?`<label title="Color each state by its alliance"><input type="checkbox" id="wAllyCol" ${UI.wAllyCol?"checked":""}> Alliance colors</label>`:""}</div>
   <table class="rank atab"><tr><th class="pl" title="Place">#</th><th>State</th>${th("land","Land")}${th("pop","Pop")}${th("atk","Attack","Army attack power: every troop's attack × research, civilization, leader, land and wonder bonuses")}${th("def","Defense","Army defense power: every troop's defense × research, civilization, leader, land and wonder bonuses")}${th("sci","Science","Total science levels across all areas (hover a number for each area)")}</tr>
-  ${C.map(c=>`<tr class="click ${UI.sel===c.id?'sel':''}" data-pick="${c.id}"><td class="pl">${c.alive?all.indexOf(c)+1:"—"}</td><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt"><span class="sw" style="background:${c.color}"></span>${c.id===G.player?"★ ":""}${allyPrefix(c)}${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r">${c.alive?researchCell(c):"—"}</td></tr>`).join("")}</table>
+  ${C.map(c=>`<tr class="click${UI.sel===c.id?' sel':''}${c.id===G.player?' me':''}" data-pick="${c.id}"><td class="pl">${c.alive?(UI.wLandRank?landRank.get(c.id):all.indexOf(c)+1):"—"}</td><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt"><span class="sw" style="background:${swatch(c)}"></span>${c.id===G.player?"★ ":""}${allyPrefix(c)}${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r${c.alive?"":" mut"}">${researchCell(c)}</td></tr>`).join("")}</table>
   <h3>Recent wars</h3>
   ${recent.length?recent.map(b=>`<div class="small"><b>Year ${b.turn}</b>${b.list.length?"":" <span class='mut'>peace</span>"}<ul class="log" style="margin:2px 0 6px;padding-left:18px">${b.list.map(battleLine).join("")}</ul></div>`).join(""):`<div class="mut small">No turns played yet.</div>`}`;
 }
@@ -3128,6 +3134,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Better World rankings","2026-11-09 19:52",["'# by land' option keeps land places while sorting by another column","Fallen states listed by the year they fell, most recent first","Fallen states keep their last science total","Selected state and your own state are highlighted in the rankings","'Alliance colors' option colors each state by its alliance","Shows how many states are still alive","Click Land or Pop in the header to find yourself in the rankings"]],
 ["Peace years checkbox","2026-11-09 19:42",["New game: Peace years is now a checkbox under Rules; tick it to set how many years","Unticked means war from year 1"]],
 ["Clearer Barracks and Overview","2026-11-09 19:33",["Barracks: army cards, a Supplies table with change per year, and how many more Spearmen your grain can feed","Barracks: typing in a Train box previews the effect on your supplies","Overview: population cards with % of capacity and years until nearly full","Overview: Farmers get their own slider and lock","Overview: each job shows its people and output","Overview: Year ahead cards for grain and money"]],
 ["Clearer names and totals","2026-11-09 19:19",["Economy tab is now called Overview","Budget shows scientists' and cavalry wages separately","Exploring research is now called Expansion","Science tab shows your total level and the world average","News: Clear button resets the filters"]],
@@ -3401,6 +3408,7 @@ document.addEventListener("click",async ev=>{
   if(d.defgen){ me().defGen=+d.defgen; render(); return; }
   if(d.dismiss){ act.dismissGeneral(G,me(),+d.dismiss); render(); return; }
   if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
+  if(d.find){ if(!G||observing()) return; UI.tab="world"; UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
   if(d.wsort){ const s=UI.wsort||{k:"land",dir:-1}; UI.wsort=s.k===d.wsort?{k:s.k,dir:-s.dir}:{k:d.wsort,dir:-1}; render(); return; }
   if(d.asort){ const s=UI.asort||{k:"land",dir:-1}; UI.asort=s.k===d.asort?{k:s.k,dir:-s.dir}:{k:d.asort,dir:-1}; render(); return; }
   if(d.wlock){ const c=me(); c.workLock={...c.workLock,[d.wlock]:!c.workLock?.[d.wlock]}; render(); return; }
@@ -3498,6 +3506,7 @@ document.addEventListener("input",ev=>{
 document.addEventListener("change",ev=>{
   const t=ev.target;
   if(t.dataset.work){ UI.farmBase=null; render(); return; } // refresh the Food section after a slider is released
+  if(t.id==="wLandRank"||t.id==="wAllyCol"){ const k=t.id; UI[k]=t.checked; try{ localStorage.setItem("eb."+k,t.checked?"1":"0"); }catch{} render(); return; }
   if(t.id==="autoSell"){ me().autoSell=t.checked; save(); return; }
   if(t.id==="newsF"||t.id==="newsQ"||t.id==="newsA"){ const st=UI.news; if(t.id==="newsF") st.f=t.value; else if(t.id==="newsA") st.al=t.value==="all"?"all":+t.value; else st.q=t.value; st.page=0; render(); return; }
   if(t.id==="settingsFile"&&t.files&&t.files[0]){ const f=t.files[0]; f.text().then(importSettings); t.value=""; return; }
