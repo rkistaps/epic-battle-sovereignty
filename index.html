@@ -96,10 +96,13 @@ td.r,th.r{text-align:right}
 #bAuto.on{border-color:var(--acc);color:var(--acc)}
 #toast{position:fixed;right:16px;bottom:16px;z-index:15;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;box-shadow:0 4px 16px #0008;max-width:calc(100vw - 32px)}
 .overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:14px}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:auto;padding:18px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:hidden;padding:18px;display:flex;flex-direction:column}
+/* every window: header and footer stay put, only .mbody scrolls (modal() wraps the middle in .mbody) */
+.modal>*{flex:none}
+.modal>.mbody{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
+.modal>.mfoot{margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
 .modal h2{margin:0 0 10px;color:var(--acc)}
-/* year report: body scrolls, footer with Continue always visible, "Elsewhere" has its own scroll */
-.modal.report{display:flex;flex-direction:column;overflow:hidden}
+/* year report: "Elsewhere" has its own scroll */
 /* battle report window */
 .modal.battle{max-width:1040px}
 .bsides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -119,9 +122,8 @@ td.r,th.r{text-align:right}
 .sbar2{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:4px 0 2px}
 .sbar2 i{display:block;height:100%}
 .modal.battle .stat .sub{text-transform:none;letter-spacing:0;font-size:12px}
-.rep-body{overflow:auto;min-height:0;flex:1 1 auto;padding-right:4px}
 .rep-scroll{max-height:min(34vh,300px);overflow:auto;border:1px solid var(--line);border-radius:8px;padding:2px 10px;background:#0f111466}
-.rep-foot{display:flex;align-items:center;gap:8px;padding-top:12px;margin-top:8px;border-top:1px solid var(--line);flex:0 0 auto}
+.rep-foot{display:flex;align-items:center;gap:8px}
 .rep-foot .small{margin-left:auto}
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 8px}
 .stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
@@ -139,8 +141,9 @@ td.r,th.r{text-align:right}
 .hidden{display:none}
 /* New game window: two columns (settings + live summary); tokens from the design handoff */
 .modal.setup{--s-surf:#1F2024;--s-sum:#18191D;--s-in:#121316;--s-div:#34363C;--s-inb:#3A3C42;--s-t1:#ECEAE3;--s-t2:#C9C8C0;--s-mut:#A3A39A;--s-acc:#E3B964;--s-acch:#F0CC82;
-  max-width:1000px;padding:0;border-radius:16px;background:var(--s-surf);border-color:var(--s-div);color:var(--s-t1);display:grid;grid-template-columns:minmax(0,1fr) 340px}
-.modal.setup .sl{padding:28px 32px 24px}
+  max-width:1000px;padding:0;border-radius:16px;background:var(--s-surf);border-color:var(--s-div);color:var(--s-t1)}
+.modal.setup>.sbody{display:grid;grid-template-columns:minmax(0,1fr) 340px;padding:0}
+.modal.setup .sl{padding:4px 32px 24px}
 .modal.setup .mut{color:var(--s-mut)}
 .modal.setup input[type=range],.modal.setup input[type=checkbox]{accent-color:var(--s-acc)}
 .modal.setup input[type=text],.modal.setup input[inputmode],.modal.setup select{height:44px;background:var(--s-in);border:1px solid var(--s-inb);border-radius:8px;color:var(--s-t1);padding:0 12px;font-size:14px;width:100%}
@@ -154,7 +157,7 @@ td.r,th.r{text-align:right}
 .modal.setup #sName{width:100%}
 .sl section{margin-top:20px}
 .sl section>.sh{margin-top:0}
-.shead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.shead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:28px 32px 12px;border-bottom:1px solid var(--s-div)}
 .shead h2{margin:0;font-size:28px;color:var(--s-acc)}
 .modal.welcome{--s-surf:#1F2024;--s-in:#121316;--s-div:#34363C;--s-inb:#3A3C42;--s-t1:#ECEAE3;--s-mut:#A3A39A;--s-acc:#E3B964;--s-acch:#F0CC82;
   max-width:420px;padding:32px;border-radius:16px;background:var(--s-surf);border-color:var(--s-div);color:var(--s-t1);text-align:center}
@@ -165,6 +168,7 @@ td.r,th.r{text-align:right}
 .welcome .save b{display:block;font-size:17px;font-weight:600}
 .welcome .save span{font-size:13px;color:var(--s-mut)}
 .welcome .acts{display:flex;flex-direction:column;gap:10px}
+.modal.welcome>.mfoot{border:0;padding:0;margin:0}
 .welcome .acts button{height:46px;border-radius:8px;font-size:15px}
 .welcome button.pri{background:var(--s-acc);border-color:var(--s-acc)} .welcome button.pri:hover{background:var(--s-acch)}
 .welcome button.out{background:transparent;border-color:var(--s-inb)}
@@ -199,11 +203,12 @@ td.r,th.r{text-align:right}
 .info{position:relative;background:none!important;border:0!important;padding:0 3px!important;color:var(--s-mut);font-size:14px;line-height:1;cursor:help}
 #infoTip{position:fixed;z-index:40;max-width:260px;background:#0d0e10;border:1px solid #3A3C42;border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.4;color:#ECEAE3;box-shadow:0 6px 18px #0009;pointer-events:none}
 .info:hover,.info:focus{color:var(--s-acc)}
-.sfoot{display:flex;align-items:center;gap:10px;margin-top:20px}
+.sfoot{display:flex;align-items:center;gap:10px}
+.modal.setup>.sfoot{margin:0;padding:14px 32px;border-top:1px solid var(--s-div)}
 .rnd{background:none!important;border:0!important;color:var(--s-acc);font-weight:600;padding:8px 4px!important}
 .rnd:hover{color:var(--s-acch)}
-.modal.setup{background:linear-gradient(to right,var(--s-surf) calc(100% - 341px),var(--s-div) calc(100% - 341px),var(--s-div) calc(100% - 340px),var(--s-sum) calc(100% - 340px))}
-.ssum{position:sticky;top:0;align-self:start;min-height:min(100%,calc(90vh - 2px));padding:28px 28px 24px;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.modal.setup>.sbody{background:linear-gradient(to right,var(--s-surf) calc(100% - 341px),var(--s-div) calc(100% - 341px),var(--s-div) calc(100% - 340px),var(--s-sum) calc(100% - 340px))}
+.ssum{position:sticky;top:0;align-self:start;min-height:min(100%,calc(90vh - 164px));padding:28px 28px 24px;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
 .ssum>.sh{margin-top:6px}
 .sname{font-size:20px;font-weight:600;color:var(--s-t1);overflow-wrap:anywhere;margin-top:6px}
 .ssum .sub{color:var(--s-t2);font-size:13.5px}
@@ -215,7 +220,7 @@ td.r,th.r{text-align:right}
 #sTraits{margin-top:auto;padding-top:24px}
 .bonus{border:1px solid var(--s-div);border-radius:10px;padding:12px 14px;font-size:13px;line-height:2}
 .bonus.empty{border-style:dashed;color:var(--s-t2);line-height:1.45}
-@media(max-width:800px){.modal.setup{grid-template-columns:1fr;background:var(--s-surf)}.ssum{position:static;min-height:0;background:var(--s-sum);border-top:1px solid var(--s-div);border-radius:0 0 16px 16px}.modal.setup .sl{padding:22px 18px}.ssum{padding:22px 18px}}
+@media(max-width:800px){.modal.setup>.sbody{grid-template-columns:1fr;background:var(--s-surf)}.shead{padding:22px 18px 12px}.modal.setup>.sfoot{padding:12px 18px}.ssum{position:static;min-height:0;background:var(--s-sum);border-top:1px solid var(--s-div);border-radius:0 0 16px 16px}.modal.setup .sl{padding:4px 18px 22px}.ssum{padding:22px 18px}}
 @media(max-width:520px){.g3{grid-template-columns:1fr}.mbtn .mut{display:none}.wrow select{width:130px!important}}
 table.tight td,table.tight th{padding:4px 3px}
 .modal.settings{max-width:1100px}
@@ -2612,7 +2617,7 @@ async function openReport(ref){
   const ov=$("ov"), m=$("modal");
   if(ov.classList.contains("hidden")) UI.repBack=null;
   else if(!m.classList.contains("battle")&&!UI.repBack) UI.repBack={html:m.innerHTML,cls:m.className}; // came from another window (year report): offer a way back
-  modal(reportHtml(b,d,ref),"battle"); m.scrollTop=0;
+  modal(reportHtml(b,d,ref),"battle"); const mb=m.querySelector(".mbody"); if(mb) mb.scrollTop=0;
 }
 // the battles Previous/Next step through: the whole archive, or the year that just ended
 function reportList(ref){
@@ -2801,7 +2806,7 @@ function settingsModal(tab){
       <div class="small mut">${M_.note}</div>`; }
   modal(`<h2>⚙ Settings</h2>
     <div class="stabs">${STABS.map(([k,l])=>`<button class="sm ${UI.stab===k?"on":""}" data-stab="${k}">${l}</button>`).join("")}</div>
-    <div class="rep-body">${body}</div>
+    <div class="mbody">${body}</div>
     <div class="rep-foot" style="flex-wrap:wrap">
       <button class="pri" data-a="settingsSave">Save &amp; apply</button>
       <button data-a="settingsResetTab" title="Back to defaults on this tab">Reset tab</button>
@@ -2830,7 +2835,15 @@ function importSettings(text){
 }
 
 // ---------- modals ----------
-function modal(html,cls){ const m=$("modal"); m.className="modal"+(cls?" "+cls:""); m.innerHTML=html; $("ov").classList.remove("hidden"); }
+// header (leading h2/brand/head) and footer (last button row) stay fixed; the rest goes in a scrolling .mbody
+function modal(html,cls){ const m=$("modal"), c="modal"+(cls?" "+cls:""), ov=$("ov"), y=!ov.classList.contains("hidden")&&m.className===c?m.querySelector(".mbody")?.scrollTop||0:0;
+  m.className=c; m.innerHTML=html;
+  if(!m.querySelector(":scope>.mbody")){ const k=[...m.children]; let i=0,j=k.length;
+    while(i<j&&k[i].matches("h2,.brand,.rep-head")) i++;
+    if(j>i&&k[j-1].matches(".row,.rep-foot,.acts")&&k[j-1].querySelector("button")) j--;
+    if(j>i){ const b=document.createElement("div"); b.className="mbody"; m.insertBefore(b,k[j]||null); k.slice(i,j).forEach(e=>b.appendChild(e)); } }
+  const f=m.lastElementChild; if(f&&f.matches(".row,.rep-foot,.acts")&&f.querySelector("button")) f.classList.add("mfoot");
+  const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.remove("hidden"); }
 function closeModal(){ $("ov").classList.add("hidden"); }
 
 // prev = your state's numbers before the turn: {land, money, grain, pop}
@@ -2884,7 +2897,7 @@ function turnReport(prev){
   const stat=(label,k,unit="")=>{ const d=now[k]-(prev?.[k]??now[k]);
     return `<div class="stat"><span class="mut">${label}</span><b>${fmt(now[k])}${unit}</b>${d?`<span class="${d>0?'good':'bad'}">${d>0?"+":""}${fmt(d)}</span>`:'<span class="mut">±0</span>'}</div>`; };
   modal(`${head}
-  <div class="rep-body">
+  <div class="mbody">
     ${observing()?`<div class="small mut">${fmt(G.countries.filter(x=>x.alive).length)} states remain · grain price next year: <b>${G.price}</b></div>`:`<div class="stats">${stat("Land","land"," km²")}${stat("Money","money")}${stat("Grain","grain")}${stat("Population","pop")}</div>
     <div class="small mut">Grain price next year: <b>${G.price}</b></div>
     ${mine.length?`<h3>Your battles</h3><ul class="log">${mine.map(battleLine).join("")}</ul>`:""}
@@ -2901,6 +2914,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Window buttons always visible","2026-11-09 17:07",["Every window keeps its title and buttons in place; only the middle scrolls","New game: Start, Back and Randomize all stay at the bottom"]],
 ["Change log","2026-11-09 16:59",["New Change log button in the header","Each update lists what changed; click a title to see it"]],
 ["Plain number boxes; Barracks fits the side panel","2026-11-08 17:19",["Number boxes have no up/down arrows and open a number keyboard on phones","War tab soldier count ignores letters","Barracks troop stats wrap, so the side panel no longer scrolls sideways"]],
 ["Barracks Max button; starting wood and iron fixed","2026-11-08 17:13",["Max button next to each Train button fills in the most you can train","New games start with wood and iron again","First year no longer resets your work split"]],
@@ -2991,9 +3005,9 @@ function setupModal(){
         <input type="text" inputmode="numeric" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}">
         <select id="sAlLay" aria-label="Alliance layout"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
         <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>`:""); };
-  modal(`<div class="sl">
-  <div class="shead"><h2>New game</h2>
+  modal(`<div class="shead"><h2>New game</h2>
     <div class="seg" role="group" aria-label="Game mode"><button type="button" data-smode="play" aria-pressed="${!obs}">Play</button><button type="button" data-smode="watch" aria-pressed="${obs}" title="Every state is run by the computer and you watch the war unfold">Watch</button></div></div>
+  <div class="mbody sbody"><div class="sl">
   <section class="${hideObs}"><h3 class="sh">You</h3>
     <label class="fld"><span>Empire name</span><input type="text" id="sName" maxlength="24" value="${esc(s.empire||"")}" placeholder="Random name" spellcheck="false"></label>
     <div class="g3">${sel("sCiv","Civilization",CIVS,s.civ)}${sel("sLead","Leader",LEADERS,s.leader)}${sel("sLand","Land",LANDS,s.landType)}</div></section>
@@ -3014,9 +3028,9 @@ function setupModal(){
       <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
       <div class="small" id="pvPick">${pickText()}</div></div>
   </div></div>
-  <div class="sfoot"><button type="button" class="rnd" data-srand>🎲 Randomize all</button><span class="grow"></span>${UI.fromWelcome?`<button data-a="welcome" class="out">Back</button>`:G?`<button data-a="close" class="out">Cancel</button>`:""}<button class="pri" data-a="start">Start</button></div>
   </div>
-  <aside class="ssum" aria-live="polite"><h3 class="sh">Your game</h3><div id="sSum">${setupSummary()}</div><div id="sTraits">${setupTraits()}</div></aside>`,"setup");
+  <aside class="ssum" aria-live="polite"><h3 class="sh">Your game</h3><div id="sSum">${setupSummary()}</div><div id="sTraits">${setupTraits()}</div></aside></div>
+  <div class="sfoot"><button type="button" class="rnd" data-srand>🎲 Randomize all</button><span class="grow"></span>${UI.fromWelcome?`<button data-a="welcome" class="out">Back</button>`:G?`<button data-a="close" class="out">Cancel</button>`:""}<button class="pri" data-a="start">Start</button></div>`,"setup");
   if(s.choose&&!obs&&s.more) drawPreview();
 }
 // first window when the page opens: continue an unfinished saved game, or set up a new one
@@ -3085,7 +3099,7 @@ function drawPreview(){
 document.addEventListener("click",async ev=>{
   const t=ev.target.closest("button,tr[data-pick]"); if(!t) return;
   const d=t.dataset;
-  if(d.stab){ settingsModal(d.stab); return; }
+  if(d.stab){ settingsModal(d.stab); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
   if(d.npage!=null){ UI.news.page=Math.max(0,+d.npage); render(); $("panel").scrollTop=0; return; }
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
