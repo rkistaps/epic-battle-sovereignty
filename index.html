@@ -753,14 +753,30 @@ function newGame(opts){
   { const st=new Int32Array(W*H); let h=0,t=0; for(const i of landIdx) if(comp[i]>=0) bq[t++]=i; // then grow each back over the thin land near it
     while(h<t){ const i=bq[h++]; if(st[i]>=NR) continue; each4(i,j=>{ if(cells[j]!==-2&&comp[j]<0){ comp[j]=comp[i]; st[j]=st[i]+1; areas[comp[i]]++; bq[t++]=j; } }); } }
   // seeds go one at a time to the area with the most land per seed (Sainte-Laguë); an area needs 3/4 of a state's
-  // land for its first one. Thin land and seedless islands are reached by neighbors (over sea routes too).
-  const want=areas.map(()=>0);
-  for(let s=0;s<n;s++){ let b=0,bv=-1; for(let k=0;k<areas.length;k++){ const v=areas[k]/(want[k]?want[k]+0.5:0.75); if(v>bv){bv=v;b=k;} } want[b]++; }
+  // land for its first one. Thin land and seedless islands with no land contact are reached by neighbors (over sea routes too).
+  const want=areas.map(()=>0), share=()=>{ want.fill(0);
+    for(let s=0;s<n;s++){ let b=0,bv=-1; for(let k=0;k<areas.length;k++){ const v=areas[k]/(want[k]?want[k]+0.5:0.75); if(v>bv){bv=v;b=k;} } want[b]++; } };
+  share();
+  // an area too small for a state joins the neighbor area it touches most, and seeds are shared out again, so
+  // that area gets enough seeds to cover the extra land (else whoever reaches it first ends up oversized)
+  const pockets=preset==="world"&&n>=100; // big World games: seedless areas start unowned instead (below)
+  if(!pockets){
+    const root=areas.map((a,k)=>k), find=k=>{ while(root[k]!==k) k=root[k]=root[root[k]]; return k; };
+    for(let it=0;it<6;it++){
+      const touch=new Map(); // seedless area -> Map(other area -> contact length)
+      for(const i of landIdx){ const a=comp[i]; if(a<0||want[a]) continue; each4(i,j=>{ const b=comp[j]; if(b>=0&&b!==a){ let m=touch.get(a); if(!m) touch.set(a,m=new Map()); m.set(b,(m.get(b)||0)+1); } }); }
+      if(!touch.size) break;
+      for(const a of [...touch.keys()].sort((x,y)=>areas[x]-areas[y])){ const ra=find(a); let best=-1,bc=-1;
+        for(const [b,c] of touch.get(a)){ const rb=find(b); if(rb!==ra&&c>bc){bc=c;best=rb;} }
+        if(best>=0){ root[ra]=best; areas[best]+=areas[ra]; areas[ra]=0; } }
+      for(const i of landIdx) if(comp[i]>=0) comp[i]=find(comp[i]);
+      share(); }
+  }
   const byComp=areas.map(()=>[]); for(const i of landIdx) if(comp[i]>=0&&want[comp[i]]) byComp[comp[i]].push(i);
   // World map, 100+ states: a seedless area stays unowned (else one neighbor swallows it whole). Not in smaller
   // World games (whole regions like Australia would start empty) or on random maps, where
   // rivers make many such pockets and too much land would start empty.
-  if(preset==="world"&&n>=100) for(const i of landIdx) if(comp[i]>=0&&!want[comp[i]]) cells[i]=-3;
+  if(pockets) for(const i of landIdx) if(comp[i]>=0&&!want[comp[i]]) cells[i]=-3;
   const seeds=[];
   areas.map((a,k)=>k).filter(k=>want[k]).sort((a,b)=>areas[b]-areas[a]).forEach(k=>{ const L=byComp[k];
     for(let s=0;s<want[k];s++){
@@ -3046,6 +3062,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Fewer oversized starting states","2026-11-09 19:06",["A pocket of land too small for its own state now counts toward the area next to it, so that area gets enough states to share it","River and lake maps: no more starting states twice the usual size"]],
 ["Even more even starting land","2026-11-09 19:03",["Land behind narrow necks (peninsulas, river bends) counts as its own area when states are placed","An area needs 3/4 of a state's land to get its own state, so no more cramped starting states","World map with 100+ states: small pockets without a state start unowned for settlers to claim"]],
 ["More even starting land","2026-11-09 18:42",["Each island or continent gets a number of states that fits its size","World map: far fewer tiny starting states on small islands","Islands too small for a state go to a neighbor across the sea, or start unowned"]],
 ["Peace years","2026-11-09 18:21",["New game: set how many years of peace the game starts with (0 = none), under More options","Nobody can attack during the peace, computer states included","War tab shows how many peace years are left"]],
