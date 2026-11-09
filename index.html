@@ -281,7 +281,7 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .mtrade button{white-space:nowrap;font-size:13px}
 .msplit{display:flex;min-width:0} .msplit>button:first-child{flex:1;min-width:0;border-radius:6px 0 0 6px;padding:5px 6px;font-weight:600} .msplit>.mmax{border-radius:0;border-left:0;padding:5px 7px;font-size:11px;color:var(--mut)} .msplit>.mmax:last-child{border-radius:0 6px 6px 0} .msplit>.mmax:hover{color:var(--txt)}
 .mprev{font-size:12px;color:var(--mut);text-align:center;white-space:nowrap;margin-top:-2px} .mprev b{font-weight:600}
-.mfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px}
+.mkfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px}
 .mlink{background:none;border:0;padding:0;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px} .mlink.good{color:var(--good)} .mlink.bad{color:var(--bad)}
 .ya{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:4px 0 8px}
 .yac{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-variant-numeric:tabular-nums}
@@ -2482,7 +2482,7 @@ function pMarket(){
         <span class="msplit"><button data-a="${sa}">Sell</button>${max(mktStock(c,r),"Fill in everything you have")}</span>
         <span class="msplit"><button data-a="${ba}">Buy</button>${max(Math.floor(c.money/bp),"Fill in the most your money buys")}</span>
         <span></span><span class="mprev" id="mS-${r}">${ls}</span><span class="mprev" id="mB-${r}">${lb}</span></div>
-      ${r==="grain"?`<div class="mfoot"><span title="Stored grain beyond next year's needs plus a 20% reserve">Surplus ${surplus>0?`<button class="mlink ${prod>=food?"good":"bad"}" data-mfill="grain" data-n="${surplus}" title="Fill in the surplus">${fmt(surplus)}</button>`:`<b class="mut">none</b>`}${prod<food?` <span class="bad">· grain −${fmt(food-prod)}/yr</span>`:""}</span>
+      ${r==="grain"?`<div class="mkfoot"><span title="Stored grain beyond next year's needs plus a 20% reserve">Surplus ${surplus>0?`<button class="mlink ${prod>=food?"good":"bad"}" data-mfill="grain" data-n="${surplus}" title="Fill in the surplus">${fmt(surplus)}</button>`:`<b class="mut">none</b>`}${prod<food?` <span class="bad">· grain −${fmt(food-prod)}/yr</span>`:""}</span>
         <label><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell it every year</label></div>`:""}</div>`; };
   return `<h3>Stock</h3>
   <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
@@ -3165,6 +3165,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Window buttons fixed","2026-11-09 20:11",["Buttons at the bottom of windows (like Continue and New game) are full size again"]],
 ["Clearer Market","2026-11-09 20:05",["Stock cards for grain, money, wood and iron with change per year and prices","Grain price gauge shows if the price is low or high, and which way it moved","Sell and Buy buttons with Half and Max to fill in the amount","See what you'll get or pay before you trade","Surplus and auto-sell moved into the grain trade box","Overview: Growth shows the expected growth for the coming year"]],
 ["Better World rankings","2026-11-09 19:52",["'# by land' option keeps land places while sorting by another column","Fallen states listed by the year they fell, most recent first","Fallen states keep their last science total","Selected state and your own state are highlighted in the rankings","'Alliance colors' option colors each state by its alliance","Shows how many states are still alive","Click Land or Pop in the header to find yourself in the rankings"]],
 ["Peace years checkbox","2026-11-09 19:42",["New game: Peace years is now a checkbox under Rules; tick it to set how many years","Unticked means war from year 1"]],
