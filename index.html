@@ -386,7 +386,7 @@ const R = {
   mkExpGrain: 0.53, mkExpWood: 2.8, mkExpIron: 1.45,     // outside traders buy part of any stock above this each year
   mkExport: 0.4, mkElast: 1, mkSmooth: 0.5,              // share of the excess exported per year; price = normal × (normal stock ÷ stock)^elasticity, moving halfway there each year
   mkMinMul: 0.01, mkMaxMul: 3, mkImport: 2.5,            // price floor and ceiling (× normal); when the stock runs out, outside merchants sell at 2.5× the normal price
-  wxRegional: 0.18, wxMax: 0.25, wxClimate: 0.05,        // weather: regional good and bad harvests (up to ±25%) and slow world-wide good and bad years
+  wxRegional: 0.18, wxMax: 0.25, wxClimate: 0.03,        // weather: regional good and bad harvests (up to ±25%) and slow world-wide good and bad years
   // research: cost per level = researchCostBase × (level+1)^researchCostExp; effect per level
   researchCostBase: 5, researchCostExp: 2.5,
   sizeRef: 1000, sizeExp: 0.5,     // big states pay more per level: cost × (population ÷ 1000)^0.5 (never below ×1)
@@ -1324,7 +1324,11 @@ function mkWeather(g){ const C=g.countries;
   g.climS=(g.climS||0)*0.7+(R01(g)*2-1)*R.wxClimate*1.7; g.clim=Math.min(1+3*R.wxClimate,Math.max(1-3*R.wxClimate,1+g.climS));
   if(!g.cent||g.cent.length!==C.length){ g.cent=C.map(()=>[0,0,0]); for(let i=0;i<g.cells.length;i++){ const o=g.cells[i]; if(o>=0){ const e=g.cent[o]; e[0]+=i%g.W; e[1]+=(i/g.W)|0; e[2]++; } }
     g.cent=g.cent.map(e=>e[2]?[e[0]/e[2],e[1]/e[2]]:null); }
-  const F=[]; for(let k=0;k<4;k++) F.push([R01(g)*g.W,R01(g)*g.H,(0.15+0.2*R01(g))*Math.max(g.W,g.H),(R01(g)<0.5?-1:1)*R.wxRegional*(0.5+R01(g))]);
+  // fronts are sized by states, not by the map: each spans about 1–2.5 states, and bigger maps get more of them
+  if(!g.wxScale){ let land=0; for(const v of g.cells) if(v!==-2) land++; g.wxScale=Math.sqrt(land/C.length); g.wxLand=land; }
+  const S=g.wxScale, nF=Math.max(4,Math.min(200,Math.round(g.wxLand/(Math.PI*(1.65*S)**2)))), F=[];
+  const onLand=()=>{ for(let t=0;t<40;t++){ const i=Math.floor(R01(g)*g.cells.length); if(g.cells[i]!==-2) return [i%g.W,(i/g.W)|0]; } return [R01(g)*g.W,R01(g)*g.H]; }; // centres on land
+  for(let k=0;k<nF;k++) F.push([...onLand(),S*(0.8+1.7*R01(g)),(R01(g)<0.5?-1:1)*R.wxRegional*(0.5+R01(g))]);
   C.forEach((c,i)=>{ const e=g.cent[i]; let w=1; if(e) for(const [fx,fy,rad,a] of F) w+=a*Math.exp(-((e[0]-fx)**2+(e[1]-fy)**2)/(rad*rad));
     c.wx=+Math.min(1+R.wxMax,Math.max(1-R.wxMax,w)).toFixed(3); }); }
 // what this state gets when selling wood/iron: Finance research raises it like the grain price
@@ -1534,7 +1538,7 @@ const REL_YOU="#f0f0f0";
 // all of last year's harvests together compared with normal (1 = normal), and a weather effect as text
 function worldWx(g){ const A=g.countries.filter(c=>c.alive&&c.lastWx!=null); if(!A.length) return null;
   let w=0,n=0; for(const c of A){ const h=Math.max(1,c.lastHarvest||1)/c.lastWx; w+=h*c.lastWx; n+=h; } return w/n; }
-const wxPct=v=>(v>=1?"+":"−")+Math.round(Math.abs(v-1)*100)+"%";
+const wxPct=v=>{ const n=Math.round(Math.abs(v-1)*100); return n?(v>1?"+":"−")+n+"%":"normal"; };
 const wxWord=v=>Math.abs(v-1)<0.03?"normal weather":v>1?"good weather":"bad weather";
 // weather view: how much weather changed a harvest (1 = normal): brown for bad, green for good
 function wxColor(w){ const t=Math.max(-1,Math.min(1,(w-1)/0.25)), mid=[138,143,152], end=t<0?[176,96,40]:[60,170,80], k=Math.abs(t)**0.8;
@@ -3259,6 +3263,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Patchier weather","2026-11-09 21:05",["Weather comes in smaller regional patches a few states wide instead of whole continents","World-wide good and bad years are milder","Weather legend says normal instead of 0%"]],
 ["Weather map","2026-11-09 20:55",["New Weather button on the map colors states by how weather changed their last harvest","Hover a state to see its harvest change","Overview: grain card shows last year's weather","Market: shows how the world harvest did last year"]],
 ["World market and weather","2026-11-09 20:47",["Grain, wood and iron trade on a world market: selling fills a world stock, buying empties it","Prices change once a year with supply and demand instead of at random; wood and iron prices now move too","When a stock runs out, outside merchants sell at a high price","Market tab: price chart, small price lines and why prices moved","Weather: good and bad harvests by region and world-wide","Computer states farm less when grain is cheap and more when it is dear","New World market & weather settings"]],
 ["Window buttons fixed","2026-11-09 20:11",["Buttons at the bottom of windows (like Continue and New game) are full size again"]],
