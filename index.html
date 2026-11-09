@@ -129,6 +129,13 @@ td.r,th.r{text-align:right}
 .stat span:last-child{font-size:12px}
 @media(max-width:560px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .log li{margin:3px 0}
+/* change log window */
+.cl details{background:var(--panel2);border:1px solid var(--line);border-radius:8px;margin:6px 0}
+.cl summary{cursor:pointer;padding:8px 10px;display:flex;gap:10px;align-items:baseline;list-style:none}
+.cl summary::-webkit-details-marker{display:none}
+.cl summary::before{content:"▸";color:var(--mut)} .cl details[open] summary::before{content:"▾"}
+.cl summary b{flex:1} .cl summary time{font-size:12px;color:var(--mut);white-space:nowrap}
+.cl ul{margin:0;padding:0 12px 10px 34px}
 .hidden{display:none}
 /* New game window: two columns (settings + live summary); tokens from the design handoff */
 .modal.setup{--s-surf:#1F2024;--s-sum:#18191D;--s-in:#121316;--s-div:#34363C;--s-inb:#3A3C42;--s-t1:#ECEAE3;--s-t2:#C9C8C0;--s-mut:#A3A39A;--s-acc:#E3B964;--s-acch:#F0CC82;
@@ -258,6 +265,7 @@ tr.click{cursor:pointer} tr.click:hover{background:var(--panel2)}
   <span class="grow"></span>
   <button id="bSettings" title="Change every rule, troop, civilization, leader and land type">⚙ Settings</button>
   <button id="bHelp">Rules &amp; tips</button>
+  <button id="bLog" title="What changed in each update">Change log</button>
   <button id="bNew">New game</button>
   <span class="auto">
     <button id="bAuto" title="End turns automatically">▶ Auto</button>
@@ -2890,6 +2898,29 @@ function turnReport(prev){
   $("modal").querySelector(".rep-foot .pri")?.focus({preventScroll:true});
 }
 
+// ---------- change log ----------
+// Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
+const CHANGELOG=[
+["Change log","2026-11-09 16:59",["New Change log button in the header","Each update lists what changed; click a title to see it"]],
+["Plain number boxes; Barracks fits the side panel","2026-11-08 17:19",["Number boxes have no up/down arrows and open a number keyboard on phones","War tab soldier count ignores letters","Barracks troop stats wrap, so the side panel no longer scrolls sideways"]],
+["Barracks Max button; starting wood and iron fixed","2026-11-08 17:13",["Max button next to each Train button fills in the most you can train","New games start with wood and iron again","First year no longer resets your work split"]],
+["Full battle reports","2026-11-08 17:05",["Details button on battles in News, the year report and Recent wars","Reports show both sides: alliance, traits, generals, troops sent, lost and left","Reports show how each side's strength adds up, land taken and the aftermath","News is saved in 10-year chunks"]],
+["Troop rebalance","2026-11-08 16:31",["Tougher troops lose fewer soldiers in battle","Archers cheaper","Axemen hit harder but die faster","Iron troops tougher","Cavalry gold upkeep is 6","Wood troops +25% strength","Wood and iron sell for half their base price","AI places workers by its bonuses, sells surplus wood and iron and picks troops by value"]],
+["Ranking places","2026-11-08 15:13",["World and Alliances rankings show place numbers in the first column","Places follow the current sort","Fallen states and defeated alliances show a dash"]],
+["Region alliances: no walled-in states","2026-11-08 15:10",["Every state borders at least one state outside its alliance","Alliances stay even in size and keep a home region"]],
+["Switch sides","2026-11-08 15:02",["Take over a state from observer mode","Hand to computer button on your own state: the computer rules it and you keep watching","Rules & tips explain switching sides"]],
+["Research bonuses trimmed","2026-11-08 14:57",["Science 10% → 7.5% per level","Attack, Defense, Forestry, Mining 8% → 6%","Agriculture 6% → 4.5%","Finance 7%/2% → 5%/1.5%","Exploring 5% → 4%","Caps unchanged"]],
+["Research rebalance","2026-11-08 14:54",["Research costs more for bigger populations","Up to 50% cheaper when behind the world average, up to 3× dearer when ahead","Population growth and density per level reduced","Each research area's bonus has a max (e.g. +250% attack)","Science tab shows cost multiplier and bonus vs max","New values editable in Settings > Research"]],
+["Welcome window","2026-11-08 14:08",["Welcome window opens with the page","Continue or New game when you have a save","Header New game goes straight to setup"]],
+["New game window: two columns","2026-11-08 13:55",["Settings on the left, live \"Your game\" summary on the right","Rule toggles with one-line descriptions and info tips","Randomize all button","Territory, water and rules behind \"More options\"","Stacks on narrow screens"]],
+["New game window redesign","2026-11-08 13:40",["Play / Watch toggle replaces the Observer checkbox","Settings grouped under You, World and Rules","Civ, leader and land dropdowns default to Random","States slider with quick picks 8, 16, 50, 200, 1000","Cancel and Start buttons in the footer"]],
+["Renamed to Epic Battle: Sovereignty","2026-11-08 13:24",["New game name in the title and header","Settings export uses the new name"]],
+["Atlas map labels by default","2026-11-08 12:02",["Old atlas lettering with stats is the default map label style","Listed first in Settings"]],
+["First release","2026-11-08 12:01",["Turn-based war and economy game in one page"]]];
+function changelogModal(){
+  modal(`<h2>Change log</h2><div class="cl">${CHANGELOG.map(([t,d,l],i)=>`<details${i?"":" open"}><summary><b>${esc(t)}</b><time datetime="${d.replace(" ","T")}">${d}</time></summary><ul class="log">${l.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></details>`).join("")}</div>
+  <div class="row"><button class="pri" data-a="close">Close</button></div>`);
+}
 function helpModal(){
   modal(`<h2>Rules &amp; tips</h2>
   <p><b>Goal:</b> conquer every other state. You start with the same land and resources as everyone else. Each turn is one year, and everyone moves at the same time.</p>
@@ -3276,6 +3307,7 @@ $("autoStop").checked=AUTO.stop;
 $("autoSec").addEventListener("change",e=>{ AUTO.sec=+e.target.value; AUTO.left=AUTO.sec*1000; saveAuto(); paintAuto(); e.target.blur(); });
 $("autoStop").addEventListener("change",e=>{ AUTO.stop=e.target.checked; saveAuto(); });
 $("bHelp").addEventListener("click",()=>{ if(!UI.busy) helpModal(); });
+$("bLog").addEventListener("click",()=>{ if(!UI.busy) changelogModal(); });
 $("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; settingsModal("general"); });
 $("bNew").addEventListener("click",()=>{ if(UI.busy) return; UI.setup=null; UI.fromWelcome=false; setupModal(); });
 window.addEventListener("resize",()=>mainView.resize()); // map height follows the window

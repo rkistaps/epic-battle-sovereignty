@@ -29,6 +29,14 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
 - Player-facing text is plain and short. The Rules & tips modal (`helpModal`) documents the mechanics. Update it when rules change.
 - Keep everything in the single file unless asked otherwise.
 
+## Change log
+
+The in-game change log (header button "Change log", `changelogModal`) reads the `CHANGELOG` array in the UI script.
+
+- **Every commit that changes the game adds an entry at the top** of `CHANGELOG`, in the same commit: `["Short title", "YYYY-MM-DD HH:MM", ["bullet", ...]]`. Use the commit's local date and time.
+- Bullets say what changed, not why. Keep them plain, short and easy to digest (e.g. "Archers cheaper", "Max button next to each Train button").
+- Write for players: skip internal details (refactors, storage format) unless players notice them. Commits that don't touch the game (README, CLAUDE.md, screenshots) get no entry.
+
 ## Assets
 
 - `docs/map.png`: the README screenshot, which shows Europe in a 1000-state world-map game with the default atlas lettering. To regenerate it:
