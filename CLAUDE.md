@@ -17,6 +17,14 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
   - The UI talks to the engine via `ENGINE.call("newGame"|"endTurn", data)`.
   - Global game state: `G`. UI state: `UI`.
 
+## Game systems
+
+`docs/SYSTEMS.md` maps every game system (population, work, food, weather, gold, wood/iron, market, research, identity, troops, generals, battle, territory, relations, alliances, balance of power, AI), what each reads and writes, the yearly order, feedback loops and balance anchors.
+
+- Read it before adding a system or changing rules in `R`, and judge changes by their knock-on effects on other systems.
+- Every new system needs an AI side, settings entries, old-save handling and a headless simulation compared against the anchors (checklist in the doc).
+- Update the doc in the same commit when a system's inputs, outputs or core formula change.
+
 ## Persistence
 
 - Saves are stored in IndexedDB (database `sovereign`), with localStorage as a fallback.
