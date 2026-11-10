@@ -26,6 +26,7 @@ select{background:#0f1114;color:var(--txt);border:1px solid var(--line);border-r
 header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 header h1{font-size:17px;margin:0;letter-spacing:.5px;color:var(--acc)}
 .chip{color:var(--mut)} .chip b{color:var(--txt);font-variant-numeric:tabular-nums}
+.pz{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:1px 8px;border-radius:10px;background:#1f3328;border:1px solid #2f5a40;color:#8fdcae;font-size:12px;font-weight:600;vertical-align:1px;cursor:default} .pz[hidden]{display:none}
 .grow{flex:1}
 main{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:12px;padding:12px;align-items:start}
 #split{display:none}
@@ -341,7 +342,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
       <button role="menuitem" id="bSettings" title="Change every rule, troop, civilization, leader and land type">Settings</button>
     </div></div>
   <h1>👑 EPIC BATTLE: SOVEREIGNTY</h1>
-  <span class="chip">📅 Year <b id="hYear">1</b> · <span id="hState"></span></span>
+  <span class="chip">📅 Year <b id="hYear">1</b><span id="hPeace" class="pz" hidden></span> · <span id="hState"></span></span>
   <span class="chip" title="Money">💰 <b id="hMoney"></b></span>
   <span class="chip" title="Grain">🌾 <b id="hGrain"></b></span>
   <span class="chip" title="Wood">🌲 <b id="hWood"></b></span>
@@ -2746,6 +2747,7 @@ function renderAllyMap(){
 function renderHeader(){
   const c=me();
   $("hYear").textContent=G.turn;
+  { const pz=$("hPeace"), left=inPeace(G)?G.peace+1-G.turn:0; pz.hidden=!left; if(left){ pz.textContent=`🕊 ${left} yr${left>1?"s":""}`; pz.title=`Peace time: nobody can attack until year ${G.peace+1}`; } } // years of peace left, this one included
   $("hState").innerHTML=observing()?`👁 <b>Observer</b> <span class="mut">(${fmt(G.countries.filter(x=>x.alive).length)} states left)</span>`:`<span class="sw" style="background:${c.color}"></span><b>${c.alive?"":"☠ "}${esc(c.name)}</b>${c.alive?"":` <span class="mut">(watching)</span>`}`;
   // your own numbers mean nothing to an observer: hide them (each value sits in a header item with its icon)
   for(const id of ["hMoney","hGrain","hWood","hIron","hLand","hPop"]){ const el=$(id), box=el?.closest(".hi")||el?.parentElement; if(box&&box.id!=="hState") box.style.display=observing()?"none":""; }
@@ -3677,6 +3679,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Peace in the header","2026-11-10 22:40",["During peace time the header shows how many years of peace are left next to the year"]],
 ["Money card fix","2026-11-10 22:24",["No more \"Cavalry −1\" on the Money card when you have no cavalry"]],
 ["Locked jobs stay locked","2026-11-10 22:15",["With farmers locked, lowering a job moves its share to the other unlocked jobs instead of to farmers","If no unlocked job can take it, the slider stops"]],
 ["Market buttons","2026-11-10 22:04",["Market switches show their full border on hover"]],
