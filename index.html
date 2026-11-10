@@ -2583,7 +2583,8 @@ class MapView{
     const d=this.dpr, m=/^(.+? of(?: the)?) (.+)$/.exec(c.name), title=m?m[1]:"", base=m?m[2]:c.name;
     const name=(isMe?"★ ":"")+(style==="atlas"?base.toUpperCase():base);
     const ally=this.g?.teams&&c.team!=null?`${this.g.teams[c.team].name} (${allyTag(this.g,c.team)})`:""; // own line under the name
-    const stats=this.o.land?(span>=150*d?`${fmt(c.land)} km² · ⚔️ ${fmtPow(armyAtk(c))} · 🛡️ ${fmtPow(armyDef(c))}`:`${fmt(c.land)} km²`):"";
+    const land=`🗺️ ${fmt(c.land)} km²`, pop=`👥 ${fmtPow(popOf(c))}`; // as much as the territory has room for: land, population, attack, defense
+    const stats=this.o.land?(span>=190*d?`${land} · ${pop} · ⚔️ ${fmtPow(armyAtk(c))} · 🛡️ ${fmtPow(armyDef(c))}`:span>=100*d?`${land} · ${pop}`:land):"";
     // last line: how this state feels about you (not for your own state, not for observers)
     const g0=this.g, rv=this.o.land&&g0&&g0.countries[g0.player]&&c.id!==g0.player?Math.round(relOf(g0,c,g0.player)):null;
     const rel=rv==null?"":`${relFace(rv)} ${relLabel(rv)}`;
@@ -3692,6 +3693,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Population on the map","2026-11-10 23:35",["Map labels show a land icon and the population next to land size"]],
 ["Easier training","2026-11-10 22:44",["Half button next to Max when training troops","Train button stands out","Dismiss button is red and asks before sending troops home"]],
 ["All neighbors in the tooltip","2026-11-10 23:22",["The map tooltip lists every neighbor, not just the worst 8"]],
 ["Neighbor relations on the map","2026-11-10 23:05",["Hovering a state on the map shows how it feels about each neighbor and how each neighbor feels about it, worst first"]],
