@@ -66,9 +66,10 @@ Consequences:
 
 ## 3. The systems
 
-Each entry: **what it is · key rules · reads · writes · notes**.
+Each entry: **intent · what it is · key rules · reads · writes · notes**. The intent says what the system is for and which choices it should create. *(inferred)* marks intents read from the code and comments that the designer has not confirmed yet; *(your direction)* marks the designer's own decisions. When a change conflicts with an intent, ask before changing either.
 
 ### 3.1 Population
+- **Intent**: People are the core currency. Growth rewards peace and room, and capacity is what makes land valuable: a state that stops growing has to expand (settle, conquer) or research density. Overcrowding is meant to hurt (births turn negative). Growth bonuses are kept small because people compound. *(inferred)*
 - Population = peasants + soldiers (scientists are peasants with a job; `c.sci` is a legacy field, always 0).
 - Capacity: `popCap = land × (popPerKm 3 + densPerLevel 0.15·lvl(dens)) × M(capacity) × wonder(dens)`.
 - Births: `peasants × growthRate × (1 − pop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. Logistic: negative above capacity. None in a famine year.
@@ -78,6 +79,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - Notes: peasants drive births, taxes and all jobs, so population compounds. That is why housing and growth traits apply at 40% (`traitWeight`).
 
 ### 3.2 Work split
+- **Intent**: The main economic choice every year: every scientist or woodcutter is one farmer less, so no job is free. It should support distinct styles: farmer-exporter, industrial (wood/iron for an army or for sale), scholar. At least 10% always farm so a state can't starve itself by one slider. *(inferred)*
 - `c.work = {wood, iron, sci}` as % of peasants; farmers are the rest. `workers()` floors each job, so rounding goes to farming.
 - Player: Overview tab sliders; each job ≤ 80%, the three together ≤ 90% (at least 10% farm); locks.
 - Output per worker per year: farmer `foodPerFarmer` (3 base), woodcutter 2.8 wood, miner 2 iron, scientist 1 research point and costs `sciWage` 3.5 gold.
@@ -87,6 +89,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - Notes: the empty-treasury rule rewrites `c.work.sci` directly, including the player's.
 
 ### 3.3 Food
+- **Intent**: The survival floor and the first constraint. Surplus becomes gold through the market; a store buffers bad years, but spoilage (10%/yr) makes hoarding a deliberate insurance choice, not free. Famine kills soldiers first, so an army bigger than the land can feed falls apart. *(inferred)*
 - `foodPerFarmer = 3 × (1 + agriPerLevel·lvl(agri)) × (1 + shoreBonus) × M(food) × wonder(agri)`; shore bonus = share of land on the shore, max +25%.
 - Harvest = farmers × foodPerFarmer × `c.wx` × `g.clim` (weather).
 - Use: 1 per peasant; troops eat their `upFood` (2; axe 3; cavalry 5).
@@ -95,6 +98,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - **Writes**: famine deaths, births (blocked by famine), market supply/demand, AI work split, `projectedNet`.
 
 ### 3.4 Weather
+- **Intent**: Outside shocks that give reasons to trade and to fight: drought states grow weak or desperate, fertile ones rich. Weather systems travel, end and restart elsewhere after a gap, several at once, and bad ones meeting make something worse *(your direction)*. They last decades and show a year ahead so players can plan: stockpile, buy early, farm more. Local yearly noise is texture only and must never outweigh a system *(your direction)*.
 - Three layers, multiplied into the harvest:
   1. **Weather systems**: droughts and fertile spells 1–2 state-widths wide, ±12–22% at the centre, living 20–40 years, drifting, then a quiet gap and a new one elsewhere (`ws*`). Same kinds merge into Great Drought / Golden Harvest, then Age of Dust / Age of Plenty (stronger, bigger, longer). Opposite kinds clash: higher tier wins, equal tiers cancel. Can be turned off per game (`g.noWx`).
   2. **Local patches**: small random patches re-rolled every year, `wxRegional` 0.04 (kept small so systems stand out).
@@ -105,6 +109,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - Notes: weather is the main source of supply shocks for the market. Local noise must stay well below systems, or players can't tell them apart.
 
 ### 3.5 Gold
+- **Intent**: Turns people into flexibility: it pays for research (wages) and for elite military (cavalry, generals) and buys what the land lacks. Debt can't build up; overspending costs people instead, so running broke is a real setback. *(inferred)*
 - Taxes: `peasants × taxPerPeasant 0.6 × (1 + finTaxPerLevel·lvl(fin)) × wonder(fin)`.
 - Wages: scientists × 3.5 + troops × `upGold` (only cavalry, 6).
 - Empty treasury: debt forgiven, but `ceil(−money/2)` soldiers go home, then scientists are cut.
@@ -114,6 +119,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - Notes: one scientist costs about six peasants' tax. That ratio is the main brake on research.
 
 ### 3.6 Wood and iron
+- **Intent**: The military-industrial base. Wood is for mass troops, iron for elite ones. Leaders and land types skew yields so states can specialise and trade what they're good at. *(inferred)*
 - `production`: woodcutters × 2.8 (miners × 2) × M(wood/iron) × (1 + 0.06·lvl) × wonder. No spoilage, no upkeep.
 - Used only to train troops (wood troops: spear, archer, axe; iron troops: pike, sword, cavalry) and on the market.
 - **Reads**: work split, research, identity, wonders.
@@ -121,6 +127,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - Notes: stocks pile up unless troops or the market use them. The AI now cuts these jobs when stock piles up.
 
 ### 3.7 Market (order book)
+- **Intent**: A real market *(your direction)*: prices come from what states need. Shortages push prices up until demand dies out; states sell surplus for what they lack, which lets them specialise. Merchants are a last resort and a safety net, not the main trading partner. Lasting surplus should push states to produce less and research more rather than dump forever *(your direction)*. Orders can stand for long periods (1–50 years or no end) *(your direction)*.
 - One order book per resource. Post an order at your price (1/5/10/50 years or no end; gold or goods held), or trade now against the best orders. Grain held for sale spoils.
 - **Merchants** stand behind the book: they sell at `max(mkMerchSell 2.5 × normal, mkMerchMul 2 × market price)`, dearer the more they sell in a year (`mkSteep` 3); they buy grain at 0.9 × normal and wood/iron at 0.5 × normal, paying less the more they buy (`mkSteepB` 0.5). At year start they take any order that beats their own price (`mkSweep`), which closes buy-from-states/sell-to-merchants arbitrage.
 - Market price: average trade price per year (or the book midpoint in a year with no trades), averaged over `mkYears` 3.
@@ -132,6 +139,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
   - The world over-produces by default, so prices sit near merchant buy prices unless something (drought, war, AI surplus logic) creates demand.
 
 ### 3.8 Research
+- **Intent**: Long-term investment that competes with the army for people and gold. Caps make the late game converge so a tech lead can't become permanent; catch-up pricing keeps laggards in the game; size-scaled cost stops big empires out-researching by scale alone. *(inferred)*
 - 10 areas: sci, agri, fin, dens, grow, atk, def, wood, iron, explore.
 - Points: scientists × (1 + 0.075·lvl(sci)) × M(science) × wonder × `c.eff` (AI difficulty 0.8/1/1.15; humans 1). Split by `c.alloc`.
 - Level cost: `5 × (L+1)^2.5 × size × edge`; size = `max(1, pop/1000)^0.5`; edge = −5% per level behind the world average (max −50%), +5% per level ahead (max ×3).
@@ -144,6 +152,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
   - The AI allocation is a fixed table by phase; it ignores costs and caps.
 
 ### 3.9 Identity: civilization, leader, land type, wonders
+- **Intent**: Each civilization, leader and land type pushes a play style, and no combination should dominate (bonuses add rather than multiply; values were simulated). Examples from the tables: Mountainous = defense, iron and research but poor food and expansion (turtle, tech); Plain = food, housing and expansion but weak defense (grow and settle fast); Volcanic = attack and research, poor wood; Farmer leader = food; Defender leader = keeps a big home guard. Wonders are prizes worth fighting for. *(comments + inferred)*
 - Civilizations, leaders and land types are multipliers on traits: attack, defense, food, wood, iron, science, growth, housing, explore. `computeMods`: `1 + traitWeight × Σ(bonus − 1)` (bonuses add). Defense, growth and housing apply at 40% because they compound.
 - Leaders also set AI personality: `mil` (chance of a militaristic persona) and `guard` (defense and research weights).
 - Islands/Oceanic land types only for states with ≥3% shore.
@@ -153,6 +162,7 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - Notes: any new trait or wonder must be checked against the compounding systems (population, defense, research). `traitWeight` is the balancing knob.
 
 ### 3.10 Troops
+- **Intent**: Two families with different roles. **Wood troops** (spear, archer, axe) are cheap and fragile (toughness 0.9–1.15): for states with plenty of people and fast growth that can afford heavy losses. **Iron troops** (pike, sword, cavalry) are expensive and tough (1.6–2, about 40% fewer people lost per battle): for states short on people or with slow growth. Within each family: archer and pike defend, axe attacks (glass cannon), spear and sword are all-round. Cavalry is the land-taker: strongest per person, holds 2 km² each, but needs iron and gold upkeep. The AI already follows this (it values a person more when births are slow and then leans to iron troops). *(inferred from the numbers and AI comments)*
 - Six types; each is one person taken from the peasants (at least 50 peasants stay).
 
   | Type | atk / def / tough | cost food/wood/iron/gold | upkeep food/gold | holds |
@@ -172,12 +182,14 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - Notes: elite troops are the only way to more strength per person, so wood/iron supply and prices gate army quality.
 
 ### 3.11 Generals
+- **Intent**: A scarce asset that grows with use. Mind (learning) is expensive but pays off over a long career; speed decides how much land a win can yield; lost battles hurt morale, so choosing battles matters. Needing a general per attack limits how many wars a state runs at once. *(inferred)*
 - Needed to attack; one idle general defends. Price `30 × 2.6^mind × (1 + speed/8) × (1 + (40 − age)/40)`.
 - Battle factor `(0.4 + skill·0.008) × (0.5 + morale/200)`: 0.4 fresh, up to 1.2. No defending general: 0.3.
 - Speed caps land taken per battle (`10 + speed·2.5` km²). Skill grows with battles and yearly training; morale drops after battles, recovers 10/year; retire at 62–76.
 - **Reads**: gold. **Writes**: battle strength, land taken.
 
 ### 3.12 Battle
+- **Intent**: Defending is easier: +15%, narrow passes and sea crossings, and ties go to the defender, so attacking needs a clear edge. Narrow wins take little land; crushing wins take a lot. Sending troops away leaves home open the same year, so timing and home guard are real trade-offs. Conquest captures people and grain but not the treasury. *(inferred)*
 - Attack strength = troops' attack × capped tech × M(attack) × wonder × general × luck (±15%).
 - Defense = guards' defense (troops not sent this year, split between attackers by their strength) × capped tech × M(defense) × wonder × general × 1.15 × (1 + front bonus) × luck. Front bonus: +40% on a border ≤ 3 km, fading to 0 at 15 km; +15% for sea-only fronts.
 - Losses: attacker `0.7 × strD/(strA+strD)` (×1.2 if it lost), defender `0.7 × strA/(strA+strD)`, each ÷ toughness. No guards: attacker loses 2%.
@@ -188,32 +200,38 @@ Each entry: **what it is · key rules · reads · writes · notes**.
 - **Writes**: land (→ capacity, production, shore, wonders), population on both sides, research cost (size), relations, general skill/morale, AI memory (`lastWar`, `lostRecent`, `sentShare`, `openTurn`).
 
 ### 3.13 Territory and map
+- **Intent**: Land is the prize. Unowned land at the start is a race; coasts are worth more (food). Collapsed states' land goes to whoever settles it first. *(inferred)*
 - Cells: water, unowned or owned; adjacency = 4-neighbours plus sea routes (world map). Allies never count as targets.
 - Settling: each state bordering unowned land claims `(5 + 2% of its land) × exploreMul` a year. Unowned land comes from the map start and from collapsed states.
 - Shore: land cells next to water → harvest bonus. Land type is fixed at start even if the coast is lost.
 - **Reads**: battles, collapses, explore research. **Writes**: capacity, production (shore), wonders, fronts, adjacency.
 
 ### 3.14 Relations
+- **Intent**: Aggression has memory and reaches beyond the victim: neighbours grow wary, allies hold solidarity, peace slowly builds trust. Revenge is understandable (a strike back counts half). The world should react to the player believably, not randomly. *(inferred from comments)*
 - How each state feels about each other one, as a sum of factors (−100..100): grievance (it attacked us), solidarity (it attacked our ally), wariness (it attacked our neighbour), fear (it is much bigger), trust (years of peace), common enemy. Each has its own build-up and fade (`rg*`, `rs*`, `rw*`, `rf*`, `rt*`, `re*`). A strike back within 5 years counts half.
 - **Reads**: battles, land sizes, adjacency, alliances.
 - **Writes**: AI threat estimate, army size, home guard, target choice, edge needed, revenge chances, protector attacks; player-facing labels, map view and warnings.
 - Notes: trust builds on every quiet border and makes the AI pickier; grudges can spiral (damped by revenge clearing grievance, floors and cooldowns).
 
 ### 3.15 Alliances
+- **Intent**: Team scenarios with clear, fixed sides. *(inferred)*
 - Fixed teams chosen at setup (by count or size, regional or scattered). Allies never attack each other and win together. Solidarity links allies' feelings. No forming or breaking during play.
 - Notes: states deep inside an alliance block can have no enemy neighbours and stay idle.
 
 ### 3.16 Balance of power (hegemon)
+- **Intent**: Stop a runaway winner, the player included: the world pushes back on whoever gets too big. *(from the comments)*
 - The largest state by land becomes the hegemon when its share passes `1.5/alive` (6–40%). Strength `k` grows with its lead.
 - AI only: the hegemon's neighbours keep bigger armies, prefer it as a target, need less edge, count a joint-attack bonus, and at k ≥ 0.5 ignore other armed targets.
 - Notes: measured by land only; the player as hegemon is the main brake on a runaway player.
 
 ### 3.17 Computer players (AI)
+- **Intent**: Play by the same rules as the player: no free resources (difficulty only scales research and how bold it is). Personalities differ so each world plays differently. The AI should use every lever the player has. *(inferred)*
 - Runs every system above for computer states: work split, market, generals, recruiting, defense, research allocation, attacks. Personality from the leader (`mil`, `guard`), a per-state random lean (`kk`), and difficulty (research ×0.8/1/1.15, earlier war phase, smaller attack edge needed `[1.7, 1.35, 1.2]`).
 - Attack decision: estimate the target's guard (with noise), apply relations, coalition and exposure, send enough to win by the edge and hold the land, keep a home guard. At most 2 attacks a year; a stalemate breaker makes it bolder after 5–25 idle years.
 - **Every new system needs an AI side.** If the AI ignores a lever the player has, the player gets a free edge and the world drifts away from the player's experience.
 
 ### 3.18 Setup and difficulty
+- **Intent**: Variety and replay value; difficulty mostly changes how bold and how fast-researching computer states are. *(inferred)*
 - `newGame` options: map (random with water/lakes/rivers, or world), number of states, land per state, wonders, alliances, weather systems on/off, random starting relations, observer, hot-seat humans, civ/leader/land picks. The UI then sets peace years, fog and difficulty.
 - Starting values: 800 peasants, 2600 grain, 300 gold, 150 wood, 60 iron, work 15/5/10, no troops or generals.
 
@@ -326,7 +344,7 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 This map is only useful if it matches the code. Update it in the same commit as the change.
 
 **When a new system is added:**
-- Add its own entry to section 3 (what it is, key rules and `R` values, reads, writes, notes).
+- Add its own entry to section 3 (intent, what it is, key rules and `R` values, reads, writes, notes).
 - Add it to every existing entry it reads from or writes to: their **Reads**/**Writes** lines must name it too, so each relationship is recorded on both sides.
 - Add a row and a column to the table in section 4.
 - Add it to the diagram in section 1 if it moves people, food, gold, goods or land.
@@ -335,9 +353,23 @@ This map is only useful if it matches the code. Update it in the same commit as 
 - Add an anchor to section 6 if it has a number worth watching, and re-run the simulation to refresh the existing ranges if they moved.
 
 **When an existing system changes** (a formula, an input, an output, when it runs, or what the AI does with it):
-- Update its entry in section 3.
+- Update its entry in section 3, including its intent if the change alters what the system is for (confirm with the designer first).
 - Check every system that lists it under **Reads** or **Writes**, and update those entries if the relationship changed (new link, removed link, or a link that got much stronger or weaker).
 - Update the strength marks in section 4, the yearly order in section 2 and the loops in section 5 where they are affected.
 - If balance moved, re-run the simulation and update section 6. Say in the commit why the new ranges are acceptable.
 
 **When a fragile spot is fixed**, remove it from section 9. When a new one is found, add it.
+
+## 11. Open design questions
+
+Intents the code can't answer. When one is decided, write the answer into the system's intent (marked *(your direction)*) and remove it here.
+
+1. **Troop roles**: confirm wood troops = cheap and fragile for populous, fast-growing states, and iron troops = elite and people-efficient for states short on people.
+2. **Victory**: should a peaceful research or economy strategy be able to win (or at least survive to the end), or is conquest the only path?
+3. **Weather**: should it reward states that keep big grain stores? Should a drought make computer states more likely to attack a fertile neighbour?
+4. **Alliances**: should they stay fixed, or form and break during play (relations could drive it)?
+5. **Conquest loot**: should a defeated or eliminated state's gold, wood and iron go to the winner instead of vanishing?
+6. **Balance of power**: should the hegemon be measured by land only, or by overall power (population, army, research)? Should alliances count as one bloc?
+7. **Difficulty**: should harder levels give computer states economic bonuses, or only smarter and bolder play?
+8. **Market**: should relations block trade later (hostile states can't buy from each other)? Is merchants paying 0.9× normal for grain the intended income level for farming states?
+9. **Research**: should computer states adapt their research to their situation (costs, caps, wonders, threats) instead of a fixed table?
