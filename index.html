@@ -3054,6 +3054,10 @@ function setWorkShare(c,k,pct){
   const w=c.work, lock=c.workLock||{}, others=WORK_KEYS.filter(x=>x!==k);
   pct=Math.max(0,Math.min(WORK_MAX,Math.round(+pct||0)));
   const cap=lock.farm?WORK_KEYS.reduce((s,x)=>s+(w[x]||0),0):WORK_TOTAL; // farmers locked: jobs only trade among themselves
+  if(lock.farm&&pct<(w[k]||0)){ // farmers locked: what this job gives up goes to the other unlocked jobs, or it can't go down
+    let d=(w[k]||0)-pct; const take=others.filter(x=>!lock[x]&&(w[x]||0)<WORK_MAX);
+    while(d>0&&take.length){ take.sort((a,b)=>(w[a]||0)-(w[b]||0)); const x=take[0]; w[x]=(w[x]||0)+1; d--; if(w[x]>=WORK_MAX) take.shift(); } // one point at a time to the smallest
+    w[k]=pct+d; return; }
   const free=cap-others.reduce((s,x)=>s+(w[x]||0),0);
   let need=pct-free;
   const give=others.filter(x=>!lock[x]).sort((a,b)=>(w[b]||0)-(w[a]||0));
@@ -3673,6 +3677,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Locked jobs stay locked","2026-11-10 22:15",["With farmers locked, lowering a job moves its share to the other unlocked jobs instead of to farmers","If no unlocked job can take it, the slider stops"]],
 ["Market buttons","2026-11-10 22:04",["Market switches show their full border on hover"]],
 ["Treasury outlook","2026-11-10 21:58",["Overview: grain and gold icons next to what you have in store","Money card says how many years your gold lasts when you spend more than you earn"]],
 ["Steadier work sliders","2026-11-10 21:47",["Work sliders no longer shift sideways while you drag them","Thin dark scrollbars everywhere"]],
