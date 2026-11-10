@@ -216,9 +216,9 @@ td.r,th.r{text-align:right}
 .rule small{display:block;color:var(--s-mut);font-size:12.5px}
 .alopts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:2px 0 8px 26px}
 .alopts select{width:auto!important}.alopts input{width:80px!important}
-.info{position:relative;background:none!important;border:0!important;padding:0 3px!important;color:var(--s-mut);font-size:14px;line-height:1;cursor:help}
+.info{position:relative;background:none!important;border:0!important;padding:0 3px!important;color:var(--s-mut,var(--mut));font-weight:400;font-size:14px;line-height:1;cursor:help}
 #infoTip{position:fixed;z-index:40;max-width:260px;background:#0d0e10;border:1px solid #3A3C42;border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.4;color:#ECEAE3;box-shadow:0 6px 18px #0009;pointer-events:none}
-.info:hover,.info:focus{color:var(--s-acc)}
+.info:hover,.info:focus{color:var(--s-acc,var(--acc))}
 .sfoot{display:flex;align-items:center;gap:10px}
 .modal.setup>.sfoot{margin:0;padding:14px 32px;border-top:1px solid var(--s-div)}
 /* hot-seat players list in the New game window */
@@ -286,7 +286,7 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .mhead{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px} .mhead .sm{margin-left:2px}
 .mtrade{display:grid;grid-template-columns:64px 1fr 1fr;gap:6px} .mtrade input{width:100%;box-sizing:border-box;text-align:right;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit;min-width:0}
 .mtrade button{white-space:nowrap;font-size:13px}
-.msplit{display:flex;min-width:0} .msplit>button:first-child{flex:1;min-width:0;border-radius:6px 0 0 6px;padding:5px 6px;font-weight:600} .msplit>.mmax{border-radius:0;border-left:0;padding:5px 7px;font-size:11px;color:var(--mut)} .msplit>.mmax:last-child{border-radius:0 6px 6px 0} .msplit>.mmax:hover{color:var(--txt)}
+.msplit{display:flex;min-width:0} .msplit>button:first-child{flex:1;min-width:0;border-radius:6px 0 0 6px;padding:5px 6px;font-weight:600} .msplit>button+button{margin-left:-1px} .msplit>button:hover,.msplit>button:focus-visible{position:relative;z-index:1} .msplit>.mmax{border-radius:0;padding:5px 7px;font-size:11px;color:var(--mut)} .msplit>.mmax:last-child{border-radius:0 6px 6px 0} .msplit>.mmax:hover{color:var(--txt)}
 .mprev{font-size:12px;color:var(--mut);text-align:center;white-space:nowrap;margin-top:-2px} .mprev b{font-weight:600}
 .mkfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px}
 .mlink{background:none;border:0;padding:0;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px} .mlink.good{color:var(--good)} .mlink.bad{color:var(--bad)}
@@ -1622,7 +1622,6 @@ const REL_YOU="#f0f0f0";
 function worldWx(g){ const A=g.countries.filter(c=>c.alive&&c.lastWx!=null); if(!A.length) return null;
   let w=0,n=0; for(const c of A){ const h=Math.max(1,c.lastHarvest||1)/c.lastWx; w+=h*c.lastWx; n+=h; } return w/n; }
 const wxPct=v=>{ const n=Math.round(Math.abs(v-1)*100); return n?(v>1?"+":"−")+n+"%":"normal"; };
-const wxWord=v=>Math.abs(v-1)<0.03?"normal weather":v>1?"good weather":"bad weather";
 // weather systems over a map cell, for the tooltip
 function wsTipLines(i){ if(i==null||!G.ws) return ""; const x=i%G.W, y=(i/G.W)|0;
   return G.ws.sys.filter(w=>Math.hypot(x-w.x,y-w.y)<w.r*1.5).map(w=>`<br><span style="color:${w.kind<0?"#e08a4a":"#6fd796"}">${wsName(w)} · year ${w.age+1} of ${w.life} · moving ${wsDir(w.ang)} · ${w.kind<0?"−":"+"}${Math.round(wsStr(w)*100)}% at its centre</span>`).join(""); }
@@ -2588,12 +2587,18 @@ const farmShare=c=>100-WORK_KEYS.reduce((s,k)=>s+(c.work[k]||0),0);
 function jobOut(c,k){ const wk=workers(c), pr=production(c);
   return {farm:`${fmt(wk.farm)} · +${fmt(foodProduction(c))} grain/yr`, wood:`${fmt(wk.wood)} · +${fmt(pr.wood)} wood/yr`, iron:`${fmt(wk.iron)} · +${fmt(pr.iron)} iron/yr`,
     sci:`${fmt(wk.sci)} · +${fmt(researchPoints(c))} research, −${fmt(wk.sci*R.sciWage)} 💰/yr`}[k]; }
+// grain store trend: harvest in, eating out, then spoilage; growing by how much, or how many years until it runs out
+function stockRow(st,net,row){ const sp=R.foodSpoil, nx=(st+net)*(1-sp), d=Math.round(nx-st), eq=sp>0?net*(1-sp)/sp:Infinity, pc=Math.round(sp*100);
+  if(net>=0) return d>=0?row("Stock",`+${fmt(d)}/yr`+info("Stock",`Your grain store grows by about ${fmt(d)} next year, after ${pc}% spoils.${isFinite(eq)?` It stops growing near ${fmt(Math.round(eq))}.`:""}`),"good")
+    :row("Stock",`−${fmt(-d)}/yr`+info("Stock",`More grain spoils than you add: your store shrinks toward about ${fmt(Math.round(eq))}, but never runs out.`),"");
+  let y=0, g=st; while(g+net>=0&&y<50){ g=(g+net)*(1-sp); y++; }
+  return row("Stock",(y?(y>=50?"lasts 50+ yrs":`lasts ${y} yr${y>1?"s":""}`):"runs out")+info("Stock",y?`You eat more than you grow: your grain store runs out in about ${y>=50?"50+":y} year${y>1?"s":""}, then famine.`:"You eat more than you grow and your store can't cover it: famine next year."),"bad"); }
 // the year ahead: grain and money in and out (redrawn while dragging a Work slider)
 function yearAhead(c){ const food=foodUse(c), prod=foodProduction(c), wk=workers(c), tax=taxIncome(c), sw=wk.sci*R.sciWage, cw=wages(c)-sw, net=tax-wages(c);
   const sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)), row=(l,v,cls,tip="")=>`<div class="yar"${tip?` title="${tip}"`:""}><span class="mut">${l}</span><b class="${cls}">${v}</b></div>`;
   const card=(icon,name,n,rows,foot)=>`<div class="yac"><div class="yah"><span>${icon} ${name}</span><b class="${n>=0?"good":"bad"}">${sg(n)}<span class="small mut">/yr</span></b></div>${rows}<div class="yaf"${icon==="🌾"?" title=\"10% of stored grain spoils each year\"":""}>${foot}</div></div>`;
   return `<div class="ya">
-  ${card("🌾","Grain",prod-food,row("Harvest",`+${fmt(prod)}`,"good",`${fmt(wk.farm)} farmers × ${(prod/Math.max(1,wk.farm)).toFixed(2)} grain each`)+(c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.03?row("Weather ahead",`${c.wxSys<1?"drought":"fertile spell"} ${wxPct(c.wxSys)}`,c.wxSys>1?"good":"bad","A weather system is over your lands: about this much change to your next harvest (see the Weather map)"):"")+(c.lastWx!=null?row("Last year",`${wxWord(c.lastWx)} ${wxPct(c.lastWx)}`,Math.abs(c.lastWx-1)<0.03?"":c.lastWx>1?"good":"bad","How weather changed last year's harvest"):"")+row("Eaten",`−${fmt(food)}`,"bad","1 per person, soldiers their troop's upkeep"),`In store <b>${fmt(c.grain)}</b> · spoils 10%/yr`)}
+  ${card("🌾","Grain",prod-food,row("Harvest",`+${fmt(prod)}`,"good",`${fmt(wk.farm)} farmers × ${(prod/Math.max(1,wk.farm)).toFixed(2)} grain each`)+(c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.03?row("Weather ahead",wxPct(c.wxSys)+info("Weather ahead",`A ${c.wxSys<1?"drought":"fertile spell"} is over your lands: expect your next harvest about ${Math.round(Math.abs(c.wxSys-1)*100)}% ${c.wxSys<1?"smaller":"bigger"} than usual. See the Weather map.`),c.wxSys>1?"good":"bad"):"")+(c.lastWx!=null?row("Last year",wxPct(c.lastWx)+info("Last year",Math.abs(c.lastWx-1)<0.03?"Normal weather: last year's harvest was about as usual.":`${c.lastWx>1?"Good":"Bad"} weather: last year's harvest was ${Math.round(Math.abs(c.lastWx-1)*100)}% ${c.lastWx>1?"bigger":"smaller"} than usual.`),Math.abs(c.lastWx-1)<0.03?"":c.lastWx>1?"good":"bad"):"")+row("Eaten",`−${fmt(food)}`,"bad","1 per person, soldiers their troop's upkeep")+stockRow(c.grain,prod-food,row),`In store <b>${fmt(c.grain)}</b> · spoils 10%/yr`)}
   ${card("💰","Money",net,row("Taxes",`+${fmt(tax)}`,"good")+row("Scientists",`−${fmt(sw)}`,"bad")+(cw>0?row("Cavalry",`−${fmt(cw)}`,"bad"):""),`In store <b>${fmt(c.money)}</b>`)}</div>
   <div class="note ${c.grain+prod>=food?'':'warn'}">${foodNote(c)}</div>
   ${net<0&&c.money+net<0?`<div class="note warn">You can't pay wages next year. Unpaid soldiers and scientists will leave. Sell grain or dismiss staff.</div>`:""}`; }
@@ -3365,6 +3370,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Clearer grain card","2026-11-10 17:52",["Grain card shows weather as just a percentage, with an ⓘ to explain it","New Stock row: how much your grain store grows per year, or how many years it lasts","ⓘ icons are grey again outside the New game window","Market Half and Max buttons light up on all four sides on hover"]],
 ["Weather clashes","2026-11-10 17:47",["When a drought and a fertile spell meet, the higher tier wins and the other ends","Equal tiers cancel each other out","Two Great Droughts now make an Age of Dust, two Golden Harvests an Age of Plenty","Year report tells you about every clash","New setting to turn clashes off"]],
 ["Weather stays strong","2026-11-09 22:57",["Weather systems no longer fade to nothing: they start and end at their level's lowest strength (12% ordinary, 16% Great, 21% when two Greats merged)","When a drought ends, harvests return to normal the next year","New setting: how far systems fade (0% brings back the old fade to nothing)"]],
 ["Fewer false famines","2026-11-09 22:50",["A state left with no peasants after a battle is conquered by the attacker","These states used to starve and show up as famine collapses, with their land left unowned"]],
