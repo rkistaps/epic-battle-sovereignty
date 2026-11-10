@@ -408,7 +408,7 @@ const R = {
   sciWage: 3.5,                    // wage per scientist per year (scientists are peasants set to research in Work)
   foodSpoil: 0.1,                  // share of stored grain that spoils each year
   famineDeath: 0.5,                // share of a food shortfall that dies of famine
-  popPerKm: 3, birthRate: 0.03, minPop: 20, // base capacity per km², base birth rate, a state below minPop collapses
+  popPerKm: 3, birthRate: 0.06, armyBirths: 0.5, minPop: 20, // base capacity per km², base birth rate, soldiers count half toward births, a state below minPop collapses
   priceMean: 1.1,                 // grain: normal price
   // world market: an order book per resource, with outside merchants behind it
   mkMerchSell: 2.5, mkMerchBuy: 0.5, mkMerchBuyG: 0.9, mkMerchMul: 2, // merchants sell at 2.5× normal or 2× the market price (whichever is more); they buy wood and iron at 0.5× normal, grain at 0.9×
@@ -432,7 +432,7 @@ const R = {
   // Early levels give the full per-level amount. Civilization, leader, land and wonder bonuses multiply on top, so totals can go higher. 0 = no cap
   sciMax: 1.5, agriMax: 2.5, finMax: 1.5, densMax: 2, growMax: 1, atkMax: 2.5, defMax: 2.5, woodMax: 2.5, ironMax: 2.5, exploreMax: 1,
   techEdgeMax: 3,                  // in battle, one side's attack/defense research counts at most 3× the other side's
-  sciPerLevel: 0.075, agriPerLevel: 0.045, finTaxPerLevel: 0.05, finPricePerLevel: 0.015, densPerLevel: 0.15, growPerLevel: 0.0006,
+  sciPerLevel: 0.075, agriPerLevel: 0.045, finTaxPerLevel: 0.05, finPricePerLevel: 0.015, densPerLevel: 0.15, growPerLevel: 0.0012,
   atkPerLevel: 0.06, defPerLevel: 0.06, woodPerLevel: 0.06, ironPerLevel: 0.06, explorePerLevel: 0.04,
   // battle
   defenderBonus: 0.15, battleLoss: 0.7, loserPenalty: 1.2, raidLoss: 0.02, battleLuck: 0.15, narrowWinShare: 0.25,
@@ -578,6 +578,8 @@ function wonderMul(c,a){ return c.wb&&c.wb[a] ? 1+(WONDERS[a]?.bonus??0.25) : 1;
 function wonderPct(a){ return Math.round((WONDERS[a]?.bonus??0.25)*100); }
 function popCap(c){ return Math.round(c.land*(R.popPerKm+R.densPerLevel*lvl(c,"dens"))*M(c,"capacity")*wonderMul(c,"dens")); }
 function growthRate(c){ return (R.birthRate+R.growPerLevel*lvl(c,"grow"))*M(c,"births")*wonderMul(c,"grow"); }
+// births this year: peasants and (at a share) soldiers have children, slowing as the state fills up; newborns are peasants
+function birthsOf(c,peasants=c.peasants,pop=popOf(c)){ return Math.round((peasants+R.armyBirths*c.soldiers)*growthRate(c)*(1-pop/popCap(c))); }
 // food per year: farmers × rate × Agriculture (+4.5%/level) × shore farmland × civilization/leader/land food bonus
 function foodPerFarmer(c){ return R.foodPerFarmer*(1+R.agriPerLevel*lvl(c,"agri"))*(1+shoreBonus(c))*M(c,"food")*wonderMul(c,"agri"); }
 function foodProduction(c){ return Math.round(workers(c).farm*foodPerFarmer(c)); }
@@ -2160,8 +2162,7 @@ function economy(g,c){
   }
   // growth
   if(!starving){
-    const cap=popCap(c), p=popOf(c);
-    const births=Math.round(c.peasants*growthRate(c)*(1-p/cap));
+    const births=birthsOf(c);
     c.peasants=Math.max(0,c.peasants+births); c.lastBirths=births;
   } else c.lastBirths=0;
   // research
@@ -2834,8 +2835,8 @@ function traitChips(mod){
   return parts.map(([k,v])=>`<span class="chip2 ${v>0?"good":"bad"}">${TRAITS[k]} ${v>0?"+":""}${v}%</span>`).join(" ")||'<span class="mut">no bonuses</span>';
 }
 // years until the population reaches 95% of capacity at today's birth rate (null = not growing)
-function yearsToFull(c){ const cap=popCap(c), rest=popOf(c)-c.peasants, r=growthRate(c); let P=c.peasants;
-  for(let y=0;y<500;y++){ const p=P+rest; if(p>=cap*0.95) return y; const b=Math.round(P*r*(1-p/cap)); if(b<=0) return null; P+=b; } return null; }
+function yearsToFull(c){ const cap=popCap(c), rest=popOf(c)-c.peasants; let P=c.peasants;
+  for(let y=0;y<500;y++){ const p=P+rest; if(p>=cap*0.95) return y; const b=birthsOf(c,P,p); if(b<=0) return null; P+=b; } return null; }
 const farmShare=c=>100-WORK_KEYS.reduce((s,k)=>s+(c.work[k]||0),0);
 // what each job produces now (shown under its name, updated while dragging)
 function jobOut(c,k){ const wk=workers(c), pr=production(c);
@@ -2872,7 +2873,7 @@ function pEconomy(){
   <h3>Population</h3>
   <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     ${card("People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
-    ${card("Growth",(()=>{ const n=Math.round(c.peasants*growthRate(c)*(1-pop/cap)); return `${n>=0?"+":""}${fmt(n)}<span class="small" style="color:var(--mut)">/yr</span>`; })(),yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
+    ${card("Growth",(()=>{ const n=birthsOf(c); return `${n>=0?"+":""}${fmt(n)}<span class="small" style="color:var(--mut)">/yr</span>`; })(),yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
     ${card("Peasants",fmt(c.peasants),`${fmt(c.soldiers)} soldiers`)}</div>
   <h3>Work</h3>
   <div class="wgrid">${job("farm","👨‍🌾 Farmers")}${job("wood","🌲 Woodcutters")}${job("iron","⛏️ Miners")}${job("sci","🔬 Scientists")}</div>
@@ -3520,7 +3521,7 @@ const LABEL_STYLES=[["atlas","Old atlas lettering + stats"],["classic","Classic 
 const SETTINGS_META=[
   ["Map",[["mapLabels","State names on the map (zoom in to see the style; small states keep classic text)","select"]]],
   ["Start",[["startPeasants","Starting peasants"],["startGrain","Starting grain"],["startMoney","Starting money"],["startWood","Starting wood"],["startIron","Starting iron"]]],
-  ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["minPop","A state below this population collapses"]]],
+  ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["armyBirths","Soldiers count toward births as this share of a peasant","%"],["minPop","A state below this population collapses"]]],
   ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Normal wood price"],["ironPrice","Normal iron price"],["priceMean","Normal grain price"]]],
   ["Weather systems (droughts and fertile spells)",[["wsPerStates","One system per this many starting states"],["wsMin","At least this many systems"],["wsMax","At most this many systems"],["wsLifeMin","Shortest life (years)"],["wsLifeMax","Longest life (years)"],["wsQuietMin","Shortest quiet gap before a new one (years)"],["wsQuietMax","Longest quiet gap (years)"],["wsRamp","Share of its life spent building up (and again fading)","%"],["wsRadMin","Smallest radius (state widths)"],["wsRadMax","Largest radius (state widths)"],["wsStrMin","Weakest: harvest change at the centre","%"],["wsStrMax","Strongest: harvest change at the centre","%"],["wsGood","Chance a new system is a fertile spell","%"],["wsDrift","Drift speed (state widths per year)"],["wsTurn","Largest change of direction per year (degrees)"],["wsMerge","Same kinds merge (Great Drought, Golden Harvest)","bool"],["wsMergeDist","Merge when centres are closer than (× radii combined)"],["wsMergeSize","Merged size (× the bigger one)"],["wsMergeStr","Merged strength (× the stronger one)"],["wsMergeLife","Merged: extra years of life"],["wsGreatMax","Two great ones meeting: strongest it can get","%"],["wsGreatLife","Two great ones meeting: extra years of life"],["wsClash","Opposite kinds clash: higher tier wins, equal tiers cancel out","bool"],["wsFloor","Systems build up from and fade down to: share of their lowest strength (0 = from and to nothing)","%"]]],
   ["World market & weather",[["mkMerchSell","Merchants sell at least at (× normal)"],["mkMerchMul","Merchants sell at least at (× market price)"],["mkMerchBuy","Merchants buy wood and iron at (× normal)"],["mkMerchBuyG","Merchants buy grain at (× normal)"],["mkSteep","Merchant sell price rise per world year sold (× 1 = +100%)"],["mkSteepB","Merchant buy price drop per world year bought"],["mkYears","Market price: average over years"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxRegionalOff","Small yearly weather patches: strength with weather systems off"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus offered per year","%"],["aiNeedK","AI: how strongly need moves the price it pays or asks"],["aiMargin","AI: how far its orders sit from what it thinks fair","%"]]],
@@ -3693,6 +3694,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Faster population growth","2026-11-10 22:57",["Soldiers now count half toward births","Base birth rate 3% → 6%","Birth rate research doubled to match","New setting for how much soldiers count"]],
 ["Roomier map labels","2026-11-10 23:50",["More space above and below the numbers on map labels"]],
 ["Population on the map","2026-11-10 23:35",["Map labels show a land icon and the population next to land size"]],
 ["Easier training","2026-11-10 22:44",["Half button next to Max when training troops","Train button stands out","Dismiss button is red and asks before sending troops home"]],
@@ -3765,7 +3767,7 @@ function helpModal(){
   <li>Everyone eats 1 grain a year, and people eat <i>before</i> the harvest. If seed plus food is more than your stock, people starve, soldiers first.</li>
   <li>Taxes and selling surplus grain are your income. Scientists cost ${R.sciWage}/yr and cavalry needs gold upkeep. If you can't pay, they quit.</li>
   <li><b>Shore farmland:</b> land touching water harvests more: +1% for every 1% of your land on the shore, up to +${R.shoreMax*100}%.</li>
-  <li>Population grows toward capacity (land × density). Pop. density and growth research raise it.</li></ul>
+  <li>Population grows toward capacity (land × density): births come from peasants, and soldiers count ${Math.round(R.armyBirths*100)}% as much. Growth slows as you fill up. Pop. density and growth research raise it.</li></ul>
   <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last. Big states pay more per level (cost × √(population ÷ ${fmt(R.sizeRef)})). Ideas spread: an area costs ${Math.round(R.catchUpPer*100)}% less per level you are behind the world average (at most −${Math.round(R.catchUpMax*100)}%) and ${Math.round(R.leadPer*100)}% more per level you are ahead (at most ×${R.leadMax}). Each area's research bonus has a max (e.g. +${Math.round(R.atkMax*100)}% attack, +${Math.round(R.sciMax*100)}% research): early levels give the full amount, later ones less and less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can take the total past it.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""}</li></ul>
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Overview tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li><li><b>World market:</b> grain, wood and iron each have an order book. Post an order to buy or sell at your own price for 1, 5, 10 or 50 years, or with no end: its gold or goods are held until it fills, runs out of time or you cancel it (grain held for sale spoils like any store). Or trade now with the best orders other states posted. Computer states price by need: a state short of grain pays more, one with plenty sells cheaper. Outside merchants always buy and sell, at poor prices that get worse the more they trade in a year; if states keep buying from them, their price climbs year after year until demand dies down. The market price is the average of the last few years' trades. Auto-sell puts your surplus grain up for sale at the market price each year.</li><li><b>Weather:</b> harvests can be up to 25% better or worse than usual. Droughts and fertile spells last 20–40 years and drift slowly across the map; when one ends, another starts elsewhere a few years later. Two droughts that meet become a Great Drought, two fertile spells a Golden Harvest; two of those meeting become an Age of Dust or an Age of Plenty, bigger, stronger (past the usual 25%) and longer-lived still. When a drought and a fertile spell meet, the higher tier wins and the other ends; equal tiers cancel each other out. Small random patches add a few percent either way each year. Turn on the Weather map to see them coming. Weather systems can be turned off in New game (More options → Rules).</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; you pick which troops go on each attack (War tab), the rest stay home and guard. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
