@@ -7,6 +7,12 @@
 <style>
 :root{--bg:#14161a;--panel:#1d2026;--panel2:#252931;--line:#353a44;--txt:#e7e9ee;--mut:#9aa1ad;--acc:#e0b354;--good:#5cc98a;--bad:#e96a5a;--info:#6aa9e9}
 *{box-sizing:border-box}
+/* thin dark scrollbars everywhere (side panel, modals, lists) */
+:root{color-scheme:dark}
+*{scrollbar-width:thin;scrollbar-color:#3d434e transparent}
+::-webkit-scrollbar{width:10px;height:10px} ::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#3d434e;border-radius:6px;border:2px solid transparent;background-clip:padding-box} ::-webkit-scrollbar-thumb:hover{background-color:#555c69}
+::-webkit-scrollbar-corner{background:transparent}
 body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 button{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
 button:hover{border-color:var(--acc)}
@@ -273,9 +279,11 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .tgrid{display:grid;grid-template-columns:90px 90px minmax(0,1fr);gap:6px 8px;align-items:center;margin:6px 0}
 .tgrid input[inputmode]{width:100%}
 .tbtns{display:flex;gap:4px;flex-wrap:wrap}
-.wgrid{display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin:6px 0}
+.wgrid{display:grid;grid-template-columns:minmax(120px,max-content) minmax(0,1fr) auto;gap:2px 10px;align-items:center;margin:6px 0}
+.wgrid .wlab{white-space:nowrap;grid-column:1}
 .wgrid .wkval{white-space:nowrap;text-align:right}
 .wout{display:block;font-size:11px;color:var(--mut);white-space:nowrap}
+.wgrid .wout{grid-column:1/3;margin:-4px 0 6px;overflow:hidden;text-overflow:ellipsis} /* its own row under the job, so changing numbers never move the sliders */
 .spark{display:block;width:100%;height:26px;margin:4px 0 2px} .spark .sp0{stroke:#535a66;stroke-dasharray:3 3;stroke-width:1}
 .mchart{display:block;width:100%;height:auto;margin:4px 0} .mchart text{fill:var(--mut);font-size:9px} .mchart .cg{stroke:#353a44;stroke-width:1} .mchart .cg1{stroke:#6b7280;stroke-dasharray:4 3;stroke-width:1}
 .mleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin:2px 0 8px} .mleg i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px}
@@ -2837,8 +2845,9 @@ function pEconomy(){
   const cap=popCap(c), pop=popOf(c), full=Math.min(100,Math.round(100*pop/cap)), yf=yearsToFull(c);
   const card=(l,v,sub)=>`<div class="stat"><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span></div>`;
   const job=(k,l)=>{ const fm=k==="farm", v=fm?farmShare(c):c.work[k]||0, lk=!!c.workLock?.[k];
-    return `<span>${l}<small class="wout" id="wo-${k}">${jobOut(c,k)}</small></span><input type="range" min="0" max="${fm?100:WORK_MAX}" value="${v}" data-work="${k}"${lk?" disabled":""}>
-      <span class="wkval"><input type="text" inputmode="numeric" maxlength="3" value="${v}" data-workpct="${k}" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-wlock="${k}" title="${lk?"Locked: changing other jobs won't change this one. Click to unlock":"Lock this share so changing other jobs leaves it alone"}">${lk?"🔒":"🔓"}</button></span>`; };
+    return `<span class="wlab">${l}</span><input type="range" min="0" max="${fm?100:WORK_MAX}" value="${v}" data-work="${k}"${lk?" disabled":""}>
+      <span class="wkval"><input type="text" inputmode="numeric" maxlength="3" value="${v}" data-workpct="${k}" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-wlock="${k}" title="${lk?"Locked: changing other jobs won't change this one. Click to unlock":"Lock this share so changing other jobs leaves it alone"}">${lk?"🔒":"🔓"}</button></span>
+      <small class="wout" id="wo-${k}">${jobOut(c,k)}</small>`; };
   return `
   ${traitName(c)?`<div class="gen"><b>🏛 ${esc(traitName(c))}</b><div style="margin-top:4px">${traitChips(c.mod)}</div></div>`:""}
   <h3>Population</h3>
@@ -3660,6 +3669,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Steadier work sliders","2026-11-10 21:47",["Work sliders no longer shift sideways while you drag them","Thin dark scrollbars everywhere"]],
 ["Stronger local weather without systems","2026-11-10 21:00",["With weather systems off, random yearly local weather is back to full strength","New setting for its strength"]],
 ["Even starts on the world map","2026-11-10 20:46",["World map: all states start within 50 km² of each other","Some land at the edges of big states starts unowned instead","New setting: World map: biggest minus smallest starting state"]],
 ["Order book market","2026-11-10 20:27",["Market tab: an order book for grain, wood and iron instead of one world stock","Post buy or sell orders at your own price for 1, 5, 10 or 50 years or with no end, or trade now with the best orders","Computer states price by need: short of grain, they pay more; plenty, they sell cheaper","Merchants always buy and sell, at poor prices that get worse the more they trade; in a long shortage their price keeps climbing","Your orders and what they hold are listed with a Cancel button; the year report says what filled","Computer states with a lasting surplus farm and dig less and put the hands into research","Auto-sell now puts your surplus up for sale at the market price","New market settings"]],
