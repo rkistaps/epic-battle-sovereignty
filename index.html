@@ -458,6 +458,9 @@ const R = {
   rvBold: 0.5, rvArmy: 0.15, rvAway: 0.5,              // a grudge: home guard as if bold up to 50%, army up to +15%; counts half of the troops the target sent out last year as still away
   // generals
   genCostBase: 30, genCostMind: 2.6, speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
+  moraleDefend: 5,                 // the defending general loses 5 morale a year instead of recovering (holding the border wears him down)
+  aiRestMorale: 70, aiRestCalm: 3, // AI: when nobody attacked it for 3 years, a defender below 70 morale (what it needs to attack) is rested
+  moraleWin: 8, moraleLoss: 25, moraleHeld: 5, moraleBroken: 5, // morale lost by an attacker that wins / loses; the defender gains 5 in a year he holds and loses 5 if broken through
   startGap: 50,                    // World map: biggest minus smallest starting state, at most (km²; 0 = off)
   coastalShore: 0.03,              // share of shore land that makes a state coastal (Islands/Oceanic land types)
   // wood & iron (epic-battle: 1.4 wood and 1 iron per worker; doubled here for this game's smaller populations)
@@ -1797,8 +1800,10 @@ function aiTurn(g,c){
     }
   }
   const busy=new Set(c.attacks.map(a=>a.gen));
+  // defender: the fittest idle general (skill × morale), so worn-out defenders rotate out to rest; nobody if even he'd do worse than no general
   const idle=c.generals.filter(x=>!busy.has(x.id)).sort((a,b)=>genFactor(b)-genFactor(a));
-  c.defGen=idle.length?idle[0].id:null;
+  const calm=(c.defTurn??-99)<t-R.aiRestCalm; // not attacked lately: a worn general rests to get back in shape for attacking
+  c.defGen=idle.length&&genFactor(idle[0])>R.genNoGeneral&&!(calm&&idle[0].morale<R.aiRestMorale)?idle[0].id:null;
   // research multiplier for difficulty stored on country
   c.eff=eff;
 }
@@ -1958,8 +1963,8 @@ function endTurn(g){
   for(const a of all){ a.strA=attackStrength(g,a); if(a.strA>0){ totStr[a.target]=(totStr[a.target]||0)+a.strA; nOn[a.target]=(nOn[a.target]||0)+1; } }
   for(const a of all) a.nOn=nOn[a.target]||0;
   for(const a of all) if(a.strA>0){ a.share=a.strA/totStr[a.target]; resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow); }
-  // the defending general: one morale hit for the whole year (big if any attacker broke through), skill from each battle
-  for(const id in defYear){ const y=defYear[id], dg=y.dg; dg.skill=Math.min(100,dg.skill+dg.mind*y.n); dg.morale=Math.max(0,dg.morale-(y.lost?20:5)); dg.battles+=y.n;
+  // the defending general: one morale change for the whole year (up if he held, down if any attacker broke through), skill from each battle
+  for(const id in defYear){ const y=defYear[id], dg=y.dg; dg.skill=Math.min(100,dg.skill+dg.mind*y.n); dg.morale=Math.max(0,Math.min(100,dg.morale+(y.lost?-R.moraleBroken:R.moraleHeld))); dg.battles+=y.n;
     for(const d of y.reps) if(d.gD){ d.gD[3]=Math.round(dg.skill); d.gD[5]=Math.round(dg.morale); } }
   C.forEach(c=>c.attacks=[]);
   // economy
@@ -2036,7 +2041,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   }
   const surv=troopCount(atkTr), landCalc=[speedCap(gen),R.armyLand*Math.sqrt(Math.max(0,surv)),exploreMul(A),decisive,Math.floor(holdUnits(atkTr)*R.occupy)];
   if(win) taken=Math.max(1,Math.min(conquest(gen,surv,decisive,A,holdUnits(atkTr)),D.land));
-  gen.skill=Math.min(100,gen.skill+gen.mind*1.5+(win?2:0)); gen.morale=Math.max(0,gen.morale-(win?8:25)); gen.battles++;
+  gen.skill=Math.min(100,gen.skill+gen.mind*1.5+(win?2:0)); gen.morale=Math.max(0,gen.morale-(win?R.moraleWin:R.moraleLoss)); gen.battles++;
   gA[3]=Math.round(gen.skill); gA[5]=Math.round(gen.morale);
   const det={tA:sentTr,lA:tArr(lossTrA),tD:defTr,lD:tArr(lossTrD),home:troopCount(guards[A.id]||{}),share:+(a.share||1).toFixed(3),nOn:a.nOn||1,
     gA,gD,sA:a.parts||null,sD:troopCount(gTr)>0?sDp:null,raw:[atkTech(A),defTech(D)],lv:[A.lv.atk||0,A.lv.explore||0,D.lv.def||0],land:[...landCalc,landD0,landA0],
@@ -2174,7 +2179,7 @@ function economy(g,c){
   }
   // generals
   for(const gen of c.generals.slice()){
-    gen.age++; gen.skill=Math.min(100,gen.skill+gen.mind*R.genTrainRate*(1-gen.skill/110)); gen.morale=Math.min(100,gen.morale+R.moraleRecovery);
+    gen.age++; gen.skill=Math.min(100,gen.skill+gen.mind*R.genTrainRate*(1-gen.skill/110)); gen.morale=c.defGen===gen.id?Math.max(0,gen.morale-R.moraleDefend):Math.min(100,gen.morale+R.moraleRecovery);
     if(gen.age>=gen.maxAge){ c.generals=c.generals.filter(x=>x!==gen); if(c.defGen===gen.id)c.defGen=null; L(`General ${gen.name} retired at age ${gen.age}.`); }
   }
   if(popOf(c)<R.minPop && c.alive){ eliminate(g,c,null); }
@@ -3160,14 +3165,14 @@ function pScience(){
 
 function genStatus(c,gen){
   const a=c.attacks.find(x=>x.gen===gen.id); if(a) return `<span class="bad">Attacking ${esc(G.countries[a.target].name)}</span>`;
-  if(c.defGen===gen.id) return `<span class="good">Defending</span>`; return `<span class="mut">Idle (training)</span>`;
+  if(c.defGen===gen.id) return `<span class="good" title="Holding the border costs ${R.moraleDefend} morale a year">Defending (−${R.moraleDefend} morale/yr)</span>`; return `<span class="mut" title="Resting generals regain ${R.moraleRecovery} morale a year">Idle (training, +${R.moraleRecovery} morale/yr)</span>`;
 }
 function pGenerals(){
   const c=me(); const s=UI.genForm||(UI.genForm={age:25,speed:60,mind:2});
   return `<h3>Your generals</h3>
   ${c.generals.length?c.generals.map(g=>`<div class="gen"><div class="row"><b>${esc(g.name)}</b><span class="grow"></span>${genStatus(c,g)}</div>
    <div class="small">Age ${g.age} (retires ~${g.maxAge}) · Speed ${g.speed} · Mind ${g.mind} · <b>Skill ${g.skill.toFixed(0)}</b> · Morale <span class="${g.morale<70?'bad':''}">${g.morale}</span> · Battles ${g.battles}</div>
-   <div class="row small"><button class="sm" data-defgen="${g.id}" ${c.defGen===g.id?"disabled":""}>Set as defender</button><button class="sm" data-dismiss="${g.id}">Dismiss</button></div></div>`).join("")
+   <div class="row small">${c.defGen===g.id?`<button class="sm" data-defgen="-1" title="Take him off the border to rest. Your guards fight without a general meanwhile.">Rest</button>`:`<button class="sm" data-defgen="${g.id}">Set as defender</button>`}<button class="sm" data-dismiss="${g.id}">Dismiss</button></div></div>`).join("")
    :`<div class="note">You have no generals. You can't attack without one, and your border guards fight at about a third of their strength with nobody in command.</div>`}
   <h3>Hire a general</h3>
   <div class="row">Age <input type="range" id="gAge" min="20" max="60" value="${s.age}"> <b id="gAgeV">${s.age}</b></div>
@@ -3528,7 +3533,7 @@ const SETTINGS_META=[
   ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["sizeRef","Level cost grows with size: population at ×1 (0 = off)"],["sizeExp","Level cost grows with size: exponent (× (pop ÷ that)^exponent)"],["catchUpPer","Catching up: cheaper per level behind the world average","%"],["catchUpMax","Catching up: at most this much cheaper","%"],["leadPer","Leading: dearer per level ahead of the world average","%"],["leadMax","Leading: at most this many times the cost (1 = off)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Expansion: land per battle and settling per level","%"],["sciMax","Max research bonus: Science (0 = no cap)","%"],["agriMax","Max research bonus: Agriculture","%"],["finMax","Max research bonus: Finance","%"],["densMax","Max research bonus: Pop. density (share of base capacity)","%"],["growMax","Max research bonus: Pop. growth (share of base birth rate)","%"],["atkMax","Max research bonus: Attack","%"],["defMax","Max research bonus: Defense","%"],["woodMax","Max research bonus: Forestry","%"],["ironMax","Max research bonus: Mining","%"],["exploreMax","Max research bonus: Expansion","%"]]],
   ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
-  ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year"]]],
+  ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
   ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["startGap","World map: biggest minus smallest starting state, at most (km², new games; 0 = off)"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
   ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepPop","Peasant reserve: share of population","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
@@ -3694,6 +3699,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Tired defenders","2026-11-10 23:16",["The defending general loses 5 morale a year instead of recovering","Rest button takes a defender off the border to recover","Generals list shows morale gained or lost per year","Defender gains 5 morale in a year he holds the border, loses 5 (was 20) if broken through","Computer states rotate tired defenders and rest them when calm","New settings for every morale gain and loss"]],
 ["Map switch fix","2026-11-10 23:05",["Map view buttons (States, Alliances, Relations, Weather) show their full border on hover"]],
 ["Faster population growth","2026-11-10 22:57",["Soldiers now count half toward births","Base birth rate 3% → 6%","Birth rate research doubled to match","New setting for how much soldiers count"]],
 ["Roomier map labels","2026-11-10 23:50",["More space above and below the numbers on map labels"]],
@@ -3789,7 +3795,8 @@ function helpModal(){
   <li>Don't be the biggest state or the weakest neighbor. Stay in the middle until your economy pulls ahead.</li>
   <li>Buy generals young and let them train for years. Move into Military research and buy an army around years 30–45.</li>
   <li>Finish what you start. A remnant state saves up, buys an army and strikes back.</li>
-  <li>Leaving a state's borders empty invites disaster. Always keep guards and a defending general.</li></ul>
+  <li>Leaving a state's borders empty invites disaster. Always keep guards and a defending general.</li>
+  <li><b>Morale:</b> generals regain ${R.moraleRecovery} a year, but the defending general loses ${R.moraleDefend} a year instead. Attacking costs ${R.moraleWin} on a win and ${R.moraleLoss} on a loss; a defender who holds the border gains ${R.moraleHeld}, and loses ${R.moraleBroken} if attackers break through. Rotate defenders so they can rest; the computer does.</li></ul>
   <div class="row"><button class="pri" data-a="close">Got it</button></div>`);
 }
 
@@ -4003,7 +4010,7 @@ document.addEventListener("click",async ev=>{
   if(d.atkpre){ UI.atkPreset=d.atkpre; UI.atkMix=null; if(d.atkpre!=="none") try{ localStorage.setItem("eb.atkPreset",d.atkpre); }catch{} render(); return; }
   if(d.atkset){ if(UI.atkMix){ UI.atkMix[d.atkset]=+d.n; UI.atkEdited=true; } const el=document.querySelector(`[data-atkmix="${d.atkset}"]`); if(el) el.value=d.n; refreshAtk(); return; }
   if(d.cancel!=null){ me().attacks.splice(+d.cancel,1); render(); return; }
-  if(d.defgen){ me().defGen=+d.defgen; render(); return; }
+  if(d.defgen){ me().defGen=+d.defgen<0?null:+d.defgen; render(); return; }
   if(d.dismiss){ act.dismissGeneral(G,me(),+d.dismiss); render(); return; }
   if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
   if(d.find){ if(!G||observing()) return; UI.tab="world"; UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
