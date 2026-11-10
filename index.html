@@ -18,6 +18,7 @@ button{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid v
 button:hover{border-color:var(--acc)}
 button.pri{background:var(--acc);color:#1a1a1a;border-color:var(--acc);font-weight:600}
 button.sm{padding:2px 7px;font-size:12px}
+button.danger{background:var(--bad);color:#fff;border-color:var(--bad);font-weight:600} button.danger:hover{filter:brightness(1.1)}
 button:disabled{opacity:.45;cursor:default}
 input[data-allocpct]:disabled{opacity:.6}
 input[inputmode],input[data-allocpct],#sName{width:80px;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit}
@@ -3056,7 +3057,8 @@ function pBarracks(){
     return `<tr class="${open?"":"mut"}"><td>${t.icon} <b>${t.name}</b>
         <div class="small mut" title="Strength per soldier with your bonuses · training cost · wage per year">atk ${(t.atk*atkPower(c)).toFixed(2)} · def ${(t.def*defPower(c)).toFixed(2)} · ${[["food","🌾"],["wood","🌲"],["iron","⛏️"],["gold","💰"]].filter(([r])=>t[r]>0).map(([r,i])=>t[r]+i).join(" ")} · upkeep ${t.upFood}🌾${t.upGold?` ${t.upGold}💰`:""}/yr${t.hold?` · holds ${t.hold} km²`:""}</div></td>
       <td class="r">${fmt(tr[t.id]||0)}</td>
-      <td style="white-space:nowrap">${open?`<input type="text" inputmode="numeric" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-max="${t.id}" data-n="${max}" title="Enter the most you can train now (${fmt(max)})">Max</button> <button class="sm" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`:""}</td></tr>`; }).join("")}
+      <td style="white-space:nowrap">${!open?"":UI.untrainAsk?.id===t.id?`<span class="bad" title="Send ${fmt(UI.untrainAsk.n)} ${esc(t.name)} back to being peasants">Dismiss ${fmt(UI.untrainAsk.n)}?</span> <button class="sm danger" data-untrainok="${t.id}">Yes</button> <button class="sm" data-untrainno="1">No</button>`
+        :`<input type="text" inputmode="numeric" id="trn-${t.id}" value="${Math.min(50,max)}" min="0" style="width:52px"> <button class="sm" data-max="${t.id}" data-n="${Math.floor(max/2)}" title="Enter half of the most you can train now (${fmt(Math.floor(max/2))})">Half</button> <button class="sm" data-max="${t.id}" data-n="${max}" title="Enter the most you can train now (${fmt(max)})">Max</button> <button class="sm pri" data-train="${t.id}" title="Up to ${fmt(max)} now">Train</button> <button class="sm danger" data-untrain="${t.id}" title="Dismiss back to peasants">✕</button>`}</td></tr>`; }).join("")}
   </table>
   <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, losses are divided by toughness: a troop with toughness 2 loses half as many as a Spearman. On the War tab you pick which troops go on each attack; the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
 }
@@ -3690,6 +3692,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Easier training","2026-11-10 22:44",["Half button next to Max when training troops","Train button stands out","Dismiss button is red and asks before sending troops home"]],
 ["All neighbors in the tooltip","2026-11-10 23:22",["The map tooltip lists every neighbor, not just the worst 8"]],
 ["Neighbor relations on the map","2026-11-10 23:05",["Hovering a state on the map shows how it feels about each neighbor and how each neighbor feels about it, worst first"]],
 ["Peace in the header","2026-11-10 22:40",["During peace time the header shows how many years of peace are left next to the year"]],
@@ -3972,11 +3975,14 @@ document.addEventListener("click",async ev=>{
   if(d.repmap!=null){ const id=+d.repmap; UI.repBack=null; closeModal(); UI.sel=id; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
-  if(d.tab){ UI.tab=d.tab; render(); return; }
+  if(d.tab){ UI.tab=d.tab; UI.untrainAsk=null; render(); return; }
   if(d.max){ const el=$("trn-"+d.max); if(el){ el.value=d.n; el.focus(); trainPreview(d.max); } return; }
+  if(d.untrainno){ UI.untrainAsk=null; render(); return; }
+  if(d.untrainok){ const a=UI.untrainAsk; UI.untrainAsk=null; if(a&&a.id===d.untrainok) act.fireTroop(G,me(),a.id,a.n); render(); return; }
   if(d.train||d.untrain){ const id=d.train||d.untrain, n=Math.max(0,Math.floor(+($("trn-"+id)?.value||0)));
+    UI.untrainAsk=null;
     if(d.train){ const got=act.hireTroop(G,me(),id,n); if(got<n) flash(got?`Trained ${got}: not enough resources or peasants for more.`:"Not enough resources or peasants."); }
-    else act.fireTroop(G,me(),id,n);
+    else { const k=Math.min(n,troopsOf(me())[id]||0,me().soldiers-committed(me())); if(k>0) UI.untrainAsk={id,n:k}; else flash("None to dismiss."); }
     render(); return; }
   if(d.wonder!=null){ const w=G.wonders[+d.wonder]; mainView.centerOnCell(w.cell, Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.pick!=null){ const v=+d.pick; UI.sel=v<0?null:v; render();
