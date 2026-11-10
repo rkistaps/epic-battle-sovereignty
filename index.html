@@ -443,6 +443,7 @@ const R = {
   rvBold: 0.5, rvArmy: 0.15, rvAway: 0.5,              // a grudge: home guard as if bold up to 50%, army up to +15%; counts half of the troops the target sent out last year as still away
   // generals
   genCostBase: 30, genCostMind: 2.6, speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
+  startGap: 50,                    // World map: biggest minus smallest starting state, at most (km²; 0 = off)
   coastalShore: 0.03,              // share of shore land that makes a state coastal (Islands/Oceanic land types)
   // wood & iron (epic-battle: 1.4 wood and 1 iron per worker; doubled here for this game's smaller populations)
   woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, startWood: 150, startIron: 60, // normal prices
@@ -882,6 +883,7 @@ function newGame(opts){
   for(let i=0;i<cells.length;i++) if(cells[i]===-3) cells[i]=-1;
   balanceStates(cells,W,H,counts);
   smoothStates(cells,W,H,counts);
+  if(preset==="world") bandStates(cells,W,H,counts,lk,R.startGap); // World: starting sizes within startGap km² of each other
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
   // more states than the fixed lists: invent names, spread extra colors by golden-ratio hue
   const used=new Set(names), SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"];
@@ -1163,10 +1165,10 @@ function carveRivers(m,W,H,target,unit,rnd){
 // Even out state sizes after growth: bigger states hand border cells to smaller neighbors.
 // A cell only moves if the giver stays in one piece (checked in its 3x3 window)
 // and the receiver already surrounds it on 3+ sides of 8, which keeps borders smooth.
-function balanceStates(cells,W,H,counts){
+function balanceStates(cells,W,H,counts,tMin){
   const N=W*H;
   let land=0; for(let i=0;i<N;i++) if(cells[i]>=0) land++;
-  const T=Math.max(2,Math.round(land/counts.length*0.04)); // ignore differences under ~4% (avoids endless small trades)
+  const T=tMin||Math.max(2,Math.round(land/counts.length*0.04)); // ignore differences under ~4% (avoids endless small trades)
   const at=(x,y)=>x<0||y<0||x>=W||y>=H?-9:cells[y*W+x];
   const isEdge=i=>{ const o=cells[i], x=i%W; return (x>0&&cells[i-1]>=0&&cells[i-1]!==o)||(x<W-1&&cells[i+1]>=0&&cells[i+1]!==o)||(i>=W&&cells[i-W]>=0&&cells[i-W]!==o)||(i+W<N&&cells[i+W]>=0&&cells[i+W]!==o); };
   // only cells on a border between two states can move; track just those
@@ -1203,6 +1205,69 @@ function balanceStates(cells,W,H,counts){
     if(!moved && wasFull) break;
     const full=!moved||pass%15===14;
     list=full?allEdges():next; wasFull=full;
+  }
+}
+// World map: every state starts within `gap` km² of the others (a band around the median size).
+// Too big: its farthest cells go to a smaller neighbor or become unowned (farthest first never splits it).
+// Too small: it claims unowned land next to it, then cells its neighbors can spare. Still too small (squeezed onto
+// too little land): its land is freed for its neighbors and it starts again in the biggest unowned pocket.
+function bandStates(cells,W,H,counts,lk,gap){
+  if(!(gap>0)) return;
+  const N=W*H, n=counts.length, dist=new Int32Array(N), q=new Int32Array(N);
+  const nbs=i=>{ const x=i%W,o=[]; if(x>0)o.push(i-1); if(x<W-1)o.push(i+1); if(i>=W)o.push(i-W); if(i+W<N)o.push(i+W); const L=lk.get(i); if(L) o.push(...L); return o; };
+  const at=(x,y)=>x<0||y<0||x>=W||y>=H?-9:cells[y*W+x];
+  const keepsWhole=(o,i)=>{ if(lk.get(i)?.some(j=>cells[j]===o)) return false;const x=i%W,y=(i/W)|0; // 3x3 test: o stays in one piece without cell i
+    const aN=at(x,y-1)===o,aE=at(x+1,y)===o,aS=at(x,y+1)===o,aW=at(x-1,y)===o,a4=aN+aE+aS+aW; if(!a4) return false;
+    const l=(aN&&aE&&at(x+1,y-1)===o)+(aE&&aS&&at(x+1,y+1)===o)+(aS&&aW&&at(x-1,y+1)===o)+(aW&&aN&&at(x-1,y-1)===o);
+    return a4-l===1||(a4===4&&l===4); };
+  const byState=()=>{ const by=Array.from({length:n},()=>[]); for(let i=0;i<N;i++) if(cells[i]>=0) by[cells[i]].push(i); return by; };
+  // cells of a set, farthest from its middle first (middle = the cell deepest inside it)
+  const outerFirst=(list,own)=>{ let h=0,t=0; for(const i of list){ dist[i]=-1; if(nbs(i).some(j=>!own(j))){ dist[i]=0; q[t++]=i; } }
+    let root=list[0]; while(h<t){ const i=q[h++]; root=i; for(const j of nbs(i)) if(own(j)&&dist[j]<0){ dist[j]=dist[i]+1; q[t++]=j; } }
+    for(const i of list) dist[i]=-1; h=0; t=0; dist[root]=0; q[t++]=root;
+    while(h<t){ const i=q[h++]; for(const j of nbs(i)) if(own(j)&&dist[j]<0){ dist[j]=dist[i]+1; q[t++]=j; } }
+    return list.slice().sort((a,b)=>(dist[b]<0?1e9:dist[b])-(dist[a]<0?1e9:dist[a])); };
+  // grow s over unowned land, nearest first, up to `to` cells
+  const claim=(s,from,to)=>{ let h=0,t=0; const got=[]; for(const i of from) q[t++]=i;
+    while(h<t&&counts[s]<to){ const i=q[h++]; for(const j of nbs(i)) if(cells[j]===-1&&counts[s]<to){ cells[j]=s; counts[s]++; q[t++]=j; got.push(j); } }
+    return got; };
+  for(let it=0;it<25;it++){
+    const med=counts.slice().sort((a,b)=>a-b)[n>>1], lo=Math.round(med-gap/2), hi=lo+gap, mid=Math.round(med);
+    if(Math.min(...counts)>=lo&&Math.max(...counts)<=hi) return;
+    let by=byState();
+    for(let s=0;s<n;s++) if(counts[s]>hi){ const ord=outerFirst(by[s],j=>cells[j]===s), m=ord.at(-1), mx=m%W, my=(m/W)|0;
+      const give=i=>{ let p=-1; for(const j of nbs(i)){ const o=cells[j]; if(o>=0&&o!==s&&counts[o]<hi&&(p<0||counts[o]<counts[p])) p=o; }
+        cells[i]=p; counts[s]--; if(p>=0) counts[p]++; };
+      // round: farthest in a straight line from the middle first, while it stays in one piece
+      const far=by[s].slice().sort((a,b)=>((b%W-mx)**2+(((b/W)|0)-my)**2)-((a%W-mx)**2+(((a/W)|0)-my)**2));
+      for(let grew=true;grew&&counts[s]>hi;){ grew=false;
+        for(const i of far){ if(counts[s]<=hi) break; if(cells[i]===s&&i!==m&&nbs(i).some(j=>cells[j]!==s)&&keepsWhole(s,i)){ give(i); grew=true; } } }
+      for(const i of ord){ if(counts[s]<=hi) break; if(cells[i]===s) give(i); } } // fallback: by walking distance (never splits it)
+    by=byState();
+    // unowned land goes to the smallest states next to it first, then land flows from bigger to smaller neighbors (also through chains)
+    for(const s of [...counts.keys()].sort((a,b)=>counts[a]-counts[b])) if(counts[s]<mid) claim(s,by[s],mid);
+    balanceStates(cells,W,H,counts,1);
+    by=byState();
+    for(let s=0;s<n;s++) if(counts[s]<lo){ let mine=by[s];
+      for(let pass=0;pass<60&&counts[s]<lo;pass++){ const got=[]; // then take cells its neighbors can spare (across sea routes too)
+        for(const k of mine){ if(cells[k]!==s) continue;
+          for(const i of nbs(k)){ if(counts[s]>=lo) break; const o=cells[i];
+            if(o<0||o===s||counts[o]<=lo||!keepsWhole(o,i)) continue; cells[i]=s; counts[o]--; counts[s]++; got.push(i); } }
+        if(!got.length) break; mine=mine.concat(got); } }
+    // still too small: move to the biggest unowned pocket, if it's bigger than what it has
+    const stuck=[...counts.keys()].filter(s=>counts[s]<lo).sort((a,b)=>counts[a]-counts[b]);
+    if(stuck.length){ const seen=new Uint8Array(N), pockets=[]; by=byState();
+      for(let i=0;i<N;i++){ if(cells[i]!==-1||seen[i]) continue; const comp=[i]; seen[i]=1;
+        for(let k=0;k<comp.length;k++) for(const j of nbs(comp[k])) if(cells[j]===-1&&!seen[j]){ seen[j]=1; comp.push(j); }
+        pockets.push(comp); }
+      pockets.sort((a,b)=>b.length-a.length);
+      for(const s of stuck){ const p=pockets[0]; if(!p||p.length<=counts[s]) break; pockets.shift();
+        for(const i of by[s]) if(cells[i]===s) cells[i]=-1;
+        const start=outerFirst(p,j=>cells[j]===-1).at(-1), sx=start%W, sy=(start/W)|0; cells[start]=s; counts[s]=1;
+        // grow round from the middle: nearest cells first, each touching land it already holds
+        const ord=p.slice().sort((a,b)=>((a%W-sx)**2+(((a/W)|0)-sy)**2)-((b%W-sx)**2+(((b/W)|0)-sy)**2));
+        for(let grew=true;grew&&counts[s]<mid;){ grew=false;
+          for(const i of ord){ if(counts[s]>=mid) break; if(cells[i]===-1&&nbs(i).some(j=>cells[j]===s)){ cells[i]=s; counts[s]++; grew=true; } } } } }
   }
 }
 // Remove 1-cell bumps and notches: a cell joins the neighbor state that holds 5+ of its
@@ -3430,7 +3495,7 @@ const SETTINGS_META=[
   ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year"]]],
-  ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
+  ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["startGap","World map: biggest minus smallest starting state, at most (km², new games; 0 = off)"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
   ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepPop","Peasant reserve: share of population","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
   ["Coalition (balance of power)",[["coalition","Coalitions on","bool"],["coalitionShare","A leader is a runaway above this × an average share"],["coalitionMin","…but at least this share of all land","%"],["coalitionMax","…and at most this share of all land","%"],["coalJoint","Joint-attack optimism per extra member"],["coalJointMax","Joint-attack optimism cap (×)"],["coalMargin","Lower attack margin against the leader","%"],["coalArm","Extra army share for members","%"]]],
@@ -3595,6 +3660,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Even starts on the world map","2026-11-10 20:46",["World map: all states start within 50 km² of each other","Some land at the edges of big states starts unowned instead","New setting: World map: biggest minus smallest starting state"]],
 ["Order book market","2026-11-10 20:27",["Market tab: an order book for grain, wood and iron instead of one world stock","Post buy or sell orders at your own price for 1, 5, 10 or 50 years or with no end, or trade now with the best orders","Computer states price by need: short of grain, they pay more; plenty, they sell cheaper","Merchants always buy and sell, at poor prices that get worse the more they trade; in a long shortage their price keeps climbing","Your orders and what they hold are listed with a Cancel button; the year report says what filled","Computer states with a lasting surplus farm and dig less and put the hands into research","Auto-sell now puts your surplus up for sale at the market price","New market settings"]],
 ["Calmer local weather","2026-11-10 19:48",["Random yearly local weather is about half as strong","Droughts and fertile spells now stand out clearly from it"]],
 ["Relations with reasons","2026-11-10 19:37",["Relations are now a sum of feelings: Grievance, Solidarity, Wariness, Fear, Trust and Common enemy","Hover a relation to see what it's made of","Striking back and winning clears most of a grievance","Fear of a big neighbor is capped and fades only if it shrinks, so size alone no longer makes neighbors furious","Computer states may take revenge, by chance, more likely when your army is away or you just lost","Wary neighbors may step in against a state that keeps attacking others","Computer states surrounded by angry neighbors keep more troops home and attack less","News tells you why a computer state attacked you","New Relations settings"]],
