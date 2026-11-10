@@ -412,16 +412,25 @@ const R = {
   // battle
   defenderBonus: 0.15, battleLoss: 0.7, loserPenalty: 1.2, raidLoss: 0.02, battleLuck: 0.15, narrowWinShare: 0.25,
   capturedPeasants: 0.8, lootGrain: 0.5,
-  // relations: each state's opinion of every other, −100 (hostile) .. +100 (friendly), 0 by default
-  relPeace: 2, relForgive: 0.08,                   // a neighbor that didn't attack you this year: +2, and 8% of any bad feeling fades
-  relHit: 20, relHitLand: 1, relHitFail: 15,       // attacked: −20 and −1 per 1% of your land taken; −15 if you held them off
-  relWitness: 3, relWitnessNear: 6,                // the attacker's other neighbors: −3 per attack, −6 if they border the victim too
-  relAlly: 10,                                     // the victim's alliance members: −10 toward the attacker
-  relJustified: 0.5, relJustYears: 5,              // striking back at someone who attacked you in the last 5 years: witness penalty ×0.5
-  relSize: 4, relSizeFrom: 1, relSizeMax: 10,      // a neighbor bigger than the average of its own neighbors: −4 per extra ×average, at most −10/yr
-  relFade: 0.15,                                   // feelings toward states you don't border fade 15% a year
-  relNoiseAmp: 10,                                 // random start (new-game option): each pair starts within ±10
-  relScore: 25, relFriendMargin: 0.5, relHateMargin: 0.1, relGuard: 0.4, // AI: target score −relation/25; margin up to +50% vs friends, −10% vs enemies; guard ±40% by relation
+  // relations: how each state feels about each other one, as a sum of factors (−100 hostile .. +100 friendly)
+  rgHit: 20, rgHitLand: 1, rgHitFail: 12, rgFade: 0.07,   // grievance (they attacked us): −20 and −1 per 1% of our land taken, −12 if we held them off; fades 7%/yr
+  rgRevWin: 0.5, rgRevLand: 0.02, rgRevMax: 0.9, rgRevFail: 0.15, // revenge: a winning strike back clears 50% (+2% per 1% of their land taken, at most 90%), a failed one 15%
+  rsHit: 12, rsHitLand: 0.5, rsMax: 60, rsFade: 0.1,     // solidarity (they attacked our ally): −12 and −0.5 per 1% of its land, at most −60; fades 10%/yr
+  rsRevWin: 0.7, rsRevAlly: 0.5,                         // our winning strike back clears 70%; the ally's own winning revenge clears 50%
+  rwHit: 3, rwNear: 6, rwMax: 40, rwFade: 0.15,          // wariness (they attacked our neighbor): −3, −6 if it borders us too, at most −40; fades 15%/yr while they attack nobody
+  rfFrom: 1.5, rfPer: 10, rfMax: 50, rfEase: 0.3,        // fear: −10 per extra × our size above 1.5×, at most −50; moves 30%/yr toward that
+  rtYear: 1, rtMax: 40, rtWipe: 0.8,                     // trust: +1 per year of peace on the border, at most +40; an attack wipes 80%
+  reFoe: 30, reEach: 10, reMax: 20,                      // common enemy: +10 per state we both hold a grudge of 30+ against, at most +20
+  relJustified: 0.5, relJustYears: 5,                    // striking back at someone who attacked you in the last 5 years: the victim and onlookers take it ×0.5
+  relFade: 0.15,                                         // feelings toward states you don't border fade 15% a year
+  relNoiseAmp: 10,                                       // random start (new-game option): each pair starts within ±10
+  relScore: 25, relGuard: 0.4,                           // AI: target priority from feelings ÷ 25 (grudges count ×1.5); guard ±40% by relation
+  rvGrievance: 0.35, rvSolidarity: 0.2, rvTrust: 0.5, rvCommon: 0.25, rvFear: 0.25, // AI: edge needed −35% at full grievance, −20% solidarity, +50% full trust, +25% common enemy, −25% fear (only when others are attacking them)
+  rvFloor: 0.9, rvFloorWar: 0.85,                        // grudges never make it attack below 0.9× the defender's strength (0.85× for warlike leaders)
+  rvChance: 0.15, rvChanceK: 0.6, rvChanceMax: 0.85, rvOpen: 0.25, rvCooldown: 3, // revenge only a grudge makes possible: 15% + 60% × grudge a year (at most 85%), +25% after they fought, lost or starved; 3 years off after a failed try
+  rvWary: 0.25, rvWaryChance: 0.5,                       // protector: full wariness of a neighbor that attacked someone last year: edge needed −25%, revenge-style chance as at half a grudge
+  rxShare: 0.5, rxGuard: 1, rxGuardMax: 0.8, rxEdge: 0.3, // exposure: angry neighbors could each send 50% of their army; guard against all of them together (at most 80% of the army); edge needed up to +30%
+  rvBold: 0.5, rvArmy: 0.15, rvAway: 0.5,              // a grudge: home guard as if bold up to 50%, army up to +15%; counts half of the troops the target sent out last year as still away
   // generals
   genCostBase: 30, genCostMind: 2.6, speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
   coastalShore: 0.03,              // share of shore land that makes a state coastal (Islands/Oceanic land types)
@@ -880,7 +889,7 @@ function newGame(opts){
       lv:zeroAreas(), rp:zeroAreas(),
       alloc:{...zeroAreas(),sci:35,agri:20,fin:15,dens:10,wood:10,iron:10},
       generals:[], attacks:[], defGen:null,
-      rel:{}, hitBy:{}, history:[counts[i]], lostRecent:[0,0,0], diedTurn:null, killer:null,
+      rf:{}, hitBy:{}, history:[counts[i]], lostRecent:[0,0,0], diedTurn:null, killer:null,
     });
   }
   // civilization + leader: random; leader shapes the computer's personality
@@ -1513,8 +1522,11 @@ function aiTurn(g,c){
   // army target
   const pop=popOf(c);
   let ratio = early ? (c.persona==="mil"?0.06:0.02) : (c.persona==="mil"?0.3:0.16)+Math.min(0.1,t/600);
-  const grudge=Math.max(0,...adj.map(j=>-relOf(g,c,j)))/100; // 0..1: how much we hate our worst neighbor
-  ratio += 0.15*grudge;
+  // feelings toward each neighbor, 0..1: grudge (grievance and solidarity: wants revenge), fear (they're much bigger)
+  const feel=adj.map(j=>{ const f=rfOf(g,c,j)||{}; return {j,gN:Math.min(1,-(f.g||0)/100),sN:Math.min(1,-(f.s||0)/R.rsMax),tN:Math.max(0,(f.t||0)/R.rtMax),fN:Math.min(1,Math.max(0,-(f.f||0)/R.rfMax)),eN:Math.max(0,(f.e||0)/R.reMax),f}; });
+  for(const q of feel) q.wN=Math.min(1,Math.max(0,-(q.f.w||0)/R.rwMax)); // wariness 0..1
+  const grudge=Math.max(0,...feel.map(q=>Math.min(1,q.gN+0.5*q.sN))), fearMax=Math.max(0,...feel.map(q=>q.fN));
+  ratio += R.rvArmy*grudge;
   const ck=coalitionK(g,c), nextToLeader=ck>0&&adj.includes(g.hegemon.id);
   if(nextToLeader&&!early) ratio+=R.coalArm*ck; // coalition members keep a bigger army
   let wantSol=Math.round(Math.max(pop*ratio, Math.min(threat*0.5/defPower(c), pop*0.2)));
@@ -1524,7 +1536,7 @@ function aiTurn(g,c){
   // defense: never sit nearly unarmed next to a strong neighbor (may dip into the peasant reserve, down to the lenient level)
   if(t>=4 && threat>0){
     // defense strength wanted, compared with the army's actual defense
-    const defWant=threat*R.aiDefense*(leaderOf(c)?.guard??1)*(1+0.5*grudge), have=armyDef(c);
+    const defWant=threat*R.aiDefense*(leaderOf(c)?.guard??1)*(1+0.5*fearMax), have=armyDef(c); // fear: guard harder
     if(have<defWant && c.soldiers<popOf(c)*0.4){
       const best=TROOPS.filter(t=>troopUnlocked(c,t.id)).sort((a,b)=>b.def-a.def)[0];
       const short=Math.min(Math.ceil(popOf(c)*0.4-c.soldiers), Math.ceil((defWant-have)/(defPower(c)*best.def))), room=c.peasants-aiPeasantFloor(c,false);
@@ -1545,10 +1557,20 @@ function aiTurn(g,c){
   // stalemate breaker: the longer without a fight (or the fewer states left), the bolder
   const idleYrs=t-Math.max(c.lastWar||0,g.peace||0), aliveN=g.countries.filter(x=>x.alive).length;
   const bold=Math.max(Math.min(1,Math.max(0,(idleYrs-R.idleStart)/(R.idleFull-R.idleStart))), aliveN<=3?0.5:0);
-  const thr=[1.7,1.35,1.2][d]*(c.persona==='mil'?0.9:1.05)*(t>90?0.85:1)*(t>140?0.85:1)*(1-0.35*bold);
+  // exposure: the attack of all neighbors likely to strike while our army is away (grudges in full, wariness half, trust cancels it)
+  // the state we attack is busy defending, so it doesn't count toward exposure against itself
+  const expoBy={}; let expo=0;
+  for(const j of adj){ const o=g.countries[j], f=rfOf(g,o,c.id)||{};
+    const w=Math.min(1,-(f.g||0)/100-0.7*(f.s||0)/R.rsMax-0.5*(f.w||0)/R.rwMax)*(1-Math.max(0,(f.t||0)/R.rtMax));
+    if(w>0){ expoBy[j]=w*troopSum(troopsOf(o),"atk")*clashPowers(o,c)[0]*R.rxShare; expo+=expoBy[j]; } }
+  const thr0=[1.7,1.35,1.2][d]*(c.persona==='mil'?0.9:1.05)*(t>90?0.85:1)*(t>140?0.85:1)*(1-0.35*bold);
+  const thrVs=j=>thr0*(1+R.rxEdge*Math.min(1,(expo-(expoBy[j]||0))/Math.max(1,armyDef(c)))); // more exposed: bigger edge needed
   let available=c.soldiers;
   // home guard: a share of the army, more next to a strong neighbor, but always leave 30% (50% when bold) free to attack
-  const minGuard=Math.round(Math.max(c.soldiers*(0.35-0.15*bold), Math.min(c.soldiers*(0.7-0.2*bold), threat*(0.5-0.2*bold)/defPower(c))));
+  const bg=Math.max(bold,R.rvBold*grudge); // a grudge sends more of the army out
+  const guard0=Math.max(c.soldiers*(0.35-0.15*bg), Math.min(c.soldiers*(0.7-0.2*bg), threat*(0.5-0.2*bg)/defPower(c)));
+  const guardVs=j=>Math.round(Math.max(guard0,Math.min(c.soldiers*R.rxGuardMax,(expo-(expoBy[j]??0))*R.rxGuard/defPower(c)))); // keep enough home to meet the other angry neighbors together
+  const minGuard=guardVs(-1);
   const gens=c.generals.filter(x=>x.morale>=70).sort((a,b)=>b.skill-a.skill);
   if(t>=milStart && gens.length && adj.length && !inPeace(g)){
     const sendable=Math.max(1,available-minGuard), sendMix=takeTroops({...troopsOf(c)},sendable,ATTACK_ORDER);
@@ -1557,8 +1579,15 @@ function aiTurn(g,c){
     const targets=adj.map(j=>{const o=g.countries[j], [pa,pd]=clashPowers(c,o);
       let theirStr=Math.max(1,troopSum(troopsOf(o),"def")*pd*1.15*(1+frontBonusAD(g,c.id,j))*genFactor(bestDefGen(o))*rr(g,0.8,1.2));
       if(g.hegemon&&j===g.hegemon.id&&ck>0) theirStr/=Math.min(R.coalJointMax,1+R.coalJoint*ck*Math.max(0,coalitionMembers(g)-1)); // joint attack: the others hit it too
-      const rel=relOf(g,c,j), relM=rel>0?1+R.relFriendMargin*rel/100:1-R.relHateMargin*(-rel)/100; // friends need a bigger edge, enemies a smaller one
-      return {j,o,theirStr,relM,ka:pa/atkPower(c),score:-rel/Math.max(1,R.relScore)+ (o.land<c.land?0.3:0)+ 1/(1+theirStr/Math.max(1,myPow))+R01(g)*0.5+(o.wb?Object.keys(o.wb).length*0.6:0)+coalitionScore(g,c,j)};
+      // edge needed: grudges lower it, trust and shared enemies raise it, fear lowers it only while others are attacking them too
+      const q=feel.find(x=>x.j===j), f=q.f;
+      const atWar=o.atkTurn===t-1, pN=atWar?q.wN:0; // protector: wary of a neighbor that keeps attacking others, strikes while it's at war
+      if(atWar&&q.gN+q.sN+q.wN>0) theirStr*=1-R.rvAway*(o.sentShare||0); // a grudge or wariness watches for its army being away
+      const gang=o.defTurn===t-1||!!(g.hegemon&&j===g.hegemon.id&&ck>0);
+      const relM=(1-R.rvGrievance*q.gN)*(1-R.rvSolidarity*q.sN)*(1-R.rvWary*pN)*(1+R.rvTrust*q.tN)*(1+R.rvCommon*q.eN)*(gang?1-R.rvFear*q.fN:1);
+      const vs=[["g",q.gN],["s",0.7*q.sN],["w",R.rvWaryChance*pN]].sort((a,b)=>b[1]-a[1])[0];
+      const pull=1.5*((f.g||0)+(f.s||0))+(f.w||0)+(gang?1:0.3)*(f.f||0)+(f.t||0)+(f.e||0)+relBase(g,c.id,j); // grudges pull hardest; fear only in a gang-up
+      return {j,o,theirStr,relM,v:vs[1],why:vs[0],open:o.openTurn===t-1,ka:pa/atkPower(c),score:-pull/Math.max(1,R.relScore)+ (o.land<c.land?0.3:0)+ 1/(1+theirStr/Math.max(1,myPow))+R01(g)*0.5+(o.wb?Object.keys(o.wb).length*0.6:0)+coalitionScore(g,c,j)};
     }).sort((a,b)=>b.score-a.score);
     let used=0;
     for(const tg of targets){
@@ -1566,15 +1595,22 @@ function aiTurn(g,c){
       if(nextToLeader&&ck>=0.5&&tg.j!==g.hegemon.id&&tg.o.soldiers>0) continue; // coalition: save the army for the leader
       const gen=gens[used];
       const myStrPer=myUnit*tg.ka*genFactor(gen);
-      const need=Math.ceil(tg.theirStr*thr*tg.relM*(g.hegemon&&tg.j===g.hegemon.id?1-R.coalMargin*coalitionK(g,c):1)/myStrPer);
-      const canSend=available-minGuard;
+      const coal=g.hegemon&&tg.j===g.hegemon.id?1-R.coalMargin*coalitionK(g,c):1, floor=c.persona==="mil"?R.rvFloorWar:R.rvFloor;
+      const thr=thrVs(tg.j), m=tg.relM<1?Math.min(thr,Math.max(floor,thr*tg.relM)):thr*tg.relM; // a grudge never pushes it below the floor
+      const need=Math.ceil(tg.theirStr*m*coal/myStrPer), canSend=available-guardVs(tg.j);
+      // an attack only a grudge makes possible is a choice, not a sure thing: a yearly chance, higher after they fought, lost or starved
+      const byFeel=need<=canSend&&need>0&&tg.v>0&&Math.ceil(tg.theirStr*thr*coal/myStrPer)>canSend;
+      if(byFeel){
+        if(!tg.open&&(c.rvCd?.[tg.j]??0)>t) continue; // still licking its wounds from a failed try
+        const p=Math.min(R.rvChanceMax,(R.rvChance+R.rvChanceK*tg.v)*(0.5+0.9*(leaderOf(c)?.mil??0.4))+(tg.open?R.rvOpen:0));
+        if(R01(g)>=p) continue; }
       // land this attack could take (general, army bonus and Expansion, no holding cap), never more than the target has
       const want=Math.min(tg.o.land,conquest(gen,canSend,1,c,Infinity));
       if(need<=canSend && need>0){
         const base=want/holdPer, lossF=Math.min(0.9,R.battleLoss*tg.theirStr/(tg.theirStr+myStrPer*base));
         const send=Math.min(canSend,Math.max(10,Math.ceil(need*1.15),Math.ceil(base/(1-lossF)))); // enough to win and to hold everything it can take
         if(send<10) continue;
-        c.attacks.push({target:tg.j,gen:gen.id,soldiers:send}); available-=send; used++;
+        c.attacks.push({target:tg.j,gen:gen.id,soldiers:send,...(byFeel?{why:tg.why}:{})}); available-=send; used++;
       } else if(tg.o.soldiers===0 && canSend>10){
         const raid=Math.min(canSend,Math.max(30,Math.ceil(want/holdPer/(1-R.raidLoss)))); c.attacks.push({target:tg.j,gen:gen.id,soldiers:raid}); available-=raid; used++;
       }
@@ -1606,7 +1642,11 @@ function coalitionScore(g,c,j){
   const H=g.hegemon.id; if(j===H) return 1+3*k;
   return adjacency(g)[H].has(j) ? -1.5*k : 0;
 }
-// ---------- relations: c.rel[j] = how c feels about j, −100 (hostile) .. +100 (friendly) ----------
+// ---------- relations: c.rf[j] = how c feels about j, as factors; the relation (−100 hostile .. +100 friendly) is their sum ----------
+// g grievance (j attacked c), s solidarity (j attacked c's ally), w wariness (j attacked c's neighbor), f fear (j is much bigger),
+// t trust (years of peace), e common enemy (both hold a grudge against the same state). Wrongs are settled by winning revenge;
+// fear follows size and wariness fades only while j attacks nobody.
+const RF_NAMES={g:"Grievance",s:"Solidarity",w:"Wariness",f:"Fear",t:"Trust",e:"Common enemy"};
 // starting value of a pair (the same both ways): 0, or within ±relNoiseAmp with the random-start option
 function relBase(g,a,b){
   if(!g.relNoise) return 0;
@@ -1614,8 +1654,17 @@ function relBase(g,a,b){
   h=Math.imul(h^h>>>16,0x45D9F3B)>>>0; h=Math.imul(h^h>>>16,0x45D9F3B)>>>0; h=(h^h>>>16)>>>0;
   return Math.round((h/4294967296*2-1)*R.relNoiseAmp);
 }
-function relOf(g,c,j){ const v=c.rel?.[j]; return v!=null?v:relBase(g,c.id,j); }
-function relAdd(g,c,j,d){ if(!c.rel) c.rel={}; c.rel[j]=Math.max(-100,Math.min(100,+(relOf(g,c,j)+d).toFixed(1))); }
+// older saves: one relation number per pair becomes grievance (bad) or trust (good)
+function migrateRel(g,c){ c.rf={}; for(const k in c.rel){ const v=c.rel[k]-relBase(g,c.id,+k); if(Math.abs(v)>=0.5) c.rf[k]=v<0?{g:Math.max(-100,v)}:{t:Math.min(R.rtMax,v)}; } delete c.rel; }
+function rfOf(g,c,j){ if(c.rel&&!c.rf) migrateRel(g,c); return c.rf?.[j]; }
+function rfGet(g,c,j){ if(c.rel&&!c.rf) migrateRel(g,c); const rf=c.rf||(c.rf={}); return rf[j]||(rf[j]={}); }
+function relOf(g,c,j){ const f=rfOf(g,c,j); let v=relBase(g,c.id,j); if(f) for(const k in f) v+=f[k]; return Math.max(-100,Math.min(100,v)); }
+function rfAdd(g,c,j,k,d,lo,hi){ const f=rfGet(g,c,j); f[k]=+Math.max(lo,Math.min(hi,(f[k]||0)+d)).toFixed(1); }
+function rfMul(g,c,j,k,m){ const f=rfOf(g,c,j); if(f&&f[k]) f[k]=+(f[k]*m).toFixed(1); }
+function rfTidy(f){ for(const x in f){ f[x]=+f[x].toFixed(1); if(Math.abs(f[x])<0.5) delete f[x]; } }
+// the factors as [name, value] pairs, biggest first (for tooltips)
+function relParts(g,c,j){ const f=rfOf(g,c,j)||{}, out=Object.keys(RF_NAMES).filter(k=>Math.round(f[k]||0)).map(k=>[RF_NAMES[k],Math.round(f[k])]), b=relBase(g,c.id,j);
+  if(b) out.push(["Starting mood",b]); return out.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])); }
 // relations map view: red (−100) → grey (0) → green (+100); your own state in white
 const REL_YOU="#f0f0f0";
 // all of last year's harvests together compared with normal (1 = normal), and a weather effect as text
@@ -1635,42 +1684,55 @@ function relFace(v){ return v>=20?"😊":v<=-20?"😠":"😐"; }
 function relLabel(v){ return v<=-80?"Furious":v<=-50?"Hostile":v<=-20?"Wary":v>=20?"Friendly":"Neutral"; }
 // older saves: attitude (0..100, 70 by default) and anger become one relation number
 function migrateRelations(g){
-  for(const c of g.countries){ if(!c.hitBy) c.hitBy={}; if(c.rel) continue; c.rel={};
-    for(const k of new Set([...Object.keys(c.attitude||{}),...Object.keys(c.anger||{})])){
-      const v=((c.attitude?.[k]??70)-70)*1.5-(c.anger?.[k]||0)*10; if(Math.abs(v)>=0.5) c.rel[k]=Math.max(-100,Math.min(100,Math.round(v))); }
-    delete c.attitude; delete c.anger; }
+  for(const c of g.countries){ if(!c.hitBy) c.hitBy={};
+    if(!c.rel&&!c.rf){ c.rel={};
+      for(const k of new Set([...Object.keys(c.attitude||{}),...Object.keys(c.anger||{})])){
+        const v=((c.attitude?.[k]??70)-70)*1.5-(c.anger?.[k]||0)*10; if(Math.abs(v)>=0.5) c.rel[k]=Math.max(-100,Math.min(100,Math.round(v))); }
+      delete c.attitude; delete c.anger; }
+    if(c.rel&&!c.rf) migrateRel(g,c); }
 }
-// an attack: the victim, its alliance and the attacker's other neighbors think worse of the attacker
+// an attack: the attacker settles its own score with the victim (revenge), the victim holds a grievance and loses its trust,
+// the victim's alliance feels solidarity, and the attacker's other neighbors grow wary
 function relOnAttack(g,A,D,taken,win,adjNow){
-  const C=g.countries, adj=adjNow||adjacency(g), landPct=taken>0?100*taken/Math.max(1,D.land+taken):0; // D.land is already reduced
-  relAdd(g,D,A.id,-(taken>0||win?R.relHit+R.relHitLand*landPct:R.relHitFail));
-  const justified=(A.hitBy?.[D.id]??-1e9)>=g.turn-R.relJustYears, wm=justified?R.relJustified:1; // revenge isn't seen as aggression
-  const done=new Set([A.id,D.id]), out={allies:0,near:0,far:0,wm}; // who reacted, for the battle report
-  if(g.teams&&D.team!=null) for(const o of C) if(o.alive&&!done.has(o.id)&&o.team===D.team){ relAdd(g,o,A.id,-R.relAlly); done.add(o.id); out.allies++; }
+  const C=g.countries, adj=adjNow||adjacency(g), T=g.turn, landPct=taken>0?100*taken/Math.max(1,D.land+taken):0; // D.land is already reduced
+  const justified=(A.hitBy?.[D.id]??-1e9)>=T-R.relJustYears, wm=justified?R.relJustified:1; // striking back isn't seen as aggression
+  const out={allies:0,near:0,far:0,wm,g0:0,g1:0,sol:0};
+  const fa=rfOf(g,A,D.id); out.g0=Math.round(fa?.g||0);
+  if(fa){ if(fa.g) fa.g=+(fa.g*(win?1-Math.min(R.rgRevMax,R.rgRevWin+R.rgRevLand*landPct):1-R.rgRevFail)).toFixed(1);
+    if(fa.s) fa.s=+(fa.s*(win?1-R.rsRevWin:1-R.rgRevFail)).toFixed(1); }
+  out.g1=Math.round(fa?.g||0);
+  if(win&&g.teams&&A.team!=null) for(const o of C) if(o.alive&&o.id!==A.id&&o.team===A.team) rfMul(g,o,D.id,"s",1-R.rsRevAlly); // justice done for its allies too
+  rfAdd(g,D,A.id,"g",-(taken>0||win?R.rgHit+R.rgHitLand*landPct:R.rgHitFail)*wm,-100,0); rfMul(g,D,A.id,"t",1-R.rtWipe);
+  const done=new Set([A.id,D.id]);
+  if(g.teams&&D.team!=null){ const sv=+((R.rsHit+R.rsHitLand*landPct)*wm).toFixed(1); out.sol=sv;
+    for(const o of C) if(o.alive&&!done.has(o.id)&&o.team===D.team){ rfAdd(g,o,A.id,"s",-sv,-R.rsMax,0); done.add(o.id); out.allies++; } }
   for(const j of adj[A.id]){ const o=C[j]; if(done.has(j)||!o.alive||allied(g,j,A.id)) continue;
-    const nr=adj[D.id].has(j); relAdd(g,o,A.id,-(nr?R.relWitnessNear:R.relWitness)*wm); if(nr) out.near++; else out.far++; }
-  (D.hitBy||(D.hitBy={}))[A.id]=g.turn;
+    const nr=adj[D.id].has(j); rfAdd(g,o,A.id,"w",-(nr?R.rwNear:R.rwHit)*wm,-R.rwMax,0); if(nr) out.near++; else out.far++; }
+  (D.hitBy||(D.hitBy={}))[A.id]=T; A.atkTurn=T; D.defTurn=T; A.openTurn=T; if(win) D.openTurn=T; // a state that fought or lost is open to revenge next year
+  if(!win&&out.g0<=-10) (A.rvCd||(A.rvCd={}))[D.id]=T+R.rvCooldown;
   return out;
 }
-// once a year, after the battles: peace slowly builds trust, a big neighbor is a threat, far-away feelings fade
+// once a year, after the battles: grudges fade, fear follows size, peace builds trust, shared enemies bond, far-away feelings fade
 function relYear(g){
-  const C=g.countries, adj=adjacency(g), ratio={};
-  for(const c of C){ if(!c.alive) continue; let s=0,n=0; for(const j of adj[c.id]) if(C[j].alive){ s+=C[j].land; n++; } ratio[c.id]=n?c.land/Math.max(1,s/n):1; }
+  const C=g.countries, adj=adjacency(g), T=g.turn;
+  const foes=C.map(c=>{ const s=new Set(); if(c.alive&&c.rf) for(const k in c.rf){ const f=c.rf[k]; if((f.g||0)+(f.s||0)<=-R.reFoe) s.add(+k); } return s; });
   for(const c of C){
-    if(!c.alive){ c.rel={}; c.hitBy={}; continue; }
-    if(!c.rel) c.rel={}; if(!c.hitBy) c.hitBy={};
+    if(!c.alive){ c.rf={}; c.hitBy={}; c.rvCd={}; continue; }
+    if(c.rel&&!c.rf) migrateRel(g,c); if(!c.rf) c.rf={}; if(!c.hitBy) c.hitBy={};
     const nb=adj[c.id];
-    for(const j of nb){ if(!C[j].alive) continue;
-      let v=relOf(g,c,j);
-      if(c.hitBy[j]!==g.turn){ v+=R.relPeace; if(v<0) v*=1-R.relForgive; }
-      if(!allied(g,c.id,j)) v-=Math.min(R.relSizeMax,R.relSize*Math.max(0,ratio[j]-R.relSizeFrom));
-      c.rel[j]=Math.max(-100,Math.min(100,+v.toFixed(1)));
-    }
-    for(const k in c.rel){ const o=C[k]; if(nb.has(+k)&&o?.alive) continue;
-      if(!o?.alive){ delete c.rel[k]; continue; }
-      const b=relBase(g,c.id,+k), v=b+(c.rel[k]-b)*(1-R.relFade);
-      if(Math.abs(v-b)<0.5) delete c.rel[k]; else c.rel[k]=+v.toFixed(1); }
-    for(const k in c.hitBy) if(c.hitBy[k]<g.turn-R.relJustYears||!C[k]?.alive) delete c.hitBy[k];
+    for(const j of nb){ const o=C[j]; if(!o.alive) continue; const f=rfGet(g,c,j);
+      if(f.g) f.g*=1-R.rgFade; if(f.s) f.s*=1-R.rsFade;
+      if(f.w&&o.atkTurn!==T) f.w*=1-R.rwFade; // wariness fades only in years they attacked nobody
+      const ft=allied(g,c.id,j)?0:-Math.min(R.rfMax,R.rfPer*Math.max(0,o.land/Math.max(1,c.land)-R.rfFrom));
+      f.f=(f.f||0)+(ft-(f.f||0))*R.rfEase;
+      if(c.hitBy[j]!==T&&o.hitBy?.[c.id]!==T) f.t=Math.min(R.rtMax,(f.t||0)+R.rtYear);
+      let sh=0; for(const k of foes[c.id]) if(k!==j&&foes[j].has(k)) sh++; f.e=Math.min(R.reMax,sh*R.reEach);
+      rfTidy(f); if(!Object.keys(f).length) delete c.rf[j]; }
+    for(const k in c.rf){ const o=C[k]; if(nb.has(+k)&&o?.alive) continue;
+      if(!o?.alive){ delete c.rf[k]; continue; }
+      const f=c.rf[k]; for(const x in f) f[x]*=1-R.relFade; delete f.e; rfTidy(f); if(!Object.keys(f).length) delete c.rf[k]; }
+    for(const k in c.hitBy) if(c.hitBy[k]<T-R.relJustYears||!C[k]?.alive) delete c.hitBy[k];
+    if(c.rvCd) for(const k in c.rvCd) if(c.rvCd[k]<=T) delete c.rvCd[k];
   }
 }
 function projectedNet(g,c){
@@ -1700,7 +1762,7 @@ function endTurn(g){
     c.attacks=c.attacks.filter(a=>C[a.target].alive && c.generals.some(x=>x.id===a.gen) && adjNow[c.id].has(a.target) && !allied(g,c.id,a.target));
     const pool={...troopsOf(c)}; let tot=0;
     c.attacks.forEach(a=>{ a.troops=a.mix?takeMix(pool,a.mix):takeTroops(pool,Math.max(0,Math.min(a.soldiers,c.soldiers-tot)),ATTACK_ORDER); a.soldiers=troopCount(a.troops); tot+=a.soldiers; });
-    c.attacks=c.attacks.filter(a=>a.soldiers>0);
+    c.attacks=c.attacks.filter(a=>a.soldiers>0); c.sentShare=c.soldiers>0?tot/c.soldiers:0;
     guards[c.id]=pool; // troops left home defend
     const busy=new Set(c.attacks.map(a=>a.gen));
     let dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
@@ -1812,7 +1874,12 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
     transferCells(g,A.id,D.id,taken,frontier);
     D.lostThis+=taken;
   }
-  const rel0=relOf(g,D,A.id), rw=relOnAttack(g,A,D,taken,win,adjNow); // the victim, its allies and the attacker's neighbors think worse of the attacker
+  const rel0=relOf(g,D,A.id), gr0=rfOf(g,D,A.id)?.g||0, rw=relOnAttack(g,A,D,taken,win,adjNow); // revenge settles the attacker's score; the victim, its allies and the attacker's neighbors think worse of it
+  { const gr1=rfOf(g,D,A.id)?.g||0;
+    if(!A.ai&&D.ai&&gr1<=-50&&gr0>-50) note(g,A.id,`⚠ ${D.name} wants revenge for your attack (grievance ${Math.round(gr1)}).`);
+    if(a.why&&!D.ai) note(g,D.id,a.why==="w"?`⚔ ${A.name} attacked you to stop your wars on its neighbors${win?"":", and was held off"}.`:a.why==="s"?`⚔ ${A.name} attacked you to avenge its ally${win?"":", and was held off"}.`:`⚔ ${A.name} attacked you for revenge${win?"":", and was held off"}.`);
+    if(a.why&&!win) (A.rvCd||(A.rvCd={}))[D.id]=g.turn+R.rvCooldown;
+    if(A.ai&&!D.ai&&win&&rw.g0<=-10) note(g,D.id,`↩ ${A.name} took its revenge on you: its grievance fell from ${rw.g0} to ${rw.g1}.`); }
   const rec={turn:g.turn,att:A.id,def:D.id,sent:sA,guards:gd,lossA,lossD,taken,win,gen:gen.name,defGen:dg?dg.name:null,elim:false,front:frontier.length,fb,sea,d:det};
   // conquered: no land left, too few people, or no peasants left to farm (soldiers alone would only starve)
   if(D.land<=0 || popOf(D)<R.minPop || D.peasants<R.minPop){
@@ -1822,7 +1889,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
     elimPeas=Math.round(D.peasants*0.5); A.peasants+=elimPeas;
     eliminate(g,D,A); rec.elim=true;
   }
-  det.aft=[movedPeas,capturedR,sciLostR,grainR,Math.round(rel0),Math.round(relOf(g,D,A.id)),rw.allies,rw.near,rw.far,+rw.wm.toFixed(2),elimPeas];
+  det.aft=[movedPeas,capturedR,sciLostR,grainR,Math.round(rel0),Math.round(relOf(g,D,A.id)),rw.allies,rw.near,rw.far,+rw.wm.toFixed(2),elimPeas,rw.g0,rw.g1,rw.sol];
   A.lastWar=D.lastWar=g.turn;
   g.battles.push(rec);
 }
@@ -1891,7 +1958,7 @@ function economy(g,c){
   const pop=popOf(c), eat=foodUse(c); let starving=false;
   if(c.grain>=eat){ c.grain-=eat; }
   else {
-    const deficit=eat-c.grain; c.grain=0; starving=true;
+    const deficit=eat-c.grain; c.grain=0; starving=true; c.openTurn=g.turn;
     const deaths=Math.min(pop-1,Math.round(deficit*R.famineDeath));
     const w=c.soldiers*1.5+c.sci+c.peasants;
     const dS=Math.min(c.soldiers,Math.round(deaths*c.soldiers*1.5/w)), dK=Math.min(c.sci,Math.round(deaths*c.sci/w));
@@ -2476,7 +2543,7 @@ const mainView=new MapView($("map"),{
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
     if(w&&wo>=0&&isKnown(wo)){ tip.innerHTML=`<b>${WONDERS[w.area].icon} ${WONDERS[w.area].name}</b><br>+${wonderPct(w.area)}% ${WONDER_EFFECT[w.area]} for its holder<br><span class="mut">Held by</span> ${esc(G.countries[wo].name)}${wo===G.player?" (you)":""}`;
       placeTip(tip,ev); return; }
-    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${UI.wxView&&c.lastWx!=null?`<br><span style="color:${wxColor(c.lastWx)}">Last harvest ${c.lastWx>=1?"+":"−"}${Math.round(Math.abs(c.lastWx-1)*100)}% (weather)</span>`:""}${UI.wxView&&c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.02?`<br><span style="color:${wxColor(c.wxSys)}">Next harvest: about ${wxPct(c.wxSys)} from weather systems</span>`:""}${UI.wxView?wsTipLines(mainView.lastIdx):""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}`:`<span class="mut">Unexplored land</span>`;
+    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${UI.wxView&&c.lastWx!=null?`<br><span style="color:${wxColor(c.lastWx)}">Last harvest ${c.lastWx>=1?"+":"−"}${Math.round(Math.abs(c.lastWx-1)*100)}% (weather)</span>`:""}${UI.wxView&&c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.02?`<br><span style="color:${wxColor(c.wxSys)}">Next harvest: about ${wxPct(c.wxSys)} from weather systems</span>`:""}${UI.wxView?wsTipLines(mainView.lastIdx):""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}`:`<span class="mut">Unexplored land</span>`;
     placeTip(tip,ev); },
 });
 
@@ -2868,12 +2935,13 @@ function pWar(){
   <h3>Neighbors</h3>
   ${nb.length?`<table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th class="r" title="Length of your shared border. Narrow borders give the defender a bonus.">Border</th><th></th></tr>
   ${nb.map(j=>{const o=G.countries[j];
-   return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${G.hegemon&&G.hegemon.id===j?' <span class="acc" title="Leading state: the coalition is fighting it">⚖</span>':''}</td><td class="r">${fmt(o.land)}</td><td class="r">${fmt(popOf(o))}</td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id))}</td><td class="r" style="white-space:nowrap">${frontCell(c.id,j)}</td><td><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
+   return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${G.hegemon&&G.hegemon.id===j?' <span class="acc" title="Leading state: the coalition is fighting it">⚖</span>':''}</td><td class="r">${fmt(o.land)}</td><td class="r">${fmt(popOf(o))}</td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id),relTip(G,o,c.id))}</td><td class="r" style="white-space:nowrap">${frontCell(c.id,j)}</td><td><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
   ${UI.attackTarget!=null && nb.includes(UI.attackTarget) ? (inPeace(G)?`<div class="note">Peace time: no attacks until year ${G.peace+1}.</div>`:attackForm(c,UI.attackTarget,idle)):""}
   <div class="small mut" style="margin-top:8px">Battles resolve at year end, all at once. Soldiers you send don't guard your own borders that year. If several armies attack the same state, its guards are split between them by attack strength, so joint attacks fight at their combined odds (each still wins or loses on its own). Win and you take land: (your general's speed limit + an army bonus that grows with your surviving soldiers) × how decisive the win was, from 25% for a narrow win to 100% at twice their strength. Relations = how they feel about you (−100 hostile … +100 friendly). Computer states attack those they dislike first.</div>`;
 }
 // a relation value with its label, colored: red when hostile, green when friendly
-function relCell(v){ const r=Math.round(v); return `<span class="${r<=-50?"bad":r>=20?"good":r<=-20?"acc":""}" style="white-space:nowrap" title="${relLabel(r)}">${r>0?"+":""}${r} <span class="small">${relLabel(r)}</span></span>`; }
+function relTip(g,c,j){ const p=relParts(g,c,j); return p.length?p.map(([n,v])=>`${n} ${v>0?"+":""}${v}`).join(" · "):"No strong feelings"; }
+function relCell(v,tip){ const r=Math.round(v); return `<span class="${r<=-50?"bad":r>=20?"good":r<=-20?"acc":""}" style="white-space:nowrap" title="${relLabel(r)}${tip?": "+esc(tip):""}">${r>0?"+":""}${r} <span class="small">${relLabel(r)}</span></span>`; }
 function frontCell(a,d){ const sea=seaOnlyFront(G,a,d), w=frontWidth(G,a,d), b=frontBonusAD(G,a,d); return `${sea?"sea":w+" km"}${b>0?` <span class="bad small" title="${sea?"Sea crossing":"Narrow front"}: their defenders get this bonus">+${Math.round(b*100)}%</span>`:""}`; }
 const ATK_PRESETS=[["p90","90% of all","90% of each troop type"],["x2","2× their defense","The fewest troops (most offensive first) whose attack is twice their estimated defense: enough for full land if the estimate holds. Battles have luck, so a win isn't certain."],["off","Offensive only","Every troop whose attack is higher than its defense"],["all","Everything","All troops at home"],["none","Clear","Send nothing"]];
 // rough odds of an attack: their estimated defense and your attack per point of troop attack
@@ -3001,7 +3069,7 @@ function inspect(c){
   const pl=me(); const adj=!observing()&&neighbors(G,pl.id).includes(c.id);
   return `<div class="gen sel"><div class="row"><span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}</b>${c.id===G.player?" (you)":""}<span class="grow"></span><button class="sm" data-pick="-1">✕</button></div>
   ${c.alive?`<div class="kv small"><span class="mut">Land</span><b>${fmt(c.land)} km²</b><span class="mut">Population</span><b>${fmt(popOf(c))}</b><span class="mut">Soldiers</span><b>${fmt(c.soldiers)} <span class="small mut">(atk ${fmtPow(armyAtk(c))} / def ${fmtPow(armyDef(c))})</span></b><span class="mut">Generals</span><b>${c.generals.length}</b>${traitName(c)?`<span class="mut">People</span><b>${esc(traitName(c))}</b>`:""}<span class="mut">Science levels</span><b class="small" style="font-weight:500">${AREAS.map(x=>`${AREA_NAMES[x]} ${c.lv[x]}`).join(" · ")}</b>${wondersOf(G,c.id).length?`<span class="mut">Wonders</span><b>${wondersOf(G,c.id).map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", ")}</b>`:""}
-  ${c.id!==G.player&&!observing()?`<span class="mut">Relations with you</span><b>${relCell(relOf(G,c,G.player))}</b><span class="mut">Borders you</span><b>${adj?"yes":"no"}</b>`:""}</div>
+  ${c.id!==G.player&&!observing()?`<span class="mut">Relations with you</span><b>${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}</b><span class="mut">Borders you</span><b>${adj?"yes":"no"}</b>`:""}</div>
   ${c.id!==G.player?(UI.takeConfirm===c.id
     ?`<div class="row small"><span>Rule <b>${esc(c.name)}</b> from now on?${me().alive?` The computer takes over ${esc(me().name)}.`:""}</span><button class="sm pri" data-takeover="${c.id}">Yes, take over</button><button class="sm" data-takeask="-1">Cancel</button></div>`
     :`<div class="row">${adj?`<button class="sm" data-target="${c.id}">Plan attack</button>`:""}${canTakeOver()&&!isHuman(c.id)?`<button class="sm" data-takeask="${c.id}" title="${me().alive?"Swap: you rule this state, the computer rules yours":"Rule this state from now on"}">Take over</button>`:""}</div>`)
@@ -3162,10 +3230,11 @@ function reportHtml(b,d,ref){
   const chips=[];
   if(b.taken){ chips.push(`👨‍🌾 ${fmt(aft[0])} peasants lived there: ${fmt(aft[1])} joined ${plain(b.att)}`); if(aft[2]) chips.push(`🔬 ${fmt(aft[2])} scientists lost`); if(aft[3]) chips.push(`🌾 ${fmt(aft[3])} grain looted`); }
   if(vis(b.def)) chips.push(`😠 ${plain(b.def)}'s opinion of ${plain(b.att)}: ${aft[4]} → ${aft[5]}`);
-  if(aft[6]) chips.push(`🤝 ${aft[6]} member${aft[6]>1?"s":""} of ${plain(b.def)}'s alliance −${R.relAlly} toward ${plain(b.att)}`);
-  if(aft[7]) chips.push(`👀 ${aft[7]} neighbor${aft[7]>1?"s":""} of both −${+(R.relWitnessNear*aft[9]).toFixed(1)}`);
-  if(aft[8]) chips.push(`👀 ${aft[8]} other neighbor${aft[8]>1?"s":""} of ${plain(b.att)} −${+(R.relWitness*aft[9]).toFixed(1)}`);
-  if((aft[7]||aft[8])&&aft[9]<1) chips.push(`↩ Revenge: neighbors judge it ${Math.round((1-aft[9])*100)}% less harshly`);
+  if(aft[11]<0) chips.push(`↩ Revenge: ${plain(b.att)}'s grievance against ${plain(b.def)} ${aft[11]} → ${aft[12]}`);
+  if(aft[6]) chips.push(`🤝 ${aft[6]} member${aft[6]>1?"s":""} of ${plain(b.def)}'s alliance: solidarity −${aft[13]??R.rsHit} toward ${plain(b.att)}`);
+  if(aft[7]) chips.push(`👀 ${aft[7]} neighbor${aft[7]>1?"s":""} of both: wariness −${+(R.rwNear*aft[9]).toFixed(1)}`);
+  if(aft[8]) chips.push(`👀 ${aft[8]} other neighbor${aft[8]>1?"s":""} of ${plain(b.att)}: wariness −${+(R.rwHit*aft[9]).toFixed(1)}`);
+  if(aft[9]<1) chips.push(`⚖ Striking back: ${plain(b.def)} and onlookers take it ${Math.round((1-aft[9])*100)}% less harshly`);
   if(b.elim) chips.push(`☠ ${plain(b.def)} was destroyed: ${fmt(aft[10])} of its people joined ${plain(b.att)}`);
   // footer: back, map, previous/next, research edge
   const list=reportList(ref), at=list.indexOf(ref), prev=at>0?list[at-1]:null, next=at>=0&&at<list.length-1?list[at+1]:null;
@@ -3203,7 +3272,7 @@ const SETTINGS_META=[
   ["World market & weather",[["mkNormGrain","Normal world grain stock (years of world use)"],["mkNormWood","Normal world wood stock (years of world production)"],["mkNormIron","Normal world iron stock (years of world production)"],["mkExpGrain","Grain exports start above (years)"],["mkExpWood","Wood exports start above (years)"],["mkExpIron","Iron exports start above (years)"],["mkExport","Share of the excess exported per year","%"],["mkElast","How strongly prices react to the stock"],["mkSmooth","How fast prices move toward their target","%"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["mkImport","Import price when the stock runs out (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus sold per year","%"]]],
   ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["sizeRef","Level cost grows with size: population at ×1 (0 = off)"],["sizeExp","Level cost grows with size: exponent (× (pop ÷ that)^exponent)"],["catchUpPer","Catching up: cheaper per level behind the world average","%"],["catchUpMax","Catching up: at most this much cheaper","%"],["leadPer","Leading: dearer per level ahead of the world average","%"],["leadMax","Leading: at most this many times the cost (1 = off)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Expansion: land per battle and settling per level","%"],["sciMax","Max research bonus: Science (0 = no cap)","%"],["agriMax","Max research bonus: Agriculture","%"],["finMax","Max research bonus: Finance","%"],["densMax","Max research bonus: Pop. density (share of base capacity)","%"],["growMax","Max research bonus: Pop. growth (share of base birth rate)","%"],["atkMax","Max research bonus: Attack","%"],["defMax","Max research bonus: Defense","%"],["woodMax","Max research bonus: Forestry","%"],["ironMax","Max research bonus: Mining","%"],["exploreMax","Max research bonus: Expansion","%"]]],
   ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
-  ["Relations (−100 hostile … +100 friendly)",[["relPeace","Peace: gain per year with a neighbor that didn't attack you"],["relForgive","Peace: share of bad feeling that fades per year","%"],["relHit","Attacked: loss toward the attacker"],["relHitLand","Attacked: extra loss per 1% of your land taken"],["relHitFail","Attacked but held them off: loss"],["relWitness","Witness: loss for the attacker's other neighbors"],["relWitnessNear","Witness: loss if they also border the victim"],["relAlly","Ally attacked: loss for the victim's alliance members"],["relJustified","Justified war: witness penalty × (striking back)"],["relJustYears","Justified war: counts if they attacked you within (years)"],["relSize","Size threat: loss per year per extra × the neighbors' average size"],["relSizeFrom","Size threat: starts above this × average"],["relSizeMax","Size threat: most lost per year"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −relation ÷ this"],["relFriendMargin","Computer: extra margin needed vs a +100 friend","%"],["relHateMargin","Computer: smaller margin vs a −100 enemy","%"],["relGuard","Computer: threat from a neighbor ± by its relation","%"]]],
+  ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year"]]],
   ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
@@ -3370,6 +3439,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Relations with reasons","2026-11-10 19:37",["Relations are now a sum of feelings: Grievance, Solidarity, Wariness, Fear, Trust and Common enemy","Hover a relation to see what it's made of","Striking back and winning clears most of a grievance","Fear of a big neighbor is capped and fades only if it shrinks, so size alone no longer makes neighbors furious","Computer states may take revenge, by chance, more likely when your army is away or you just lost","Wary neighbors may step in against a state that keeps attacking others","Computer states surrounded by angry neighbors keep more troops home and attack less","News tells you why a computer state attacked you","New Relations settings"]],
 ["Weather in New game","2026-11-10 17:59",["Weather systems on/off moved from Settings to New game (More options → Rules), on by default","Each game remembers its own choice","Grain card: new Spoils row, so harvest, eating and spoilage add up to the Stock change"]],
 ["Clearer grain card","2026-11-10 17:52",["Grain card shows weather as just a percentage, with an ⓘ to explain it","New Stock row: how much your grain store grows per year, or how many years it lasts","ⓘ icons are grey again outside the New game window","Market Half and Max buttons light up on all four sides on hover"]],
 ["Weather clashes","2026-11-10 17:47",["When a drought and a fertile spell meet, the higher tier wins and the other ends","Equal tiers cancel each other out","Two Great Droughts now make an Age of Dust, two Golden Harvests an Age of Plenty","Year report tells you about every clash","New setting to turn clashes off"]],
@@ -3435,7 +3505,7 @@ function helpModal(){
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
   <li>Strength = soldiers × Attack/Defense research × general (skill and morale) × your civilization's and leader's attack (when attacking) or defense (when defending) bonus. A research lead counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy. Defenders get +15%. A state with no guards loses as much land as the attacker's general and army can take.</li>
   <li>The winner takes land and the peasants on it: (general's Speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness. Decisiveness runs from 25% for a narrow win to 100% at twice the defender's strength (or no defenders). Each surviving soldier can hold at most ${R.occupy} km².</li>
-  <li><b>Relations:</b> every state has an opinion of every other, from −100 (hostile) to +100 (friendly). Years of peace with a neighbor build trust. Attacking someone angers them badly, angers their allies, and makes your other neighbors wary (less so if you're striking back at someone who attacked you within ${R.relJustYears} years). Growing much bigger than your neighbors' average size makes them nervous. Computer states attack the states they dislike first, avoid attacking friends, and guard less against friendly borders.</li>
+  <li><b>Relations:</b> every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings (hover a relation to see them): <b>Grievance</b> when you attack them, <b>Solidarity</b> when you attack their ally, <b>Wariness</b> when you attack their other neighbors, <b>Fear</b> when you are much bigger than them, <b>Trust</b> from years of peace (up to +${R.rtMax}), and a <b>Common enemy</b> bond when two states hold a grudge against the same one. Wrongs are settled by revenge: a state that strikes back and wins clears most of its grievance (its allies' solidarity cools too). Fear only fades when you shrink compared with them, and wariness only while you attack nobody. Striking back at someone who attacked you within ${R.relJustYears} years angers them and onlookers half as much.</li><li><b>Computer states and feelings:</b> they still attack anyone they can clearly beat. A grudge makes them want revenge: they need a smaller edge, send more troops and may strike even at near-even odds, by chance each year, more likely after you fought elsewhere, lost a battle or starved. Wariness makes them step in: while you keep attacking others, a wary neighbor may strike you while your army is away. Before attacking, they also add up every neighbor that is angry or wary of them: the more exposed, the more troops they keep home and the bigger the edge they need. Fear makes them guard, and join in only when others are already attacking you. Trust and a common enemy make them pick other targets. You are warned when a state starts to want revenge.</li>
   <li><b>Balance of power:</b> when one state holds far more than its share of the land (1.5× an average state's share, at least ${R.coalitionMin*100}% and at most ${R.coalitionMax*100}% of all land), its neighbors form a coalition. They arm more, stop fighting each other and attack it together, including when the leader is you.</li>
   <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering it settles ${R.settleBase} km² plus ${R.settleRate*100}% of its own size each year, no army needed.</li>
   <li><b>Wonders</b> (optional): ten landmarks, one per science area. Whoever holds the land a wonder stands on gets that area's effect raised by the wonder's bonus (+25% by default, e.g. +25% attack strength or +25% research). Conquer the land and the wonder is yours.</li>
