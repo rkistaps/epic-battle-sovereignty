@@ -290,6 +290,7 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .mwhy td,.mwhy th{white-space:nowrap}
 .mseg{display:flex;margin:4px 0} .mseg button{flex:1;border-radius:0;margin-left:-1px;padding:5px 6px} .mseg button:first-child{border-radius:6px 0 0 6px;margin-left:0} .mseg button:last-child{border-radius:0 6px 6px 0}
 .mseg button.on{position:relative;z-index:1;background:#2b2618;border-color:var(--acc);color:var(--acc);font-weight:600}
+.mseg button:hover,.mseg button:focus-visible{position:relative;z-index:2} /* full border on hover, over its neighbours */
 .mpost{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0} .mpost input{width:80px}
 .mfills{background:#0f1114;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:13px;font-variant-numeric:tabular-nums} .mfills>div{display:flex;justify-content:space-between;gap:8px}
 .mfills .tot{border-top:1px solid var(--line);margin-top:3px;padding-top:3px;font-weight:600}
@@ -3672,6 +3673,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Market buttons","2026-11-10 22:04",["Market switches show their full border on hover"]],
 ["Treasury outlook","2026-11-10 21:58",["Overview: grain and gold icons next to what you have in store","Money card says how many years your gold lasts when you spend more than you earn"]],
 ["Steadier work sliders","2026-11-10 21:47",["Work sliders no longer shift sideways while you drag them","Thin dark scrollbars everywhere"]],
 ["Stronger local weather without systems","2026-11-10 21:00",["With weather systems off, random yearly local weather is back to full strength","New setting for its strength"]],
