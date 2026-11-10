@@ -101,7 +101,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Intent**: Outside shocks that give reasons to trade and to fight: drought states grow weak or desperate, fertile ones rich. Weather systems travel, end and restart elsewhere after a gap, several at once, and bad ones meeting make something worse *(your direction)*. They last decades and show a year ahead so players can plan: stockpile, buy early, farm more. Local yearly noise is texture only and must never outweigh a system *(your direction)*.
 - Three layers, multiplied into the harvest:
   1. **Weather systems**: droughts and fertile spells 1–2 state-widths wide, ±12–22% at the centre, living 20–40 years, drifting, then a quiet gap and a new one elsewhere (`ws*`). Same kinds merge into Great Drought / Golden Harvest, then Age of Dust / Age of Plenty (stronger, bigger, longer). Opposite kinds clash: higher tier wins, equal tiers cancel. Can be turned off per game (`g.noWx`).
-  2. **Local patches**: small random patches re-rolled every year, `wxRegional` 0.04 (kept small so systems stand out).
+  2. **Local patches**: small random patches re-rolled every year, `wxRegional` 0.04 (kept small so systems stand out); `wxRegionalOff` 0.08 in games with weather systems off, so those games still have noticeable weather.
   3. **World years**: slow world-wide drift `g.clim`, ±4.5% at most.
 - A state's weather is averaged over its land. Total capped at ±`wxMax` 25%, except a very strong system.
 - **Reads**: map, state land (centres), RNG.
@@ -202,6 +202,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.13 Territory and map
 - **Intent**: Land is the prize. Unowned land at the start is a race; coasts are worth more (food). Collapsed states' land goes to whoever settles it first. *(inferred)*
 - Cells: water, unowned or owned; adjacency = 4-neighbours plus sea routes (world map). Allies never count as targets.
+- Starting sizes: on the world map, starting states are evened out to within `startGap` 50 km² of each other (oversized states hand outer land to smaller neighbours or leave it unowned; undersized ones claim unowned or spare neighbour land; squeezed ones restart in the biggest unowned pocket).
 - Settling: each state bordering unowned land claims `(5 + 2% of its land) × exploreMul` a year. Unowned land comes from the map start and from collapsed states.
 - Shore: land cells next to water → harvest bonus. Land type is fixed at start even if the coast is lost.
 - **Reads**: battles, collapses, explore research. **Writes**: capacity, production (shore), wonders, fronts, adjacency.
