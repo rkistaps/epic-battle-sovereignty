@@ -35,7 +35,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:12px;padding:12p
   body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
   header{flex:none}
   main{flex:1 1 auto;min-height:0;grid-template-columns:minmax(320px,1fr) 12px minmax(300px,var(--side,440px));gap:0;align-items:stretch}
-  main>section{overflow:auto;min-height:0}
+  main>section{overflow:auto;min-height:0} #side{scrollbar-gutter:stable} /* room for the scrollbar is always kept, so switching tabs doesn't shift the layout */
   #split{display:block;cursor:col-resize;touch-action:none;position:relative}
   #split::after{content:"";position:absolute;top:0;bottom:0;left:5px;width:2px;border-radius:1px;background:var(--line)}
   #split:hover::after,#split.drag::after{background:var(--acc)}
@@ -3699,6 +3699,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Steady tabs","2026-11-10 23:23",["Side panel no longer shifts sideways when switching between short and long tabs"]],
 ["Tired defenders","2026-11-10 23:16",["The defending general loses 5 morale a year instead of recovering","Rest button takes a defender off the border to recover","Generals list shows morale gained or lost per year","Defender gains 5 morale in a year he holds the border, loses 5 (was 20) if broken through","Computer states rotate tired defenders and rest them when calm","New settings for every morale gain and loss"]],
 ["Map switch fix","2026-11-10 23:05",["Map view buttons (States, Alliances, Relations, Weather) show their full border on hover"]],
 ["Faster population growth","2026-11-10 22:57",["Soldiers now count half toward births","Base birth rate 3% → 6%","Birth rate research doubled to match","New setting for how much soldiers count"]],
