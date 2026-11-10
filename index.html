@@ -87,10 +87,13 @@ table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(-
 #tip .rtn{text-align:right;min-width:30px;padding-left:10px!important;font-weight:600} #tip .rtip td.rtn+td{padding-left:5px}
 #tip .rtb{display:inline-block;position:relative;width:54px;height:8px;border-radius:2px;background:#2a2e36;vertical-align:-1px} #tip .rtb i{position:absolute;top:0;height:8px;border-radius:2px} #tip .rtb .rt0{left:26.5px;top:-1px;width:1px;height:10px;background:#6b7280;border-radius:0}
 #tip{position:fixed;z-index:5;pointer-events:none;background:#000c;border:1px solid var(--line);padding:6px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
-.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
-.tabs{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:4px!important}
-.tabs button{border-radius:6px;padding:5px 6px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tabs button.on{background:var(--acc);color:#1a1a1a;border-color:var(--acc)}
+.tabs{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-bottom:10px} /* one row: icon over a short name */
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:5px 0 4px;border-radius:7px;font-size:15px;line-height:1.2;position:relative}
+.tabs button .tl{font-size:10px;color:var(--mut);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs button.on{background:var(--acc);border-color:var(--acc)} .tabs button.on .tl{color:#1a1a1a;font-weight:600}
+.tbdg{position:absolute;top:-1px;right:-4px;min-width:15px;height:15px;border-radius:8px;background:var(--bad);color:#fff;font-size:10px;line-height:15px;text-align:center;padding:0 3px;font-weight:700;pointer-events:none}
+.tbdg.dot{min-width:8px;width:8px;height:8px;padding:0;top:4px;right:3px} .tbdg.warn{background:var(--acc);color:#1a1a1a} .tbdg.good{background:var(--info)}
+.tabs button.on .tbdg.warn{background:#1a1a1a;color:var(--acc)}
 h3{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut)}
 h3:first-child{margin-top:0}
 table{border-collapse:collapse;width:100%}
@@ -1491,6 +1494,7 @@ function mkYear(g){ const M=mkOf(g), C=g.countries;
   g.lastPrice=g.price; g.price=M.grain.price;
   const NM={grain:"grain",wood:"wood",iron:"iron"};
   for(const c of C){ if(!c.mkNews) continue; if(c.alive&&!c.ai) for(const [key,e] of Object.entries(c.mkNews)){ const [r,k]=key.split("|"), q=fmt0(e.q);
+      if(k==="sell"||k==="buy") c.mkFill=g.turn;
       note(g,c.id,k==="sell"?`💱 Your ${NM[r]} sell orders sold ${q} for ${fmt0(e.v)} gold.`:k==="buy"?`💱 Your ${NM[r]} buy orders bought ${q} for ${fmt0(e.v)} gold.`
         :k==="enda"?`💱 Your ${NM[r]} sell order ran out of time: ${q} ${NM[r]} came back.`:`💱 Your ${NM[r]} buy order ran out of time: the gold for ${q} ${NM[r]} came back.`); }
     delete c.mkNews; } }
@@ -2175,7 +2179,7 @@ function economy(g,c){
   const tot=AREAS.reduce((s,a)=>s+Math.max(0,c.alloc[a]||0),0)||1;
   for(const a of AREAS){
     c.rp[a]+=pts*Math.max(0,c.alloc[a]||0)/tot;
-    let cost; while(c.rp[a]>=(cost=levelCost(c.lv[a],costParts(g,c,a).mul))){ c.rp[a]-=cost; c.lv[a]++; L(`🔬 ${AREA_NAMES[a]} reached level ${c.lv[a]}.`); }
+    let cost; while(c.rp[a]>=(cost=levelCost(c.lv[a],costParts(g,c,a).mul))){ c.rp[a]-=cost; c.lv[a]++; c.lvTurn=g.turn; L(`🔬 ${AREA_NAMES[a]} reached level ${c.lv[a]}.`); }
   }
   // generals
   for(const gen of c.generals.slice()){
@@ -2319,11 +2323,12 @@ async function loadNews(g){
   if(meta&&meta.gid===g.gid){
     try{ const [keys,vals]=await DB.getRange("news:","news:\uffff");
       keys.map((k,i)=>[+String(k).slice(5),vals[i]]).sort((x,y)=>x[0]-y[0]).forEach(([,rows])=>{ for(const r of rows) NEWS.items.push(r); });
+      if(TSEEN_GID===NEWS) TSEEN.newsLen=NEWS.items.length; // battles from the save aren't new
       const c=Math.floor(g.turn/NEWS_CH), d=await DB.get("newsd:"+ck(c)); if(d) NEWS.det[c]=d; }catch(e){}
     return; }
   // older saves kept the whole archive in one record: bring it over (written in chunks on the next save)
   try{ const o=await DB.get("news"); if(o&&o.key===g.seed+":"+g.countries.length&&Array.isArray(o.items)) for(const a of o.items) newsAdd(NEWS,a.slice(0,11).concat(-1),null); }catch(e){}
-  backfillNews(g);
+  backfillNews(g); if(TSEEN_GID===NEWS) TSEEN.newsLen=NEWS.items.length;
 }
 const unpackBattle=a=>({turn:a[0],att:a[1],def:a[2],sent:a[3],guards:a[4],lossA:a[5],lossD:a[6],taken:a[7],win:!!a[8],elim:!!a[9],fb:a[10]});
 // add the year that just ended (call after render, so fog-of-war knowledge is current)
@@ -2784,12 +2789,34 @@ function renderHeader(){
 }
 
 // ---------- tabs ----------
-const TABS=[["economy","Overview"],["market","Market"],["barracks","Barracks"],["science","Science"],["generals","Generals"],["war","War"],["world","World"],["alliances","Alliances"],["news","News"]];
+// [key, short name, icon, full name]; grouped: economy, military, the world
+const TABS=[["economy","Home","🏰","Home: your state"],["market","Market","⚖️","Market"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: train & dismiss troops"],["generals","Generals","🎖️","Generals"],["war","War","🗡️","War: attack a neighbor"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
 const PUBLIC_TABS=["world","alliances","news"]; // what an observer (or a fallen player) can look at
 function renderTabs(){
   if(UI.tab==="alliances"&&!G.teams) UI.tab="world";
   if(observing()&&!PUBLIC_TABS.includes(UI.tab)) UI.tab="world"; // an observer has no economy, army or science of its own
-  $("tabs").innerHTML=TABS.filter(([k])=>(!observing()||PUBLIC_TABS.includes(k))&&(k!=="alliances"||G.teams)).map(([k,l])=>`<button data-tab="${k}" class="${UI.tab===k?'on':''}">${l}</button>`).join(""); }
+  const T=visibleTabs(), el=$("tabs"); seeTab(UI.tab); el.style.gridTemplateColumns=`repeat(${T.length},1fr)`;
+  el.innerHTML=T.map(([k,l,ic,full],i)=>{ const b=tabBadge(k), tip=full+(i<9?` · key ${i+1}`:"")+(b?.tip?` · ${b.tip}`:"");
+    return `<button data-tab="${k}" class="${UI.tab===k?'on':''}" title="${esc(tip)}" aria-label="${esc(tip)}">${ic}<span class="tl">${l}</span>${b?`<span class="tbdg ${b.cls||""}">${b.n??""}</span>`:""}</button>`; }).join(""); }
+const visibleTabs=()=>TABS.filter(([k])=>(!observing()||PUBLIC_TABS.includes(k))&&(k!=="alliances"||G.teams));
+// badges: what changed since you last opened a tab ("stamps"), plus standing warnings
+var TSEEN={}, TSEEN_GID=null; // var: loadNews may touch these before this line runs
+function tabStamps(){ const c=me(), N=newsFor(G), mine=id=>id===G.player||(G.teams&&c.team!=null&&G.countries[id]?.team===c.team);
+  let n=0; for(let i=N.items.length-1;i>=0&&n<100;i--){ const a=N.items[i]; if(i<(TSEEN.newsLen??N.items.length)) break; if(mine(a[1])||mine(a[2])) n++; }
+  return {war:c.defTurn??null, market:c.mkFill??null, science:c.lvTurn??null, news:n}; }
+function seeTab(k){ if(!G) return; const N=newsFor(G); if(TSEEN_GID!==N){ for(const x in TSEEN) delete TSEEN[x]; TSEEN_GID=N; TSEEN.newsLen=N.items.length; } // new game or reloaded archive: start clean
+  if(observing()) return; const st=tabStamps(); if(k==="news") TSEEN.newsLen=newsFor(G).items.length; else if(k in st) TSEEN[k]=st[k]; }
+function tabBadge(k){
+  if(!G||observing()||!me().alive) return null; const c=me(), st=tabStamps(), fresh=x=>st[x]!=null&&st[x]!==TSEEN[x];
+  if(k==="news"&&st.news>0) return {n:st.news>99?"99+":st.news,tip:`${st.news} new battle${st.news===1?"":"s"} involving you or your allies`};
+  if(k==="war"&&fresh("war")&&c.defTurn>=G.turn-1) return {cls:"dot",tip:"you were attacked"};
+  if(k==="generals"&&c.generals.length){ const d=c.generals.find(x=>x.id===c.defGen);
+    if(!d) return {cls:"warn",n:"!",tip:"no general is defending your border"};
+    if(d.morale<70) return {cls:"warn",n:"!",tip:`your defender's morale is low (${Math.round(d.morale)})`}; }
+  if(k==="science"){ if(!AREAS.some(a=>(c.alloc[a]||0)>0)&&workers(c).sci>0) return {cls:"warn",n:"!",tip:"your scientists research nothing: set shares"};
+    if(fresh("science")) return {cls:"dot good",tip:"a research level was reached"}; }
+  if(k==="market"&&fresh("market")) return {cls:"dot good",tip:"your orders traded"};
+  return null; }
 function render(){
   UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
   renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,generals:pGenerals,war:pWar,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f();
@@ -3151,12 +3178,12 @@ function pScience(){
   const pc=v=>+(v*100).toFixed(2), eff={sci:`+${pc(R.sciPerLevel)}% research per level`,agri:`+${pc(R.agriPerLevel)}% food per level`,fin:`+${pc(R.finTaxPerLevel)}% taxes, +${pc(R.finPricePerLevel)}% sell prices`,dens:`+${R.densPerLevel} people per km² capacity`,grow:`+${pc(R.growPerLevel)}% birth rate per level`,atk:`+${pc(R.atkPerLevel)}% attack strength per level`,def:`+${pc(R.defPerLevel)}% defense strength per level`,wood:`+${pc(R.woodPerLevel)}% wood production per level`,iron:`+${pc(R.ironPerLevel)}% iron production per level`,explore:`+${pc(R.explorePerLevel)}% land per battle and settling speed`};
   const totLv=AREAS.reduce((s,a)=>s+c.lv[a],0), avgLv=Object.values(worldAvgLv(G)).reduce((s,v)=>s+v,0);
   return `<div class="row"><span>Total level: <b>${fmt(totLv)}</b> <span class="small mut">· world average ${fmt(Math.round(avgLv))}</span> <span class="small ${totLv>=avgLv?"good":"bad"}">(${totLv>=avgLv?"+":"−"}${fmt(Math.round(Math.abs(totLv-avgLv)))})</span></span></div>
-  <div class="row"><span>Research output: <b>${fmt(pts)}</b> points/yr from ${fmt(workers(c).sci)} scientists <span class="small mut">(set how many in Overview → Work)</span>.</span></div>
+  <div class="row"><span>Research output: <b>${fmt(pts)}</b> points/yr from ${fmt(workers(c).sci)} scientists <span class="small mut">(set how many in Home → Work)</span>.</span></div>
   <div class="row small"><span class="mut">Presets:</span><button class="sm" data-preset="sci" title="Everything into Science: research grows fastest, but nothing else levels up">Science run</button><button class="sm" data-preset="econ">Economy</button><button class="sm" data-preset="bal">Balanced</button><button class="sm" data-preset="war">War</button></div>
   <table class="tight"><tr><th>Area</th><th class="r">Lvl</th><th>Progress</th><th>Share</th></tr>
   ${AREAS.map(a=>{const cp=costParts(G,c,a), cost=levelCost(c.lv[a],cp.mul); const share=Math.round(100*c.alloc[a]/tot); const eta=pts*c.alloc[a]/tot>0?Math.ceil((cost-c.rp[a])/(pts*c.alloc[a]/tot)):null;
     return `<tr><td><b>${AREA_NAMES[a]}</b><div class="small mut">${eff[a]}</div>${c.lv[a]>0?`<div class="small mut" title="${R[a+"Max"]>0?"Each level adds a bit less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can go past it.":"No cap"}">Research bonus <b>+${Math.round(resBonus(c,a)*100)}%</b>${R[a+"Max"]>0?` of max +${Math.round(R[a+"Max"]*100)}%`:""}</div>`:""}${c.wb?.[a]?`<div class="small good">${WONDERS[a].icon} ${WONDERS[a].name}: +${wonderPct(a)}% ${WONDER_EFFECT[a]}</div>`:""}</td><td class="r"><span class="lvbox">${c.lv[a]}</span></td>
-    <td style="min-width:110px"><div class="bar"><i style="width:${Math.min(100,100*c.rp[a]/cost)}%"></i></div><div class="small mut">${fmt(c.rp[a])}/${fmt(cost)}${eta?` · ${eta}y`:""}</div>${Math.abs(cp.mul-1)>0.005?`<div class="small mut" title="Size ×${cp.size.toFixed(2)} (bigger states pay more) · world average level ${(c.lv[a]-cp.d).toFixed(1)}: ${cp.d<0?"behind, so cheaper":"ahead, so dearer"} ×${cp.edge.toFixed(2)}">cost ×${cp.mul.toFixed(2)}${Math.abs(cp.d)>=0.5?` · <span class="${cp.d<0?"good":"bad"}">${cp.d<0?"":"+"}${cp.d.toFixed(0)} vs world</span>`:""}</div>`:""}</td>
+    <td style="min-width:110px"><div class="bar"><i style="width:${Math.min(100,100*c.rp[a]/cost)}%"></i></div><div class="small mut">${fmt(c.rp[a])}/${fmt(cost)}${eta?` · ${eta}y`:""}</div>${Math.abs(cp.mul-1)>0.005?`<div class="small mut" title="Size ×${cp.size.toFixed(2)} (bigger states pay more) · world average level ${(c.lv[a]-cp.d).toFixed(1)}: ${cp.d<0?"behind, so cheaper":"ahead, so dearer"} ×${cp.edge.toFixed(2)}">cost ${[cp.size>1.005?`size ×${cp.size.toFixed(2)}`:"",Math.abs(cp.edge-1)>0.005?`<span class="${cp.d<0?"good":"bad"}">${cp.d<0?"":"+"}${cp.d.toFixed(0)} vs world ×${cp.edge.toFixed(2)}</span>`:""].filter(Boolean).join(" · ")}</div>`:""}</td>
     <td style="white-space:nowrap">${(lk=>`<input type="range" min="0" max="100" value="${share}" data-alloc="${a}" style="width:70px"${lk?" disabled":""}> <input type="text" inputmode="numeric" maxlength="3" value="${share}" data-allocpct="${a}" style="width:38px;text-align:right" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-lock="${a}" title="${lk?"Locked: other areas can't change this share. Click to unlock":"Lock this share so changing other areas leaves it alone"}">${lk?"🔒":"🔓"}</button>`)(!!c.allocLock?.[a])}</td></tr>`}).join("")}
   </table>
   <div class="small mut" style="margin-top:6px">Drag a slider or type an exact %; the other unlocked areas rescale so the total stays 100%. Lock 🔒 an area to keep its share fixed. Each level in an area costs more than the last. Bigger states pay more per level (×√(population ÷ ${fmt(R.sizeRef)})), and an area is up to ${Math.round(R.catchUpMax*100)}% cheaper when you're behind the world average and up to ×${R.leadMax} dearer when you're ahead. Each area's research bonus approaches a max and never passes it. Civilization, leader, land and wonder bonuses multiply on top, so your total can go higher.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""} In battle, the side with better Attack/Defense research gets at most ${R.techEdgeMax}× the other side's research bonus.</div>
@@ -3244,7 +3271,7 @@ function attackForm(c,j,idle){
     <td style="white-space:nowrap"><input type="text" inputmode="numeric" data-atkmix="${t.id}" value="${mix[t.id]}" style="width:52px"> <button class="sm" data-atkset="${t.id}" data-n="0" title="Send none">0</button> <button class="sm" data-atkset="${t.id}" data-n="${home[t.id]}" title="Send all ${fmt(home[t.id])}">Max</button></td>
     <td class="r" id="atkStay-${t.id}">${fmt(home[t.id]-mix[t.id])}</td></tr>`).join("")}
   <tr><td><b>Total</b></td><td class="r">${fmt(troopCount(home))}</td><td><b id="atkTot">${fmt(n)}</b></td><td class="r" id="atkStayT">${fmt(troopCount(home)-n)}</td></tr></table>`
-  :`<div class="note">No soldiers left at home. Train some in the Barracks or cancel an order.</div>`}
+  :`<div class="note">No soldiers left at home. Train some in the Army tab or cancel an order.</div>`}
   <div id="atkSum">${atkSummary(c,o,gen,mix)}</div>
   <div class="small">Border with them: <b>${sea?"sea route only":fw+" km"}</b>${sea?(fb>0?` · <span class="bad">sea crossing, their defenders +${Math.round(fb*100)}%</span> (included above)`:" · sea crossing, no defense bonus"):fb>0?` · <span class="bad">narrow front, their defenders +${Math.round(fb*100)}%</span> (included above)`:" · open front, no defense bonus"}.</div>
   ${gen.morale<70?`<div class="small bad">This general's morale is low (${gen.morale}). He'll fight badly.</div>`:""}
@@ -3699,6 +3726,8 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["New tab bar","2026-11-11 00:01",["Tabs fit in one row: an icon over a short name (Overview is now Home, Barracks is Army, Alliances is Allies)","Tabs grouped: economy, then military, then the world","Badges: new battles on News, a dot on War when you're attacked, ! on Generals for no or a tired defender, ! on Science when research is idle, blue dots for a new research level or a market trade","Keys 1-9 switch tabs"]],
+["Clearer research cost","2026-11-10 23:28",["Science tab splits the cost multiplier into size and lead over the world, e.g. 'size ×1.27 · +2 vs world ×1.10'"]],
 ["Steady tabs","2026-11-10 23:23",["Side panel no longer shifts sideways when switching between short and long tabs"]],
 ["Tired defenders","2026-11-10 23:16",["The defending general loses 5 morale a year instead of recovering","Rest button takes a defender off the border to recover","Generals list shows morale gained or lost per year","Defender gains 5 morale in a year he holds the border, loses 5 (was 20) if broken through","Computer states rotate tired defenders and rest them when calm","New settings for every morale gain and loss"]],
 ["Map switch fix","2026-11-10 23:05",["Map view buttons (States, Alliances, Relations, Weather) show their full border on hover"]],
@@ -3770,6 +3799,7 @@ function helpModal(){
   <p><b>Goal:</b> conquer every other state. You start with the same land and resources as everyone else. Each turn is one year, and everyone moves at the same time.</p>
   <p><b>Switching sides:</b> click any state on the map and press <b>Take over</b> to rule it (the computer gets yours). This also works in observer mode and after a defeat. Click your own state and press <b>Hand to computer</b> to give it away and keep watching.</p>
   <p><b>Hot-seat:</b> several players share this device. Each takes a turn behind a handover screen, and the last one's <b>End year</b> runs the year. Everyone then sees their own report and fog of war. Orders like training and trading happen at once, so with <i>Rotate turn order</i> on, who goes first changes every year. A fallen player can take over a computer state, watch, or leave. Players can't take over another player's state, and auto-run is off while two or more players are in the game.</p>
+  <p><b>Tabs:</b> press <b>1</b>–<b>9</b> to switch. A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade).</p>
   <h3>Economy</h3><ul class="log">
   <li>Peasants who don't cut wood or mine are farmers: each grows ${R.foodPerFarmer} grain a year, more with Agriculture research, shore farmland and food bonuses. All peasants pay taxes.</li>
   <li>Everyone eats 1 grain a year, and people eat <i>before</i> the harvest. If seed plus food is more than your stock, people starve, soldiers first.</li>
@@ -3777,8 +3807,8 @@ function helpModal(){
   <li><b>Shore farmland:</b> land touching water harvests more: +1% for every 1% of your land on the shore, up to +${R.shoreMax*100}%.</li>
   <li>Population grows toward capacity (land × density): births come from peasants, and soldiers count ${Math.round(R.armyBirths*100)}% as much. Growth slows as you fill up. Pop. density and growth research raise it.</li></ul>
   <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last. Big states pay more per level (cost × √(population ÷ ${fmt(R.sizeRef)})). Ideas spread: an area costs ${Math.round(R.catchUpPer*100)}% less per level you are behind the world average (at most −${Math.round(R.catchUpMax*100)}%) and ${Math.round(R.leadPer*100)}% more per level you are ahead (at most ×${R.leadMax}). Each area's research bonus has a max (e.g. +${Math.round(R.atkMax*100)}% attack, +${Math.round(R.sciMax*100)}% research): early levels give the full amount, later ones less and less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can take the total past it.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""}</li></ul>
-  <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Overview tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li><li><b>World market:</b> grain, wood and iron each have an order book. Post an order to buy or sell at your own price for 1, 5, 10 or 50 years, or with no end: its gold or goods are held until it fills, runs out of time or you cancel it (grain held for sale spoils like any store). Or trade now with the best orders other states posted. Computer states price by need: a state short of grain pays more, one with plenty sells cheaper. Outside merchants always buy and sell, at poor prices that get worse the more they trade in a year; if states keep buying from them, their price climbs year after year until demand dies down. The market price is the average of the last few years' trades. Auto-sell puts your surplus grain up for sale at the market price each year.</li><li><b>Weather:</b> harvests can be up to 25% better or worse than usual. Droughts and fertile spells last 20–40 years and drift slowly across the map; when one ends, another starts elsewhere a few years later. Two droughts that meet become a Great Drought, two fertile spells a Golden Harvest; two of those meeting become an Age of Dust or an Age of Plenty, bigger, stronger (past the usual 25%) and longer-lived still. When a drought and a fertile spell meet, the higher tier wins and the other ends; equal tiers cancel each other out. Small random patches add a few percent either way each year. Turn on the Weather map to see them coming. Weather systems can be turned off in New game (More options → Rules).</li></ul>
-  <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; you pick which troops go on each attack (War tab), the rest stay home and guard. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
+  <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Home tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li><li><b>World market:</b> grain, wood and iron each have an order book. Post an order to buy or sell at your own price for 1, 5, 10 or 50 years, or with no end: its gold or goods are held until it fills, runs out of time or you cancel it (grain held for sale spoils like any store). Or trade now with the best orders other states posted. Computer states price by need: a state short of grain pays more, one with plenty sells cheaper. Outside merchants always buy and sell, at poor prices that get worse the more they trade in a year; if states keep buying from them, their price climbs year after year until demand dies down. The market price is the average of the last few years' trades. Auto-sell puts your surplus grain up for sale at the market price each year.</li><li><b>Weather:</b> harvests can be up to 25% better or worse than usual. Droughts and fertile spells last 20–40 years and drift slowly across the map; when one ends, another starts elsewhere a few years later. Two droughts that meet become a Great Drought, two fertile spells a Golden Harvest; two of those meeting become an Age of Dust or an Age of Plenty, bigger, stronger (past the usual 25%) and longer-lived still. When a drought and a fertile spell meet, the higher tier wins and the other ends; equal tiers cancel each other out. Small random patches add a few percent either way each year. Turn on the Weather map to see them coming. Weather systems can be turned off in New game (More options → Rules).</li></ul>
+  <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Army tab, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; you pick which troops go on each attack (War tab), the rest stay home and guard. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Overview tab lists your bonuses.</li></ul>
   <h3>War</h3><ul class="log"><li><b>Peace years:</b> tick it in New game (More options → Rules) and set how many. Nobody can attack during those first years.</li><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
@@ -4235,6 +4265,8 @@ function hotToSolo(){
 document.addEventListener("keydown",e=>{
   if($("ov").classList.contains("hidden")){ // no dialog open: Escape clears the map selection
     if(e.key==="Escape"&&UI.sel!=null&&!UI.busy&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){ UI.sel=null; render(); }
+    // number keys 1-9 switch tabs
+    if(G&&!UI.busy&&/^[1-9]$/.test(e.key)&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)&&!e.target.isContentEditable){ const t=visibleTabs()[+e.key-1]; if(t){ UI.tab=t[0]; UI.untrainAsk=null; render(); } }
     return;
   }
   if(UI.busy) return;
