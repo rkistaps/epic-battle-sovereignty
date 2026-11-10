@@ -280,6 +280,17 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .mchart{display:block;width:100%;height:auto;margin:4px 0} .mchart text{fill:var(--mut);font-size:9px} .mchart .cg{stroke:#353a44;stroke-width:1} .mchart .cg1{stroke:#6b7280;stroke-dasharray:4 3;stroke-width:1}
 .mleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin:2px 0 8px} .mleg i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px}
 .mwhy td,.mwhy th{white-space:nowrap}
+.mseg{display:flex;margin:4px 0} .mseg button{flex:1;border-radius:0;margin-left:-1px;padding:5px 6px} .mseg button:first-child{border-radius:6px 0 0 6px;margin-left:0} .mseg button:last-child{border-radius:0 6px 6px 0}
+.mseg button.on{position:relative;z-index:1;background:#2b2618;border-color:var(--acc);color:var(--acc);font-weight:600}
+.mpost{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0} .mpost input{width:80px}
+.mfills{background:#0f1114;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:13px;font-variant-numeric:tabular-nums} .mfills>div{display:flex;justify-content:space-between;gap:8px}
+.mfills .tot{border-top:1px solid var(--line);margin-top:3px;padding-top:3px;font-weight:600}
+.mkorder{border-top:1px solid var(--line);margin-top:8px;padding-top:6px}
+.mbook .bk{display:grid;grid-template-columns:56px 76px minmax(0,1fr);gap:0 10px;padding:2px 6px;font-size:13px;font-variant-numeric:tabular-nums;border-radius:4px;margin:1px 0}
+.mbook .bk>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .mbook .bk.hd{font-size:12px;color:var(--mut)} .mbook .bk.me{outline:1px solid var(--acc)} .mbook .r{text-align:right}
+.mbook .mid{display:flex;justify-content:center;gap:8px;padding:4px;margin:3px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);font-size:12px;color:var(--mut)} .mbook .mid b{color:var(--txt)}
+.myord{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;align-items:center;font-size:13px} .myord .small{display:block}
+.pbar{display:block;height:4px;background:var(--panel2);border-radius:2px;margin:3px 0 2px} .pbar i{display:block;height:4px;border-radius:2px}
 .gauge{position:relative;display:block;height:6px;margin:6px 0 3px;border-radius:3px;background:linear-gradient(90deg,var(--good),#3a3f4a 45%,#3a3f4a 55%,var(--acc))}
 .gauge i{position:absolute;top:-3px;width:3px;height:12px;margin-left:-1px;border-radius:2px;background:var(--txt)}
 .mrow{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0}
@@ -383,12 +394,11 @@ const R = {
   foodSpoil: 0.1,                  // share of stored grain that spoils each year
   famineDeath: 0.5,                // share of a food shortfall that dies of famine
   popPerKm: 3, birthRate: 0.03, minPop: 20, // base capacity per km², base birth rate, a state below minPop collapses
-  grainBuy: 1.6, priceMean: 1.1,  // grain: normal price; buying costs ×1.6
-  // world market: every state's sales go into a world stock and purchases come out of it; prices follow how full it is
-  mkNormGrain: 0.56, mkNormWood: 3.75, mkNormIron: 1.73, // normal stock (in years of world use for grain, of world production for wood/iron): the normal price
-  mkExpGrain: 0.53, mkExpWood: 2.8, mkExpIron: 1.45,     // outside traders buy part of any stock above this each year
-  mkExport: 0.4, mkElast: 1, mkSmooth: 0.5,              // share of the excess exported per year; price = normal × (normal stock ÷ stock)^elasticity, moving halfway there each year
-  mkMinMul: 0.01, mkMaxMul: 3, mkImport: 2.5,            // price floor and ceiling (× normal); when the stock runs out, outside merchants sell at 2.5× the normal price
+  priceMean: 1.1,                 // grain: normal price
+  // world market: an order book per resource, with outside merchants behind it
+  mkMerchSell: 2.5, mkMerchBuy: 0.5, mkMerchBuyG: 0.9, mkMerchMul: 2, // merchants sell at 2.5× normal or 2× the market price (whichever is more); they buy wood and iron at 0.5× normal, grain at 0.9×
+  mkSteep: 3, mkSteepB: 0.5, mkYears: 3,                 // merchants' sell price rises 3% per 1% of a world year's use they sell in a year, their buy price falls 0.5% per 1% they buy; market price = average of the last 3 years
+  mkMinMul: 0.01, mkMaxMul: 20,                          // price limits (× normal), as a safety net
   wxRegional: 0.04, wxMax: 0.25, wxClimate: 0.015,       // weather: small random yearly patches, the cap on any harvest change (±25%), slow world-wide good and bad years
   // weather systems: droughts and fertile spells that last decades, drift across the map, end, and start again elsewhere
   wsPerStates: 28, wsMin: 2, wsMax: 60,      // about one system per 28 starting states' worth of land, at least 2, at most 60
@@ -435,7 +445,7 @@ const R = {
   genCostBase: 30, genCostMind: 2.6, speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
   coastalShore: 0.03,              // share of shore land that makes a state coastal (Islands/Oceanic land types)
   // wood & iron (epic-battle: 1.4 wood and 1 iron per worker; doubled here for this game's smaller populations)
-  woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, resBuy: 1.6, resSell: 0.5, startWood: 150, startIron: 60, // base prices; buying costs ×1.6, selling earns ×0.5
+  woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, startWood: 150, startIron: 60, // normal prices
   shoreYield: 1, shoreMax: 0.25,                 // +1% harvest per 1% of land on the shore, max +25%
   narrowFront: 3, wideFront: 15, narrowBonus: 0.4, // defenders +40% on a border of <=3 km, fading to 0 at 15 km
   seaBonus: 0.15,                  // pre-made maps: defenders +15% against an attack that only crosses a sea route (replaces the narrow-front bonus)
@@ -445,7 +455,7 @@ const R = {
   idleStart: 5, idleFull: 25,                     // AI stalemate breaker: bolder after 5 years without fighting, boldest at 25
   aiDefense: 0.3,                                 // AI keeps an army of at least 30% of its strongest neighbor's strength (more if recently attacked)
   aiSciMax: 0.25,                                 // AI keeps scientists under 25% of its people (room for an army)
-  aiPriceK: 0.5, aiPriceStep: 0.03, aiPriceMin: 0.75, aiPriceMax: 1.3, aiBuyPlan: 0.85, aiSellFrac: 0.3, // AI and the market: farm less when grain is cheap (to 75%), more when dear (to 130%), moving 3 points a year; plan purchases for an 85% harvest; sell 30% of the surplus a year
+  aiPriceK: 0.5, aiPriceStep: 0.03, aiPriceMin: 0.75, aiPriceMax: 1.3, aiBuyPlan: 0.85, aiSellFrac: 0.5, aiNeedK: 0.6, aiMargin: 0.08, // AI and the market: farm less when grain is cheap (to 75%), more when dear (to 130%), moving 3 points a year; plan purchases for an 85% harvest; sell 30% of the surplus a year
   aiResLean: 3,                                   // AI wood/iron workers lean toward its better resource: (iron yield ÷ wood yield)^3 (0 = fixed split)
   aiPersonValue: 60, aiTroopYears: 5, aiTroopLoss: 0.1, // AI troop choice: a person's worth in money (higher when births are slow or peasants short), years of upkeep counted, share lost per year at toughness 1
   aiKeepPop: 0.72, aiKeepCap: 0.35, aiRebuild: 0.3, // AI peasant reserve (scientists count as peasants): 72% of pop / 35% of capacity (see aiPeasantFloor); rebuilds 30% of a shortfall per year
@@ -611,8 +621,8 @@ function applyLosses(c,pool,loss){ const tr=troopsOf(c); for(const k in loss){ p
 function taxIncome(c){ return Math.round(c.peasants*R.taxPerPeasant*(1+R.finTaxPerLevel*lvl(c,"fin"))*wonderMul(c,"fin")); }
 function exploreMul(c){ return M(c,"explore")*(1+R.explorePerLevel*lvl(c,"explore"))*wonderMul(c,"explore"); }
 function wages(c){ let w=workers(c).sci*R.sciWage; const tr=troopsOf(c); for(const k in tr) w+=tr[k]*(TROOP[k]?.upGold??0); return Math.round(w); } // scientists + cavalry gold upkeep
-function sellPrice(g,c){ return +(g.price*(1+R.finPricePerLevel*lvl(c,"fin"))).toFixed(2); }
-function buyPrice(g){ return +(g.price*R.grainBuy).toFixed(2); }
+function sellPrice(g,c){ return +(g.price*mkFin(c)).toFixed(2); } // market price, with this state's Finance bonus
+function buyPrice(g){ return g.price; }
 function genPrice(age,speed,mind){ return Math.round(R.genCostBase*Math.pow(R.genCostMind,mind)*(1+speed/8)*(1+(40-age)/40)); }
 function genFactor(gen){ return gen ? (0.4+gen.skill*0.008)*(0.5+gen.morale/200) : R.genNoGeneral; }
 function speedCap(gen){ return Math.round(R.speedBase+gen.speed*R.speedPerPoint); }
@@ -1294,51 +1304,108 @@ function makeGeneral(g,age,speed,mind){
 const act = {
   hireTroop(g,c,id,n){ const t=TROOP[id]; if(!t||!troopUnlocked(c,id)) return 0;
     n=Math.max(0,Math.min(Math.floor(n),affordable(c,t),c.peasants-50)); payTroops(c,t,n); c.peasants-=n; addTroops(c,id,n); return n; },
-  sellRes(g,c,r,n){ n=Math.max(0,Math.min(Math.floor(n),Math.floor(c[r]||0))); c[r]-=n; c.money+=Math.round(n*resSellPrice(c,r,g)); mkSold(g,r,n); return n; },
-  buyRes(g,c,r,n){ const q=mkBuyQuote(g,c,r,n); mkBuyDo(g,c,r,q); c[r]=(c[r]||0)+q.n; return q.n; },
+  sellRes(g,c,r,n){ return mkDo(g,c,r,"sell",mkQuote(g,c,r,"sell",Math.min(n,Math.floor(c[r]||0)))); }, // now, to the best buy orders, then merchants
+  buyRes(g,c,r,n){ return mkDo(g,c,r,"buy",mkQuote(g,c,r,"buy",n)); }, // now, from the cheapest sell orders, then merchants
+  postOrder(g,c,r,side,n,p,yrs){ return mkPost(g,c,r,side,n,p,yrs); },
+  cancelOrder(g,c,id){ for(const r of MK_RES){ const B=mkBook(g,r), o=[...B.a,...B.b].find(o=>o.id===id&&o.s===c.id); if(o){ mkCancel(g,c,r,o); return true; } } return false; },
   hireSol(g,c,n){ return act.hireTroop(g,c,"spear",n); },
   fireSol(g,c,n){ n=Math.max(0,Math.min(n,c.soldiers-committed(c))); removeTroops(c,n,"cheap"); c.peasants+=n; return n; },
   fireTroop(g,c,id,n){ const tr=troopsOf(c); n=Math.max(0,Math.min(Math.floor(n),tr[id]||0,c.soldiers-committed(c))); tr[id]-=n; c.soldiers-=n; c.peasants+=n; return n; },
-  sell(g,c,n){ n=Math.max(0,Math.min(Math.floor(n),c.grain)); c.grain-=n;c.money+=Math.round(n*sellPrice(g,c)); mkSold(g,"grain",n); return n; },
-  buy(g,c,n){ const q=mkBuyQuote(g,c,"grain",n); mkBuyDo(g,c,"grain",q); c.grain+=q.n; return q.n; },
+  sell(g,c,n){ return act.sellRes(g,c,"grain",n); },
+  buy(g,c,n){ return act.buyRes(g,c,"grain",n); },
   buyGeneral(g,c,age,speed,mind){ const p=genPrice(age,speed,mind); if(c.money<p) return null; c.money-=p; const gen=makeGeneral(g,age,speed,mind); c.generals.push(gen); if(c.defGen==null) c.defGen=gen.id; return gen; },
   dismissGeneral(g,c,id){ c.generals=c.generals.filter(x=>x.id!==id); c.attacks=c.attacks.filter(a=>a.gen!==id); if(c.defGen===id) c.defGen=null; },
 };
 function resPrice(r,g){ return mkPrice(g,r); }
 // ---------- world market ----------
-// Every state's sales go into one world stock per resource, and purchases come out of it. Once a year the price is set
-// from how full the stock is (fuller = cheaper). Outside traders export part of any big excess; when the stock runs out
-// they sell at a high import price. Grain in the stock spoils like any store.
+// An order book per resource. A state posts an order to buy or sell at its own price: the gold or goods are held in it
+// until it fills, runs out of time or is cancelled. Or it trades now against the best orders already posted.
+// Outside merchants stand behind the book: they sell dear and buy cheap. Their prices follow the market price, and get
+// worse the more they trade in a year, so in a shortage prices climb until demand dies out.
+// The market price is the average price of all trades over the last few years.
 const MK_RES=["grain","wood","iron"];
 const mkBase=r=>r==="grain"?R.priceMean:r==="wood"?R.woodPrice:R.ironPrice;
-const mkNormal=r=>({grain:R.mkNormGrain,wood:R.mkNormWood,iron:R.mkNormIron})[r];
-const mkExpAt=r=>({grain:R.mkExpGrain,wood:R.mkExpWood,iron:R.mkExpIron})[r];
-const mkBuyMul=r=>r==="grain"?R.grainBuy:R.resBuy;
+const mkFin=c=>1+R.finPricePerLevel*lvl(c,"fin"); // Finance research: sellers get more
 // a year of this resource: grain = what the world eats, wood/iron = what the world produces
 function mkRef(g,r){ const C=g.countries.filter(c=>c.alive); return Math.max(1,r==="grain"?C.reduce((s,c)=>s+foodUse(c),0):C.reduce((s,c)=>s+production(c)[r],0)); }
-function mkInit(g){ g.mk={};
-  for(const r of MK_RES){ const b=r==="grain"&&g.price?g.price:mkBase(r), ref=mkRef(g,r); g.mk[r]={price:b,avg:b,hist:[b],stock:ref*mkExpAt(r)*2,ref,sold:0,bought:0,imp:0,exp:0,cover:mkExpAt(r)*2}; }
-  g.price=g.mk.grain.price; return g.mk; }
-function mkOf(g){ return g.mk||mkInit(g); } // older saves start the market on first use
+function mkInit(g){ g.mk={}; for(const r of MK_RES){ const b=r==="grain"&&g.price?g.price:mkBase(r); g.mk[r]={price:b,avg:b,hist:[b]}; } mkFix(g); g.price=g.mk.grain.price; return g.mk; }
+// fills in what the market needs (older saves had a world stock instead of orders)
+function mkFix(g){ if(!g.ob) g.ob={};
+  for(const r of MK_RES){ const m=g.mk[r]; if(!g.ob[r]) g.ob[r]={a:[],b:[]}; if(m.h) continue;
+    for(const k of ["stock","cover","sold","bought","imp","exp","last"]) delete m[k];
+    m.h=[]; m.y={v:0,val:0,mv:0,ms:0}; m.mbY=0; m.msY=0; m.ref=mkRef(g,r); mkMerchSet(m,r); } }
+function mkOf(g){ if(!g.mk) return mkInit(g); if(!g.ob||!g.mk.grain.h) mkFix(g); return g.mk; }
+const mkBook=(g,r)=>(mkOf(g),g.ob[r]); // {a: sell orders, cheapest first; b: buy orders, dearest first}
 function mkPrice(g,r){ if(!g) return mkBase(r); return r==="grain"?g.price:(g.mk?.[r]?.price??mkBase(r)); }
-function mkImportUnit(g,r){ return Math.max(mkPrice(g,r),mkBase(r)*R.mkImport)*mkBuyMul(r); }
-// what buying n would get and cost: first from the world stock at the market price, then imports (money permitting)
-function mkBuyQuote(g,c,r,n){ const m=mkOf(g)[r], unit=(r==="grain"?mkPrice(g,r):mkPrice(g,r))*mkBuyMul(r); n=Math.max(0,Math.floor(n));
-  const fromS=Math.min(n,Math.floor(m.stock),Math.floor(c.money/unit)); let cost=fromS*unit, imp=0;
-  if(fromS===Math.min(n,Math.floor(m.stock))){ const ip=mkImportUnit(g,r); imp=Math.max(0,Math.min(n-fromS,Math.floor((c.money-cost)/ip))); cost+=imp*ip; }
-  return {n:fromS+imp,fromS,imp,cost:Math.round(cost)}; }
-function mkBuyDo(g,c,r,q){ const m=mkOf(g)[r]; m.stock-=q.fromS; m.bought+=q.fromS; m.imp+=q.imp; c.money-=q.cost; }
-function mkSold(g,r,n){ const m=mkOf(g)[r]; m.stock+=n; m.sold+=n; }
-// once a year, after everyone has traded: spoilage, exports, then next year's prices
-function mkYear(g){ const M=mkOf(g);
-  for(const r of MK_RES){ const m=M[r], b=mkBase(r); m.ref=mkRef(g,r);
-    if(r==="grain") m.stock*=1-R.foodSpoil;
-    const ex=Math.max(0,m.stock-mkExpAt(r)*m.ref)*R.mkExport; m.stock-=ex; m.exp+=ex;
-    m.cover=m.stock/m.ref; m.last={sold:m.sold,bought:m.bought,imp:m.imp,exp:m.exp}; m.sold=m.bought=m.imp=m.exp=0;
-    const lo=b*R.mkMinMul, hi=b*R.mkMaxMul, tgt=Math.min(hi,Math.max(lo,b*Math.pow(mkNormal(r)/Math.max(m.cover,1e-4),R.mkElast)));
-    m.prev=m.price; m.price=+Math.min(hi,Math.max(lo,m.price+(tgt-m.price)*R.mkSmooth)).toFixed(r==="grain"?2:2);
+function resPrice(r,g){ return mkPrice(g,r); }
+// merchants' starting prices for the year: they sell at 2.5× normal or 2× the market price, whichever is more; they buy at a set share of normal
+function mkMerchSet(m,r){ const b=mkBase(r); m.mA=+Math.min(R.mkMaxMul*b,Math.max(R.mkMerchSell*b,R.mkMerchMul*m.price)).toFixed(2); m.mB=+((r==="grain"?R.mkMerchBuyG:R.mkMerchBuy)*b).toFixed(2); }
+// a merchant's price for the next unit after x more this year
+const mkMA=(m,x=0)=>m.mA*(1+R.mkSteep*(m.mbY+x)/m.ref), mkMB=(m,x=0)=>m.mB/(1+R.mkSteepB*(m.msY+x)/m.ref);
+// what trading n now would do. Buying takes the cheapest sell orders, then merchants; selling the dearest buy orders,
+// then merchants. lim = the worst price accepted; a buyer is held to its gold. A state's own orders are skipped.
+function mkQuote(g,c,r,side,n,lim){ const m=mkOf(g)[r], B=g.ob[r], buy=side==="buy", L=lim??(buy?Infinity:0);
+  let left=Math.max(0,Math.floor(n)||0), money=buy?Math.max(0,c.money):Infinity, cost=0; const n0=left, fills=[];
+  for(const o of buy?B.a:B.b){ if(left<=0) break; if(o.s===c.id) continue; if(buy?o.p>L:o.p<L) break;
+    let q=Math.min(left,o.q); if(buy) q=Math.min(q,Math.floor(money/o.p)); if(q<=0) break;
+    fills.push({o,q}); left-=q; cost+=q*o.p; if(buy) money-=q*o.p; }
+  let mq=0, mc=0; const ref=m.ref;
+  if(left>0&&buy){ const A=m.mA, b0=m.mbY, k=R.mkSteep; let x=left;
+    if(isFinite(L)) x=Math.min(x,k>0?(L/A-1)*ref/k-b0:(L>=A?x:0));
+    const qa=A*k/(2*ref), qb=A*(1+k*b0/ref); if(isFinite(money)) x=Math.min(x,qa>0?(-qb+Math.sqrt(qb*qb+4*qa*money))/(2*qa):money/qb);
+    mq=Math.max(0,Math.floor(x)); mc=A*(mq+k/ref*(b0*mq+mq*mq/2)); }
+  if(left>0&&!buy){ const P=m.mB, s0=m.msY, k=R.mkSteepB; let x=left; if(L>0) x=Math.min(x,k>0?(P/L-1)*ref/k-s0:(P>=L?x:0));
+    mq=Math.max(0,Math.floor(x)); mc=k>0?P*ref/k*Math.log((ref+k*(s0+mq))/(ref+k*s0)):P*mq; }
+  cost+=mc; const q=n0-left+mq; return {n:q,cost,fills,mq,mc,avg:q?cost/q:0}; }
+// carry out a quote made just before
+function mkDo(g,c,r,side,qt){ const m=mkOf(g)[r], B=g.ob[r], buy=side==="buy", C=g.countries;
+  for(const {o,q} of qt.fills){ const v=q*o.p, w=C[o.s]; o.q-=q;
+    if(buy) w.money+=Math.round(v*mkFin(w)); else { w[r]=(w[r]||0)+q; c[r]-=q; c.money+=Math.round(v*mkFin(c)); }
+    mkNews(w,r,buy?"sell":"buy",q,v); m.y.v+=q; m.y.val+=v; }
+  if(buy){ c.money-=Math.round(qt.cost); c[r]=(c[r]||0)+qt.n; m.mbY+=qt.mq; m.y.mv+=qt.mq; }
+  else { c[r]-=qt.mq; c.money+=Math.round(qt.mc*mkFin(c)); m.msY+=qt.mq; m.y.ms+=qt.mq; }
+  m.y.v+=qt.mq; m.y.val+=qt.mc;
+  if(qt.fills.length){ B.a=B.a.filter(o=>o.q>0); B.b=B.b.filter(o=>o.q>0); } return qt.n; }
+// post an order: first trade with anything already at this price or better, then hold the rest (gold or goods) in the book.
+// It lasts yrs years (1 = until the end of this year); end overrides that.
+function mkPost(g,c,r,side,n,p,yrs,end){ const B=mkBook(g,r), buy=side==="buy"; p=+Math.max(0.01,+p||0).toFixed(2); n=Math.max(0,Math.floor(n)||0);
+  if(!buy) n=Math.min(n,Math.floor(c[r]||0)); if(n<=0) return {now:0,posted:0};
+  const qt=mkQuote(g,c,r,side,n,p); if(qt.n) mkDo(g,c,r,side,qt);
+  const left=Math.min(n-qt.n,buy?Math.floor(Math.max(0,c.money)/p):Math.floor(c[r]||0));
+  if(left>0){ const o={id:g.obId=(g.obId||0)+1,s:c.id,q:left,q0:left,p,end:end??g.turn+Math.max(1,Math.floor(yrs)||1)-1};
+    if(buy) c.money-=left*p; else c[r]-=left; const L=buy?B.b:B.a; L.push(o); L.sort(buy?(x,y)=>y.p-x.p||x.id-y.id:(x,y)=>x.p-y.p||x.id-y.id); }
+  return {now:qt.n,posted:Math.max(0,left)}; }
+// take an order back: what it still holds returns
+function mkCancel(g,c,r,o){ const B=g.ob[r], bid=B.b.includes(o); if(bid) c.money+=o.q*o.p; else c[r]=(c[r]||0)+o.q; B.a=B.a.filter(x=>x!==o); B.b=B.b.filter(x=>x!==o); }
+// merchants take any order that beats their own price: sell orders below what they pay, buy orders above what they charge
+// (each at the order's price, until their own price has moved to it)
+function mkSweep(g,r){ const m=g.mk[r], B=g.ob[r], C=g.countries;
+  for(const o of B.a){ if(o.p>mkMB(m)) break; const k=R.mkSteepB, q=Math.min(o.q,Math.max(0,k>0?Math.floor((m.mB/o.p-1)*m.ref/k-m.msY):o.q)); if(q<=0) break;
+    const w=C[o.s]; o.q-=q; w.money+=Math.round(q*o.p*mkFin(w)); mkNews(w,r,"sell",q,q*o.p); m.msY+=q; m.y.ms+=q; m.y.v+=q; m.y.val+=q*o.p; }
+  for(const o of B.b){ if(o.p<mkMA(m)) break; const k=R.mkSteep, q=Math.min(o.q,Math.max(0,k>0?Math.floor((o.p/m.mA-1)*m.ref/k-m.mbY):o.q)); if(q<=0) break;
+    const w=C[o.s]; o.q-=q; w[r]=(w[r]||0)+q; mkNews(w,r,"buy",q,q*o.p); m.mbY+=q; m.y.mv+=q; m.y.v+=q; m.y.val+=q*o.p; }
+  B.a=B.a.filter(o=>o.q>0); B.b=B.b.filter(o=>o.q>0); }
+// what happened to a human's posted orders this year, for the year report
+function mkNews(c,r,k,q,v){ if(!c||c.ai) return; const N=c.mkNews||(c.mkNews={}), e=N[r+"|"+k]||(N[r+"|"+k]={q:0,v:0}); e.q+=q; e.v+=v; }
+// once a year, after everyone has traded: orders age, the market price, merchants' prices
+function mkYear(g){ const M=mkOf(g), C=g.countries;
+  for(const r of MK_RES){ const m=M[r], B=g.ob[r], b=mkBase(r);
+    for(const sd of ["a","b"]) B[sd]=B[sd].filter(o=>{ const c=C[o.s];
+      if(sd==="a"&&r==="grain") o.q=Math.floor(o.q*(1-R.foodSpoil)); // grain held for sale spoils like any store
+      if(c?.alive&&o.end>g.turn&&o.q>0) return true;
+      if(c?.alive&&o.q>0){ if(sd==="b") c.money+=o.q*o.p; else c[r]=(c[r]||0)+o.q; mkNews(c,r,"end"+sd,o.q,0); } return false; }); // gone with its state
+    // this year's price: what trades paid on average; with no trades, where the orders left in the book stand
+    const ba=B.a[0]?.p, bb=B.b[0]?.p, py=m.y.v>0?m.y.val/m.y.v:ba!=null&&bb!=null?(ba+bb)/2:ba!=null?Math.min(ba,m.price):bb!=null?Math.max(bb,m.price):m.price;
+    m.h.push(py); while(m.h.length>Math.max(1,R.mkYears)) m.h.shift();
+    m.prev=m.price; m.price=+Math.min(R.mkMaxMul*b,Math.max(R.mkMinMul*b,m.h.reduce((s,x)=>s+x,0)/m.h.length)).toFixed(2);
+    m.last={...m.y,p:m.y.v?m.y.val/m.y.v:null,mA:m.mA,mB:m.mB}; m.y={v:0,val:0,mv:0,ms:0}; m.mbY=m.msY=0; m.ref=mkRef(g,r); mkMerchSet(m,r); mkSweep(g,r); // new merchant prices: they take what beats them
     m.hist.push(m.price); if(m.hist.length>400) m.hist.shift(); const h=m.hist.slice(-3); m.avg=h.reduce((s,v)=>s+v,0)/h.length; }
-  g.lastPrice=g.price; g.price=M.grain.price; }
+  g.lastPrice=g.price; g.price=M.grain.price;
+  const NM={grain:"grain",wood:"wood",iron:"iron"};
+  for(const c of C){ if(!c.mkNews) continue; if(c.alive&&!c.ai) for(const [key,e] of Object.entries(c.mkNews)){ const [r,k]=key.split("|"), q=fmt0(e.q);
+      note(g,c.id,k==="sell"?`💱 Your ${NM[r]} sell orders sold ${q} for ${fmt0(e.v)} gold.`:k==="buy"?`💱 Your ${NM[r]} buy orders bought ${q} for ${fmt0(e.v)} gold.`
+        :k==="enda"?`💱 Your ${NM[r]} sell order ran out of time: ${q} ${NM[r]} came back.`:`💱 Your ${NM[r]} buy order ran out of time: the gold for ${q} ${NM[r]} came back.`); }
+    delete c.mkNews; } }
 // ---------- weather systems ----------
 // A system is a drought (kind -1) or a fertile spell (kind +1): it builds up, peaks, fades over its lifetime, drifting
 // slowly. When it ends its slot stays quiet for a while, then a new one starts somewhere else. Two of the same kind
@@ -1423,8 +1490,6 @@ function mkWeather(g){ const C=g.countries; const ev=wsYear(g);
   for(const {t,w} of ev) if(t==="merge2") C.forEach(c=>{ if(!c.ai&&c.alive) note(g,c.id,w.kind<0?`🔥 Two Great Droughts met in the ${wsWhere(g,w.x,w.y)}: an Age of Dust has begun (up to ${Math.round(w.str*100)}% smaller harvests).`:`🌾 Two Golden Harvests met in the ${wsWhere(g,w.x,w.y)}: an Age of Plenty has begun (up to +${Math.round(w.str*100)}% bigger harvests).`); });
   for(const {t,w,o} of ev) if(t==="clash"||t==="cancel") C.forEach(c=>{ if(!c.ai&&c.alive) note(g,c.id,t==="cancel"?`🌦 ${wsA(w,1)} and ${wsA(o)} met in the ${wsWhere(g,w.x,w.y)} and cancelled each other out.`:`🌦 ${wsA(w,1)} ${w.kind>0?"broke":"wiped out"} ${wsA(o)} in the ${wsWhere(g,o.x,o.y)}.`); });
   for(const {t,w} of ev) if(t==="merge") C.forEach(c=>{ if(!c.ai&&c.alive) note(g,c.id,w.kind<0?`🔥 Two droughts met in the ${wsWhere(g,w.x,w.y)}: a Great Drought has begun.`:`🌾 Two fertile spells met in the ${wsWhere(g,w.x,w.y)}: a Golden Harvest has begun.`); }); }
-// what this state gets when selling wood/iron: Finance research raises it like the grain price
-function resSellPrice(c,r,g){ return +(resPrice(r,g)*R.resSell*(1+R.finPricePerLevel*lvl(c,"fin"))).toFixed(2); }
 function committed(c){ return c.attacks.reduce((s,a)=>s+a.soldiers,0); }
 // peace time: no state may attack during the first g.peace years
 const inPeace=g=>g.turn<=(g.peace||0);
@@ -1463,8 +1528,9 @@ function aiHireSol(g,c,n){ return aiRecruit(g,c,n,null,true); }
 function aiCanPay(g,c,t,n){
   // grain to spare: what is in store now, minus what this year's harvest will not cover
   const spare=Math.max(0,c.money-wages(c)*3-200), foodLeft=Math.min(c.grain, c.grain+foodProduction(c)-foodUse(c)*1.1);
+  const quote=(r,n)=>mkQuote(g,{id:c.id,money:Infinity},r,"buy",n).cost; // what buying it now would cost
   const pay=k=>{ if(t.food*k>foodLeft||t.gold*k>spare) return false;
-    const buy=Math.max(0,t.wood*k-c.wood)*resPrice("wood",g)*R.resBuy+Math.max(0,t.iron*k-c.iron)*resPrice("iron",g)*R.resBuy;
+    const need=r=>Math.max(0,Math.ceil(t[r]*k-(c[r]||0))), buy=(need("wood")?quote("wood",need("wood")):0)+(need("iron")?quote("iron",need("iron")):0);
     return buy+t.gold*k<=spare; };
   let k=n; while(k>0&&!pay(k)) k=Math.floor(k*0.75); return k;
 }
@@ -1472,6 +1538,29 @@ function aiBuyAndHire(g,c,t,k){
   if(t.wood*k>c.wood) act.buyRes(g,c,"wood",Math.ceil(t.wood*k-c.wood));
   if(t.iron*k>c.iron) act.buyRes(g,c,"iron",Math.ceil(t.iron*k-c.iron));
   return act.hireTroop(g,c,t.id,k);
+}
+// what a resource is worth to this state: the market price × how much it needs it (its store against its needs) × a little
+// personality, kept between the merchants' prices
+function aiWorth(g,c,r){ const m=mkOf(g)[r], kk=0.95+0.1*((c.id*2654435761>>>0)%1000)/1000; let f;
+  if(r==="grain"){ const food=foodUse(c), s=(c.grain+foodProduction(c)*(c.wxSys??1)-food)/Math.max(1,food); f=Math.pow(0.5/Math.max(0.05,s+0.2),R.aiNeedK); } // years of food left after next year
+  else f=Math.pow(Math.max(200,3*production(c)[r])/Math.max(20,c[r]||0),R.aiNeedK*0.7); // store against a 3-year reserve
+  if(c.money<wages(c)*2) f*=0.9; // short of gold: sells cheaper, pays less
+  return Math.min(m.mA,Math.max(m.mB*0.7,m.price*Math.min(4,Math.max(0.4,f))*kk*rr(g,0.97,1.03))); } // a glutted state sells to merchants
+// trade n at worth w: take posted orders that beat w now, then post the rest a little better than w (until next year)
+function aiTrade(g,c,r,side,n,w){ n=Math.floor(n); if(n<=0) return 0; const qt=mkQuote(g,c,r,side,n,w); if(qt.n) mkDo(g,c,r,side,qt);
+  if(n>qt.n) mkPost(g,c,r,side,n-qt.n,side==="buy"?w*(1-R.aiMargin):w*(1+R.aiMargin),1,g.turn+1); return qt.n; }
+// AI trading: last year's orders come back first, then fresh ones
+function aiMarket(g,c){
+  for(const r of MK_RES){ const B=mkBook(g,r); for(const o of [...B.a,...B.b]) if(o.s===c.id) mkCancel(g,c,r,o); }
+  // grain: this year's food arrives before eating; keep a reserve, trade the rest
+  const food=Math.round(foodUse(c)*1.04), prod=foodProduction(c), reserve=Math.round(food*0.3), plan=Math.round(prod*R.aiBuyPlan*(c.wxSys??1)); // plan for a weak harvest
+  const hungry=food-c.grain-plan; if(hungry>0) act.buy(g,c,hungry); // not enough to eat: pay what it takes
+  if(c.grain+plan<food+reserve) aiTrade(g,c,"grain","buy",food+reserve-c.grain-plan,aiWorth(g,c,"grain"));
+  else { const surplus=Math.min(c.grain+prod-food-reserve,c.grain-reserve); if(surplus>0) aiTrade(g,c,"grain","sell",surplus*R.aiSellFrac,aiWorth(g,c,"grain")); }
+  // wood and iron: sell half of what is above a reserve (3 years of production); buy up to half the reserve with spare gold
+  for(const r of ["wood","iron"]){ const keep=Math.max(200,3*production(c)[r]), have=c[r]||0, w=aiWorth(g,c,r), spare=c.money-wages(c)*4-500;
+    if(have>keep) aiTrade(g,c,r,"sell",(have-keep)*0.5,w);
+    else if(have<keep*0.5&&spare>0) aiTrade(g,c,r,"buy",Math.min(keep*0.5-have,spare*0.1/w),w); }
 }
 function aiTurn(g,c){
   const d=g.difficulty, t=g.turn, adj=neighbors(g,c.id);
@@ -1505,13 +1594,7 @@ function aiTurn(g,c){
     const base=early?0.3:0.55, tilt=Math.pow(yI/yW,R.aiResLean)*Math.min(3,Math.max(1/3,Math.pow(rel("iron")/rel("wood"),kk))); // and toward the better-paying one
     const spare=Math.max(0,1-farmShare-sciShare), ironShare=Math.min(0.9,Math.max(0.1,base*tilt/(base*tilt+1-base)));
     c.work={wood:Math.floor(spare*(1-ironShare)*100), iron:Math.floor(spare*ironShare*100), sci:Math.floor(sciShare*100)}; }
-  // wood and iron: sell what is above a reserve (3 years of production), so a wood-rich state can pay for iron troops
-  for(const r of ["wood","iron"]){ const keep=Math.max(200,3*production(c)[r]); if((c[r]||0)>keep) act.sellRes(g,c,r,Math.floor((c[r]-keep)*0.5)); }
-  // grain planning: this year's food arrives before eating; keep a reserve, trade the rest
-  const food=Math.round(foodUse(c)*1.04), prod=foodProduction(c), reserve=Math.round(food*0.3);
-  const plan=Math.round(prod*R.aiBuyPlan*(c.wxSys??1)); if(c.grain+plan<food+reserve){ act.buy(g,c,food+reserve-c.grain-plan); } // plan for a weak harvest
-  const surplus=c.grain+prod-food-reserve;
-  if(surplus>0) act.sell(g,c,Math.round(Math.min(surplus,c.grain-reserve)*R.aiSellFrac)); // sell gradually // keep a reserve in store: training troops costs grain now
+  aiMarket(g,c);
   // generals
   const wantGen = t<(c.persona==="mil"?8:24)-d*2 ? 0 : Math.min(4,1+Math.floor(t/22));
   if(c.generals.length<wantGen){
@@ -2704,15 +2787,33 @@ function plannedPools(c){ const pool={...troopsOf(c)}; for(const a of c.attacks)
 function mixText(tr){ return TROOPS.filter(t=>tr[t.id]>0).map(t=>`${t.icon} ${fmt(tr[t.id])} ${t.name}`).join(", ")||"none"; }
 // stored grain beyond next year's shortfall plus a 20% reserve (what "Sell surplus" sells)
 function surplusGrain(c){ const food=foodUse(c), keep=Math.max(0,food-foodProduction(c))+Math.round(food*0.2); return Math.max(0,c.grain-keep); }
-// market prices and what a trade box would do: sell/buy n of r ("grain","wood","iron")
-const MKT={grain:["🌾","Grain","nGrain","sell","buy","#e0b354"],wood:["🌲","Wood","nWood","sellWood","buyWood","#5cc98a"],iron:["⛏️","Iron","nIron","sellIron","buyIron","#9fb4d0"]};
-function mktPrices(c,r){ return r==="grain"?[sellPrice(G,c),buyPrice(G)]:[resSellPrice(c,r,G),+(resPrice(r,G)*R.resBuy).toFixed(2)]; }
-function mktStock(c,r){ return Math.floor(r==="grain"?c.grain:(c[r]||0)); }
-function mktLabels(c,r,v){ const [sp]=mktPrices(c,r), ns=Math.min(v,mktStock(c,r)), q=mkBuyQuote(G,c,r,v);
-  return [`Sell ${fmt(ns)} → <b class="good">+${fmt(Math.round(ns*sp))}</b> 💰`,`Buy ${fmt(q.n)} → <b class="bad">−${fmt(q.cost)}</b> 💰${q.imp?` <span title="The world stock is short: ${fmt(q.imp)} come from outside merchants at ${mkImportUnit(G,r).toFixed(2)} each">(${fmt(q.imp)} imported)</span>`:""}`]; }
-// refresh one trade row's previews while typing
-function paintMkt(r){ const box=$(MKT[r][2]); if(!box) return; const v=Math.max(0,Math.floor(+box.value)||0), [ls,lb]=mktLabels(me(),r,v);
-  $("mS-"+r).innerHTML=ls; $("mB-"+r).innerHTML=lb; }
+// market: resource names, colors and the order book view
+const MKT={grain:["🌾","Grain","","","","#e0b354"],wood:["🌲","Wood","","","","#5cc98a"],iron:["⛏️","Iron","","","","#9fb4d0"]};
+const mkR=()=>UI.mkR||"grain", mkSide=()=>UI.mkSide||"buy";
+function mktStock(c,r){ return Math.floor(c[r]||0); }
+const px2=v=>(+v).toFixed(2);
+// who posted an order, as you may see it
+function mkWho(c,o){ return o.s===c.id?"<b>You</b>":isKnown(o.s)?esc(G.countries[o.s].name):'<span class="mut">Unknown state</span>'; }
+// what the trade box would do now: one line per order it fills, merchants last, then the total
+function mkNowHtml(c,n){ const r=mkR(), side=mkSide(), buy=side==="buy", have=mktStock(c,r); n=Math.max(0,Math.floor(+n||0));
+  if(!n) return '<div class="mut">Type an amount.</div>';
+  const want=buy?n:Math.min(n,have), q=mkQuote(G,c,r,side,want), fin=buy?1:1+R.finPricePerLevel*lvl(c,"fin"), L=[];
+  q.fills.slice(0,4).forEach(({o,q:k})=>L.push(`<div><span>${fmt(k)} ${buy?"from":"to"} ${mkWho(c,o)}</span><span>@ ${px2(o.p)} = ${fmt(k*o.p)}</span></div>`));
+  if(q.fills.length>4){ const k=q.fills.slice(4).reduce((s,f)=>s+f.q,0), v=q.fills.slice(4).reduce((s,f)=>s+f.q*f.o.p,0); L.push(`<div><span>${fmt(k)} ${buy?"from":"to"} ${q.fills.length-4} more states</span><span>avg ${px2(v/k)} = ${fmt(v)}</span></div>`); }
+  if(q.mq) L.push(`<div class="mut"><span>${fmt(q.mq)} ${buy?"from":"to"} merchants</span><span>avg ${px2(q.mc/q.mq)} = ${fmt(q.mc)}</span></div>`);
+  if(q.n) L.push(`<div class="tot"><span>${fmt(q.n)} ${MKT[r][1].toLowerCase()}</span><span>${buy?"−":"+"}${fmt(q.cost*fin)} 💰 · avg ${px2(q.avg*fin)}</span></div>`);
+  if(!buy&&n>have) L.push(`<div class="bad">You have ${fmt(have)}.</div>`);
+  if(buy&&q.n<n) L.push(`<div class="bad">Your ${fmt(c.money)} gold buys ${fmt(q.n)}.</div>`);
+  if(!q.n) L.push(`<div class="mut">Nothing to ${buy?"buy":"sell"}.</div>`);
+  if(fin>1&&q.n) L.push(`<div class="mut small">Includes your Finance bonus (+${+((fin-1)*100).toFixed(1)}%).</div>`);
+  return L.join(""); }
+// what posting the order would do: trade now with anything at your price or better, the rest waits in the book
+function mkPostHtml(c,n,p){ const r=mkR(), side=mkSide(), buy=side==="buy"; n=Math.max(0,Math.floor(+n||0)); p=+(+p||0).toFixed(2);
+  if(!n||!(p>0)) return '<span class="mut">Type an amount and a price.</span>';
+  const want=buy?n:Math.min(n,mktStock(c,r)), q=mkQuote(G,c,r,side,want,p), rest=Math.max(0,buy?Math.min(want-q.n,Math.floor(Math.max(0,c.money-q.cost)/p)):want-q.n);
+  const B=mkBook(G,r), ahead=(buy?B.b:B.a).filter(o=>buy?o.p>=p:o.p<=p).length;
+  return `${q.n?`${fmt(q.n)} trade now at your price or better. `:""}${rest?`${fmt(rest)} wait in the book${buy?`, holding ${fmt(rest*p)} gold`:""}${ahead?` (${ahead} ${buy?"higher":"cheaper"} order${ahead>1?"s":""} ahead)`:" (best price)"}.`:q.n?"":"Nothing to post."}`; }
+function paintMkt(){ const c=me(), n=$("mkAmt")?.value, p=$("mkP")?.value; UI.mkAmt=n; UI.mkP=p; if($("mkNow")) $("mkNow").innerHTML=mkNowHtml(c,n); if($("mkPostPrev")) $("mkPostPrev").innerHTML=mkPostHtml(c,n,p); }
 // price as a word, compared with the normal price
 function mktFeel(r){ const k=mkPrice(G,r)/mkBase(r); return k<0.85?'<span class="good">low</span>':k>1.15?'<span class="acc">high</span>':"normal"; }
 function mktTrend(r){ const m=mkOf(G)[r], p=m.price, lp=m.prev; return lp==null||Math.abs(p-lp)<0.005?"":p>lp?`<span class="good" title="Last year ${lp}">▲</span>`:`<span class="bad" title="Last year ${lp}">▼</span>`; }
@@ -2729,27 +2830,44 @@ function mktChart(){ const M=mkOf(G), n=Math.max(...MK_RES.map(r=>M[r].hist.leng
   const lines=MK_RES.map(r=>{ const h=M[r].hist, off=n-h.length; return `<polyline fill="none" stroke="${MKT[r][5]}" stroke-width="1.8" points="${h.map((v,i)=>X(i+off)+","+Y(100*v/mkBase(r))).join(" ")}"><title>${MKT[r][1]}</title></polyline>`; }).join("");
   return `<svg class="mchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prices over time, as a share of each normal price">${grid}${xs.join("")}${lines}</svg>
   <div class="mleg">${MK_RES.map(r=>`<span><i style="background:${MKT[r][5]}"></i>${MKT[r][1]}</span>`).join("")}<span class="mut">100% = normal price</span></div>`; }
-// why prices moved: last year's world trade and how full the world stock is
+// last year's trade: how much changed hands and how much of it went through merchants
 function mktWhy(){ const M=mkOf(G);
-  return `<table class="tight mwhy"><tr><th></th><th class="r">Price</th><th class="r" title="How full the world stock is, compared with normal">World stock</th><th class="r" title="What all states sold to and bought from the world market last year">Sold / bought</th></tr>
-  ${MK_RES.map(r=>{ const m=M[r], l=m.last||{sold:0,bought:0,imp:0,exp:0}, k=m.cover/mkNormal(r);
-    return `<tr><td>${MKT[r][0]} ${MKT[r][1]}</td><td class="r">${m.price} ${mktTrend(r)}</td><td class="r ${k<0.6?"bad":k>1.6?"good":""}" title="${Math.round(k*100)}% of normal">${k<0.6?"low":k>1.6?"high":"normal"}</td>
-      <td class="r small">${fmtK(Math.round(l.sold))} / ${fmtK(Math.round(l.bought+l.imp))}${l.imp>0?` <span class="bad" title="Bought from outside merchants because the world stock ran out">(${fmtK(Math.round(l.imp))} imported)</span>`:""}</td></tr>`; }).join("")}</table>`; }
+  return `<table class="tight mwhy"><tr><th></th><th class="r">Price</th><th class="r" title="All trades last year, between states and with merchants">Traded</th><th class="r" title="Bought from merchants last year: states ran out of sellers">From merchants</th><th class="r" title="Sold to merchants last year: no state wanted it at a better price">To merchants</th></tr>
+  ${MK_RES.map(r=>{ const m=M[r], l=m.last||{v:0,mv:0,ms:0};
+    return `<tr><td>${MKT[r][0]} ${MKT[r][1]}</td><td class="r">${px2(m.price)} ${mktTrend(r)}</td><td class="r">${fmtK(Math.round(l.v))}</td><td class="r ${l.mv>0?"bad":"mut"}">${fmtK(Math.round(l.mv))}</td><td class="r mut">${fmtK(Math.round(l.ms))}</td></tr>`; }).join("")}</table>`; }
+// the order book: sell orders above (cheapest nearest the middle), buy orders below, merchants at both ends
+function mktBook(c,r){ const B=mkBook(G,r), m=mkOf(G)[r], A=B.a.slice(0,6).reverse(), Bd=B.b.slice(0,6), mx=Math.max(1,...A.map(o=>o.q),...Bd.map(o=>o.q));
+  const row=(o,cls,col)=>`<div class="bk${o.s===c.id?" me":""}" style="background:linear-gradient(90deg,${col} ${Math.max(2,Math.round(100*o.q/mx))}%,transparent 0)"><span class="${cls}">${px2(o.p)}</span><span class="r">${fmt(o.q)}</span><span>${mkWho(c,o)}${o.s===c.id?` <span class="mut">· ${o.end-G.turn+1} yr${o.end-G.turn?"s":""} left</span>`:""}</span></div>`;
+  const merch=(p,cls,col,t)=>`<div class="bk" style="background:${col}" title="${t}"><span class="${cls}">${px2(p)}</span><span class="r">any</span><span class="mut">Merchants</span></div>`;
+  const ba=B.a[0]?.p, bb=B.b[0]?.p;
+  return `<div class="mbook"><div class="bk hd"><span>Price</span><span class="r">Amount</span><span>From</span></div>
+    <div class="small mut">Selling</div>
+    ${merch(mkMA(m),"bad","rgba(233,106,90,.07)","Merchants sell any amount, but dearer the more they sell in a year")}
+    ${A.map(o=>row(o,"bad","rgba(233,106,90,.14)")).join("")}${B.a.length>6?`<div class="small mut" style="padding-left:6px">+${B.a.length-6} more, dearer</div>`:""}
+    <div class="mid"><span>Market price <b>${px2(m.price)}</b></span>${ba!=null&&bb!=null?`<span>·</span><span>gap ${px2(ba-bb)}</span>`:""}</div>
+    ${Bd.map(o=>row(o,"good","rgba(92,201,138,.14)")).join("")}${B.b.length>6?`<div class="small mut" style="padding-left:6px">+${B.b.length-6} more, lower</div>`:""}
+    ${merch(mkMB(m),"good","rgba(92,201,138,.07)","Merchants buy any amount, but pay less the more they buy in a year")}
+    <div class="small mut">Buying</div></div>`; }
+// your open orders, every resource
+function mktMine(c){ const L=[]; for(const r of MK_RES){ const B=mkBook(G,r); for(const [o,buy] of [...B.b.map(o=>[o,true]),...B.a.map(o=>[o,false])]) if(o.s===c.id) L.push([r,o,buy]); }
+  if(!L.length) return '<div class="small mut">None. Post an order above to buy or sell at your own price.</div>';
+  return `<div class="myord">${L.map(([r,o,buy])=>{ const q0=o.q0||o.q, done=Math.max(0,q0-o.q), yl=o.end-G.turn+1;
+    return `<div><b class="${buy?"good":"bad"}">${buy?"Buy":"Sell"}</b> ${fmt(q0)} ${MKT[r][1].toLowerCase()} @ ${px2(o.p)}<span class="pbar"><i style="width:${Math.round(100*done/q0)}%;background:var(--${buy?"good":"bad"})"></i></span>
+      <span class="small mut">${done?`${fmt(done)} filled · `:"nothing filled · "}${buy?`${fmt(o.q*o.p)} gold held`:`${fmt(o.q)} held`} · ${yl} year${yl>1?"s":""} left</span></div>
+      <button class="sm" data-a="mkCancel" data-id="${o.id}" title="Take it back: what it still holds returns">Cancel</button>`; }).join("")}</div>
+    <div class="small mut">Gold and goods in your orders are held until they fill, run out of time or you cancel them.</div>`; }
 function pMarket(){
-  const c=me(), pr=production(c), food=foodUse(c), prod=foodProduction(c), sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v));
+  const c=me(), pr=production(c), food=foodUse(c), prod=foodProduction(c), sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)), r=mkR(), side=mkSide(), buy=side==="buy", m=mkOf(G)[r];
   const card=(l,v,sub,extra="")=>`<div class="stat"><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span>${extra}</div>`;
   const per=v=>`<span class="${v<0?"bad":v>0?"good":""}">${sg(v)}/yr</span>`;
-  const px=r=>{ const [sp,bp]=mktPrices(c,r); return `${mktSpark(r)}<span class="small" style="color:var(--mut)">Price ${mkPrice(G,r)} ${mktTrend(r)} ${mktFeel(r)} · sell ${sp} · buy ${bp}</span>`; };
-  const surplus=surplusGrain(c);
-  const row=r=>{ const [ic,nm,id,sa,ba]=MKT[r], [sp,bp]=mktPrices(c,r), v=r==="grain"?Math.min(500,Math.max(surplus,0))||500:100, [ls,lb]=mktLabels(c,r,v), mb=mkBuyQuote(G,c,r,1e9).n;
-    const max=(n,tip)=>`<button class="mmax" data-mfill="${r}" data-n="${Math.floor(n/2)}" title="Fill in half (${fmt(Math.floor(n/2))})">Half</button><button class="mmax" data-mfill="${r}" data-n="${n}" title="${tip} (${fmt(n)})">Max</button>`;
-    return `<div class="mrow"><div class="mhead"><b>${ic} ${nm}</b><span class="small mut">sell ${sp} · buy ${bp}</span></div>
-      <div class="mtrade"><input type="text" inputmode="numeric" id="${id}" value="${v}" data-mkt="${r}" aria-label="${nm} amount">
-        <span class="msplit"><button data-a="${sa}">Sell</button>${max(mktStock(c,r),"Fill in everything you have")}</span>
-        <span class="msplit"><button data-a="${ba}">Buy</button>${max(mb,"Fill in the most your money buys")}</span>
-        <span></span><span class="mprev" id="mS-${r}">${ls}</span><span class="mprev" id="mB-${r}">${lb}</span></div>
-      ${r==="grain"?`<div class="mkfoot"><span title="Stored grain beyond next year's needs plus a 20% reserve">Surplus ${surplus>0?`<button class="mlink ${prod>=food?"good":"bad"}" data-mfill="grain" data-n="${surplus}" title="Fill in the surplus">${fmt(surplus)}</button>`:`<b class="mut">none</b>`}${prod<food?` <span class="bad">· grain −${fmt(food-prod)}/yr</span>`:""}</span>
-        <label><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell it every year</label></div>`:""}</div>`; };
+  const px=x=>`${mktSpark(x)}<span class="small" style="color:var(--mut)">Price ${px2(mkPrice(G,x))} ${mktTrend(x)} ${mktFeel(x)}</span>`;
+  const surplus=surplusGrain(c), have=mktStock(c,r), B=mkBook(G,r);
+    // a suggested price inside the gap: just above the best buy order (buying) or just below the cheapest seller (selling)
+  const ba=B.a[0]?.p??mkMA(m), bb=B.b[0]?.p??mkMB(m), mid=Math.min(ba-0.01,Math.max(bb+0.01,m.price));
+  const amt=UI.mkAmt??(r==="grain"&&!buy&&surplus>0?surplus:500), price=UI.mkP??+Math.max(0.01,buy?Math.min(mid,B.b[0]?B.b[0].p+0.01:mid*0.97):Math.max(mid,B.a[0]?B.a[0].p-0.01:mid*1.03)).toFixed(2);
+  const maxBuy=mkQuote(G,c,r,"buy",1e9).n, maxN=buy?maxBuy:have;
+  const seg=(attr,v,on,label)=>`<button data-${attr}="${v}" class="${on?"on":""}" aria-pressed="${on}">${label}</button>`;
+  const qp=[[buy?"Best buy order":"Cheapest seller",buy?B.b[0]?.p:B.a[0]?.p],["Market price",m.price],[buy?"Cheapest seller":"Best buy order",buy?B.a[0]?.p:B.b[0]?.p]].filter(x=>x[1]!=null);
   return `<h3>Stock</h3>
   <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
     ${card("🌾 Grain",fmt(c.grain),per(prod-food),px("grain"))}
@@ -2757,12 +2875,33 @@ function pMarket(){
     ${card("🌲 Wood",fmt(c.wood||0),per(pr.wood),px("wood"))}
     ${card("⛏️ Iron",fmt(c.iron||0),per(pr.iron),px("iron"))}</div>
   <h3>Trade</h3>
-  ${row("grain")}${row("wood")}${row("iron")}
+  <div class="mseg" role="group" aria-label="Resource">${MK_RES.map(x=>seg("mkres",x,x===r,`${MKT[x][0]} ${MKT[x][1]}`)).join("")}</div>
+  <div class="mrow">
+    <div class="mseg" role="group" aria-label="Buy or sell">${seg("mkside","buy",buy,"Buy")}${seg("mkside","sell",!buy,"Sell")}</div>
+    <div class="mpost" style="margin:8px 0 6px"><label for="mkAmt" class="mut">Amount</label><input type="text" inputmode="numeric" id="mkAmt" value="${amt}" data-mkt="1">
+      <button class="sm" data-mfill="1" data-n="${Math.floor(maxN/2)}" title="Half of the most you can ${buy?"afford":"sell"} (${fmt(Math.floor(maxN/2))})">Half</button><button class="sm" data-mfill="1" data-n="${maxN}" title="The most you can ${buy?"afford now":"sell"} (${fmt(maxN)})">Max</button>
+      ${r==="grain"&&!buy&&surplus>0?`<button class="mlink good" data-mfill="1" data-n="${surplus}" title="Stored grain beyond next year's needs plus a 20% reserve">surplus ${fmt(surplus)}</button>`:""}
+      <span class="small mut">you have ${fmt(have)}</span></div>
+    <div class="mfills" id="mkNow">${mkNowHtml(c,amt)}</div>
+    <div class="mpost" style="margin-top:6px"><button class="pri" data-a="mkNow">${buy?"Buy":"Sell"} now</button><span class="small mut">${buy?"Cheapest sellers first; merchants when states run out.":"Best buyers first; merchants when no state pays more."}</span></div>
+    <div class="mkorder"><div class="small"><b>Or post an order at your price</b></div>
+      <div class="mpost"><label for="mkP" class="mut">Price</label><input type="text" inputmode="decimal" id="mkP" value="${price}" data-mkt="1">
+        <label for="mkY" class="mut">for</label><select id="mkY">${[1,3,5].map(y=>`<option value="${y}" ${(UI.mkY||3)===y?"selected":""}>${y} year${y>1?"s":""}</option>`).join("")}</select>
+        <button data-a="mkPost">Post ${side} order</button></div>
+      <div class="mpost">${qp.map(([l,p])=>`<button class="sm" data-mkp="${px2(p)}">${l} ${px2(p)}</button>`).join("")}</div>
+      <div class="small mut" id="mkPostPrev">${mkPostHtml(c,amt,price)}</div></div>
+    ${r==="grain"?`<div class="mkfoot"><span>${prod<food?`<span class="bad">Grain −${fmt(food-prod)}/yr</span>`:`Surplus <b>${fmt(surplus)}</b>`}</span>
+      <label title="When you end the turn, your surplus grain is put up for sale at the market price for a year"><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell surplus every year</label></div>`:""}
+  </div>
+  <h3>Order book · ${MKT[r][1]}</h3>
+  ${mktBook(c,r)}
+  <h3>Your orders</h3>
+  ${mktMine(c)}
   <h3>World market</h3>
   ${mktChart()}
   ${mktWhy()}
   ${(()=>{ const w=worldWx(G); return w==null?"":`<div class="small" style="margin:4px 0">🌦 World harvest last year: <b class="${Math.abs(w-1)<0.03?"":w>1?"good":"bad"}">${Math.abs(w-1)<0.005?"normal":`${Math.round(Math.abs(w-1)*100)}% ${w>1?"above":"below"} normal`}</b> <span class="mut">(weather; turn on the Weather map to see where)</span></div>`; })()}
-  <div class="small mut">Every state sells into one world stock and buys from it. Prices are set once a year: a full stock makes a resource cheap, a short one makes it dear. When the stock runs out, outside merchants sell at a high price. Surplus = stored grain beyond next year's needs plus a 20% reserve; auto-sell sells it when you end the turn. Finance research raises selling prices (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%).</div>`;
+  <div class="small mut">States trade with each other through the order book: post an order at your price and wait, or trade now with the best orders posted. Outside merchants always buy and sell, but at poor prices that get worse the more they trade in a year; when states run short, merchants sell dearer every year until demand dies down. The market price is the average of the last ${R.mkYears} years' trades. Finance research raises what you get when selling (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%).</div>`;
 }
 // a copy of state c after training n of troop id (paid, peasants become soldiers); free=true skips the cost
 function afterTrain(c,id,n,free){ const t=TROOP[id], x={...c,troops:{...troopsOf(c)}};
@@ -3267,9 +3406,9 @@ const SETTINGS_META=[
   ["Map",[["mapLabels","State names on the map (zoom in to see the style; small states keep classic text)","select"]]],
   ["Start",[["startPeasants","Starting peasants"],["startGrain","Starting grain"],["startMoney","Starting money"],["startWood","Starting wood"],["startIron","Starting iron"]]],
   ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["minPop","A state below this population collapses"]]],
-  ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Wood sell price"],["ironPrice","Iron sell price"],["resBuy","Wood/iron buy price (× base price)"],["resSell","Wood/iron sell price (× base price)"],["grainBuy","Grain buy price (× market price)"],["priceMean","Normal grain price"]]],
+  ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Normal wood price"],["ironPrice","Normal iron price"],["priceMean","Normal grain price"]]],
   ["Weather systems (droughts and fertile spells)",[["wsPerStates","One system per this many starting states"],["wsMin","At least this many systems"],["wsMax","At most this many systems"],["wsLifeMin","Shortest life (years)"],["wsLifeMax","Longest life (years)"],["wsQuietMin","Shortest quiet gap before a new one (years)"],["wsQuietMax","Longest quiet gap (years)"],["wsRamp","Share of its life spent building up (and again fading)","%"],["wsRadMin","Smallest radius (state widths)"],["wsRadMax","Largest radius (state widths)"],["wsStrMin","Weakest: harvest change at the centre","%"],["wsStrMax","Strongest: harvest change at the centre","%"],["wsGood","Chance a new system is a fertile spell","%"],["wsDrift","Drift speed (state widths per year)"],["wsTurn","Largest change of direction per year (degrees)"],["wsMerge","Same kinds merge (Great Drought, Golden Harvest)","bool"],["wsMergeDist","Merge when centres are closer than (× radii combined)"],["wsMergeSize","Merged size (× the bigger one)"],["wsMergeStr","Merged strength (× the stronger one)"],["wsMergeLife","Merged: extra years of life"],["wsGreatMax","Two great ones meeting: strongest it can get","%"],["wsGreatLife","Two great ones meeting: extra years of life"],["wsClash","Opposite kinds clash: higher tier wins, equal tiers cancel out","bool"],["wsFloor","Systems build up from and fade down to: share of their lowest strength (0 = from and to nothing)","%"]]],
-  ["World market & weather",[["mkNormGrain","Normal world grain stock (years of world use)"],["mkNormWood","Normal world wood stock (years of world production)"],["mkNormIron","Normal world iron stock (years of world production)"],["mkExpGrain","Grain exports start above (years)"],["mkExpWood","Wood exports start above (years)"],["mkExpIron","Iron exports start above (years)"],["mkExport","Share of the excess exported per year","%"],["mkElast","How strongly prices react to the stock"],["mkSmooth","How fast prices move toward their target","%"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["mkImport","Import price when the stock runs out (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus sold per year","%"]]],
+  ["World market & weather",[["mkMerchSell","Merchants sell at least at (× normal)"],["mkMerchMul","Merchants sell at least at (× market price)"],["mkMerchBuy","Merchants buy wood and iron at (× normal)"],["mkMerchBuyG","Merchants buy grain at (× normal)"],["mkSteep","Merchant sell price rise per world year sold (× 1 = +100%)"],["mkSteepB","Merchant buy price drop per world year bought"],["mkYears","Market price: average over years"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus offered per year","%"],["aiNeedK","AI: how strongly need moves the price it pays or asks"],["aiMargin","AI: how far its orders sit from what it thinks fair","%"]]],
   ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["sizeRef","Level cost grows with size: population at ×1 (0 = off)"],["sizeExp","Level cost grows with size: exponent (× (pop ÷ that)^exponent)"],["catchUpPer","Catching up: cheaper per level behind the world average","%"],["catchUpMax","Catching up: at most this much cheaper","%"],["leadPer","Leading: dearer per level ahead of the world average","%"],["leadMax","Leading: at most this many times the cost (1 = off)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Expansion: land per battle and settling per level","%"],["sciMax","Max research bonus: Science (0 = no cap)","%"],["agriMax","Max research bonus: Agriculture","%"],["finMax","Max research bonus: Finance","%"],["densMax","Max research bonus: Pop. density (share of base capacity)","%"],["growMax","Max research bonus: Pop. growth (share of base birth rate)","%"],["atkMax","Max research bonus: Attack","%"],["defMax","Max research bonus: Defense","%"],["woodMax","Max research bonus: Forestry","%"],["ironMax","Max research bonus: Mining","%"],["exploreMax","Max research bonus: Expansion","%"]]],
   ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
@@ -3439,6 +3578,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Order book market","2026-11-10 20:27",["Market tab: an order book for grain, wood and iron instead of one world stock","Post buy or sell orders at your own price for 1, 3 or 5 years, or trade now with the best orders","Computer states price by need: short of grain, they pay more; plenty, they sell cheaper","Merchants always buy and sell, at poor prices that get worse the more they trade; in a long shortage their price keeps climbing","Your orders and what they hold are listed with a Cancel button; the year report says what filled","Auto-sell now puts your surplus up for sale at the market price","New market settings"]],
 ["Calmer local weather","2026-11-10 19:48",["Random yearly local weather is about half as strong","Droughts and fertile spells now stand out clearly from it"]],
 ["Relations with reasons","2026-11-10 19:37",["Relations are now a sum of feelings: Grievance, Solidarity, Wariness, Fear, Trust and Common enemy","Hover a relation to see what it's made of","Striking back and winning clears most of a grievance","Fear of a big neighbor is capped and fades only if it shrinks, so size alone no longer makes neighbors furious","Computer states may take revenge, by chance, more likely when your army is away or you just lost","Wary neighbors may step in against a state that keeps attacking others","Computer states surrounded by angry neighbors keep more troops home and attack less","News tells you why a computer state attacked you","New Relations settings"]],
 ["Weather in New game","2026-11-10 17:59",["Weather systems on/off moved from Settings to New game (More options → Rules), on by default","Each game remembers its own choice","Grain card: new Spoils row, so harvest, eating and spoilage add up to the Stock change"]],
@@ -3499,7 +3639,7 @@ function helpModal(){
   <li><b>Shore farmland:</b> land touching water harvests more: +1% for every 1% of your land on the shore, up to +${R.shoreMax*100}%.</li>
   <li>Population grows toward capacity (land × density). Pop. density and growth research raise it.</li></ul>
   <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last. Big states pay more per level (cost × √(population ÷ ${fmt(R.sizeRef)})). Ideas spread: an area costs ${Math.round(R.catchUpPer*100)}% less per level you are behind the world average (at most −${Math.round(R.catchUpMax*100)}%) and ${Math.round(R.leadPer*100)}% more per level you are ahead (at most ×${R.leadMax}). Each area's research bonus has a max (e.g. +${Math.round(R.atkMax*100)}% attack, +${Math.round(R.sciMax*100)}% research): early levels give the full amount, later ones less and less as the bonus nears the max. Civilization, leader, land and wonder bonuses multiply on top and can take the total past it.${R.levelKnee>0?` Levels above ${R.levelKnee} also have diminishing returns (they count with the square root).`:""}</li></ul>
-  <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Overview tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li><li><b>World market:</b> grain, wood and iron each have one world stock. Selling adds to it, buying takes from it. Prices change once a year: a full stock means a low price, an empty one a high price. If the stock runs out, outside merchants sell at a high price. The Market tab charts past prices.</li><li><b>Weather:</b> harvests can be up to 25% better or worse than usual. Droughts and fertile spells last 20–40 years and drift slowly across the map; when one ends, another starts elsewhere a few years later. Two droughts that meet become a Great Drought, two fertile spells a Golden Harvest; two of those meeting become an Age of Dust or an Age of Plenty, bigger, stronger (past the usual 25%) and longer-lived still. When a drought and a fertile spell meet, the higher tier wins and the other ends; equal tiers cancel each other out. Small random patches add a few percent either way each year. Turn on the Weather map to see them coming. Weather systems can be turned off in New game (More options → Rules).</li></ul>
+  <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Overview tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li><li><b>World market:</b> grain, wood and iron each have an order book. Post an order to buy or sell at your own price for 1, 3 or 5 years: its gold or goods are held until it fills, runs out of time or you cancel it (grain held for sale spoils like any store). Or trade now with the best orders other states posted. Computer states price by need: a state short of grain pays more, one with plenty sells cheaper. Outside merchants always buy and sell, at poor prices that get worse the more they trade in a year; if states keep buying from them, their price climbs year after year until demand dies down. The market price is the average of the last few years' trades. Auto-sell puts your surplus grain up for sale at the market price each year.</li><li><b>Weather:</b> harvests can be up to 25% better or worse than usual. Droughts and fertile spells last 20–40 years and drift slowly across the map; when one ends, another starts elsewhere a few years later. Two droughts that meet become a Great Drought, two fertile spells a Golden Harvest; two of those meeting become an Age of Dust or an Age of Plenty, bigger, stronger (past the usual 25%) and longer-lived still. When a drought and a fertile spell meet, the higher tier wins and the other ends; equal tiers cancel each other out. Small random patches add a few percent either way each year. Turn on the Weather map to see them coming. Weather systems can be turned off in New game (More options → Rules).</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Battle losses are divided by toughness: wood troops (Spearman, Archers, Axeman) are cheap but die faster; iron troops (Pikeman, Swordsman, Cavalry) cost more but survive better. Attackers fight with attack, guards with defense; you pick which troops go on each attack (War tab), the rest stay home and guard. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Overview tab lists your bonuses.</li></ul>
   <h3>War</h3><ul class="log"><li><b>Peace years:</b> tick it in New game (More options → Rules) and set how many. Nobody can attack during those first years.</li><li><b>Battle reports:</b> press <b>Details</b> on any battle in the News tab or the year report to see both sides: alliances, generals, troops sent, killed and left, and how each side's strength adds up (research, civilization, wonders, general, defender bonus, narrow front, luck), plus how the land taken was worked out.</li>
@@ -3733,7 +3873,10 @@ document.addEventListener("click",async ev=>{
   if(d.dismiss){ act.dismissGeneral(G,me(),+d.dismiss); render(); return; }
   if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
   if(d.find){ if(!G||observing()) return; UI.tab="world"; UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
-  if(d.mfill){ const box=$(MKT[d.mfill][2]); if(box){ box.value=d.n; paintMkt(d.mfill); box.focus(); } return; }
+  if(d.mfill){ const box=$("mkAmt"); if(box){ box.value=d.n; paintMkt(); box.focus(); } return; }
+  if(d.mkp){ const box=$("mkP"); if(box){ box.value=d.mkp; paintMkt(); box.focus(); } return; }
+  if(d.mkres){ UI.mkR=d.mkres; UI.mkAmt=UI.mkP=undefined; render(); return; }
+  if(d.mkside){ UI.mkSide=d.mkside; UI.mkAmt=UI.mkP=undefined; render(); return; }
   if(d.wsort){ const s=UI.wsort||{k:"land",dir:-1}; UI.wsort=s.k===d.wsort?{k:s.k,dir:-s.dir}:{k:d.wsort,dir:-1}; render(); return; }
   if(d.asort){ const s=UI.asort||{k:"land",dir:-1}; UI.asort=s.k===d.asort?{k:s.k,dir:-s.dir}:{k:d.asort,dir:-1}; render(); return; }
   if(d.wlock){ const c=me(); c.workLock={...c.workLock,[d.wlock]:!c.workLock?.[d.wlock]}; render(); return; }
@@ -3750,13 +3893,11 @@ document.addEventListener("click",async ev=>{
   const c=G?me():null, num=id=>Math.max(0,Math.floor(+($(id)?.value||0)));
   switch(a){
     case "newsClear": UI.news={f:"all",q:"",page:0}; break;
-    case "sell": act.sell(G,c,num("nGrain")); break;
-    case "buy": act.buy(G,c,num("nGrain")); break;
-    case "sellWood": act.sellRes(G,c,"wood",num("nWood")); break;
-    case "buyWood": act.buyRes(G,c,"wood",num("nWood")); break;
-    case "sellIron": act.sellRes(G,c,"iron",num("nIron")); break;
-    case "buyIron": act.buyRes(G,c,"iron",num("nIron")); break;
-    case "sellSurplus": act.sell(G,c,surplusGrain(c)); break;
+    case "mkNow": { const r=mkR(), n=num("mkAmt"); if(!n){ flash("Type an amount."); return; }
+      if(!(mkSide()==="buy"?act.buyRes(G,c,r,n):act.sellRes(G,c,r,n))) flash(mkSide()==="buy"?"Not enough gold.":`You have no ${r} to sell.`); break; }
+    case "mkPost": { const r=mkR(), n=num("mkAmt"), p=+($("mkP")?.value||0); if(!n||!(p>0)){ flash("Type an amount and a price."); return; }
+      UI.mkY=+$("mkY").value||3; const o=act.postOrder(G,c,r,mkSide(),n,p,UI.mkY); if(!o.now&&!o.posted){ flash(mkSide()==="buy"?"Not enough gold.":`You have no ${r} to sell.`); return; } UI.mkP=undefined; break; }
+    case "mkCancel": act.cancelOrder(G,c,+d.id); break;
     case "buyGen": { const f=UI.genForm; if(!act.buyGeneral(G,c,f.age,f.speed,f.mind)) flash("Not enough money."); break; }
     case "orderAttack": { if(inPeace(G)){ flash("Peace time: no attacks yet."); return; }
       const gen=+$("atkGen").value, home=plannedPools(c), mix=takeMix({...home},atkMix(home)), n=troopCount(mix);
@@ -3804,7 +3945,7 @@ document.addEventListener("click",async ev=>{
 });
 document.addEventListener("input",ev=>{
   const t=ev.target;
-  if(t.dataset.mkt){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; paintMkt(t.dataset.mkt); return; }
+  if(t.dataset.mkt){ const v=t.id==="mkP"?t.value.replace(/[^\d.]/g,""):t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; paintMkt(); return; }
   if(t.id?.startsWith("trn-")){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; trainPreview(t.id.slice(4)); return; }
   if(t.dataset.sk&&UI.sdraft){ const k=t.dataset.kind; let v= k==="bool"?t.checked : k==="text"?t.value : k==="lines"?[...new Set(t.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))] : +t.value; if(k==="%") v=v/100;
     if(k!=="text"&&k!=="bool"&&k!=="lines"&&!isFinite(v)) return; setPath(UI.sdraft,t.dataset.sk,v);
@@ -3885,7 +4026,7 @@ async function endTurnNow(){
   if(!canPlay()||UI.busy) return; UI.busy=true; $("end").disabled=true;
   const prev=snapshot(me()), prevs={};
   // auto-sell after the snapshot, so the report shows the sale (hot-seat: for every human)
-  for(const c of G.hot?G.hot.ids.map(id=>G.countries[id]):[me()]){ if(G.hot) prevs[c.id]=snapshot(c); if(c.autoSell&&c.alive&&!observing()){ const n=surplusGrain(c); if(n>0) act.sell(G,c,n); } }
+  for(const c of G.hot?G.hot.ids.map(id=>G.countries[id]):[me()]){ if(G.hot) prevs[c.id]=snapshot(c); if(c.autoSell&&c.alive&&!observing()){ const n=surplusGrain(c); if(n>0) act.postOrder(G,c,"grain","sell",n,G.price,1); } }
   if(AUTO.on) showToast(`<span class="mut">Year ${G.turn}…</span>`);
   else modal(`<h2>Year ${G.turn}…</h2><p class="mut">The world is moving${ENGINE.inWorker?" (processing in the background)":""}.</p>`);
   try{ G=await ENGINE.call("endTurn",G); }
