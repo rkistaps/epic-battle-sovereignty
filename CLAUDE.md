@@ -23,7 +23,7 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
 
 - Read it before adding a system or changing rules in `R`, and judge changes by their knock-on effects on other systems.
 - Every new system needs an AI side, settings entries, old-save handling and a headless simulation compared against the anchors (checklist in the doc).
-- Update the doc in the same commit when a system's inputs, outputs or core formula change.
+- Keep the map current in the same commit (section 10 of the doc): a new system gets its own entry and is added to every system it reads from or writes to, the interaction table, the yearly order and the loops; a changed system updates its entry and every related system's entry, and the balance anchors if balance moved.
 
 ## Persistence
 

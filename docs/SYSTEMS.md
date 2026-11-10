@@ -289,6 +289,7 @@ Relationships that hold the economy together:
 7. **Performance**: avoid new full-map loops per state; up to 1000+ states.
 8. **Simulate** (section 8) and compare with the anchors in section 6, before and after. Look at pacing, gold, research, famine, and the system's own numbers.
 9. **Player-facing**: UI, Rules & tips (`helpModal`), a change log entry, and this document.
+10. **Update this map** as described in section 10, in the same commit.
 
 ## 8. Simulating
 
@@ -319,3 +320,24 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 - AI difficulty scales only research (and AI thresholds), not the economy.
 - The `R` comment on `aiSellFrac` says 30% but the value is 0.5.
 - The `placeWonders` comment says six wonders; ten are placed.
+
+## 10. Keeping this map current
+
+This map is only useful if it matches the code. Update it in the same commit as the change.
+
+**When a new system is added:**
+- Add its own entry to section 3 (what it is, key rules and `R` values, reads, writes, notes).
+- Add it to every existing entry it reads from or writes to: their **Reads**/**Writes** lines must name it too, so each relationship is recorded on both sides.
+- Add a row and a column to the table in section 4.
+- Add it to the diagram in section 1 if it moves people, food, gold, goods or land.
+- Place it in the yearly order in section 2.
+- Add any loop it creates or brakes to section 5.
+- Add an anchor to section 6 if it has a number worth watching, and re-run the simulation to refresh the existing ranges if they moved.
+
+**When an existing system changes** (a formula, an input, an output, when it runs, or what the AI does with it):
+- Update its entry in section 3.
+- Check every system that lists it under **Reads** or **Writes**, and update those entries if the relationship changed (new link, removed link, or a link that got much stronger or weaker).
+- Update the strength marks in section 4, the yearly order in section 2 and the loops in section 5 where they are affected.
+- If balance moved, re-run the simulation and update section 6. Say in the commit why the new ranges are acceptable.
+
+**When a fragile spot is fixed**, remove it from section 9. When a new one is found, add it.
