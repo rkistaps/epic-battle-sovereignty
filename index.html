@@ -63,7 +63,7 @@ table.rank td:first-child{overflow:hidden;text-overflow:ellipsis;white-space:now
 .mapctl button{background:#000b;min-width:30px}
 .mapctl button.on{border-color:var(--acc);color:var(--acc)}
 .mapseg{display:flex} .mapseg button{border-radius:0;margin-left:-1px} .mapseg button:not(.hidden){border-radius:0}
-.mapseg button.on{position:relative;z-index:1;background:#2b2618}
+.mapseg button.on{position:relative;z-index:1;background:#2b2618} .mapseg button:hover,.mapseg button:focus-visible{position:relative;z-index:2}
 .mapseg .first{border-radius:6px 0 0 6px} .mapseg .last{border-radius:0 6px 6px 0}
 #allyLegend{position:absolute;left:8px;bottom:8px;background:#000c;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;max-height:45%;display:flex;flex-direction:column;max-width:60%}
 #allyLegend .lgbody{overflow:auto;margin-top:4px}
@@ -3694,6 +3694,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Map switch fix","2026-11-10 23:05",["Map view buttons (States, Alliances, Relations, Weather) show their full border on hover"]],
 ["Faster population growth","2026-11-10 22:57",["Soldiers now count half toward births","Base birth rate 3% → 6%","Birth rate research doubled to match","New setting for how much soldiers count"]],
 ["Roomier map labels","2026-11-10 23:50",["More space above and below the numbers on map labels"]],
 ["Population on the map","2026-11-10 23:35",["Map labels show a land icon and the population next to land size"]],
