@@ -81,6 +81,10 @@ table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(-
 .pips i.off{background:#3a3f4a !important}
 .sbar{height:5px;border-radius:3px;background:#3a3f4a;margin-top:4px;overflow:hidden}
 .sbar i{display:block;height:100%}
+#tip .rtip{border-collapse:collapse;margin-top:6px;border-top:1px solid var(--line)} #tip .rtip td{padding:1px 0;border:0}
+#tip .rtip tr:first-child td{padding:5px 0 2px;font-size:11px;text-align:center} #tip .rtip td:first-child{padding-right:8px;text-align:left}
+#tip .rtn{text-align:right;min-width:30px;padding-left:10px!important;font-weight:600} #tip .rtip td.rtn+td{padding-left:5px}
+#tip .rtb{display:inline-block;position:relative;width:54px;height:8px;border-radius:2px;background:#2a2e36;vertical-align:-1px} #tip .rtb i{position:absolute;top:0;height:8px;border-radius:2px} #tip .rtb .rt0{left:26.5px;top:-1px;width:1px;height:10px;background:#6b7280;border-radius:0}
 #tip{position:fixed;z-index:5;pointer-events:none;background:#000c;border:1px solid var(--line);padding:6px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
 .tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
 .tabs{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:4px!important}
@@ -2699,6 +2703,13 @@ class MapView{
     return best; }
   centerOnCell(i,z){ this.mode=null; const g=this.g; if(z) this.z=z; this.ox=i%g.W+0.5-this.cw/this.z/2; this.oy=((i/g.W)|0)+0.5-this.ch/this.z/2; this.clamp(); this.schedule(); }
 }
+// map tooltip: how a state feels about each living neighbor and how they feel about it (worst first), as bars from the middle
+function nbRelTip(id){ const c=G.countries[id], nb=[...adjacency(G)[id]].filter(j=>G.countries[j].alive); if(!nb.length) return "";
+  const rows=nb.map(j=>({j,out:relOf(G,c,j),inn:relOf(G,G.countries[j],id)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn)), MAX=8;
+  const num=v=>{ const r=Math.round(v); return `<td class="rtn" style="color:${relColor(r)}">${r>0?"+":""}${r}</td>`; };
+  const bar=v=>{ const w=Math.round(Math.min(100,Math.abs(v))/100*26); return `<td><span class="rtb"><i class="rt0"></i><i style="width:${w}px;${v<0?"right:27px":"left:27px"};background:${relColor(v)}"></i></span></td>`; };
+  const nm=j=>`<span class="sw" style="background:${G.countries[j].color}"></span>${j===G.player?"<b>You</b>":isKnown(j)?esc(G.countries[j].name):'<span class="mut">Unknown state</span>'}${allied(G,id,j)?' <span class="mut">ally</span>':""}`;
+  return `<table class="rtip"><tr class="mut"><td></td><td colspan="2">Their feelings</td><td colspan="2">Neighbor's feelings</td></tr>${rows.slice(0,MAX).map(x=>`<tr><td>${nm(x.j)}</td>${num(x.out)}${bar(x.out)}${num(x.inn)}${bar(x.inn)}</tr>`).join("")}${rows.length>MAX?`<tr class="mut"><td colspan="5">+${rows.length-MAX} more</td></tr>`:""}</table>`; }
 function conqNote(o,i){ const from=G.takenFrom?.[i]; if(from==null||from<0||from===o||G.takenAt[i]!==G.turn-1) return "";
   const name=isKnown(from)||G.countries[from].alive===false?esc(G.countries[from].name):"an unknown state";
   return `<br><span class="acc">Conquered from ${name} last year</span>`; }
@@ -2716,7 +2727,7 @@ const mainView=new MapView($("map"),{
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
     if(w&&wo>=0&&isKnown(wo)){ tip.innerHTML=`<b>${WONDERS[w.area].icon} ${WONDERS[w.area].name}</b><br>+${wonderPct(w.area)}% ${WONDER_EFFECT[w.area]} for its holder<br><span class="mut">Held by</span> ${esc(G.countries[wo].name)}${wo===G.player?" (you)":""}`;
       placeTip(tip,ev); return; }
-    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${UI.wxView&&c.lastWx!=null?`<br><span style="color:${wxColor(c.lastWx)}">Last harvest ${c.lastWx>=1?"+":"−"}${Math.round(Math.abs(c.lastWx-1)*100)}% (weather)</span>`:""}${UI.wxView&&c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.02?`<br><span style="color:${wxColor(c.wxSys)}">Next harvest: about ${wxPct(c.wxSys)} from weather systems</span>`:""}${UI.wxView?wsTipLines(mainView.lastIdx):""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}`:`<span class="mut">Unexplored land</span>`;
+    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${UI.wxView&&c.lastWx!=null?`<br><span style="color:${wxColor(c.lastWx)}">Last harvest ${c.lastWx>=1?"+":"−"}${Math.round(Math.abs(c.lastWx-1)*100)}% (weather)</span>`:""}${UI.wxView&&c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.02?`<br><span style="color:${wxColor(c.wxSys)}">Next harvest: about ${wxPct(c.wxSys)} from weather systems</span>`:""}${UI.wxView?wsTipLines(mainView.lastIdx):""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}${nbRelTip(o)}`:`<span class="mut">Unexplored land</span>`;
     placeTip(tip,ev); },
 });
 
@@ -3679,6 +3690,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Neighbor relations on the map","2026-11-10 23:05",["Hovering a state on the map shows how it feels about each neighbor and how each neighbor feels about it, worst first"]],
 ["Peace in the header","2026-11-10 22:40",["During peace time the header shows how many years of peace are left next to the year"]],
 ["Money card fix","2026-11-10 22:24",["No more \"Cavalry −1\" on the Money card when you have no cavalry"]],
 ["Locked jobs stay locked","2026-11-10 22:15",["With farmers locked, lowering a job moves its share to the other unlocked jobs instead of to farmers","If no unlocked job can take it, the slider stops"]],

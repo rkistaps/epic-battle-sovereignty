@@ -211,7 +211,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Intent**: Aggression has memory and reaches beyond the victim: neighbours grow wary, allies hold solidarity, peace slowly builds trust. Revenge is understandable (a strike back counts half). The world should react to the player believably, not randomly. *(inferred from comments)*
 - How each state feels about each other one, as a sum of factors (−100..100): grievance (it attacked us), solidarity (it attacked our ally), wariness (it attacked our neighbour), fear (it is much bigger), trust (years of peace), common enemy. Each has its own build-up and fade (`rg*`, `rs*`, `rw*`, `rf*`, `rt*`, `re*`). A strike back within 5 years counts half.
 - **Reads**: battles, land sizes, adjacency, alliances.
-- **Writes**: AI threat estimate, army size, home guard, target choice, edge needed, revenge chances, protector attacks; player-facing labels, map view and warnings.
+- **Writes**: AI threat estimate, army size, home guard, target choice, edge needed, revenge chances, protector attacks; player-facing labels, map view, warnings, and the map tooltip (each state's feelings toward its neighbours and theirs toward it, worst first).
 - Notes: trust builds on every quiet border and makes the AI pickier; grudges can spiral (damped by revenge clearing grievance, floors and cooldowns).
 
 ### 3.15 Alliances
