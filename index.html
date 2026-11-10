@@ -2836,7 +2836,7 @@ function stockRow(st,net,row){ const sp=R.foodSpoil, nx=(st+net)*(1-sp), d=Math.
 function moneyRow(st,net,row){ if(net>=0) return ""; const y=Math.floor(Math.max(0,st)/-net);
   return row("Stock",(y?(y>=50?"lasts 50+ yrs":`lasts ${y} yr${y>1?"s":""}`):"runs out")+info("Stock",y?`You spend more than you earn: your gold runs out in about ${y>=50?"50+":y} year${y>1?"s":""}. Then unpaid soldiers and scientists go back to the fields.`:"You spend more than you earn and your gold can't cover next year: unpaid soldiers and scientists will go back to the fields."),"bad"); }
 // the year ahead: grain and money in and out (redrawn while dragging a Work slider)
-function yearAhead(c){ const food=foodUse(c), prod=foodProduction(c), wk=workers(c), tax=taxIncome(c), sw=wk.sci*R.sciWage, cw=wages(c)-sw, net=tax-wages(c);
+function yearAhead(c){ const food=foodUse(c), prod=foodProduction(c), wk=workers(c), tax=taxIncome(c), tr=troopsOf(c), cw=Math.round(Object.keys(tr).reduce((s,k)=>s+tr[k]*(TROOP[k]?.upGold??0),0)), sw=wages(c)-cw, net=tax-wages(c); // cavalry from the troops themselves (rounding stays with scientists)
   const sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)), row=(l,v,cls,tip="")=>`<div class="yar"${tip?` title="${tip}"`:""}><span class="mut">${l}</span><b class="${cls}">${v}</b></div>`;
   const card=(icon,name,n,rows,foot)=>`<div class="yac"><div class="yah"><span>${icon} ${name}</span><b class="${n>=0?"good":"bad"}">${sg(n)}<span class="small mut">/yr</span></b></div>${rows}<div class="yaf">${foot}</div></div>`;
   return `<div class="ya">
@@ -3677,6 +3677,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Money card fix","2026-11-10 22:24",["No more \"Cavalry −1\" on the Money card when you have no cavalry"]],
 ["Locked jobs stay locked","2026-11-10 22:15",["With farmers locked, lowering a job moves its share to the other unlocked jobs instead of to farmers","If no unlocked job can take it, the slider stops"]],
 ["Market buttons","2026-11-10 22:04",["Market switches show their full border on hover"]],
 ["Treasury outlook","2026-11-10 21:58",["Overview: grain and gold icons next to what you have in store","Money card says how many years your gold lasts when you spend more than you earn"]],
