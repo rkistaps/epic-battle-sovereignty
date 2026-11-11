@@ -133,6 +133,10 @@ td.r,th.r{text-align:right}
 .modal>.mbody{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
 .modal>.mfoot{margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
 .modal h2{margin:0 0 10px;color:var(--acc)}
+/* map generation progress */
+.genbar{height:10px;border-radius:5px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin:12px 0 6px}
+.genbar i{display:block;height:100%;background:var(--acc);border-radius:5px;transition:width .25s ease}
+.genbar.mini{height:6px;margin:6px 0 0;max-width:260px}
 /* rules & guide: menu and search on the left, one topic on the right */
 .glink{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0!important;margin-left:6px;border-radius:50%!important;border:1px solid var(--line)!important;background:none!important;color:var(--mut);font-size:10.5px;font-weight:700;line-height:1;vertical-align:2px;cursor:pointer;text-transform:none;letter-spacing:0;flex:none}
 .glink:hover,.glink:focus-visible{color:var(--acc);border-color:var(--acc)!important}
@@ -822,6 +826,8 @@ function linksOf(g){ if(!g.links||!g.links.length) return null; let mp=LINKS.get
 const OBSERVER=-9; // g.player in observer mode (no state is yours)
 // unique id of a game: news and battle reports are stored under it (Math.random is fine here: it doesn't touch the game's dice)
 function newGid(seed){ return seed.toString(36)+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8); }
+// map generation progress: the worker sets genHook to report (share done 0..1, what it's doing) to the page
+let genHook=null; const genProg=(p,label)=>{ if(genHook) genHook(Math.max(0,Math.min(1,p)),label); };
 function newGame(opts){
   const seed = opts.seed || Math.floor(Math.random()*1e9);
   const rnd = mulberry32(seed);
@@ -841,6 +847,7 @@ function newGame(opts){
   const total = Math.round(n*landEach/(1-frac));
   H = Math.max(10, Math.round(Math.sqrt(total/1.6)));
   W = Math.ceil(total/H);
+  genProg(0.01,"Shaping the land");
   // generate water, then nudge the request until the final share (after removing cut-off land) is on target
   let req=frac;
   for(let attempt=0;attempt<6;attempt++){
@@ -856,6 +863,7 @@ function newGame(opts){
   // cells: -2 = water, -1 = free land (during growth), >=0 = owner
   const cells = new Int16Array(W*H), landIdx=[];
   for(let i=0;i<W*H;i++){ if(mask[i]) cells[i]=-2; else { cells[i]=-1; landIdx.push(i); } }
+  genProg(0.05,"Placing states");
   // seeds on land: best-of-k farthest point sampling, by walking distance over land
   // (so pockets between lakes don't get a seed squeezed in right across the water)
   const dist=new Int32Array(W*H).fill(2147483647), bq=new Int32Array(W*H);
@@ -908,6 +916,7 @@ function newGame(opts){
       if(best<0) best=L.find(j=>cells[j]===-1);
       cells[best]=seeds.length; seeds.push({x:best%W,y:(best/W)|0}); relax(best);
     } });
+  genProg(0.09,"Placing states");
   // round-robin growth, smallest first
   const fronts = seeds.map(()=>[]), counts=new Array(n).fill(0);
   const nb = (i)=>{const x=i%W,y=(i/W)|0,o=[];if(x>0)o.push(i-1);if(x<W-1)o.push(i+1);if(y>0)o.push(i-W);if(y<H-1)o.push(i+W);const L=lk.get(i);if(L)o.push(...L);return o;};
@@ -935,6 +944,7 @@ function newGame(opts){
   // land nobody reached (an island with no sea route) and seedless World pockets start unowned
   for(let i=0;i<cells.length;i++) if(cells[i]===-3) cells[i]=-1;
   relaxStates(cells,W,H,counts,lk,rnd); // equal starting land, natural shapes (see relaxStates)
+  genProg(0.98,"Naming states");
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
   // more states than the fixed lists: invent names, spread extra colors by golden-ratio hue
   const used=new Set(names), SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"];
@@ -1241,13 +1251,14 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10){
     for(let i=0;i<N;i++) if(share[i]) cells[i]=-1;
     counts.fill(0);
     for(let s=0;s<n;s++){ heaps[s]=[]; if(cnt[s]){ dist[mid[s]]=0; heaps[s].push(mid[s]); } }
-    let live=[...Array(n).keys()].filter(s=>cnt[s]);
+    let live=[...Array(n).keys()].filter(s=>cnt[s]), got=0; const P0=0.12+0.74*r/rounds, PS=0.74/rounds, lab=`Growing states (round ${r+1} of ${rounds})`; genProg(P0,lab);
     while(live.length){ const next=[];
       for(const s of live){ const h=heaps[s]; let ok=true;
         for(acc[s]+=speed[s];acc[s]>=1&&ok&&counts[s]<cap;acc[s]--){ let i=-1;
           while(h.length){ const c=pop(h)%SH; if(cells[c]===-1&&share[c]){ i=c; break; } }
           if(i<0){ ok=false; break; } // boxed in
           if(counts[s]) dist[i]=reach(s,i);
+          if(++got%4096===0) genProg(P0+PS*got/land,lab);
           cells[i]=s; counts[s]++; nbs(i,j=>{ if(cells[j]===-1&&share[j]){ const d=reach(s,j); if(d<Infinity) push(h,Math.min(4e9,Math.round(d*8))*SH+j); } }); }
         if(ok&&counts[s]<cap) next.push(s); }
       live=next; }
@@ -1257,6 +1268,7 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10){
     if(mn>=cap*0.98) break;
     for(let s=0;s<n;s++){ acc[s]=0; if(counts[s]&&counts[s]<cap) speed[s]=Math.min(20,speed[s]*Math.pow(cap/counts[s],2)); } }
   if(best){ cells.set(best); for(let s=0;s<n;s++) counts[s]=bestCounts[s]; }
+  let fin=0; // finishing: 86%..97% of the bar
   // finishing: a state short of land takes the cells nearest its middle, free ones first, then from bigger neighbors
   // (each giver stays in one piece), so a shortfall is shared out thinly among the states around it
   const at=(x,y)=>x<0||y<0||x>=W||y>=H?-9:cells[y*W+x];
@@ -1269,7 +1281,7 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10){
     for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
     for(let s=0;s<n;s++) if(cnt[s]){ cx[s]/=cnt[s]; cy[s]/=cnt[s]; }
     const key=(s,i)=>Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2)*SH+i;
-    for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const by=new Map();
+    for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const by=new Map(); genProg(0.86+0.11*(1-Math.pow(0.85,++fin)),"Evening out borders");
       for(let s=0;s<n;s++) if(counts[s]){ if(counts[s]<mn) mn=counts[s]; if(counts[s]>mx) mx=counts[s]; }
       if(mn>=cap*0.985&&mx<=cap*1.015) break; // everyone within 1.5% of the share
       const over=mx>cap*1.015; // someone holds too much (after the arm cleanup): then every state may pull from a bigger neighbor
@@ -2350,7 +2362,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const ENGINE=(()=>{
   const local=(type,data)=>type==="newGame"?newGame(data):endTurn(data);
   const tail=`
-self.onmessage=e=>{ const {id,type,data,settings}=e.data;
+self.onmessage=e=>{ const {id,type,data,settings}=e.data; let last=-1;
+  genHook=(p,label)=>{ const k=Math.round(p*100); if(k!==last){ last=k; self.postMessage({id,prog:p,label}); } };
   try{ applySettings(settings); const r=type==="newGame"?newGame(data):endTurn(data); self.postMessage({id,ok:true,r},[r.cells,r.takenAt,r.takenFrom].filter(Boolean).map(a=>a.buffer)); }
   catch(err){ self.postMessage({id,ok:false,err:String(err&&err.stack||err)}); } };`;
   let w=null, seq=0; const pend=new Map();
@@ -2358,14 +2371,14 @@ self.onmessage=e=>{ const {id,type,data,settings}=e.data;
     for(const [id,p] of pend){ pend.delete(id); try{ p.res(local(p.type,p.data)); }catch(e){ p.rej(e); } } };
   try{
     w=new Worker(URL.createObjectURL(new Blob([$("engine").textContent+tail],{type:"text/javascript"})));
-    w.onmessage=e=>{ const p=pend.get(e.data.id); if(!p) return; pend.delete(e.data.id); e.data.ok?p.res(e.data.r):p.rej(new Error(e.data.err)); };
+    w.onmessage=e=>{ const p=pend.get(e.data.id); if(!p) return; if(e.data.prog!=null){ p.onProg?.(e.data.prog,e.data.label); return; } pend.delete(e.data.id); e.data.ok?p.res(e.data.r):p.rej(new Error(e.data.err)); };
     w.onerror=e=>{ e.preventDefault?.(); console.warn("Web Worker unavailable; running on the main thread.",e.message); fallback(); };
   }catch(e){ w=null; }
   return {
     get inWorker(){ return !!w; },
-    call(type,data){
+    call(type,data,onProg){ // onProg(share 0..1, label): progress reports while a map is made (worker only)
       if(!w) return new Promise((res,rej)=>setTimeout(()=>{ try{ res(local(type,data)); }catch(e){ rej(e); } },30)); // let "processing" paint first
-      return new Promise((res,rej)=>{ const id=++seq; pend.set(id,{res,rej,type,data}); w.postMessage({id,type,data,settings:SETTINGS}); });
+      return new Promise((res,rej)=>{ const id=++seq; pend.set(id,{res,rej,type,data,onProg}); w.postMessage({id,type,data,settings:SETTINGS}); });
     },
   };
 })();
@@ -3856,6 +3869,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Map progress bar","2026-11-12 01:00",["A progress bar shows while a new map is made, with what it is doing (placing states, growing states round by round, evening out borders)","The map preview in New game shows the same progress"]],
 ["Natural state shapes","2026-11-12 00:40",["States start in varied, natural shapes with wandering borders instead of round blobs","All land a state can reach is shared out, so no big empty regions at the start (like southern Africa)","Starting land stays almost equal"]],
 ["Equal starting land","2026-11-12 00:10",["Every state now starts with almost the same land: within about 1% on most maps, within 5% on the biggest world maps","States start compact and rounded, with no narrow arms","Land left over after everyone has an equal share starts unowned","Big world maps take a few seconds longer to create"]],
 ["Cleaner map borders","2026-11-11 22:30",["No more narrow arms or strips of one state squeezing between others, on every map","Starting sizes on random maps are more even","On big world maps most states start within 5% of each other; a few start smaller"]],
@@ -4188,6 +4202,7 @@ ${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders,
 <li><b>More options:</b> territory size per state, water (lakes, rivers or both: chokepoints), and the rules below.</li></ul>
 ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="function"?f():f]))}
 <p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one piece with its own natural shape. Only scraps of land, and islands no sea route reaches, start unowned; neighbors settle them.</p>
+<p>Big maps take a few seconds to make; a progress bar shows how far along it is.</p>
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
@@ -4384,13 +4399,16 @@ function pstHtml(i){ const s=UI.setup; if(!s.choose||!s.preview) return '<span c
   const k=picksOf(s)[i]; if(k!=null) return `<b>${esc(s.preview.countries[k].name)}</b><button type="button" data-pclr="${i}" title="Clear" aria-label="Clear pick">×</button>`;
   return nextPick(s)===i?'<span class="acc">Click the map</span>':'<span class="mut">Random</span>'; }
 function setPstText(){ const s=UI.setup; s.players.forEach((_,i)=>{ const el=$("pst"+i); if(el) el.innerHTML=pstHtml(i); }); }
+// map generation progress bar (filled by genShow while the worker reports; mini = the small one in the New game preview)
+const genBar=(p,mini)=>`<div class="genbar${mini?" mini":""}"><i id="${mini?"":"genBarI"}" style="width:${Math.round((p||0)*100)}%"></i></div>${mini?"":`<div class="small mut" id="genLab">Starting…</div>`}`;
+function genShow(p,label){ const b=$("genBarI"), l=$("genLab"); if(b) b.style.width=Math.round(p*100)+"%"; if(l) l.textContent=`${label} · ${Math.round(p*100)}%`; }
 function pickText(){ const s=UI.setup;
-  if(s.hot&&!s.observer){ if(!s.preview) return "Generating map…"; const i=nextPick(s); return i<0?"Every player has a state.":`Next: <b>player ${i+1}</b>. Players without a state start at random, away from the others.`; }
-  return !s.preview?"Generating map…":s.pick!=null?`Selected: <b>${esc(s.preview.countries[s.pick].name)}</b>`:"No state selected (random)."; }
+  if(s.hot&&!s.observer){ if(!s.preview) return `Generating map… ${s.genP!=null?Math.round(s.genP*100)+"%":""}${genBar(s.genP,true)}`; const i=nextPick(s); return i<0?"Every player has a state.":`Next: <b>player ${i+1}</b>. Players without a state start at random, away from the others.`; }
+  return !s.preview?`Generating map… ${s.genP!=null?Math.round(s.genP*100)+"%":""}${genBar(s.genP,true)}`:s.pick!=null?`Selected: <b>${esc(s.preview.countries[s.pick].name)}</b>`:"No state selected (random)."; }
 function setPickText(){ const l=$("pvPick"); if(l) l.innerHTML=pickText(); setPstText(); }
 async function makePreview(){
-  const s=UI.setup, tok=s.tok=(s.tok||0)+1; s.preview=null; s.pick=null; setPickText();
-  const g=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,alliances:allyOpts()});
+  const s=UI.setup, tok=s.tok=(s.tok||0)+1; s.preview=null; s.pick=null; s.genP=null; setPickText();
+  const g=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,alliances:allyOpts()},(p,l)=>{ if(UI.setup===s&&s.tok===tok){ s.genP=p; s.genL=l; setPickText(); } });
   if(UI.setup!==s||s.tok!==tok) return; // settings changed meanwhile
   g.player=-1; s.preview=g; setPickText(); drawPreview();
 }
@@ -4519,8 +4537,8 @@ document.addEventListener("click",async ev=>{
       if(hot&&s.choose&&s.preview){ G=s.preview; G.relNoise=!!s.relNoise; setupHumans(G,ho,Math.random); }
       else if(!hot&&s.choose&&!s.observer&&s.preview&&s.pick!=null){ G=s.preview; G.player=s.pick; G.relNoise=!!s.relNoise; G.countries.forEach(x=>x.ai=x.id!==s.pick); pickTraits(G.countries[s.pick],s.civ,s.leader,s.landType); }
       else {
-        UI.busy=true; modal(`<h2>Generating map…</h2><p class="mut">${fmt(s.n)} states.</p>`);
-        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,alliances:allyOpts(),...(ho||{})}); }
+        UI.busy=true; modal(`<h2>Generating map…</h2><p class="mut">${fmt(s.n)} states.</p>${genBar()}`);
+        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,alliances:allyOpts(),...(ho||{})},genShow); }
         catch(e){ console.error(e); UI.busy=false; flash("Map generation failed."); setupModal(); return; }
         UI.busy=false;
       }
