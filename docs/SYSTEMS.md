@@ -321,6 +321,8 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 | Grain sold to merchants (share of world food use) | about 3% |
 | States with an empty treasury | well under 0.1% of state-years |
 | Turn time on a 1000-state map | about 200–250 ms |
+| Starting land (any map up to 300 states) | every state within ±1% of the median |
+| Creating a 1000-state world map | about 8 s |
 
 Relationships that hold the economy together:
 - A scientist costs about 6 peasants' tax (`sciWage 3.5` vs `taxPerPeasant 0.6`).
