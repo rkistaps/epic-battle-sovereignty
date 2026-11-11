@@ -25,6 +25,16 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
 - Every new system needs an AI side, settings entries, old-save handling and a headless simulation compared against the anchors (checklist in the doc).
 - Keep the map current in the same commit (section 10 of the doc): a new system gets its own entry and is added to every system it reads from or writes to, the interaction table, the yearly order and the loops; a changed system updates its entry and every related system's entry, and the balance anchors if balance moved.
 
+## Rules & guide (player-facing)
+
+The in-game guide (Menu → Rules & guide, `helpModal`) reads the `GUIDE` array in the UI script: one topic per entry, `[id, group, icon, title, () => html]`, shown with a left menu and search.
+
+- **Every commit that adds or changes a system, rule or screen updates the guide in the same commit.** A new system gets its own topic in the right group; a changed one updates its topic and every topic that mentions it, including "How it all fits together".
+- The guide must teach the whole game: a player reading it should be able to learn exactly how each system works (what it is, what drives it, its numbers, what the player and computer states do with it) and how the systems push on and balance each other (what each one feeds, what brakes it, which choices compete for the same people, gold or goods).
+- Take numbers from `R` and the data tables (`TROOPS`, `CIVS`, `LEADERS`, `LANDS`, `WONDERS`, `AREAS`, `SETUP_RULES`) instead of writing them in, so the guide follows Settings.
+- It is the player's version of `docs/SYSTEMS.md`: keep the two in step, but write the guide in plain words, without code names.
+- Check it in a browser: every topic opens without errors and search finds the new words.
+
 ## Persistence
 
 - Saves are stored in IndexedDB (database `sovereign`), with localStorage as a fallback.
@@ -34,7 +44,7 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
 ## Conventions
 
 - Code is dense, compact JS with short helper names (`$`, `fmt`, `esc`, `M`, `lvl`). Match the existing style.
-- Player-facing text is plain and short. The Rules & tips modal (`helpModal`) documents the mechanics. Update it when rules change.
+- Player-facing text is plain and short.
 - Keep everything in the single file unless asked otherwise.
 
 ## Change log

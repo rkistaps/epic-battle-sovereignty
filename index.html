@@ -3875,7 +3875,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Rules & guide","2026-11-11 20:40",["Rules & tips is now a full guide in a big window","Menu on the left with every system, tab and mode","Search at the top left highlights matches","Tables for troops, research areas, civilizations, leaders, land types and wonders follow your Settings"]],
+["Rules & guide","2026-11-11 20:40",["New topic: How it all fits together (what feeds what, what snowballs and what brakes it)","Rules & tips is now a full guide in a big window","Menu on the left with every system, tab and mode","Search at the top left highlights matches","Tables for troops, research areas, civilizations, leaders, land types and wonders follow your Settings"]],
 ["Aid over allied land only","2026-11-11 19:45",["Aid reaches an ally only over allied land: bordering you, or through a chain of allies (sea links count)","Computer allies follow the same rule","Send aid lists only allies you can reach"]],
 ["Alliance window and aid","2026-11-11 05:40",["Click an alliance to open it: members, land, population, army, research, wars and relations with the other alliances","Send an ally grain, wood, iron or gold from your alliance's window; it raises their trust in you","Computer allies at peace send part of their surplus to allies at war that are short of something"]],
 ["Alliance wars","2026-11-11 05:00",["Alliances have relations with each other, following how their members feel and dropping with every war and battle between members","At −40 two alliances go to war: every member is at war with every member of the other, for 8–15 years","Alliance wars count everywhere: embargo, computer targets and mobilising, ⚔️ marks and the Wars map","War tab: your alliance's wars and its relations with the other alliances"]],
@@ -3990,6 +3990,39 @@ const GUIDE=[
 <li><b>Relations and wars</b> update: wars that ran their time end, new ones start.</li></ol>
 <ul class="log"><li>Land conquered this year farms, eats and pays tax this same year.</li><li>Troops trained this turn fight this turn. Troops sent to attack don't defend this turn.</li></ul>`],
 
+["balance","Getting started","🕸️","How it all fits together",()=>`
+<p>Every system feeds others, and almost every gain is braked by something. Knowing these links is most of the game.</p>
+<h3>People are the core resource</h3>
+<p>Every person is a farmer, a woodcutter, a miner, a scientist or a soldier, never two at once. Peasants pay tax and have children; soldiers eat more and count only ${gP(R.armyBirths)} toward births. So every soldier and every scientist costs food, tax and growth. A bigger army or more research always means a smaller economy today.</p>
+<h3>What feeds what</h3>
+${gTab(["System","Feeds","Is fed by"],[
+["Land","Capacity (room for people), shore harvest, fronts, wonders","Conquest, settling unowned land, Expansion research"],
+["Population","Farmers, workers, scientists, soldiers, taxes, births","Land (capacity), food, Pop. density and growth research, captured peasants"],
+["Food","Survival, births, sales for gold","Farmers, Agriculture, shore, weather, the market"],
+["Gold","Scientists' wages, cavalry, generals, market buys","Taxes (peasants, Finance), market sales"],
+["Wood and iron","Troops, market sales","Woodcutters and miners, Forestry and Mining, the market"],
+["Research","Bonuses to almost everything","Scientists (paid in gold)"],
+["Army and generals","Land (conquest), safety","People, food, wood, iron, gold"],
+["Relations and wars","Who attacks whom, embargoes","Battles, size (fear), years of peace"],
+["Weather","Harvest shocks, market prices","The map; drifts by itself"]])}
+<h3>What snowballs, and what stops it</h3>
+<ul class="log"><li><b>Land → people → taxes, food and troops → more land.</b> Brakes: births stop at capacity; captured peasants only partly arrive (${gP(R.capturedPeasants)}); land per battle is capped by the general's speed and by what survivors can hold; big states pay more for research; neighbors fear a state from ${R.rfFrom}× their size and fear leads to war.</li>
+<li><b>Science → more research points.</b> Brakes: each level costs more than the last, research bonuses approach a max, being ahead of the world costs up to ×${R.leadMax}, and each scientist costs ${R.sciWage} gold, about six peasants' tax.</li>
+<li><b>Grudges → revenge → new grudges.</b> Brakes: a winning strike back clears most of a grudge, striking back counts half, and wars end after ${R.warMin}–${R.warMax} years with grievances forgotten.</li>
+<li><b>Settling unowned land.</b> Brake: the land runs out.</li></ul>
+<h3>What pulls things back to the middle</h3>
+<ul class="log"><li><b>Catch-up research:</b> states behind the world average pay up to ${gP(R.catchUpMax)} less per level.</li>
+<li><b>The market:</b> shortages raise prices, so states farm more and buy less; gluts lower prices, so states farm less and move people to research. Merchant prices climb while everyone buys from them.</li>
+<li><b>Famine</b> kills soldiers first, so an army too big for its land shrinks.</li>
+<li><b>An empty treasury</b> sends soldiers and scientists home.</li>
+<li><b>Defense is easier than attack:</b> +${gP(R.defenderBonus)} for defenders, narrow fronts and sea crossings, ties go to the defender, and research counts at most ${R.techEdgeMax}× the other side's.</li>
+<li><b>Peace and war footing:</b> computer states disarm in peace and fill their land, then arm at war and refill losses.</li></ul>
+<h3>Choices that compete</h3>
+<ul class="log"><li>Farmers vs workers vs scientists vs soldiers: the same people.</li>
+<li>Gold for scientists vs cavalry and generals vs buying goods.</li>
+<li>Wood troops (cheap, die fast, need many people) vs iron troops (costly, survive, save people).</li>
+<li>Sending troops vs keeping guards: soldiers sent away don't defend that year.</li>
+<li>Growing fast vs staying unthreatening: the biggest state makes enemies.</li></ul>`],
 ["pop","Your state","👥","Population",()=>`
 <p>People are the core resource: every peasant farms or works, pays tax and has children; every soldier is one person taken from them.</p>
 <h3>Capacity</h3><p>Your land holds <b>land × density</b> people: ${R.popPerKm} per km² at the start, +${R.densPerLevel} per km² for each Pop. density level, times your civilization's, leader's and land's capacity bonus (and the Tower of Babel). Conquest and settling add land, so they add room.</p>

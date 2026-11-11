@@ -338,7 +338,7 @@ Relationships that hold the economy together:
 6. **Old saves**: tolerate missing fields (`??`, init on first use, `// older saves` comment) or add a `migrateX(g)` called from both `loadSave` and `endTurn`. Never rename `sovereign-*` storage keys. Keep state JSON-safe.
 7. **Performance**: avoid new full-map loops per state; up to 1000+ states.
 8. **Simulate** (section 8) and compare with the anchors in section 6, before and after. Look at pacing, gold, research, famine, and the system's own numbers.
-9. **Player-facing**: UI, Rules & tips (`helpModal`), a change log entry, and this document.
+9. **Player-facing**: UI, the Rules & guide (`GUIDE` topics: its own topic, every topic that mentions it, and "How it all fits together"), a change log entry, and this document.
 10. **Update this map** as described in section 10, in the same commit.
 
 ## 8. Simulating
@@ -389,6 +389,8 @@ This map is only useful if it matches the code. Update it in the same commit as 
 - Check every system that lists it under **Reads** or **Writes**, and update those entries if the relationship changed (new link, removed link, or a link that got much stronger or weaker).
 - Update the strength marks in section 4, the yearly order in section 2 and the loops in section 5 where they are affected.
 - If balance moved, re-run the simulation and update section 6. Say in the commit why the new ranges are acceptable.
+
+**Always** update the player's Rules & guide (`GUIDE` in the UI script) in the same commit: it must explain each system fully and how the systems balance each other, in plain words.
 
 **When a fragile spot is fixed**, remove it from section 9. When a new one is found, add it.
 
