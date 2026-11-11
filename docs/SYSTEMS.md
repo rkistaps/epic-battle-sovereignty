@@ -203,7 +203,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.13 Territory and map
 - **Intent**: Land is the prize. Unowned land at the start is a race; coasts are worth more (food). Collapsed states' land goes to whoever settles it first. *(inferred)*
 - Cells: water, unowned or owned; adjacency = 4-neighbours plus sea routes (world map). Allies never count as targets.
-- Starting shapes and sizes (`relaxStates`, every map): after the first growth, all states regrow from their middles at the same speed, one cell per turn, always the free cell nearest the middle, up to an equal share of the land (`cap` = owned land ÷ states); middles then move to each state's centre and it repeats (up to 10 rounds, the most even one is kept). A state that ended short grows faster next round. Finishing: a short state takes the cells nearest its middle, free ones first, then from bigger neighbors (givers stay in one piece), so shortfalls are shared out; `unthin` removes narrow arms (land not in any solid 4×4 block of its own state and squeezed against another state goes to the neighbor around it most; cut-off pieces go to the neighbor with the longest shared border; land touching only sea stays); then finishing runs again. Land left over stays unowned (about 0.5–1% on random maps, 2–6% on the world map, most of it unreachable islands as before). Measured: maps up to 300 states all within ±1% of the median; 1000-state world maps all within ±5%, 95% within ±2%; creating a 1000-state world map takes ~8 s (was ~2.6 s). On long peninsulas two states can still share the land lengthwise. The old evening steps (`balanceStates`, `smoothStates`, `bandStates`) and the `startGap` rule are gone.
+- Starting shapes and sizes (`relaxStates`, every map): the land to share is every land cell a state can reach over land or sea routes; each state gets an equal share (`cap`). All states regrow from their middles at the same speed, one cell per turn, always the free cell with the lowest path cost from their land. Path cost follows a smooth random terrain field (two layers of value noise, scaled to state size) and each state's own stretch and direction (up to 1.6×), so borders wander and shapes differ. Between rounds (up to 10, the most even kept) each middle moves to the centre of its land plus the free land nearest to it, so states drift into empty regions; a state that ended short grows faster next round. Finishing: short states take nearest cells, free ones first, then from bigger neighbors (givers stay in one piece); `unthin` removes narrow arms; finishing again. Measured: maps up to 300 states within ±2%; 1000-state world maps within ±5% (95% within ±2%); unowned land at start 1–2% (scraps and unreachable islands); creating a 1000-state world map takes ~11 s (150 states ~1–5 s).
 - Settling: each state bordering unowned land claims `(5 + 2% of its land) × exploreMul` a year. Unowned land comes from the map start and from collapsed states.
 - Shore: land cells next to water → harvest bonus. Land type is fixed at start even if the coast is lost.
 - **Reads**: battles, collapses, explore research. **Writes**: capacity, production (shore), wonders, fronts, adjacency.
@@ -321,8 +321,8 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 | Grain sold to merchants (share of world food use) | about 3% |
 | States with an empty treasury | well under 0.1% of state-years |
 | Turn time on a 1000-state map | about 200–250 ms |
-| Starting land (any map up to 300 states) | every state within ±1% of the median |
-| Creating a 1000-state world map | about 8 s |
+| Starting land (any map up to 300 states) | every state within ±2% of the median |
+| Creating a 1000-state world map | about 11 s |
 
 Relationships that hold the economy together:
 - A scientist costs about 6 peasants' tax (`sciWage 3.5` vs `taxPerPeasant 0.6`).

@@ -934,7 +934,7 @@ function newGame(opts){
   }
   // land nobody reached (an island with no sea route) and seedless World pockets start unowned
   for(let i=0;i<cells.length;i++) if(cells[i]===-3) cells[i]=-1;
-  relaxStates(cells,W,H,counts,lk); // equal, compact states (see relaxStates)
+  relaxStates(cells,W,H,counts,lk,rnd); // equal starting land, natural shapes (see relaxStates)
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
   // more states than the fixed lists: invent names, spread extra colors by golden-ratio hue
   const used=new Set(names), SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"];
@@ -1201,32 +1201,54 @@ function carveRivers(m,W,H,target,unit,rnd){
 // one cell per turn, always the free cell nearest its middle, up to an equal share of the land (`cap`). Then the middles
 // move to where each state ended up, so crowded states drift apart, and the next round is more even. Land nobody
 // could reach within its share stays unowned.
-function relaxStates(cells,W,H,counts,lk,rounds=10){
+function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10){
   const N=W*H, n=counts.length, SH=2097152; if(N>=SH) rounds=Math.min(rounds,4);
   const nbs=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const L=lk?.get(i); if(L) for(const j of L) f(j); };
-  let land=0; for(let i=0;i<N;i++) if(cells[i]>=0) land++;
-  const cap=Math.floor(land/n), speed=new Float64Array(n).fill(1), acc=new Float64Array(n), cx=new Float64Array(n), cy=new Float64Array(n), mid=new Int32Array(n), heaps=[];
+  // land to share: every land cell a state can reach over land or sea routes (also unowned land next to states)
+  const share=new Uint8Array(N), Q=new Int32Array(N); let qh=0,qt=0;
+  for(let i=0;i<N;i++) if(cells[i]>=0){ share[i]=1; Q[qt++]=i; }
+  while(qh<qt){ const i=Q[qh++]; nbs(i,j=>{ if(!share[j]&&cells[j]===-1){ share[j]=1; Q[qt++]=j; } }); }
+  const land=qt, cap=Math.floor(land/n), speed=new Float64Array(n).fill(1), acc=new Float64Array(n), cx=new Float64Array(n), cy=new Float64Array(n), mid=new Int32Array(n), heaps=[];
+  // terrain: a smooth random "hard ground" field, so borders wander instead of forming circles
+  const R0=Math.max(2,Math.sqrt(cap)), cost=new Float32Array(N);
+  for(const [g,amp] of [[R0*0.8,1.3],[R0*0.3,0.7]]){ const gw=Math.ceil(W/g)+2, gh=Math.ceil(H/g)+2, v=new Float32Array(gw*gh); for(let k=0;k<v.length;k++) v[k]=rnd();
+    for(let y=0;y<H;y++){ const fy=y/g, y0=fy|0, ty=fy-y0, sy=ty*ty*(3-2*ty);
+      for(let x=0;x<W;x++){ const fx=x/g, x0=fx|0, tx=fx-x0, sx=tx*tx*(3-2*tx), a=v[y0*gw+x0], b=v[y0*gw+x0+1], c=v[(y0+1)*gw+x0], d=v[(y0+1)*gw+x0+1];
+        const top=a+(b-a)*sx, bot=c+(d-c)*sx; cost[y*W+x]+=amp*(top+(bot-top)*sy-0.5); } } }
+  for(let i=0;i<N;i++) cost[i]=Math.exp(cost[i]);
+  // each state stretches its own way
+  const ang=new Float64Array(n), str=new Float64Array(n); for(let s=0;s<n;s++){ ang[s]=rnd()*Math.PI; str[s]=1+0.6*rnd(); }
+  const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]], dist=new Float64Array(N), SF=new Float64Array(n*8);
+  for(let s=0;s<n;s++){ const c=Math.cos(ang[s]), sn=Math.sin(ang[s]); D8.forEach(([dx,dy],k)=>{ const L=Math.hypot(dx,dy), a=(dx*c+dy*sn)/L, p=(-dx*sn+dy*c)/L; SF[s*8+k]=L*Math.hypot(a/str[s],p*str[s]); }); } // step length in each of 8 directions
   const push=(h,v)=>{ let k=h.length; h.push(v); while(k>0){ const p=(k-1)>>1; if(h[p]<=v) break; h[k]=h[p]; k=p; } h[k]=v; };
   const pop=h=>{ const top=h[0], v=h.pop(); const L=h.length; if(L){ let k=0; for(;;){ let c=2*k+1; if(c>=L) break; if(c+1<L&&h[c+1]<h[c]) c++; if(h[c]>=v) break; h[k]=h[c]; k=c; } h[k]=v; } return top; };
+  // path cost from s's own land to free cell j (through any own cell around it), and the heap key for it
+  const reach=(s,j)=>{ const x=j%W,y=(j/W)|0, cj=cost[j], b=s*8; let d=Infinity;
+    for(let q=0;q<8;q++){ const X=x-D8[q][0],Y=y-D8[q][1]; if(X<0||Y<0||X>=W||Y>=H) continue; const k=Y*W+X; if(cells[k]===s){ const e=dist[k]+SF[b+q]*cj; if(e<d) d=e; } }
+    const L=lk?.get(j); if(L) for(const k of L) if(cells[k]===s){ const e=dist[k]+3*cost[j]; if(e<d) d=e; }
+    return d; };
   let best=null, bestMin=-1, bestCounts=null;
   for(let r=0;r<rounds;r++){
-    // middles: the own cell nearest the state's centre of mass
+    // middles: centre of the state's land plus the free land closest to it (so states drift into empty land), then the cell nearest that centre
+    const near=new Int32Array(N).fill(-1); qh=qt=0;
+    for(let i=0;i<N;i++) if(cells[i]>=0){ near[i]=cells[i]; Q[qt++]=i; }
+    while(qh<qt){ const i=Q[qh++]; nbs(i,j=>{ if(share[j]&&near[j]<0){ near[j]=near[i]; Q[qt++]=j; } }); }
     cx.fill(0); cy.fill(0); const cnt=new Int32Array(n);
-    for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
+    for(let i=0;i<N;i++){ const o=near[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
     const bd=new Float64Array(n).fill(Infinity);
     for(let s=0;s<n;s++) if(cnt[s]){ cx[s]/=cnt[s]; cy[s]/=cnt[s]; }
-    for(let i=0;i<N;i++){ const o=cells[i]; if(o<0) continue; const d=(i%W-cx[o])**2+(((i/W)|0)-cy[o])**2; if(d<bd[o]){ bd[o]=d; mid[o]=i; } }
-    for(let i=0;i<N;i++) if(cells[i]>=0) cells[i]=-1;
+    for(let i=0;i<N;i++){ const o=near[i]; if(o<0) continue; const d=(i%W-cx[o])**2+(((i/W)|0)-cy[o])**2; if(d<bd[o]){ bd[o]=d; mid[o]=i; } }
+    for(let i=0;i<N;i++) if(share[i]) cells[i]=-1;
     counts.fill(0);
-    const key=(s,i)=>Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2)*SH+i;
-    for(let s=0;s<n;s++){ heaps[s]=[]; if(cnt[s]) heaps[s].push(key(s,mid[s])); }
+    for(let s=0;s<n;s++){ heaps[s]=[]; if(cnt[s]){ dist[mid[s]]=0; heaps[s].push(mid[s]); } }
     let live=[...Array(n).keys()].filter(s=>cnt[s]);
     while(live.length){ const next=[];
       for(const s of live){ const h=heaps[s]; let ok=true;
         for(acc[s]+=speed[s];acc[s]>=1&&ok&&counts[s]<cap;acc[s]--){ let i=-1;
-          while(h.length){ const c=pop(h)%SH; if(cells[c]===-1){ i=c; break; } }
+          while(h.length){ const c=pop(h)%SH; if(cells[c]===-1&&share[c]){ i=c; break; } }
           if(i<0){ ok=false; break; } // boxed in
-          cells[i]=s; counts[s]++; nbs(i,j=>{ if(cells[j]===-1) push(h,key(s,j)); }); }
+          if(counts[s]) dist[i]=reach(s,i);
+          cells[i]=s; counts[s]++; nbs(i,j=>{ if(cells[j]===-1&&share[j]){ const d=reach(s,j); if(d<Infinity) push(h,Math.min(4e9,Math.round(d*8))*SH+j); } }); }
         if(ok&&counts[s]<cap) next.push(s); }
       live=next; }
     // a state that ended short of its share grows faster next round (it claims its land before the neighbors close in)
@@ -3834,6 +3856,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Natural state shapes","2026-11-12 00:40",["States start in varied, natural shapes with wandering borders instead of round blobs","All land a state can reach is shared out, so no big empty regions at the start (like southern Africa)","Starting land stays almost equal"]],
 ["Equal starting land","2026-11-12 00:10",["Every state now starts with almost the same land: within about 1% on most maps, within 5% on the biggest world maps","States start compact and rounded, with no narrow arms","Land left over after everyone has an equal share starts unowned","Big world maps take a few seconds longer to create"]],
 ["Cleaner map borders","2026-11-11 22:30",["No more narrow arms or strips of one state squeezing between others, on every map","Starting sizes on random maps are more even","On big world maps most states start within 5% of each other; a few start smaller"]],
 ["Rules & guide","2026-11-11 20:40",["? buttons next to headings in every tab, the map views, battle reports and the alliance window open the matching guide topic","New topic: How it all fits together (what feeds what, what snowballs and what brakes it)","Rules & tips is now a full guide in a big window","Menu on the left with every system, tab and mode","Search at the top left highlights matches","Tables for troops, research areas, civilizations, leaders, land types and wonders follow your Settings"]],
@@ -4164,7 +4187,7 @@ ${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders,
 <li><b>World:</b> a random map or a pre-made one (like the World map), and the number of states.</li>
 <li><b>More options:</b> territory size per state, water (lakes, rivers or both: chokepoints), and the rules below.</li></ul>
 ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="function"?f():f]))}
-<p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one compact piece. Land left over once everyone has an equal share starts unowned, and neighbors settle it.</p>
+<p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one piece with its own natural shape. Only scraps of land, and islands no sea route reaches, start unowned; neighbors settle them.</p>
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
