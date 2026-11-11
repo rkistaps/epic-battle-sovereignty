@@ -162,7 +162,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Notes: any new trait or wonder must be checked against the compounding systems (population, defense, research). `traitWeight` is the balancing knob.
 
 ### 3.10 Troops
-- **Intent**: Two families with different roles. **Wood troops** (spear, archer, axe) are cheap and fragile (toughness 0.9–1.15): for states with plenty of people and fast growth that can afford heavy losses. **Iron troops** (pike, sword, cavalry) are expensive and tough (1.6–2, about 40% fewer people lost per battle): for states short on people or with slow growth. Within each family: archer and pike defend, axe attacks (glass cannon), spear and sword are all-round. Cavalry is the land-taker: strongest per person, holds 2 km² each, but needs iron and gold upkeep. The AI already follows this (it values a person more when births are slow and then leans to iron troops). *(inferred from the numbers and AI comments)*
+- **Intent**: Two families with different roles. **Wood troops** (spear, archer, axe) are cheap and fragile (toughness 0.9–1.15): for states with plenty of people and fast growth that can afford heavy losses. **Iron troops** (pike, sword, cavalry) are expensive and tough (1.6–2, about 40% fewer people lost per battle): for states short on people or with slow growth. **Swordsmen are the backbone of every army, attacking and defending** *(your direction)*: the best all-round value for most states, never the best pure attacker (axe, cavalry) or pure defender (pike, archer). Archer and pike defend, axe attacks (glass cannon), spear is the cheap all-round filler. Cavalry is the land-taker: strongest per person, holds 2 km² each, but needs iron and gold upkeep. The AI already follows this (it values a person more when births are slow and then leans to iron troops). *(inferred from the numbers and AI comments)*
 - Six types; each is one person taken from the peasants (at least 50 peasants stay).
 
   | Type | atk / def / tough | cost food/wood/iron/gold | upkeep food/gold | holds |
@@ -171,12 +171,12 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
   | Archer | 0.9 / 1.85 / 1.15 | 3 / 20 / 0 / 0 | 2 / 0 | 1 |
   | Axeman | 1.85 / 0.5 / 0.9 | 5 / 35 / 0 / 0 | 3 / 0 | 1 |
   | Pikeman | 1.25 / 2.25 / 1.6 | 2 / 0 / 35 / 0 | 2 / 0 | 1 |
-  | Swordsman | 1.75 / 1.75 / 1.7 | 5 / 0 / 50 / 0 | 2 / 0 | 1 |
+  | Swordsman | 1.85 / 1.85 / 1.7 | 3 / 0 / 45 / 0 | 2 / 0 | 1 |
   | Cavalry | 3 / 2 / 2 | 10 / 10 / 100 / 100 | 5 / 6 | 2 |
 
 - Toughness divides battle losses. "Holds" = km² of conquered land a survivor can hold.
 - Dismissing returns people as peasants (no refund).
-- AI picks troops by strength per total cost: training + 5 years of upkeep + the person (`aiPersonValue`, higher when births are slow or peasants short) + expected losses.
+- AI picks troops by strength per total cost: training + 5 years of upkeep + the person (`aiPersonValue`, higher when births are slow or peasants short) + expected losses. For the main army, strength = attack + defense with the stat its army lacks counting `aiMixTilt` 4×, so all-round troops (swordsmen) lead; defense top-ups use defense alone.
 - **Reads**: population, food, wood, iron, gold, market (AI buys missing wood/iron).
 - **Writes**: battle strength, food use, wages, fewer peasants (less tax, births, work).
 - Notes: elite troops are the only way to more strength per person, so wood/iron supply and prices gate army quality.
