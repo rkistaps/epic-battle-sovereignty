@@ -369,6 +369,7 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 - AI difficulty scales only research (and AI thresholds), not the economy.
 - The `R` comment on `aiSellFrac` says 30% but the value is 0.5.
 - The `placeWonders` comment says six wonders; ten are placed.
+- **Arms race in peace** (left as is, by choice): a computer state's threat is its strongest neighbor's *whole* army (relations shift it at most ±40%), and both the strong-neighbor minimum (up to 20% of people) and the defense top-up (up to 30% in peace) follow it, so armed neighborhoods keep each other at ~25–33% army even in peace. Halving peaceful neighbors' threat (`aiPeaceThreat` 0.5) left states under-defended and sped conquest up a lot. Candidate fixes: count only the share of a neighbor's army that could reach us (split across its fronts or by shared border), and count our defender bonus (+15%) and narrow-front/sea bonuses in the defense target.
 
 ## 10. Keeping this map current
 
