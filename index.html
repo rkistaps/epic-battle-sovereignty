@@ -134,6 +134,8 @@ td.r,th.r{text-align:right}
 .modal>.mfoot{margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
 .modal h2{margin:0 0 10px;color:var(--acc)}
 /* rules & guide: menu and search on the left, one topic on the right */
+.glink{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0!important;margin-left:6px;border-radius:50%!important;border:1px solid var(--line)!important;background:none!important;color:var(--mut);font-size:10.5px;font-weight:700;line-height:1;vertical-align:2px;cursor:pointer;text-transform:none;letter-spacing:0;flex:none}
+.glink:hover,.glink:focus-visible{color:var(--acc);border-color:var(--acc)!important}
 .modal.guide{max-width:1180px;height:90vh;padding:0}
 .modal.guide>.gwrap{display:grid;grid-template-columns:250px 1fr;overflow:hidden;padding:0}
 .gside{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);padding:14px 8px 10px 12px;background:var(--panel2)}
@@ -389,7 +391,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   </span>
 </header>
 <main>
-  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
+  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
     <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
@@ -3036,15 +3038,15 @@ function pEconomy(){
       <small class="wout" id="wo-${k}">${jobOut(c,k)}</small>`; };
   return `
   ${traitName(c)?`<div class="gen"><b>🏛 ${esc(traitName(c))}</b><div style="margin-top:4px">${traitChips(c.mod)}</div></div>`:""}
-  <h3>Population</h3>
+  <h3>Population ${gl("pop")}</h3>
   <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     ${card("People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
     ${card("Growth",(()=>{ const n=birthsOf(c); return `${n>=0?"+":""}${fmt(n)}<span class="small" style="color:var(--mut)">/yr</span>`; })(),yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
     ${card("Peasants",fmt(c.peasants),`${fmt(c.soldiers)} soldiers`)}</div>
-  <h3>Work</h3>
+  <h3>Work ${gl("work")}</h3>
   <div class="wgrid">${job("farm","👨‍🌾 Farmers")}${job("wood","🌲 Woodcutters")}${job("iron","⛏️ Miners")}${job("sci","🔬 Scientists")}</div>
   <div class="small mut">Shares of your ${fmt(c.peasants)} peasants. Each job takes at most ${WORK_MAX}% and at least ${100-WORK_TOTAL}% keep farming. Lock 🔒 a job to keep its share while you move the others.</div>
-  <h3>Year ahead</h3>
+  <h3>Year ahead ${gl("food")}</h3>
   <div id="yearAhead">${yearAhead(c)}</div>
   ${bordersUnowned(G,c.id)?`<div class="small">🏕 You border unowned land: settlers claim about <b>${fmt(Math.round(R.settleBase+c.land*R.settleRate))}</b> km² of it per year.</div>`:""}
   ${c.shore?`<div class="small">🌊 Shore farmland: <b>${fmt(c.shore)}</b> km² of ${fmt(c.land)} → <b class="good">+${Math.round(shoreBonus(c)*100)}%</b> harvest${shoreBonus(c)>=R.shoreMax?" (max)":""}.</div>`:""}
@@ -3145,7 +3147,7 @@ function pMarket(){
   const maxBuy=mkQuote(G,c,r,"buy",1e9).n, maxN=buy?maxBuy:have;
   const seg=(attr,v,on,label)=>`<button data-${attr}="${v}" class="${on?"on":""}" aria-pressed="${on}">${label}</button>`;
   const qp=[[buy?"Best buy order":"Cheapest seller",buy?B.b[0]?.p:B.a[0]?.p],["Market price",m.price],[buy?"Cheapest seller":"Best buy order",buy?B.a[0]?.p:B.b[0]?.p]].filter(x=>x[1]!=null);
-  return `<h3>Stock</h3>
+  return `<h3>Stock ${gl("market")}</h3>
   <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
     ${card("🌾 Grain",fmt(c.grain),per(prod-food),px("grain"))}
     ${card("💰 Money",fmt(c.money),per(taxIncome(c)-wages(c)),`<span class="small" style="color:var(--mut)">before trading</span>`)}
@@ -3170,7 +3172,7 @@ function pMarket(){
     ${r==="grain"?`<div class="mkfoot"><span>${prod<food?`<span class="bad">Grain −${fmt(food-prod)}/yr</span>`:`Surplus <b>${fmt(surplus)}</b>`}</span>
       <label title="When you end the turn, your surplus grain is put up for sale at the market price for a year"><input type="checkbox" id="autoSell" ${c.autoSell?"checked":""}> Auto-sell surplus every year</label></div>`:""}
   </div>
-  <h3>Order book · ${MKT[r][1]}</h3>
+  <h3>Order book · ${MKT[r][1]} ${gl("market")}</h3>
   ${mktBook(c,r)}
   <h3>Your orders</h3>
   ${mktMine(c)}
@@ -3209,17 +3211,17 @@ function pBarracks(){
   const c=me(), tr=troopsOf(c), home=plannedPools(c), away=c.soldiers-troopCount(home);
   const upFood=TROOPS.reduce((s,t)=>s+(tr[t.id]||0)*t.upFood,0), upGold=TROOPS.reduce((s,t)=>s+(tr[t.id]||0)*t.upGold,0);
   const card=(l,v,sub,tip="")=>`<div class="stat"${tip?` title="${tip}"`:""}><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span></div>`;
-  return `<h3>Army</h3>
+  return `<h3>Army ${gl("troops")}</h3>
   ${c.soldiers?`<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     ${card("Soldiers",fmt(c.soldiers),away?`${fmt(away)} away on attack`:"all at home")}
     ${card("Attack",fmtPow(armyAtk(c)),`research lvl ${c.lv.atk}`,"Attack strength of your whole army")}
     ${card("Home defense",fmtPow(armyDef(c,home)),away?`lvl ${c.lv.def} · full army ${fmtPow(armyDef(c))}`:`research lvl ${c.lv.def}`,"Defense of the soldiers guarding at home this year")}</div>`
   :`<div class="note warn">No soldiers. Your borders are unguarded: any attack wins and takes as much land as it can.</div>`}
-  <h3>Supplies</h3>
+  <h3>Supplies ${gl("food")}</h3>
   <div id="supply">${supplyTable(c)}</div>
   <div class="small mut" style="margin:4px 0">${upFood||upGold?`Army upkeep: <span class="bad">−${fmt(upFood)} 🌾${upGold?` · −${fmt(upGold)} 💰`:""}</span> per year (included above)`:"No army upkeep."}</div>
   <div class="small" id="supplyCap" style="margin-bottom:6px">${roomNote(c)}</div>
-  <h3>Train &amp; dismiss</h3>
+  <h3>Train &amp; dismiss ${gl("troops")}</h3>
   <table class="tight"><tr><th>Troop</th><th class="r">Owned</th><th>Train / dismiss</th></tr>
   ${TROOPS.map(t=>{ const open=troopUnlocked(c,t.id), max=open?Math.max(0,Math.min(affordable(c,t),c.peasants-50)):0;
     return `<tr class="${open?"":"mut"}"><td>${t.icon} <b>${t.name}</b>
@@ -3301,7 +3303,7 @@ function bonusTable(c){
     ["Conquest", tr("explore"),           rw("explore",R.explorePerLevel), 0, exploreMul(c)],
   ];
   const pct=v=>{ const r=Math.round(v*100); return r===0?'<span class="mut">—</span>':`<span class="${r>0?"good":"bad"}">${r>0?"+":""}${r}%</span>`; };
-  return `<h3>Total bonuses</h3>
+  return `<h3>Total bonuses ${gl("identity")}</h3>
   <div class="stable"><table class="btab small"><tr><th>Stat</th><th class="r">Total</th><th class="r" title="${esc(cv?.name||"")}">Civ.</th><th class="r" title="${esc(ld?.name||"")}">Leader</th><th class="r" title="${esc(ln?.name||"")}">Land</th><th class="r">Research</th><th class="r">Wonder</th><th class="r" title="Shore farmland">Shore</th></tr>
   ${rows.map(([name,t,[r,w],o,tot])=>`<tr><td style="white-space:nowrap">${name}</td><td class="r"><b>${pct(tot-1)}</b></td>${t.map(v=>`<td class="r">${pct(v)}</td>`).join("")}<td class="r">${pct(r)}</td><td class="r">${pct(w)}</td><td class="r">${pct(o)}</td></tr>`).join("")}
   </table></div>
@@ -3312,7 +3314,7 @@ function pScience(){
   const pc=v=>+(v*100).toFixed(2), eff={sci:`+${pc(R.sciPerLevel)}% research per level`,agri:`+${pc(R.agriPerLevel)}% food per level`,fin:`+${pc(R.finTaxPerLevel)}% taxes, +${pc(R.finPricePerLevel)}% sell prices`,dens:`+${R.densPerLevel} people per km² capacity`,grow:`+${pc(R.growPerLevel)}% birth rate per level`,atk:`+${pc(R.atkPerLevel)}% attack strength per level`,def:`+${pc(R.defPerLevel)}% defense strength per level`,wood:`+${pc(R.woodPerLevel)}% wood production per level`,iron:`+${pc(R.ironPerLevel)}% iron production per level`,explore:`+${pc(R.explorePerLevel)}% land per battle and settling speed`};
   const totLv=AREAS.reduce((s,a)=>s+c.lv[a],0), avgLv=Object.values(worldAvgLv(G)).reduce((s,v)=>s+v,0);
   return `<div class="row"><span>Total level: <b>${fmt(totLv)}</b> <span class="small mut">· world average ${fmt(Math.round(avgLv))}</span> <span class="small ${totLv>=avgLv?"good":"bad"}">(${totLv>=avgLv?"+":"−"}${fmt(Math.round(Math.abs(totLv-avgLv)))})</span></span></div>
-  <div class="row"><span>Research output: <b>${fmt(pts)}</b> points/yr from ${fmt(workers(c).sci)} scientists <span class="small mut">(set how many in Home → Work)</span>.</span></div>
+  <div class="row"><span>Research output: <b>${fmt(pts)}</b> points/yr from ${fmt(workers(c).sci)} scientists <span class="small mut">(set how many in Home → Work)</span>.</span> ${gl("science")}</div>
   <div class="row small"><span class="mut">Presets:</span><button class="sm" data-preset="sci" title="Everything into Science: research grows fastest, but nothing else levels up">Science run</button><button class="sm" data-preset="econ">Economy</button><button class="sm" data-preset="bal">Balanced</button><button class="sm" data-preset="war">War</button></div>
   <table class="tight"><tr><th>Area</th><th class="r">Lvl</th><th>Progress</th><th>Share</th></tr>
   ${AREAS.map(a=>{const cp=costParts(G,c,a), cost=levelCost(c.lv[a],cp.mul); const share=Math.round(100*c.alloc[a]/tot); const eta=pts*c.alloc[a]/tot>0?Math.ceil((cost-c.rp[a])/(pts*c.alloc[a]/tot)):null;
@@ -3330,7 +3332,7 @@ function genStatus(c,gen){
 }
 function pGenerals(){
   const c=me(); const s=UI.genForm||(UI.genForm={age:25,speed:60,mind:2});
-  return `<h3>Your generals</h3>
+  return `<h3>Your generals ${gl("generals")}</h3>
   ${c.generals.length?c.generals.map(g=>`<div class="gen"><div class="row"><b>${esc(g.name)}</b><span class="grow"></span>${genStatus(c,g)}</div>
    <div class="small">Age ${g.age} (retires ~${g.maxAge}) · Speed ${g.speed} · Mind ${g.mind} · <b>Skill ${g.skill.toFixed(0)}</b> · Morale <span class="${g.morale<70?'bad':''}">${g.morale}</span> · Battles ${g.battles}</div>
    <div class="row small">${c.defGen===g.id?`<button class="sm" data-defgen="-1" title="Take him off the border to rest. Your guards fight without a general meanwhile.">Rest</button>`:`<button class="sm" data-defgen="${g.id}">Set as defender</button>`}<button class="sm" data-dismiss="${g.id}">Dismiss</button></div></div>`).join("")
@@ -3348,25 +3350,25 @@ function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w
   const row=w=>{ const o=G.countries[warFoe(w,c.id)], how=w.why==="declared"?(w.a===c.id?"you declared it":"they declared it"):"hostility boiled over";
     return `<tr class="click" data-pick="${o.id}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${o.color}"></span>${esc(o.name)}</td><td class="small mut">since year ${w.from} · ${how}</td></tr>`; };
   const t=c.team, aw=aWarOf(G,t), arow=w=>{ const o=w.a===t?w.b:w.a; return `<tr class="click" data-alliance="${o}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${G.teams[o].color}"></span>${esc(G.teams[o].name)} <span class="mut">(alliance)</span></td><td class="small mut">since year ${w.from} · every member is your enemy</td></tr>`; };
-  return `<h3>Wars</h3>${mine.length||aw.length?`<table>${mine.map(row).join("")}${aw.map(arow).join("")}</table>`:`<div class="small mut">At peace.</div>`}
+  return `<h3>Wars ${gl("wars")}</h3>${mine.length||aw.length?`<table>${mine.map(row).join("")}${aw.map(arow).join("")}</table>`:`<div class="small mut">At peace.</div>`}
   <div class="small mut">${known?`${known} other war${known>1?"s":""} among the states you know. `:""}Wars start when either side's relation falls to ${R.warHostile} or a computer state declares one, and last ${R.warMin}–${R.warMax} years.${G.teams?` Alliances go to war when one's relation toward another falls to ${R.awarHostile}.`:""}</div>${G.teams&&t!=null?allianceRelTable(t):""}`; }
 // your alliance's relations with the other alliances (both directions), worst first
 function allianceRelTable(t){ const own=!observing()&&me().team===t; const n=G.teams.length, alive=G.teams.map((_,k)=>G.countries.some(c=>c.alive&&c.team===k));
   const rows=[...Array(n).keys()].filter(k=>k!==t&&alive[k]).map(k=>({k,out:arelOf(G,t,k),inn:arelOf(G,k,t)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn)); if(!rows.length) return "";
   const num=v=>{ const r=Math.round(v); return `<td class="rtn" style="color:${relColor(r)}">${r>0?"+":""}${r}</td>`; };
   const bar=v=>{ const w=Math.round(Math.min(100,Math.abs(v))/100*26); return `<td><span class="rtb"><i class="rt0"></i><i style="width:${w}px;${v<0?"right:27px":"left:27px"};background:${relColor(v)}"></i></span></td>`; };
-  return `<h3>Alliance relations</h3><table class="rtip"><tr class="mut"><td></td><td colspan="2">${own?"Your alliance's":"Its"} feelings</td><td colspan="2">Their feelings</td></tr>${rows.map(x=>`<tr class="click" data-alliance="${x.k}"><td><span class="sw" style="background:${G.teams[x.k].color}"></span>${esc(G.teams[x.k].name)}${teamsAtWar(G,t,x.k)?" ⚔️":""}</td>${num(x.out)}${bar(x.out)}${num(x.inn)}${bar(x.inn)}</tr>`).join("")}</table>`; }
+  return `<h3>Alliance relations ${gl("alliances")}</h3><table class="rtip"><tr class="mut"><td></td><td colspan="2">${own?"Your alliance's":"Its"} feelings</td><td colspan="2">Their feelings</td></tr>${rows.map(x=>`<tr class="click" data-alliance="${x.k}"><td><span class="sw" style="background:${G.teams[x.k].color}"></span>${esc(G.teams[x.k].name)}${teamsAtWar(G,t,x.k)?" ⚔️":""}</td>${num(x.out)}${bar(x.out)}${num(x.inn)}${bar(x.inn)}</tr>`).join("")}</table>`; }
 function pWar(){
   const c=me(); const nb=neighbors(G,c.id); const com=committed(c); const guards=c.soldiers-com;
   const busy=new Set(c.attacks.map(a=>a.gen));
   const dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
   const idle=c.generals.filter(g=>!busy.has(g.id));
-  return `${inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:""}${warsPanel(c)}<h3>Defense</h3>
+  return `${inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:""}${warsPanel(c)}<h3>Defense ${gl("battle")}</h3>
   <div class="kv"><span class="mut">Border guards</span><b>${fmt(guards)} <span class="small mut">(defense ${fmtPow(armyDef(c,plannedPools(c)))})</span></b><span class="mut">Defending general</span><b>${dg?esc(dg.name)+` (skill ${dg.skill.toFixed(0)})`:'<span class="bad">none</span>'}</b></div>
   ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
-  <h3>Orders this year</h3>
+  <h3>Orders this year ${gl("attack")}</h3>
   ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${a.mix?mixShort(a.mix):fmt(a.soldiers)+" soldiers"}</td><td>→ ${esc(G.countries[a.target].name)}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}
-  <h3>Neighbors</h3>
+  <h3>Neighbors ${gl("relations")}</h3>
   ${nb.length?`<table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th class="r" title="Length of your shared border. Narrow borders give the defender a bonus.">Border</th><th></th></tr>
   ${nb.map(j=>{const o=G.countries[j];
    return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${atWar(G,c.id,j)?' <span title="At war with you">⚔️</span>':''}</td><td class="r">${fmt(o.land)}</td><td class="r">${fmt(popOf(o))}</td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id),relTip(G,o,c.id))}</td><td class="r" style="white-space:nowrap">${frontCell(c.id,j)}</td><td><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
@@ -3448,13 +3450,13 @@ function pWorld(){
   const recent=G.allBattles.slice(-6).reverse().map(b=>({...b,list:b.list.filter(seenBattle).map(newsRefFor(G.allBattles.at(-6)?.turn??0))}));
   return `${sel?inspect(sel):""}
   ${wonderList()}
-  <h3>Rankings</h3>
+  <h3>Rankings ${gl("power")}</h3>
   ${hidden?`<div class="small mut">🌫 ${fmt(hidden)} other states are hidden by fog of war.</div>`:""}
   <div class="small mut">${all.length>LIMIT?`Showing the top ${LIMIT} of ${fmt(all.length)} states. `:""}Alive ${fmt(nAlive)} / ${fmt(G.countries.length)} states.</div>
   <div class="row small"><label title="The # column shows each state's place by land, whatever you sort by"><input type="checkbox" id="wLandRank" ${UI.wLandRank?"checked":""}> # by land</label>${G.teams?`<label title="Color each state by its alliance"><input type="checkbox" id="wAllyCol" ${UI.wAllyCol?"checked":""}> Alliance colors</label>`:""}</div>
   <table class="rank atab"><tr><th class="pl" title="Place">#</th><th>State</th>${th("land","Land")}${th("pop","Pop")}${th("atk","Attack","Army attack power: every troop's attack × research, civilization, leader, land and wonder bonuses")}${th("def","Defense","Army defense power: every troop's defense × research, civilization, leader, land and wonder bonuses")}${th("sci","Science","Total science levels across all areas (hover a number for each area)")}</tr>
   ${C.map(c=>`<tr class="click${UI.sel===c.id?' sel':''}${c.id===G.player?' me':''}" data-pick="${c.id}"><td class="pl">${c.alive?(UI.wLandRank?landRank.get(c.id):all.indexOf(c)+1):"—"}</td><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt"><span class="sw" style="background:${swatch(c)}"></span>${c.id===G.player?"★ ":""}${allyPrefix(c)}${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r${c.alive?"":" mut"}">${researchCell(c)}</td></tr>`).join("")}</table>
-  <h3>Recent wars</h3>
+  <h3>Recent wars ${gl("wars")}</h3>
   ${recent.length?recent.map(b=>`<div class="small"><b>Year ${b.turn}</b>${b.list.length?"":" <span class='mut'>peace</span>"}<ul class="log" style="margin:2px 0 6px;padding-left:18px">${b.list.map(battleLine).join("")}</ul></div>`).join(""):`<div class="mut small">No turns played yet.</div>`}`;
 }
 // alliance tag before a state's name in tables, e.g. "GC "
@@ -3476,16 +3478,16 @@ function allianceModal(t){ const T=G.teams[t], all=G.countries.filter(c=>c.team=
   const aw=aWarOf(G,t), stWars=(G.wars||[]).filter(w=>G.countries[w.a].team===t||G.countries[w.b].team===t).length;
   const mem=M.slice().sort((a,b)=>b.land-a.land).map(c=>`<tr class="click" data-amember="${c.id}"><td style="white-space:nowrap"><span class="sw" style="background:${c.color}"></span>${c.id===G.player?"<b>You</b>":isKnown(c.id)?esc(c.name):'<span class="mut">Unknown state</span>'}${inWar(G,c.id)?" ⚔️":""}</td><td class="r">${fmt(c.land)}</td><td class="r">${fmtK(popOf(c))}</td><td class="r">${fmtK(c.soldiers)}</td></tr>`).join("");
   const allies=mine?M.filter(c=>aidReach(G,G.player,c.id)):[], r=UI.aidR||"grain";
-  const aid=mine&&!allies.length&&M.length>1?`<h3>Send aid</h3><div class="small mut">Aid travels over allied land only, and no ally borders you.</div>`:mine&&allies.length?`<h3>Send aid</h3><div class="mpost"><label for="aidTo" class="mut">To</label><select id="aidTo">${allies.slice().sort((a,b)=>inWar(G,b.id)-inWar(G,a.id)||a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}" ${UI.aidTo===c.id?"selected":""}>${esc(c.name)}${inWar(G,c.id)?" ⚔️":""}</option>`).join("")}</select>
+  const aid=mine&&!allies.length&&M.length>1?`<h3>Send aid ${gl("alliances")}</h3><div class="small mut">Aid travels over allied land only, and no ally borders you.</div>`:mine&&allies.length?`<h3>Send aid ${gl("alliances")}</h3><div class="mpost"><label for="aidTo" class="mut">To</label><select id="aidTo">${allies.slice().sort((a,b)=>inWar(G,b.id)-inWar(G,a.id)||a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}" ${UI.aidTo===c.id?"selected":""}>${esc(c.name)}${inWar(G,c.id)?" ⚔️":""}</option>`).join("")}</select>
     <select id="aidR">${AID_RES.map(x=>`<option value="${x}" ${x===r?"selected":""}>${AID_NAME[x]} (you have ${fmt(Math.floor(me()[x]||0))})</option>`).join("")}</select>
     <input type="text" inputmode="numeric" id="aidN" value="${UI.aidN||""}" placeholder="amount" style="width:90px"><button class="pri" data-a="aidSend">Send</button></div>
     <div class="small mut">Only allies you can reach over allied land: bordering you, or through other allies. It arrives at once. Allies at war marked ⚔️. Gifts raise their trust in you.</div>`:"";
   modal(`<h2><span class="sw" style="background:${T.color}"></span>${esc(T.name)} <span class="mut small">(${esc(allyTag(G,t))})</span></h2>
   <div class="kv">${kv("States",`${fmt(M.length)} <span class="mut small">of ${fmt(all.length)} standing</span>`)}${kv("Land",`${fmt(land)} km² <span class="mut small">(${world?Math.round(100*land/world):0}% of the world)</span>`)}${kv("Population",fmt(sum(popOf)))}${kv("Army",`⚔️ ${fmtPow(sum(c=>armyAtk(c)))} · 🛡️ ${fmtPow(sum(c=>armyDef(c)))}`)}${kv("Research",`${lvAvg.toFixed(0)} levels per state on average`)}</div>
-  <h3>Wars</h3>${aw.length?`<table>${aw.map(w=>{ const o=w.a===t?w.b:w.a; return `<tr><td>⚔️ <span class="sw" style="background:${G.teams[o].color}"></span>${esc(G.teams[o].name)}</td><td class="small mut">since year ${w.from}</td></tr>`; }).join("")}</table>`:`<div class="small mut">No alliance war.</div>`}
+  <h3>Wars ${gl("wars")}</h3>${aw.length?`<table>${aw.map(w=>{ const o=w.a===t?w.b:w.a; return `<tr><td>⚔️ <span class="sw" style="background:${G.teams[o].color}"></span>${esc(G.teams[o].name)}</td><td class="small mut">since year ${w.from}</td></tr>`; }).join("")}</table>`:`<div class="small mut">No alliance war.</div>`}
   <div class="small mut">${stWars?`Members are in ${stWars} state war${stWars>1?"s":""}.`:"No member is in a state war."}</div>
   ${allianceRelTable(t)}
-  <h3>Members</h3><table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th></tr>${mem}</table>
+  <h3>Members ${gl("alliances")}</h3><table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th></tr>${mem}</table>
   ${aid}
   <div class="row"><button data-allymap="${t}">Show on map</button><span class="grow"></span><button class="pri" data-a="close">Close</button></div>`); }
 function pAlliances(){
@@ -3498,7 +3500,7 @@ function pAlliances(){
   rows.sort((a,b)=>((b.states>0)-(a.states>0))||S.dir*(a[S.k]-b[S.k])||b.land-a.land);
   const th=(k,label,title="")=>`<th class="r"${title?` title="${title}"`:""}><button class="thsort${S.k===k?" on":""}" data-asort="${k}">${label}<span class="sarr">${S.k===k?(S.dir<0?"▾":"▴"):""}</span></button></th>`;
   const fog=G.fog?`<div class="small mut">🌫 Totals include states hidden by fog of war.</div>`:"";
-  return `<h3>Alliance rankings</h3>${fog}
+  return `<h3>Alliance rankings ${gl("alliances")}</h3>${fog}
   <table class="rank atab">
   <tr><th class="pl" title="Place">#</th><th>Alliance</th>${th("states","States","States still standing (the strip under each name: one square per member, grey = fallen)")}${th("land","Land","km²")}${th("pop","Pop")}${th("atk","Attack","Sum of the members' army attack power")}${th("def","Defense","Sum of the members' army defense power")}${th("sci","Science","Sum of the members' science levels")}</tr>
   ${rows.map((r,i)=>{ const num=(v,f)=>`<td class="r" title="${fmt(v)}">${r.states?f(v):"—"}</td>`;
@@ -3561,7 +3563,7 @@ function pNews(){
   if(yr!==null) html+="</ul>";
   const first=N.items.find(newsSeen)?.[0]??null;
   const alDef=G.teams&&!observing()&&me().team!=null?me().team:"all", filtered=st.f!=="all"||!!st.q||st.al!==alDef;
-  return `<h3>News</h3>
+  return `<h3>News ${gl("news")}</h3>
   <div class="small mut">${fmt(total)} event${total===1?"":"s"} recorded${first!=null?` since year ${first}`:""}${G.fog?" (only what you could see at the time)":""}.</div>
   <div class="row"><select id="newsF"><option value="all" ${st.f==="all"?"selected":""}>All battles</option><option value="mine" ${st.f==="mine"?"selected":""}>Involving you</option><option value="fallen" ${st.f==="fallen"?"selected":""}>States destroyed</option></select>
     ${G.teams?`<select id="newsA"><option value="all" ${st.al==="all"?"selected":""}>All alliances</option>${G.teams.map(t=>`<option value="${t.id}" ${st.al===t.id?"selected":""}>${esc(allyTag(G,t.id))} ${!observing()&&me().team===t.id?"★ ":""}${esc(t.name)}</option>`).join("")}</select>`:""}
@@ -3694,7 +3696,7 @@ function reportHtml(b,d,ref){
   // footer: back, map, previous/next, research edge
   const list=reportList(ref), at=list.indexOf(ref), prev=at>0?list[at-1]:null, next=at>=0&&at<list.length-1?list[at+1]:null;
   const mapId=D.alive?b.def:b.att, edge=d.raw[1]>0?d.raw[0]/d.raw[1]:1;
-  return `<div class="rep-head"><div class="row" style="justify-content:space-between;margin:0 0 4px"><h2>⚔️ Battle report · Year ${b.turn}</h2>
+  return `<div class="rep-head"><div class="row" style="justify-content:space-between;margin:0 0 4px"><h2>⚔️ Battle report · Year ${b.turn} ${gl("battle")}</h2>
       <span class="small mut">${d.nOn>1?`${d.nOn} attacks on ${plain(b.def)} this year`:`The only attack on ${plain(b.def)} this year`} · ${b.front} km border</span></div>
     <div style="font-size:15px;margin-bottom:10px">${nm(b.att)} ${res}.</div></div>
     ${stats}${bar}
@@ -3875,7 +3877,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Rules & guide","2026-11-11 20:40",["New topic: How it all fits together (what feeds what, what snowballs and what brakes it)","Rules & tips is now a full guide in a big window","Menu on the left with every system, tab and mode","Search at the top left highlights matches","Tables for troops, research areas, civilizations, leaders, land types and wonders follow your Settings"]],
+["Rules & guide","2026-11-11 20:40",["? buttons next to headings in every tab, the map views, battle reports and the alliance window open the matching guide topic","New topic: How it all fits together (what feeds what, what snowballs and what brakes it)","Rules & tips is now a full guide in a big window","Menu on the left with every system, tab and mode","Search at the top left highlights matches","Tables for troops, research areas, civilizations, leaders, land types and wonders follow your Settings"]],
 ["Aid over allied land only","2026-11-11 19:45",["Aid reaches an ally only over allied land: bordering you, or through a chain of allies (sea links count)","Computer allies follow the same rule","Send aid lists only allies you can reach"]],
 ["Alliance window and aid","2026-11-11 05:40",["Click an alliance to open it: members, land, population, army, research, wars and relations with the other alliances","Send an ally grain, wood, iron or gold from your alliance's window; it raises their trust in you","Computer allies at peace send part of their surplus to allies at war that are short of something"]],
 ["Alliance wars","2026-11-11 05:00",["Alliances have relations with each other, following how their members feel and dropping with every war and battle between members","At −40 two alliances go to war: every member is at war with every member of the other, for 8–15 years","Alliance wars count everywhere: embargo, computer targets and mobilising, ⚔️ marks and the Wars map","War tab: your alliance's wars and its relations with the other alliances"]],
@@ -4223,6 +4225,8 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 <li>In an alliance, keep allies at war supplied: aid builds trust and keeps the front standing.</li>
 <li>Rotate defenders so their morale recovers.</li></ul>`],
 ];
+// a small "?" next to a heading: opens that guide topic
+const gl=id=>{ const x=GUIDE.find(g=>g[0]===id); return x?`<button type="button" class="glink" data-guide="${id}" title="Guide: ${x[3]}" aria-label="Guide: ${x[3]}">?</button>`:""; };
 const GUIDE_TXT={}; // plain text of each topic, for search
 function guideText(id){ if(!GUIDE_TXT[id]){ const d=document.createElement("div"); d.innerHTML=GUIDE.find(x=>x[0]===id)[4](); GUIDE_TXT[id]=(GUIDE.find(x=>x[0]===id)[3]+" "+d.textContent).toLowerCase(); } return GUIDE_TXT[id]; }
 function helpModal(id){ UI.guide=id||UI.guide||"start"; UI.guideQ=UI.guideQ||""; for(const k in GUIDE_TXT) delete GUIDE_TXT[k]; // rules may have changed in Settings
@@ -4324,7 +4328,7 @@ function setupModal(){
       <input type="range" id="sT" min="50" max="200" value="${s.terr}"></div>
     <div class="fld ${preset?"hidden":""}"><span class="lr"><span><label for="sW">Water</label> ${info("Water","Water makes chokepoints. The map grows so land per state stays the same.")}</span><b id="sWV">${s.water}%</b></span>
       <div class="wrow"><input type="range" id="sW" min="0" max="40" value="${s.water}"><select id="sWS" aria-label="Water type" ${s.water?"":"disabled"}>${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div></div>
-    <h3 class="sh">Rules</h3>
+    <h3 class="sh">Rules ${gl("setup")}</h3>
     <div class="rules">${SETUP_RULES.map(rule).join("")}</div>
     <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it${hot?" for the next player":""}. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
       <div class="mapbox"><canvas id="pvc"></canvas><div class="mapctl"><button class="sm" data-map="in">+</button><button class="sm" data-map="out">−</button><button class="sm" data-map="fit">Fit</button></div></div>
@@ -4424,6 +4428,7 @@ function drawPreview(){
 document.addEventListener("click",async ev=>{
   const t=ev.target.closest("button,tr[data-pick],tr[data-alliance],tr[data-amember]"); if(!t) return;
   const d=t.dataset;
+  if(d.guide){ UI.guideQ=""; helpModal(d.guide); return; }
   if(d.stab){ settingsModal(d.stab); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
   if(d.npage!=null){ UI.news.page=Math.max(0,+d.npage); render(); $("panel").scrollTop=0; return; }
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;

@@ -33,6 +33,7 @@ The in-game guide (Menu → Rules & guide, `helpModal`) reads the `GUIDE` array 
 - The guide must teach the whole game: a player reading it should be able to learn exactly how each system works (what it is, what drives it, its numbers, what the player and computer states do with it) and how the systems push on and balance each other (what each one feeds, what brakes it, which choices compete for the same people, gold or goods).
 - Take numbers from `R` and the data tables (`TROOPS`, `CIVS`, `LEADERS`, `LANDS`, `WONDERS`, `AREAS`, `SETUP_RULES`) instead of writing them in, so the guide follows Settings.
 - It is the player's version of `docs/SYSTEMS.md`: keep the two in step, but write the guide in plain words, without code names.
+- Link screens to it: put `${gl("topic-id")}` (a small ? button that opens that topic) next to the heading of every panel, card or window about a system. New screens get one too.
 - Check it in a browser: every topic opens without errors and search finds the new words.
 
 ## Persistence
