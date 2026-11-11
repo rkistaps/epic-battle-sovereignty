@@ -221,7 +221,8 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Each war lasts `warMin`–`warMax` (8–15) years or until a side is eliminated. At the end grievance, solidarity and wariness between the two reset (fear stays); both get `warRest` 5 years without declaring, and the pair can't go to war again in that time.
 - No wars during the game's peace years. The player can't declare war; their attacks can start one through the victim's hostility, and computer states can declare on them.
 - **Reads**: relations (all factors), battles (through relations), land and capacity (land hunger), settling (`c.settleT`), army strength, leaders, wonders.
-- **Writes**: AI target choice (enemies only while at war), relations (declaration hit, reset at peace), news.
+- **Writes**: AI target choice (enemies only while at war), relations (declaration hit, reset at peace), news (year report to both sides, and to humans bordering or allied to either side).
+- **Player sees**: War tab "Wars" section (each war, since when, how it started; count of other known wars), ⚔️ on enemies in the neighbors list and in the map tooltip, a "Wars" map view (your enemies red, states at war orange, at peace grey).
 - Notes: in 60-state games, about 100–120 wars per 150 years; most start from hostility, 3–16 are declared; states are at war ~30% of the time; ~2/3 of battles happen inside wars; 30–50% of wars start mostly from fear (the planned replacement of the coalition mechanic).
 
 ### 3.14c War footing (computer states)
@@ -457,7 +458,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
   - During it, every member is at war with every member of the enemy alliance (targeting and war footing). State wars already running continue; members can't start new state wars.
   - Ends like state wars: random 8–15 years (or one alliance eliminated); the alliance relation resets to 0; members' own state relations stay; 5 rest years.
 
-### 12.6 Showing wars
+### 12.6 Showing wars — **built** (see 3.14b)
 - War tab: "At war with X" (since year, years left hidden or shown — decide when building).
 - Map tooltip: a war mark on neighbors at war.
 - A "Wars" map view.
@@ -482,7 +483,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 ### 12.8 Build order
 1. ~~State wars~~ — built.
 2. ~~War footing and interior states~~ — built.
-3. Showing wars: War tab, tooltip, map view, news.
+3. ~~Showing wars~~ — built.
 4. Remove the coalition mechanic (fear wars replace it). Simulate.
 5. Trade embargo between states at war.
 6. Alliance relations and alliance wars. Simulate.

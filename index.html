@@ -368,7 +368,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   </span>
 </header>
 <main>
-  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
+  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
     <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
@@ -1876,14 +1876,19 @@ function warStart(g,a,b,why){ if(!g.wars) g.wars=[]; if(atWar(g,a,b)) return nul
   const w={a,b,from:g.turn,to:g.turn+Math.round(rr(g,R.warMin,R.warMax)),why}; g.wars.push(w);
   if(why==="declared"){ const f=rfGet(g,C[b],a); f.g=Math.max(-100,(f.g||0)-R.warDeclareHit); rfTidy(f); // the victim resents it, the declarer's other neighbors grow wary
     for(const j of adjacency(g)[a]) if(j!==b&&C[j].alive&&!allied(g,a,j)){ const fj=rfGet(g,C[j],a); fj.w=Math.max(-R.rwMax,(fj.w||0)-R.rwHit); rfTidy(fj); } }
+  warNews(g,a,b,`⚔️ ${why==="declared"?`${C[a].name} declared war on ${C[b].name}`:`War broke out between ${C[a].name} and ${C[b].name}`}.`);
   note(g,a,why==="declared"?`⚔️ You declared war on ${C[b].name}.`:`⚔️ War with ${C[b].name}: hostility between you boiled over.`);
   note(g,b,why==="declared"?`⚔️ ${C[a].name} declared war on you!`:`⚔️ War with ${C[a].name}: hostility between you boiled over.`);
   return w; }
+// news of a war for the humans it concerns: those bordering either side or allied to one (not the two themselves)
+function warNews(g,a,b,m){ const C=g.countries, adj=adjacency(g);
+  for(const h of C){ if(h.ai||!h.alive||h.id===a||h.id===b) continue; if(adj[h.id].has(a)||adj[h.id].has(b)||allied(g,h.id,a)||allied(g,h.id,b)) note(g,h.id,m); } }
 // once a year, after relations: wars that ran their time (or lost a side) end; new ones start from hostility
 function warYear(g){ const C=g.countries, T=g.turn; if(!g.wars) g.wars=[]; if(!g.warPeace) g.warPeace={};
   g.wars=g.wars.filter(w=>{ const A=C[w.a], B=C[w.b]; if(A.alive&&B.alive&&w.to>T) return true;
     if(A.alive&&B.alive){ for(const [x,y] of [[A,w.b],[B,w.a]]){ const f=rfOf(g,x,y); if(f){ delete f.g; delete f.s; delete f.w; } } // a fresh start
       g.warPeace[warKey(w.a,w.b)]=T+R.warRest; A.warRest=B.warRest=T+R.warRest;
+      warNews(g,w.a,w.b,`🕊 Peace between ${A.name} and ${B.name} after ${T-w.from+1} years of war.`);
       note(g,w.a,`🕊 Peace with ${B.name} after ${T-w.from+1} years of war.`); note(g,w.b,`🕊 Peace with ${A.name} after ${T-w.from+1} years of war.`); }
     return false; });
   if(inPeace(g)) return;
@@ -1923,6 +1928,8 @@ function relParts(g,c,j){ const f=rfOf(g,c,j)||{}, out=Object.keys(RF_NAMES).fil
   if(b) out.push(["Starting mood",b]); return out.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])); }
 // relations map view: red (−100) → grey (0) → green (+100); your own state in white
 const REL_YOU="#f0f0f0";
+// wars map view: at war with you / at war with others / at peace
+const WAR_FOE="#d23a2c", WAR_ON="#e0913a", WAR_PEACE="#6f7480";
 // all of last year's harvests together compared with normal (1 = normal), and a weather effect as text
 function worldWx(g){ const A=g.countries.filter(c=>c.alive&&c.lastWx!=null); if(!A.length) return null;
   let w=0,n=0; for(const c of A){ const h=Math.max(1,c.lastHarvest||1)/c.lastWx; w+=h*c.lastWx; n+=h; } return w/n; }
@@ -2652,6 +2659,8 @@ class MapView{
   }
   // alliance view paints each state in its alliance's color
   colorOf(c){ const g=this.g;
+    if(this.o.war?.()&&g){ const me_=g.countries[g.player], ws=g.wars||[]; if(me_&&c.id===g.player) return REL_YOU;
+      return me_&&ws.some(w=>(w.a===c.id&&w.b===g.player)||(w.b===c.id&&w.a===g.player))?WAR_FOE:ws.some(w=>w.a===c.id||w.b===c.id)?WAR_ON:WAR_PEACE; }
     if(this.o.wx?.()&&g) return wxColor(c.lastWx??1);
     if(this.o.rel?.()&&g&&g.countries[g.player]) return c.id===g.player?REL_YOU:relColor(relOf(g,c,g.player));
     return this.o.ally?.()&&g?.teams&&c.team!=null?g.teams[c.team].color:c.color; }
@@ -2789,7 +2798,7 @@ function nbRelTip(id){ const c=G.countries[id], nb=[...adjacency(G)[id]].filter(
   const rows=nb.map(j=>({j,out:relOf(G,c,j),inn:relOf(G,G.countries[j],id)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn));
   const num=v=>{ const r=Math.round(v); return `<td class="rtn" style="color:${relColor(r)}">${r>0?"+":""}${r}</td>`; };
   const bar=v=>{ const w=Math.round(Math.min(100,Math.abs(v))/100*26); return `<td><span class="rtb"><i class="rt0"></i><i style="width:${w}px;${v<0?"right:27px":"left:27px"};background:${relColor(v)}"></i></span></td>`; };
-  const nm=j=>`<span class="sw" style="background:${G.countries[j].color}"></span>${j===G.player?"<b>You</b>":isKnown(j)?esc(G.countries[j].name):'<span class="mut">Unknown state</span>'}${allied(G,id,j)?' <span class="mut">ally</span>':""}`;
+  const nm=j=>`<span class="sw" style="background:${G.countries[j].color}"></span>${j===G.player?"<b>You</b>":isKnown(j)?esc(G.countries[j].name):'<span class="mut">Unknown state</span>'}${allied(G,id,j)?' <span class="mut">ally</span>':""}${atWar(G,id,j)?" ⚔️":""}`;
   return `<table class="rtip"><tr class="mut"><td></td><td colspan="2">Their feelings</td><td colspan="2">Neighbor's feelings</td></tr>${rows.map(x=>`<tr><td>${nm(x.j)}</td>${num(x.out)}${bar(x.out)}${num(x.inn)}${bar(x.inn)}</tr>`).join("")}</table>`; }
 function conqNote(o,i){ const from=G.takenFrom?.[i]; if(from==null||from<0||from===o||G.takenAt[i]!==G.turn-1) return "";
   const name=isKnown(from)||G.countries[from].alive===false?esc(G.countries[from].name):"an unknown state";
@@ -2800,7 +2809,7 @@ function placeTip(tip,ev){ // fixed-position, so it can't make the pane scroll; 
   const left=x+14+w>r.right?x-14-w:x+14, top=y+10+h>r.bottom?y-10-h:y+10;
   tip.style.left=Math.max(r.left,left)+"px"; tip.style.top=Math.max(r.top,top)+"px"; }
 const mainView=new MapView($("map"),{
-  sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView,
+  sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView, war:()=>!!UI.warView,
   height:()=>Math.max(320, window.innerHeight-($("mapbox").getBoundingClientRect().top+window.scrollY+$("mapwrap").scrollTop)-72), // fill the window below the map's top edge (ignores scrolling)
   focus:g=>g.fog?g.player:null,
   onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="war") UI.tab="world"; render(); },
@@ -2824,9 +2833,12 @@ function renderAllyMap(){
   b.classList.toggle("hidden",!on); b.classList.toggle("on",!!UI.allyView); b.textContent="Alliances";
   rb.classList.toggle("hidden",!relOn); rb.classList.toggle("on",!!UI.relView); rb.textContent="Relations";
   const wb=$("wxBtn"); if(!G) UI.wxView=false; wb.classList.toggle("hidden",!G); wb.classList.toggle("on",!!UI.wxView); wb.textContent="Weather";
-  const st=$("stBtn"), shown=[st,b,rb,wb].filter(x=>x!==st&&!x.classList.contains("hidden")); st.classList.toggle("hidden",!shown.length); st.classList.toggle("on",!UI.allyView&&!UI.relView&&!UI.wxView);
-  const vis=[st,b,rb,wb].filter(x=>!x.classList.contains("hidden")); vis.forEach((x,i)=>{ x.classList.toggle("first",i===0); x.classList.toggle("last",i===vis.length-1); x.setAttribute("aria-pressed",x.classList.contains("on")); });
-  lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView);
+  const xb=$("warBtn"); if(!G) UI.warView=false; xb.classList.toggle("hidden",!G); xb.classList.toggle("on",!!UI.warView); xb.textContent="Wars";
+  const st=$("stBtn"), shown=[st,b,rb,xb,wb].filter(x=>x!==st&&!x.classList.contains("hidden")); st.classList.toggle("hidden",!shown.length); st.classList.toggle("on",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView);
+  const vis=[st,b,rb,xb,wb].filter(x=>!x.classList.contains("hidden")); vis.forEach((x,i)=>{ x.classList.toggle("first",i===0); x.classList.toggle("last",i===vis.length-1); x.setAttribute("aria-pressed",x.classList.contains("on")); });
+  lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView);
+  if(UI.warView){ const open=legendOpen(), n=(G.wars||[]).length, me_=!observing()&&me();
+    lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Wars · ${fmt(n)} going on <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${me_?`<div><span class="sw" style="background:${WAR_FOE}"></span>At war with you</div>`:""}<div><span class="sw" style="background:${WAR_ON}"></span>At war${me_?" with others":""}</div><div><span class="sw" style="background:${WAR_PEACE}"></span>At peace</div>${me_?`<div><span class="sw" style="background:${REL_YOU}"></span>You</div>`:""}</div>`); return; }
   if(UI.wxView){ const open=legendOpen(), wa=worldWx(G);
     lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Weather · last harvest <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${[[1.25,"Good +25%"],[1.12,"+12%"],[1,"Normal"],[0.88,"−12%"],[0.75,"Bad −25%"]].map(([v,l])=>`<div><span class="sw" style="background:${wxColor(v)}"></span>${l}</div>`).join("")}<div class="mut" title="All harvests together, compared with normal">World: ${wa!=null?wxPct(wa):"—"}</div>${(()=>{ const S=G.ws?.sys||[], d=S.filter(w=>w.kind<0).length, f=S.length-d, big=S.filter(w=>w.big).length; return S.length?`<div class="mut" title="Rings are weather systems; arrows show where they're heading">Systems: ${d} drought${d===1?"":"s"} · ${f} fertile${big?` · ${big} great`:""}</div>`:""; })()}</div>`); return; }
   if(UI.relView){ const open=legendOpen();
@@ -3277,12 +3289,18 @@ function pGenerals(){
   <div class="small mut">New generals start with skill 0. Skill grows every year (faster with higher Mind) and faster still in battle. Skill is what wins fights. Morale drops after battles and recovers +10/yr, so avoid attacking below 70.</div>`;
 }
 
+// War tab: the wars you are in, and how many are going on among the states you know
+function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w.a!==c.id&&w.b!==c.id&&isKnown(w.a)&&isKnown(w.b)).length;
+  const row=w=>{ const o=G.countries[warFoe(w,c.id)], how=w.why==="declared"?(w.a===c.id?"you declared it":"they declared it"):"hostility boiled over";
+    return `<tr class="click" data-pick="${o.id}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${o.color}"></span>${esc(o.name)}</td><td class="small mut">since year ${w.from} · ${how}</td></tr>`; };
+  return `<h3>Wars</h3>${mine.length?`<table>${mine.map(row).join("")}</table>`:`<div class="small mut">At peace.</div>`}
+  <div class="small mut">${known?`${known} other war${known>1?"s":""} among the states you know. `:""}Wars start when either side's relation falls to ${R.warHostile} or a computer state declares one, and last ${R.warMin}–${R.warMax} years.</div>`; }
 function pWar(){
   const c=me(); const nb=neighbors(G,c.id); const com=committed(c); const guards=c.soldiers-com;
   const busy=new Set(c.attacks.map(a=>a.gen));
   const dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
   const idle=c.generals.filter(g=>!busy.has(g.id));
-  return `${coalitionBanner()}${inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:""}<h3>Defense</h3>
+  return `${coalitionBanner()}${inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:""}${warsPanel(c)}<h3>Defense</h3>
   <div class="kv"><span class="mut">Border guards</span><b>${fmt(guards)} <span class="small mut">(defense ${fmtPow(armyDef(c,plannedPools(c)))})</span></b><span class="mut">Defending general</span><b>${dg?esc(dg.name)+` (skill ${dg.skill.toFixed(0)})`:'<span class="bad">none</span>'}</b></div>
   ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
   <h3>Orders this year</h3>
@@ -3290,7 +3308,7 @@ function pWar(){
   <h3>Neighbors</h3>
   ${nb.length?`<table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th class="r" title="Length of your shared border. Narrow borders give the defender a bonus.">Border</th><th></th></tr>
   ${nb.map(j=>{const o=G.countries[j];
-   return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${G.hegemon&&G.hegemon.id===j?' <span class="acc" title="Leading state: the coalition is fighting it">⚖</span>':''}</td><td class="r">${fmt(o.land)}</td><td class="r">${fmt(popOf(o))}</td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id),relTip(G,o,c.id))}</td><td class="r" style="white-space:nowrap">${frontCell(c.id,j)}</td><td><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
+   return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${G.hegemon&&G.hegemon.id===j?' <span class="acc" title="Leading state: the coalition is fighting it">⚖</span>':''}${atWar(G,c.id,j)?' <span title="At war with you">⚔️</span>':''}</td><td class="r">${fmt(o.land)}</td><td class="r">${fmt(popOf(o))}</td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id),relTip(G,o,c.id))}</td><td class="r" style="white-space:nowrap">${frontCell(c.id,j)}</td><td><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
   ${UI.attackTarget!=null && nb.includes(UI.attackTarget) ? (inPeace(G)?`<div class="note">Peace time: no attacks until year ${G.peace+1}.</div>`:attackForm(c,UI.attackTarget,idle)):""}
   <div class="small mut" style="margin-top:8px">Battles resolve at year end, all at once. Soldiers you send don't guard your own borders that year. If several armies attack the same state, its guards are split between them by attack strength, so joint attacks fight at their combined odds (each still wins or loses on its own). Win and you take land: (your general's speed limit + an army bonus that grows with your surviving soldiers) × how decisive the win was, from 25% for a narrow win to 100% at twice their strength. Relations = how they feel about you (−100 hostile … +100 friendly). Computer states attack those they dislike first.</div>`;
 }
@@ -3795,6 +3813,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Seeing wars","2026-11-11 03:40",["War tab: your wars (who, since when, how it started) and how many other wars are going on","⚔️ marks your enemies in the neighbors list and next to states at war in the map tooltip","New Wars map view: your enemies, states at war, states at peace","Year report tells you when wars start or end next to you or your allies"]],
 ["Land grabs when full","2026-11-11 03:05",["Outside of wars, computer states with plenty of room at home (under 70% full) no longer attack just to grab land","They become keener as their land fills up, and from 90% full attack as before","Grudges, fear and wonders still lead to attacks at any fullness"]],
 ["War footing","2026-11-11 02:30",["Computer states keep smaller armies in peace, send surplus soldiers home and research density to fill their land","At war they mobilise over a few years: bigger armies, more people armed, growth research to refill losses","States with only allies around keep a token army and put their people into research","New computer player settings for peace and war"]],
 ["Wars","2026-11-11 01:40",["States go to war when relations fall to −50 (fear of a giant counts), or when a computer state declares war","Wars last 8–15 years, then old grudges are forgotten and 5 years of rest follow","Computer states at war attack only their enemies and declare one war at a time","Year report tells you when a war starts or ends","New Wars settings"]],
@@ -4084,10 +4103,11 @@ document.addEventListener("click",async ev=>{
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
     else if(d.map==="me"&&G&&me().alive) v.centerOn(G.player,Math.max(v.z,v.focusZoom()));
-    else if(d.map==="states"){ UI.allyView=UI.relView=UI.wxView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=UI.wxView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=UI.wxView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="states"){ UI.allyView=UI.relView=UI.wxView=UI.warView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=UI.wxView=UI.warView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=UI.wxView=UI.warView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="war"){ UI.warView=!UI.warView; if(UI.warView) UI.allyView=UI.relView=UI.wxView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=UI.warView=false; renderAllyMap(); v.refresh(); }
     return; }
   if(d.rep){ openReport(d.rep); return; }
   if(d.repback!=null){ const bk=UI.repBack; UI.repBack=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); return; }
