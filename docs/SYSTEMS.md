@@ -248,6 +248,8 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Player sees**: War tab lists alliance wars and an "Alliance relations" table (both directions, bars); news to the members of both alliances when an alliance war starts or ends.
 - **Reads**: members' relations, adjacency, land, state wars and battles between members. **Writes**: wars (through `atWar`), AI targets and footing, market (embargo), news.
 - Notes: in 60-state, 4-alliance games, 4–7 alliance wars per game; relations bottom out around −70..−97. With hits of −3/−1/−2 alliance wars were near-constant (13–17 per game) because battles between many members add up.
+- **Allied aid** *(your direction)*: allies send each other grain, wood, iron or gold (`aidSend`), arriving at once; the receiver's trust toward the giver rises (`aidTrust` 1 per 1,000 gold of value, at most `aidTrustMax` 5 a gift). Computer allies at peace (or interior) give up to `aiAidShare` 50% of their surplus a year (grain above 1.3 years of food incl. this harvest, wood/iron above the 3-year reserve, gold above 6 years of wages + 2,000) to allies at war that are short, neediest first, before market trading. The player sends aid from their alliance's window. In 60-state, 4-alliance games: ~800–1,300 gifts per game, mostly iron.
+- **Alliance window** (`allianceModal`): opened from the Alliances tab, the War tab (alliance wars, alliance relations) or the alliance line of a selected state: stats (states, land and world share, population, army, average research), alliance wars and members' state wars, relations with the other alliances, members (click to select), Send aid (your own alliance), Show on map.
 - Notes: states deep inside an alliance block can have no enemy neighbours (interior states, 3.14c).
 
 ### 3.16 Balance of power (through fear wars)
@@ -467,11 +469,11 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 - A "Wars" map view.
 - News when wars start and end.
 
-### 12.7 Single-alliance view
+### 12.7 Single-alliance view — **built** (see 3.15); not yet opened from map labels (canvas text isn't clickable)
 - Opened from an alliance's tag on map labels, its row in the Alliances tab, or the map tooltip.
 - Header (colour, name, tag, members left/fallen); stats (land, population, army attack/defense, average research, share of the world); member list (sortable, click selects on the map); relations with other alliances (bars, both directions); active wars and recent battles; "Show on map".
 
-### 12.9 Allied aid
+### 12.9 Allied aid — **built** (see 3.15)
 - Allies can send each other **grain, wood, iron and gold** *(your direction)*. Troops are left for later (they need army-movement rules).
 - **Who gives (computer):** interior states and allies at peace, from surplus only: grain above their reserve, wood/iron above the 3-year reserve, gold above a cushion. At most **50% of the surplus a year**, so a donor never weakens itself. Aid comes **before** selling to the market, so surplus goes to the front instead of to merchants.
 - **Who receives:** allies at war or bordering an enemy that are short of grain, of wood/iron for troops, or of gold. Neediest first, front-line states ahead of others.
@@ -490,4 +492,4 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 4. ~~Remove the coalition mechanic~~ — done.
 5. ~~Trade embargo~~ — built.
 6. ~~Alliance relations and alliance wars~~ — built.
-7. Single-alliance view, together with allied aid (12.9): the computer's aid rules and the player's "Send aid" form. Simulate.
+7. ~~Single-alliance view and allied aid~~ — built. **The war and peace plan is complete.**
