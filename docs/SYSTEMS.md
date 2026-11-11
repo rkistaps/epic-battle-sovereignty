@@ -203,7 +203,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.13 Territory and map
 - **Intent**: Land is the prize. Unowned land at the start is a race; coasts are worth more (food). Collapsed states' land goes to whoever settles it first. *(inferred)*
 - Cells: water, unowned or owned; adjacency = 4-neighbours plus sea routes (world map). Allies never count as targets.
-- Starting sizes: on the world map, starting states are evened out to within `startGap` 50 km² of each other (oversized states hand outer land to smaller neighbours or leave it unowned; undersized ones claim unowned or spare neighbour land; squeezed ones restart in the biggest unowned pocket).
+- Starting sizes: on the world map, starting states are evened out toward `startGap` 50 km² of each other. The final evening pass only moves a cell if it lands inside solid land of the receiver (a 3×3 block, or 4+ of its 8 surrounding cells) and leaves the giver's solid land intact, so no thin strips form; on 1000-state maps ~90% of states end within ±5% of the median and the smallest at ~80% (oversized states hand outer land to smaller neighbours or leave it unowned; undersized ones claim unowned or spare neighbour land; squeezed ones restart in the biggest unowned pocket).
 - Settling: each state bordering unowned land claims `(5 + 2% of its land) × exploreMul` a year. Unowned land comes from the map start and from collapsed states.
 - Shore: land cells next to water → harvest bonus. Land type is fixed at start even if the coast is lost.
 - **Reads**: battles, collapses, explore research. **Writes**: capacity, production (shore), wonders, fronts, adjacency.
