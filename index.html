@@ -937,7 +937,9 @@ function newGame(opts){
   for(let i=0;i<cells.length;i++) if(cells[i]===-3) cells[i]=-1;
   balanceStates(cells,W,H,counts);
   smoothStates(cells,W,H,counts);
-  if(preset==="world") bandStates(cells,W,H,counts,lk,R.startGap); // World: starting sizes within startGap km² of each other
+  unthin(cells,W,H,counts,lk);
+  if(preset==="world"){ bandStates(cells,W,H,counts,lk,R.startGap); unthin(cells,W,H,counts,lk); } // World: starting sizes within startGap km² of each other
+  bandStates(cells,W,H,counts,lk,1,true); unthin(cells,W,H,counts,lk); // even sizes out again without new strips, and clear any left
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
   // more states than the fixed lists: invent names, spread extra colors by golden-ratio hue
   const used=new Set(names), SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"];
@@ -1203,7 +1205,7 @@ function carveRivers(m,W,H,target,unit,rnd){
 // Even out state sizes after growth: bigger states hand border cells to smaller neighbors.
 // A cell only moves if the giver stays in one piece (checked in its 3x3 window)
 // and the receiver already surrounds it on 3+ sides of 8, which keeps borders smooth.
-function balanceStates(cells,W,H,counts,tMin,need=3,okMove=null){
+function balanceStates(cells,W,H,counts,tMin,need=3,okMove=null,maxPass=120){
   const N=W*H;
   let land=0; for(let i=0;i<N;i++) if(cells[i]>=0) land++;
   const T=tMin||Math.max(2,Math.round(land/counts.length*0.04)); // ignore differences under ~4% (avoids endless small trades)
@@ -1212,8 +1214,8 @@ function balanceStates(cells,W,H,counts,tMin,need=3,okMove=null){
   // only cells on a border between two states can move; track just those
   const allEdges=()=>{ const l=[]; for(let i=0;i<N;i++) if(cells[i]>=0&&isEdge(i)) l.push(i); return l; };
   let list=allEdges(), wasFull=true;
-  const stamp=new Int32Array(N).fill(-1);
-  for(let pass=0;pass<120&&list.length;pass++){
+  const stamp=new Int32Array(N).fill(-1), failP=okMove?new Int32Array(N):null;
+  for(let pass=0;pass<maxPass&&list.length;pass++){
     let moved=0; const rev=pass&1, next=[];
     const keep=j=>{ if(stamp[j]!==pass&&cells[j]>=0){ stamp[j]=pass; next.push(j); } };
     for(let k=0;k<list.length;k++){
@@ -1235,9 +1237,10 @@ function balanceStates(cells,W,H,counts,tMin,need=3,okMove=null){
       const aN=nN===o, aE=nE===o, aS=nS===o, aW=nW===o, a4=aN+aE+aS+aW; if(a4===0) continue;
       const links=(aN&&aE&&nNE===o)+(aE&&aS&&nSE===o)+(aS&&aW&&nSW===o)+(aW&&aN&&nNW===o);
       if(a4-links!==1 && !(a4===4&&links===4)) continue;
-      if(okMove&&!okMove(i,o,p)) continue;
+      if(okMove){ if(failP&&failP[i]===p+1) continue; if(!okMove(i,o,p)){ failP[i]=p+1; continue; } } // a failed check is remembered until something nearby moves
       cells[i]=p; counts[o]--; counts[p]++; moved++;
       for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const X=x+dx,Y=y+dy; if(X>=0&&Y>=0&&X<W&&Y<H) keep(Y*W+X); }
+      if(failP) for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){ const X=x+dx,Y=y+dy; if(X>=0&&Y>=0&&X<W&&Y<H) failP[Y*W+X]=0; }
     }
     // a full scan with no moves means we're done; otherwise rescan all borders
     // every 15 passes or when the short list dries up (sizes elsewhere may have changed)
@@ -1250,7 +1253,7 @@ function balanceStates(cells,W,H,counts,tMin,need=3,okMove=null){
 // Too big: its farthest cells go to a smaller neighbor or become unowned (farthest first never splits it).
 // Too small: it claims unowned land next to it, then cells its neighbors can spare. Still too small (squeezed onto
 // too little land): its land is freed for its neighbors and it starts again in the biggest unowned pocket.
-function bandStates(cells,W,H,counts,lk,gap){
+function bandStates(cells,W,H,counts,lk,gap,safe=false){
   if(!(gap>0)) return;
   const N=W*H, n=counts.length, dist=new Int32Array(N), q=new Int32Array(N);
   const nbs=i=>{ const x=i%W,o=[]; if(x>0)o.push(i-1); if(x<W-1)o.push(i+1); if(i>=W)o.push(i-W); if(i+W<N)o.push(i+W); const L=lk.get(i); if(L) o.push(...L); return o; };
@@ -1262,9 +1265,10 @@ function bandStates(cells,W,H,counts,lk,gap){
   // solid: cell (x,y) lies in some 3×3 block owned wholly by o. A move keeps the map strip-free if the cell is solid for
   // the receiver afterwards and every giver cell around it that was solid stays solid
   const solid=(x,y,o)=>{ for(let cy=y-1;cy<=y+1;cy++) for(let cx=x-1;cx<=x+1;cx++){ let ok=true; for(let dy=-1;dy<=1&&ok;dy++) for(let dx=-1;dx<=1;dx++) if(at(cx+dx,cy+dy)!==o){ ok=false; break; } if(ok) return true; } return false; };
-  const noStrip=(i,o,p)=>{ const x=i%W,y=(i/W)|0, was=[];
-    for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){ const X=x+dx,Y=y+dy; if((dx||dy)&&at(X,Y)===o) was.push([X,Y,solid(X,Y,o)]); }
-    cells[i]=p; let ok=solid(x,y,p)||sur(i,p)>=4; for(const [X,Y,s] of was) if(ok&&s&&!solid(X,Y,o)) ok=false; cells[i]=o; return ok; };
+  const noStrip=(i,o,p)=>{ const x=i%W,y=(i/W)|0;
+    if(sur(i,p)<4){ cells[i]=p; const ok=solid(x,y,p); cells[i]=o; if(!ok) return false; } // receiver: the cell must sit in its solid land
+    const was=[]; for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){ const X=x+dx,Y=y+dy; if((dx||dy)&&at(X,Y)===o&&solid(X,Y,o)) was.push(X,Y); }
+    cells[i]=p; let ok=true; for(let k=0;k<was.length&&ok;k+=2) if(!solid(was[k],was[k+1],o)) ok=false; cells[i]=o; return ok; }; // giver: its solid land stays solid
   const sur=(i,p)=>{ const x=i%W,y=(i/W)|0; let k=0; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if((dx||dy)&&at(x+dx,y+dy)===p) k++; return k; }; // how much of cell i p already surrounds
   const byState=()=>{ const by=Array.from({length:n},()=>[]); for(let i=0;i<N;i++) if(cells[i]>=0) by[cells[i]].push(i); return by; };
   // cells of a set, farthest from its middle first (middle = the cell deepest inside it)
@@ -1277,6 +1281,7 @@ function bandStates(cells,W,H,counts,lk,gap){
   const claim=(s,from,to)=>{ let h=0,t=0; const got=[]; for(const i of from) q[t++]=i;
     while(h<t&&counts[s]<to){ const i=q[h++]; for(const j of nbs(i)) if(cells[j]===-1&&counts[s]<to){ cells[j]=s; counts[s]++; q[t++]=j; got.push(j); } }
     return got; };
+  if(safe){ balanceStates(cells,W,H,counts,1,3,noStrip,40); return; } // after unthin: even sizes again without making new strips
   for(let it=0;it<25;it++){
     const med=counts.slice().sort((a,b)=>a-b)[n>>1], lo=Math.round(med-gap/2), hi=lo+gap, mid=Math.round(med);
     if(Math.min(...counts)>=lo&&Math.max(...counts)<=hi) break;
@@ -1292,7 +1297,7 @@ function bandStates(cells,W,H,counts,lk,gap){
     by=byState();
     // unowned land goes to the smallest states next to it first, then land flows from bigger to smaller neighbors (also through chains)
     for(const s of [...counts.keys()].sort((a,b)=>counts[a]-counts[b])) if(counts[s]<mid) claim(s,by[s],mid);
-    balanceStates(cells,W,H,counts,1,3,noStrip);
+    balanceStates(cells,W,H,counts,1);
     by=byState();
     for(let s=0;s<n;s++) if(counts[s]<lo){ let mine=by[s];
       for(let pass=0;pass<60&&counts[s]<lo;pass++){ const got=[]; // then take cells its neighbors can spare (across sea routes too)
@@ -1318,6 +1323,30 @@ function bandStates(cells,W,H,counts,lk,gap){
 }
 // Remove 1-cell bumps and notches: a cell joins the neighbor state that holds 5+ of its
 // 8 surrounding cells, if its own state stays in one piece (same 3x3 test as above).
+// No narrow arms: land squeezed between other states (not part of any solid K×K block of its own state, and touching
+// another state) goes to the neighbor state around it most; pieces cut off from a state then go to the neighbor sharing
+// the longest border. Thin land that only touches sea (peninsulas, coasts) stays.
+function unthin(cells,W,H,counts,lk,K=4){
+  const N=W*H, at=(x,y)=>x<0||y<0||x>=W||y>=H?-9:cells[y*W+x];
+  const nbs=i=>{ const x=i%W,o=[]; if(x>0)o.push(i-1); if(x<W-1)o.push(i+1); if(i>=W)o.push(i-W); if(i+W<N)o.push(i+W); const L=lk?.get(i); if(L) o.push(...L); return o; };
+  const solid=(x,y,o)=>{ for(let y0=y-K+1;y0<=y;y0++) for(let x0=x-K+1;x0<=x;x0++){ let ok=true; for(let dy=0;dy<K&&ok;dy++) for(let dx=0;dx<K;dx++) if(at(x0+dx,y0+dy)!==o){ ok=false; break; } if(ok) return true; } return false; };
+  const sur=(x,y,p)=>{ let k=0; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if((dx||dy)&&at(x+dx,y+dy)===p) k++; return k; };
+  for(let pass=0;pass<6;pass++){ const mv=[];
+    for(let i=0;i<N;i++){ const o=cells[i]; if(o<0) continue; const x=i%W,y=(i/W)|0;
+      const n4=[at(x-1,y),at(x+1,y),at(x,y-1),at(x,y+1)]; if(!n4.some(v=>v>=0&&v!==o)||solid(x,y,o)) continue;
+      let p=-1,ps=1; for(const v of n4) if(v>=0&&v!==o){ const s=sur(x,y,v); if(s>ps){ p=v; ps=s; } }
+      if(p>=0&&ps>=sur(x,y,o)-1) mv.push(i,p); }
+    if(!mv.length) break;
+    for(let k=0;k<mv.length;k+=2){ const i=mv[k]; counts[cells[i]]--; cells[i]=mv[k+1]; counts[mv[k+1]]++; } }
+  // cut-off pieces: keep each state's biggest piece, hand the rest to the neighbor with the longest shared border
+  const seen=new Int32Array(N).fill(-1), best=new Map(), comps=[];
+  for(let i=0;i<N;i++){ const o=cells[i]; if(o<0||seen[i]>=0) continue; const c=[i]; seen[i]=comps.length;
+    for(let k=0;k<c.length;k++) for(const j of nbs(c[k])) if(cells[j]===o&&seen[j]<0){ seen[j]=comps.length; c.push(j); }
+    comps.push(c); if(!best.has(o)||comps[best.get(o)].length<c.length) best.set(o,comps.length-1); }
+  comps.forEach((c,ci)=>{ const o=cells[c[0]]; if(best.get(o)===ci) return; const b=new Map();
+    for(const i of c) for(const j of nbs(i)){ const v=cells[j]; if(v>=0&&v!==o) b.set(v,(b.get(v)||0)+1); }
+    if(!b.size) return; const p=[...b].sort((a,b)=>b[1]-a[1])[0][0]; for(const i of c){ cells[i]=p; counts[o]--; counts[p]++; } });
+}
 function smoothStates(cells,W,H,counts){
   for(let pass=0;pass<3;pass++){
     let moved=0;
@@ -3885,7 +3914,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Cleaner world map borders","2026-11-11 21:40",["World map: no more thin strips of one state wrapped around another","Starting sizes on big world maps can differ a little more (most within 5%)"]],
+["Cleaner map borders","2026-11-11 22:30",["No more narrow arms or strips of one state squeezing between others, on every map","Starting sizes on random maps are more even","On big world maps most states start within 5% of each other; a few start smaller"]],
 ["Rules & guide","2026-11-11 20:40",["? buttons next to headings in every tab, the map views, battle reports and the alliance window open the matching guide topic","New topic: How it all fits together (what feeds what, what snowballs and what brakes it)","Rules & tips is now a full guide in a big window","Menu on the left with every system, tab and mode","Search at the top left highlights matches","Tables for troops, research areas, civilizations, leaders, land types and wonders follow your Settings"]],
 ["Aid over allied land only","2026-11-11 19:45",["Aid reaches an ally only over allied land: bordering you, or through a chain of allies (sea links count)","Computer allies follow the same rule","Send aid lists only allies you can reach"]],
 ["Alliance window and aid","2026-11-11 05:40",["Click an alliance to open it: members, land, population, army, research, wars and relations with the other alliances","Send an ally grain, wood, iron or gold from your alliance's window; it raises their trust in you","Computer allies at peace send part of their surplus to allies at war that are short of something"]],
