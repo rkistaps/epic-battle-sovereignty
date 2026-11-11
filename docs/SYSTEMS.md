@@ -132,6 +132,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Merchants** stand behind the book: they sell at `max(mkMerchSell 2.5 × normal, mkMerchMul 2 × market price)`, dearer the more they sell in a year (`mkSteep` 3); they buy grain at 0.9 × normal and wood/iron at 0.5 × normal, paying less the more they buy (`mkSteepB` 0.5). At year start they take any order that beats their own price (`mkSweep`), which closes buy-from-states/sell-to-merchants arbitrage.
 - Market price: average trade price per year (or the book midpoint in a year with no trades), averaged over `mkYears` 3.
 - AI: `aiWorth` = market price × need (store vs needs) × a little personality, kept between merchant prices; takes orders that beat it, posts the rest ±8% (`aiMargin`), takes its orders back each year.
+- **Embargo**: states at war with each other can't fill each other's orders (`mkQuote` skips them); merchants still trade with both. The player sees enemy orders greyed with a ⚔️ *(your direction)*.
 - **Reads**: every state's surplus and shortfall (food, wood, iron), gold, weather (through harvests and AI planning), troop demand.
 - **Writes**: gold, stocks, `g.price` (used in AI troop costs and `projectedNet`), AI farming (cheap grain → farm less), news.
 - Notes:
@@ -443,7 +444,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 ### 12.3 Balance of power — **built** (see 3.16)
 - Fear wars against a runaway state **replace the coalition mechanic** (section 3.16); remove `coalition*` rules and hegemon targeting once state wars exist.
 
-### 12.4 Trade embargo
+### 12.4 Trade embargo — **built** (see 3.7)
 - States at war with each other can't fill each other's market orders (they don't see each other's orders). Merchants still trade with both.
 
 ### 12.5 Alliance relations and alliance wars
@@ -482,6 +483,6 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 2. ~~War footing and interior states~~ — built.
 3. ~~Showing wars~~ — built.
 4. ~~Remove the coalition mechanic~~ — done.
-5. Trade embargo between states at war.
+5. ~~Trade embargo~~ — built.
 6. Alliance relations and alliance wars. Simulate.
 7. Single-alliance view, together with allied aid (12.9): the computer's aid rules and the player's "Send aid" form. Simulate.
