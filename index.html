@@ -82,10 +82,10 @@ table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(-
 .pips i.off{background:#3a3f4a !important}
 .sbar{height:5px;border-radius:3px;background:#3a3f4a;margin-top:4px;overflow:hidden}
 .sbar i{display:block;height:100%}
-#tip .rtip{border-collapse:collapse;margin-top:6px;border-top:1px solid var(--line)} #tip .rtip td{padding:1px 0;border:0}
-#tip .rtip tr:first-child td{padding:5px 0 2px;font-size:11px;text-align:center} #tip .rtip td:first-child{padding-right:8px;text-align:left}
-#tip .rtn{text-align:right;min-width:30px;padding-left:10px!important;font-weight:600} #tip .rtip td.rtn+td{padding-left:5px}
-#tip .rtb{display:inline-block;position:relative;width:54px;height:8px;border-radius:2px;background:#2a2e36;vertical-align:-1px} #tip .rtb i{position:absolute;top:0;height:8px;border-radius:2px} #tip .rtb .rt0{left:26.5px;top:-1px;width:1px;height:10px;background:#6b7280;border-radius:0}
+.rtip{border-collapse:collapse;margin-top:6px;border-top:1px solid var(--line)} .rtip td{padding:1px 0;border:0}
+.rtip tr:first-child td{padding:5px 0 2px;font-size:11px;text-align:center} .rtip td:first-child{padding-right:8px;text-align:left}
+.rtip .rtn{text-align:right;min-width:30px;padding-left:10px!important;font-weight:600} .rtip td.rtn+td{padding-left:5px}
+.rtip .rtb{display:inline-block;position:relative;width:54px;height:8px;border-radius:2px;background:#2a2e36;vertical-align:-1px} .rtip .rtb i{position:absolute;top:0;height:8px;border-radius:2px} .rtip .rtb .rt0{left:26.5px;top:-1px;width:1px;height:10px;background:#6b7280;border-radius:0}
 #tip{position:fixed;z-index:5;pointer-events:none;background:#000c;border:1px solid var(--line);padding:6px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
 .tabs{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-bottom:10px} /* one row: icon over a short name */
 .tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:5px 0 4px;border-radius:7px;font-size:15px;line-height:1.2;position:relative}
@@ -452,6 +452,7 @@ const R = {
   relJustified: 0.5, relJustYears: 5,                    // striking back at someone who attacked you in the last 5 years: the victim and onlookers take it ×0.5
   relFade: 0.15,                                         // feelings toward states you don't border fade 15% a year
   relNoiseAmp: 10,                                       // random start (new-game option): each pair starts within ±10
+  awarHostile: -40, arStep: 0.1, arWar: 1, arBattle: 0.3, arBattleBig: 0.6, // alliances: relation follows members' feelings 10% a year; −1 a year per state war between members, −0.3 per battle (−0.6 if over 10% of land taken); alliance war at −40
   warHostile: -50, warMin: 8, warMax: 15, warRest: 5, warDeclare: 0.5, warDeclareHit: 15, // wars: start when either side's feelings reach −50 (or a computer state declares one: score above 0.5); last 8–15 years; 5 rest years after; declaring costs −15 with the victim
   relScore: 25, relGuard: 0.4,                           // AI: target priority from feelings ÷ 25 (grudges count ×1.5); guard ±40% by relation
   rvGrievance: 0.35, rvSolidarity: 0.2, rvTrust: 0.5, rvCommon: 0.25, rvFear: 0.25, // AI: edge needed −35% at full grievance, −20% solidarity, +50% full trust, +25% common enemy, −25% fear (only when others are attacking them)
@@ -1426,8 +1427,8 @@ const mkMA=(m,x=0)=>m.mA*(1+R.mkSteep*(m.mbY+x)/m.ref), mkMB=(m,x=0)=>m.mB/(1+R.
 // at war with (embargo), are skipped.
 function mkQuote(g,c,r,side,n,lim){ const m=mkOf(g)[r], B=g.ob[r], buy=side==="buy", L=lim??(buy?Infinity:0);
   let left=Math.max(0,Math.floor(n)||0), money=buy?Math.max(0,c.money):Infinity, cost=0; const n0=left, fills=[];
-  const foes=new Set(warsOf(g,c.id).map(w=>warFoe(w,c.id))); // embargo: no trade with states it is at war with
-  for(const o of buy?B.a:B.b){ if(left<=0) break; if(o.s===c.id||foes.has(o.s)) continue; if(buy?o.p>L:o.p<L) break;
+  const isFoe=foeTest(g,c.id); // embargo: no trade with states it is at war with (alone or through its alliance)
+  for(const o of buy?B.a:B.b){ if(left<=0) break; if(o.s===c.id||isFoe(o.s)) continue; if(buy?o.p>L:o.p<L) break;
     let q=Math.min(left,o.q); if(buy) q=Math.min(q,Math.floor(money/o.p)); if(q<=0) break;
     fills.push({o,q}); left-=q; cost+=q*o.p; if(buy) money-=q*o.p; }
   let mq=0, mc=0; const ref=m.ref;
@@ -1654,7 +1655,7 @@ function aiTurn(g,c){
   const eff = [0.8,1,1.15][d];
   c.attacks=[];
   // war footing: 0 in peace, 1 in any war, moving a share of the way each year (mobilising and standing down take a few years)
-  c.footing=(c.footing??0)+((warsOf(g,c.id).length?1:0)-(c.footing??0))*R.aiFootStep;
+  c.footing=(c.footing??0)+((inWar(g,c.id)?1:0)-(c.footing??0))*R.aiFootStep; // any war: its own or its alliance's
   const interior=!adj.length; // only allies around: no one to fight, no land to take
   const milStart = (c.persona==="mil"? 14: 30) - d*3 + (c.id%5);
   // panic: big recent losses or overwhelming threat
@@ -1779,12 +1780,12 @@ function aiTurn(g,c){
       return {j,o,theirStr,relM,v:vs[1],why:vs[0],open:o.openTurn===t-1,ka:pa/atkPower(c),score:-pull/Math.max(1,R.relScore)+ (o.land<c.land?0.3:0)+ 1/(1+theirStr/Math.max(1,myPow))+R01(g)*0.5+(o.wb?Object.keys(o.wb).length*0.6:0)};
     }).sort((a,b)=>b.score-a.score);
     // war: declare on the best case if free to (no war of its own, rested), then fight only enemies while at war
-    if(!warsOf(g,c.id).length&&(c.warRest??0)<=t){ const n=troopCount(sendMix); let best=null, bs=R.warDeclare;
+    if(!inWar(g,c.id)&&(c.warRest??0)<=t){ const n=troopCount(sendMix); let best=null, bs=R.warDeclare;
       for(const tg of targets){ if((g.warPeace?.[warKey(c.id,tg.j)]??0)>t) continue;
         const sc=warScore(g,c,tg.j,feel.find(x=>x.j===tg.j),myUnit*tg.ka*genFactor(gens[0])*n/(tg.theirStr*thr0)); if(sc>bs){ bs=sc; best=tg; } }
       if(best) warStart(g,c.id,best.j,"declared"); }
-    const foes=new Set(warsOf(g,c.id).map(w=>warFoe(w,c.id)));
-    if(foes.size) for(let i=targets.length-1;i>=0;i--) if(!foes.has(targets[i].j)) targets.splice(i,1);
+    const isFoe=foeTest(g,c.id), foes={size:inWar(g,c.id)?1:0}; // at war (alone or with its alliance): only enemies are targets
+    if(foes.size) for(let i=targets.length-1;i>=0;i--) if(!isFoe(targets[i].j)) targets.splice(i,1);
     // not at war: the fuller the land, the keener on more (room left: only grudges, fear or a wonder make it attack)
     const full=popOf(c)/Math.max(1,popCap(c)), room=foes.size?0:Math.max(0,Math.min(1,(R.aiAtkFull-full)/Math.max(0.01,R.aiAtkFull-R.aiAtkRoom)));
     let used=0;
@@ -1840,10 +1841,18 @@ function committedOf(c,id){ return 0; } // AI plans attacks after upgrading, so 
 // Then grievance, solidarity and wariness between the two reset (fear stays: it is about size), and for R.warRest years neither
 // declares a war and the pair can't go to war again. While at war, a computer state attacks only its enemies.
 const warsOf=(g,id)=>(g.wars||[]).filter(w=>w.a===id||w.b===id);
-const atWar=(g,a,b)=>(g.wars||[]).some(w=>(w.a===a&&w.b===b)||(w.a===b&&w.b===a));
+const stateWar=(g,a,b)=>(g.wars||[]).some(w=>(w.a===a&&w.b===b)||(w.a===b&&w.b===a));
+// alliance wars (g.awars: {a, b, from, to} between team indexes): every member is at war with every member of the other alliance
+const aWarOf=(g,t)=>t==null?[]:(g.awars||[]).filter(w=>w.a===t||w.b===t);
+const teamsAtWar=(g,ta,tb)=>ta!=null&&tb!=null&&ta!==tb&&(g.awars||[]).some(w=>(w.a===ta&&w.b===tb)||(w.a===tb&&w.b===ta));
+const atWar=(g,a,b)=>stateWar(g,a,b)||teamsAtWar(g,g.countries[a]?.team,g.countries[b]?.team);
+const inWar=(g,id)=>warsOf(g,id).length>0||aWarOf(g,g.countries[id]?.team).length>0;
+// a quick test "is j my enemy?" for one state (state wars and alliance wars)
+function foeTest(g,id){ const sf=new Set(warsOf(g,id).map(w=>warFoe(w,id))), t=g.countries[id]?.team, tf=new Set(aWarOf(g,t).map(w=>w.a===t?w.b:w.a));
+  return j=>sf.has(j)||(tf.size>0&&tf.has(g.countries[j]?.team)); }
 const warFoe=(w,id)=>w.a===id?w.b:w.a;
 const warKey=(a,b)=>a<b?a+"-"+b:b+"-"+a;
-function warStart(g,a,b,why){ if(!g.wars) g.wars=[]; if(atWar(g,a,b)) return null; const C=g.countries;
+function warStart(g,a,b,why){ if(!g.wars) g.wars=[]; if(stateWar(g,a,b)) return null; const C=g.countries;
   const w={a,b,from:g.turn,to:g.turn+Math.round(rr(g,R.warMin,R.warMax)),why}; g.wars.push(w);
   if(why==="declared"){ const f=rfGet(g,C[b],a); f.g=Math.max(-100,(f.g||0)-R.warDeclareHit); rfTidy(f); // the victim resents it, the declarer's other neighbors grow wary
     for(const j of adjacency(g)[a]) if(j!==b&&C[j].alive&&!allied(g,a,j)){ const fj=rfGet(g,C[j],a); fj.w=Math.max(-R.rwMax,(fj.w||0)-R.rwHit); rfTidy(fj); } }
@@ -1865,9 +1874,35 @@ function warYear(g){ const C=g.countries, T=g.turn; if(!g.wars) g.wars=[]; if(!g
   if(inPeace(g)) return;
   const adj=adjacency(g);
   for(const c of C){ if(!c.alive) continue;
-    for(const j of adj[c.id]){ if(j<c.id||!C[j].alive||allied(g,c.id,j)||atWar(g,c.id,j)||(g.warPeace[warKey(c.id,j)]??0)>T) continue;
+    for(const j of adj[c.id]){ if(j<c.id||!C[j].alive||allied(g,c.id,j)||atWar(g,c.id,j)||(g.warPeace[warKey(c.id,j)]??0)>T) continue; // atWar: state or alliance war
       const ab=relOf(g,c,j), ba=relOf(g,C[j],c.id);
       if(ab<=R.warHostile||ba<=R.warHostile) warStart(g,ab<=ba?c.id:j,ab<=ba?j:c.id,"hostility"); } } }
+// alliances, once a year after state wars: each alliance's relation toward each other one (−100..100, starting at 0) moves
+// R.arStep a year toward how its members feel about the other's members (averaged over bordering pairs, weighted by land;
+// no shared border: toward 0), plus hits from state wars and battles between members. At R.awarHostile an alliance war
+// starts (unless that alliance is already in one); it runs R.warMin–R.warMax years, then the relation resets and R.warRest years of rest.
+function allianceYear(g){ if(!g.teams) return; const C=g.countries, T=g.turn, A=g.arel||(g.arel={}), n=g.teams.length; if(!g.awars) g.awars=[]; if(!g.awarPeace) g.awarPeace={};
+  const alive=new Array(n).fill(0); for(const c of C) if(c.alive&&c.team!=null) alive[c.team]++;
+  const tell=(t,m)=>{ for(const c of C) if(c.alive&&!c.ai&&c.team===t) note(g,c.id,m); }, tn=t=>g.teams[t].name;
+  g.awars=g.awars.filter(w=>{ if(alive[w.a]&&alive[w.b]&&w.to>T) return true;
+    if(alive[w.a]&&alive[w.b]){ delete A[w.a+">"+w.b]; delete A[w.b+">"+w.a]; g.awarPeace[Math.min(w.a,w.b)+"-"+Math.max(w.a,w.b)]=T+R.warRest;
+      tell(w.a,`🕊 Your alliance ${tn(w.a)} made peace with ${tn(w.b)} after ${T-w.from+1} years of war.`); tell(w.b,`🕊 Your alliance ${tn(w.b)} made peace with ${tn(w.a)} after ${T-w.from+1} years of war.`); }
+    return false; });
+  const sum={}, wt={}, adj=adjacency(g);
+  for(const c of C){ if(!c.alive||c.team==null) continue;
+    for(const j of adj[c.id]){ const o=C[j]; if(!o.alive||o.team==null||o.team===c.team) continue; const k=c.team+">"+o.team; sum[k]=(sum[k]||0)+relOf(g,c,j)*c.land; wt[k]=(wt[k]||0)+c.land; } }
+  const hit={}, add=(a,b,v)=>{ if(a==null||b==null||a===b) return; hit[a+">"+b]=(hit[a+">"+b]||0)+v; hit[b+">"+a]=(hit[b+">"+a]||0)+v; };
+  for(const w of g.wars||[]) add(C[w.a].team,C[w.b].team,-R.arWar);
+  for(const b of g.battles||[]){ const L=b.d?.land, big=L&&b.taken>0.1*L[L.length-2]; add(C[b.att].team,C[b.def].team,-(big?R.arBattleBig:R.arBattle)); }
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){ if(i===j) continue; const k=i+">"+j, tgt=wt[k]?sum[k]/wt[k]:0, v=A[k]||0;
+    const nv=Math.max(-100,Math.min(100,v+(tgt-v)*R.arStep+(hit[k]||0))); if(Math.abs(nv)<0.05) delete A[k]; else A[k]=+nv.toFixed(1); }
+  if(inPeace(g)) return;
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){ if(!alive[i]||!alive[j]||teamsAtWar(g,i,j)||(g.awarPeace[i+"-"+j]??0)>T) continue;
+    const ij=A[i+">"+j]||0, ji=A[j+">"+i]||0, h=ij<=R.awarHostile&&!aWarOf(g,i).length?i:ji<=R.awarHostile&&!aWarOf(g,j).length?j:null; if(h==null) continue;
+    const o=h===i?j:i; g.awars.push({a:h,b:o,from:T,to:T+Math.round(rr(g,R.warMin,R.warMax))});
+    tell(h,`⚔️ Your alliance ${tn(h)} is at war with ${tn(o)}: every member of theirs is now your enemy.`); tell(o,`⚔️ ${tn(h)} went to war with your alliance ${tn(o)}: every member of theirs is now your enemy.`); } }
+// alliance relation from alliance a toward alliance b
+const arelOf=(g,a,b)=>g.arel?.[a+">"+b]||0;
 // a computer state's case for declaring war on neighbor j (motive × feasibility − cost); feas = its sendable attack ÷ the edge it needs
 function warScore(g,c,j,q,feas){ const o=g.countries[j];
   const hunger=popOf(c)>=0.85*popCap(c)&&(c.settleT??-99)<g.turn-2?0.6:0; // full and nothing left to settle: conquest is the only way to grow
@@ -2027,6 +2062,7 @@ function endTurn(g){
   mkYear(g); mkWeather(g); // next year's prices and weather
   relYear(g); // peace, forgiveness and size threat
   warYear(g); // wars end and start
+  allianceYear(g); // alliance relations, alliance wars
   C.forEach(c=>{ c.lostRecent.shift(); c.lostRecent.push(c.lostThis); c.history.push(c.alive?c.land:0); });
   g.allBattles.push({turn:g.turn,list:g.battles.map(({d,...b})=>b)}); // full reports live in the news archive
   if(g.allBattles.length>40) g.allBattles.shift();
@@ -2629,7 +2665,7 @@ class MapView{
   // alliance view paints each state in its alliance's color
   colorOf(c){ const g=this.g;
     if(this.o.war?.()&&g){ const me_=g.countries[g.player], ws=g.wars||[]; if(me_&&c.id===g.player) return REL_YOU;
-      return me_&&ws.some(w=>(w.a===c.id&&w.b===g.player)||(w.b===c.id&&w.a===g.player))?WAR_FOE:ws.some(w=>w.a===c.id||w.b===c.id)?WAR_ON:WAR_PEACE; }
+      return me_&&atWar(g,c.id,g.player)?WAR_FOE:inWar(g,c.id)?WAR_ON:WAR_PEACE; }
     if(this.o.wx?.()&&g) return wxColor(c.lastWx??1);
     if(this.o.rel?.()&&g&&g.countries[g.player]) return c.id===g.player?REL_YOU:relColor(relOf(g,c,g.player));
     return this.o.ally?.()&&g?.teams&&c.team!=null?g.teams[c.team].color:c.color; }
@@ -2807,7 +2843,7 @@ function renderAllyMap(){
   const vis=[st,b,rb,xb,wb].filter(x=>!x.classList.contains("hidden")); vis.forEach((x,i)=>{ x.classList.toggle("first",i===0); x.classList.toggle("last",i===vis.length-1); x.setAttribute("aria-pressed",x.classList.contains("on")); });
   lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView);
   if(UI.warView){ const open=legendOpen(), n=(G.wars||[]).length, me_=!observing()&&me();
-    lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Wars · ${fmt(n)} going on <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${me_?`<div><span class="sw" style="background:${WAR_FOE}"></span>At war with you</div>`:""}<div><span class="sw" style="background:${WAR_ON}"></span>At war${me_?" with others":""}</div><div><span class="sw" style="background:${WAR_PEACE}"></span>At peace</div>${me_?`<div><span class="sw" style="background:${REL_YOU}"></span>You</div>`:""}</div>`); return; }
+    lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Wars · ${fmt(n+(G.awars||[]).length)} going on <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${me_?`<div><span class="sw" style="background:${WAR_FOE}"></span>At war with you</div>`:""}<div><span class="sw" style="background:${WAR_ON}"></span>At war${me_?" with others":""}</div><div><span class="sw" style="background:${WAR_PEACE}"></span>At peace</div>${me_?`<div><span class="sw" style="background:${REL_YOU}"></span>You</div>`:""}</div>`); return; }
   if(UI.wxView){ const open=legendOpen(), wa=worldWx(G);
     lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Weather · last harvest <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${[[1.25,"Good +25%"],[1.12,"+12%"],[1,"Normal"],[0.88,"−12%"],[0.75,"Bad −25%"]].map(([v,l])=>`<div><span class="sw" style="background:${wxColor(v)}"></span>${l}</div>`).join("")}<div class="mut" title="All harvests together, compared with normal">World: ${wa!=null?wxPct(wa):"—"}</div>${(()=>{ const S=G.ws?.sys||[], d=S.filter(w=>w.kind<0).length, f=S.length-d, big=S.filter(w=>w.big).length; return S.length?`<div class="mut" title="Rings are weather systems; arrows show where they're heading">Systems: ${d} drought${d===1?"":"s"} · ${f} fertile${big?` · ${big} great`:""}</div>`:""; })()}</div>`); return; }
   if(UI.relView){ const open=legendOpen();
@@ -3262,8 +3298,15 @@ function pGenerals(){
 function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w.a!==c.id&&w.b!==c.id&&isKnown(w.a)&&isKnown(w.b)).length;
   const row=w=>{ const o=G.countries[warFoe(w,c.id)], how=w.why==="declared"?(w.a===c.id?"you declared it":"they declared it"):"hostility boiled over";
     return `<tr class="click" data-pick="${o.id}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${o.color}"></span>${esc(o.name)}</td><td class="small mut">since year ${w.from} · ${how}</td></tr>`; };
-  return `<h3>Wars</h3>${mine.length?`<table>${mine.map(row).join("")}</table>`:`<div class="small mut">At peace.</div>`}
-  <div class="small mut">${known?`${known} other war${known>1?"s":""} among the states you know. `:""}Wars start when either side's relation falls to ${R.warHostile} or a computer state declares one, and last ${R.warMin}–${R.warMax} years.</div>`; }
+  const t=c.team, aw=aWarOf(G,t), arow=w=>{ const o=w.a===t?w.b:w.a; return `<tr><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${G.teams[o].color}"></span>${esc(G.teams[o].name)} <span class="mut">(alliance)</span></td><td class="small mut">since year ${w.from} · every member is your enemy</td></tr>`; };
+  return `<h3>Wars</h3>${mine.length||aw.length?`<table>${mine.map(row).join("")}${aw.map(arow).join("")}</table>`:`<div class="small mut">At peace.</div>`}
+  <div class="small mut">${known?`${known} other war${known>1?"s":""} among the states you know. `:""}Wars start when either side's relation falls to ${R.warHostile} or a computer state declares one, and last ${R.warMin}–${R.warMax} years.${G.teams?` Alliances go to war when one's relation toward another falls to ${R.awarHostile}.`:""}</div>${G.teams&&t!=null?allianceRelTable(t):""}`; }
+// your alliance's relations with the other alliances (both directions), worst first
+function allianceRelTable(t){ const n=G.teams.length, alive=G.teams.map((_,k)=>G.countries.some(c=>c.alive&&c.team===k));
+  const rows=[...Array(n).keys()].filter(k=>k!==t&&alive[k]).map(k=>({k,out:arelOf(G,t,k),inn:arelOf(G,k,t)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn)); if(!rows.length) return "";
+  const num=v=>{ const r=Math.round(v); return `<td class="rtn" style="color:${relColor(r)}">${r>0?"+":""}${r}</td>`; };
+  const bar=v=>{ const w=Math.round(Math.min(100,Math.abs(v))/100*26); return `<td><span class="rtb"><i class="rt0"></i><i style="width:${w}px;${v<0?"right:27px":"left:27px"};background:${relColor(v)}"></i></span></td>`; };
+  return `<h3>Alliance relations</h3><table class="rtip"><tr class="mut"><td></td><td colspan="2">Your alliance's feelings</td><td colspan="2">Their feelings</td></tr>${rows.map(x=>`<tr><td><span class="sw" style="background:${G.teams[x.k].color}"></span>${esc(G.teams[x.k].name)}${teamsAtWar(G,t,x.k)?" ⚔️":""}</td>${num(x.out)}${bar(x.out)}${num(x.inn)}${bar(x.inn)}</tr>`).join("")}</table>`; }
 function pWar(){
   const c=me(); const nb=neighbors(G,c.id); const com=committed(c); const guards=c.soldiers-com;
   const busy=new Set(c.attacks.map(a=>a.gen));
@@ -3614,7 +3657,7 @@ const SETTINGS_META=[
   ["World market & weather",[["mkMerchSell","Merchants sell at least at (× normal)"],["mkMerchMul","Merchants sell at least at (× market price)"],["mkMerchBuy","Merchants buy wood and iron at (× normal)"],["mkMerchBuyG","Merchants buy grain at (× normal)"],["mkSteep","Merchant sell price rise per world year sold (× 1 = +100%)"],["mkSteepB","Merchant buy price drop per world year bought"],["mkYears","Market price: average over years"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxRegionalOff","Small yearly weather patches: strength with weather systems off"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus offered per year","%"],["aiNeedK","AI: how strongly need moves the price it pays or asks"],["aiMargin","AI: how far its orders sit from what it thinks fair","%"]]],
   ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["sizeExp","Level cost grows with size: exponent (× (pop ÷ world average pop)^exponent, 0 = off)"],["catchUpPer","Catching up: cheaper per level behind the world average","%"],["catchUpMax","Catching up: at most this much cheaper","%"],["leadPer","Leading: dearer per level ahead of the world average","%"],["leadMax","Leading: at most this many times the cost (1 = off)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Expansion: land per battle and settling per level","%"],["sciMax","Max research bonus: Science (0 = no cap)","%"],["agriMax","Max research bonus: Agriculture","%"],["finMax","Max research bonus: Finance","%"],["densMax","Max research bonus: Pop. density (share of base capacity)","%"],["growMax","Max research bonus: Pop. growth (share of base birth rate)","%"],["atkMax","Max research bonus: Attack","%"],["defMax","Max research bonus: Defense","%"],["woodMax","Max research bonus: Forestry","%"],["ironMax","Max research bonus: Mining","%"],["exploreMax","Max research bonus: Expansion","%"]]],
   ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["capturedPeasants","Peasants on conquered land who join you","%"],["lootGrain","Grain looted from conquered land","%"]]],
-  ["Wars",[["warHostile","War starts when either side's feelings reach"],["warMin","War length: shortest (years)"],["warMax","War length: longest (years)"],["warRest","Years without new wars after peace"],["warDeclare","Computer declares war above this score"],["warDeclareHit","Victim's grievance when war is declared on it"]]],
+  ["Wars",[["awarHostile","Alliance war starts when an alliance's relation reaches"],["arStep","Alliance relation: moves toward members' feelings per year","%"],["arWar","Alliance relation: per year of a state war between members"],["arBattle","Alliance relation: per battle between members"],["arBattleBig","Alliance relation: per battle taking over 10% of the land"],["warHostile","War starts when either side's feelings reach"],["warMin","War length: shortest (years)"],["warMax","War length: longest (years)"],["warRest","Years without new wars after peace"],["warDeclare","Computer declares war above this score"],["warDeclareHit","Victim's grievance when war is declared on it"]]],
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
   ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["startGap","World map: biggest minus smallest starting state, at most (km², new games; 0 = off)"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
@@ -3762,6 +3805,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Alliance wars","2026-11-11 05:00",["Alliances have relations with each other, following how their members feel and dropping with every war and battle between members","At −40 two alliances go to war: every member is at war with every member of the other, for 8–15 years","Alliance wars count everywhere: embargo, computer targets and mobilising, ⚔️ marks and the Wars map","War tab: your alliance's wars and its relations with the other alliances"]],
 ["Trade embargo","2026-11-11 04:20",["States at war can't fill each other's market orders","Your enemies' orders are greyed out in the order book with a ⚔️","Merchants still trade with everyone"]],
 ["No more coalitions","2026-11-11 04:00",["The coalition against a runaway state is gone: neighbors who fear a much bigger state now go to war with it instead","No more \"pulling ahead\" banner or ⚖ mark; Coalition settings removed"]],
 ["Seeing wars","2026-11-11 03:40",["War tab: your wars (who, since when, how it started) and how many other wars are going on","⚔️ marks your enemies in the neighbors list and next to states at war in the map tooltip","New Wars map view: your enemies, states at war, states at peace","Year report tells you when wars start or end next to you or your allies"]],
@@ -3860,7 +3904,7 @@ function helpModal(){
   <li>Strength = soldiers × Attack/Defense research × general (skill and morale) × your civilization's and leader's attack (when attacking) or defense (when defending) bonus. A research lead counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy. Defenders get +15%. A state with no guards loses as much land as the attacker's general and army can take.</li>
   <li>The winner takes land and the peasants on it: (general's Speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness. Decisiveness runs from 25% for a narrow win to 100% at twice the defender's strength (or no defenders). Each surviving soldier can hold at most ${R.occupy} km².</li>
   <li><b>Relations:</b> every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings (hover a relation to see them): <b>Grievance</b> when you attack them, <b>Solidarity</b> when you attack their ally, <b>Wariness</b> when you attack their other neighbors, <b>Fear</b> when you are much bigger than them, <b>Trust</b> from years of peace (up to +${R.rtMax}), and a <b>Common enemy</b> bond when two states hold a grudge against the same one. Wrongs are settled by revenge: a state that strikes back and wins clears most of its grievance (its allies' solidarity cools too). Fear only fades when you shrink compared with them, and wariness only while you attack nobody. Striking back at someone who attacked you within ${R.relJustYears} years angers them and onlookers half as much.</li>
-  <li><b>Wars:</b> two states go to war when either one's relation toward the other falls to ${R.warHostile} (fear of a much bigger neighbor counts too), or when a computer state declares war, for example out of a grudge, fear, or because it is full and has no land left to settle. A war lasts ${R.warMin}–${R.warMax} years or until one side is destroyed. Then grievance, solidarity and wariness between the two are forgotten, and for ${R.warRest} years they can't go to war again and neither declares a new war. A computer state at war attacks only its enemies, and doesn't declare a second war of its own. In peace computer states keep smaller armies, send surplus soldiers home and research density to fill their land; at war they mobilise over a few years, arm more of their people and research growth to refill losses. A state with only allies around keeps a token army and puts its people into research. Outside of wars, computer states with plenty of room at home (under 70% full) don't go grabbing land; they attack only out of a grudge, fear or for a wonder, and become keener as their land fills up.</li><li><b>Computer states and feelings:</b> they still attack anyone they can clearly beat. A grudge makes them want revenge: they need a smaller edge, send more troops and may strike even at near-even odds, by chance each year, more likely after you fought elsewhere, lost a battle or starved. Wariness makes them step in: while you keep attacking others, a wary neighbor may strike you while your army is away. Before attacking, they also add up every neighbor that is angry or wary of them: the more exposed, the more troops they keep home and the bigger the edge they need. Fear makes them guard, and join in only when others are already attacking you. Trust and a common enemy make them pick other targets. You are warned when a state starts to want revenge.</li>
+  <li><b>Wars:</b> two states go to war when either one's relation toward the other falls to ${R.warHostile} (fear of a much bigger neighbor counts too), or when a computer state declares war, for example out of a grudge, fear, or because it is full and has no land left to settle. A war lasts ${R.warMin}–${R.warMax} years or until one side is destroyed. Then grievance, solidarity and wariness between the two are forgotten, and for ${R.warRest} years they can't go to war again and neither declares a new war. A computer state at war attacks only its enemies, and doesn't declare a second war of its own. In peace computer states keep smaller armies, send surplus soldiers home and research density to fill their land; at war they mobilise over a few years, arm more of their people and research growth to refill losses. A state with only allies around keeps a token army and puts its people into research. Outside of wars, computer states with plenty of room at home (under 70% full) don't go grabbing land; they attack only out of a grudge, fear or for a wonder, and become keener as their land fills up. Alliances have relations with each other too: they follow how their members feel about the other alliance's members, slowly, and drop with every war and battle between members. When one alliance's relation toward another falls to ${R.awarHostile}, the two alliances go to war: every member is at war with every member of the other, for ${R.warMin}–${R.warMax} years.</li><li><b>Computer states and feelings:</b> they still attack anyone they can clearly beat. A grudge makes them want revenge: they need a smaller edge, send more troops and may strike even at near-even odds, by chance each year, more likely after you fought elsewhere, lost a battle or starved. Wariness makes them step in: while you keep attacking others, a wary neighbor may strike you while your army is away. Before attacking, they also add up every neighbor that is angry or wary of them: the more exposed, the more troops they keep home and the bigger the edge they need. Fear makes them guard, and join in only when others are already attacking you. Trust and a common enemy make them pick other targets. You are warned when a state starts to want revenge.</li>
   <li><b>Balance of power:</b> neighbors fear a state that grows much bigger than them (from 1.5× their size), and enough fear turns into war: a runaway state, you included, ends up fighting the neighbors it frightens.</li>
   <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering it settles ${R.settleBase} km² plus ${R.settleRate*100}% of its own size each year, no army needed.</li>
   <li><b>Wonders</b> (optional): ten landmarks, one per science area. Whoever holds the land a wonder stands on gets that area's effect raised by the wonder's bonus (+25% by default, e.g. +25% attack strength or +25% research). Conquer the land and the wonder is yours.</li>

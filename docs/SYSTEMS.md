@@ -241,9 +241,14 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Notes: armies react to neighbors' armies (an arms race): peaceful states still sit around 20–30% army by mid-game next to armed neighbors. Discounting peaceful neighbors' threat (`aiPeaceThreat` < 1) lowered peace armies but left states under-defended and conquest got much faster, so it stays 1. Effect in simulation: early conquest slower (60 states: ~50 left at year 30 instead of ~40; 1000 states: 854 left at year 30 instead of 686), states fuller (≈99% at year 60), endgame unchanged.
 
 ### 3.15 Alliances
-- **Intent**: Team scenarios with clear, fixed sides. *(inferred)*
+- **Intent**: team scenarios with clear, fixed sides; alliances have their own slow-moving relations and wars on a separate layer from state wars *(your direction)*.
 - Fixed teams chosen at setup (by count or size, regional or scattered). Allies never attack each other and win together. Solidarity links allies' feelings. No forming or breaking during play.
-- Notes: states deep inside an alliance block can have no enemy neighbours and stay idle.
+- **Alliance relations** (`g.arel["i>j"]`, −100..100, starting at 0): each year move `arStep` 10% toward how members feel about the other alliance's members (averaged over bordering pairs, weighted by land; no shared border: toward 0), plus direct hits: −`arWar` 1 per year of each state war between members, −`arBattle` 0.3 per battle between members (−`arBattleBig` 0.6 if over 10% of the defender's land is taken). No fear at this level.
+- **Alliance wars** (`g.awars`: `{a, b, from, to}` between team indexes): start when an alliance's relation toward another reaches `awarHostile` −40 and that alliance isn't already in an alliance war (members' state wars don't hold it back). Every member is then at war with every member of the other (`atWar`, `inWar`, `foeTest` cover both kinds of war): embargo, computer targets and war footing, ⚔️ marks and the Wars map. State wars already running continue; members don't declare new state wars. Ends after `warMin`–`warMax` years or when one alliance is gone: the alliance relation resets to 0 (members' state relations stay), `warRest` years of rest for the pair.
+- **Player sees**: War tab lists alliance wars and an "Alliance relations" table (both directions, bars); news to the members of both alliances when an alliance war starts or ends.
+- **Reads**: members' relations, adjacency, land, state wars and battles between members. **Writes**: wars (through `atWar`), AI targets and footing, market (embargo), news.
+- Notes: in 60-state, 4-alliance games, 4–7 alliance wars per game; relations bottom out around −70..−97. With hits of −3/−1/−2 alliance wars were near-constant (13–17 per game) because battles between many members add up.
+- Notes: states deep inside an alliance block can have no enemy neighbours (interior states, 3.14c).
 
 ### 3.16 Balance of power (through fear wars)
 - **Intent**: stop a runaway winner, the player included: the world pushes back on whoever gets too big *(your direction: fear wars replaced the old coalition)*.
@@ -447,7 +452,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 ### 12.4 Trade embargo — **built** (see 3.7)
 - States at war with each other can't fill each other's market orders (they don't see each other's orders). Merchants still trade with both.
 
-### 12.5 Alliance relations and alliance wars
+### 12.5 Alliance relations and alliance wars — **built** (see 3.15; hit sizes tuned down to −1 / −0.3 / −0.6)
 - **Alliance relation:** −100..+100 for each pair of alliances, each direction, **starting at 0**.
   - Yearly target: how members feel about the other alliance's members, averaged over neighboring pairs and weighted by land; alliances with no shared border drift toward 0. No fear at this level.
   - Moves **10% a year** toward the target (slow).
@@ -484,5 +489,5 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 3. ~~Showing wars~~ — built.
 4. ~~Remove the coalition mechanic~~ — done.
 5. ~~Trade embargo~~ — built.
-6. Alliance relations and alliance wars. Simulate.
+6. ~~Alliance relations and alliance wars~~ — built.
 7. Single-alliance view, together with allied aid (12.9): the computer's aid rules and the player's "Send aid" form. Simulate.
