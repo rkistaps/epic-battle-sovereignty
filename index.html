@@ -490,7 +490,6 @@ const R = {
   moraleDefend: 5,                 // the defending general loses 5 morale a year instead of recovering (holding the border wears him down)
   aiRestMorale: 70, aiRestCalm: 3, // AI: when nobody attacked it for 3 years, a defender below 70 morale (what it needs to attack) is rested
   moraleWin: 8, moraleLoss: 25, moraleHeld: 5, moraleBroken: 5, // morale lost by an attacker that wins / loses; the defender gains 5 in a year he holds and loses 5 if broken through
-  startGap: 50,                    // World map: biggest minus smallest starting state, at most (km²; 0 = off)
   coastalShore: 0.03,              // share of shore land that makes a state coastal (Islands/Oceanic land types)
   // wood & iron (epic-battle: 1.4 wood and 1 iron per worker; doubled here for this game's smaller populations)
   woodPerWorker: 2.8, ironPerWorker: 2, woodPrice: 1.5, ironPrice: 2.5, startWood: 150, startIron: 60, // normal prices
@@ -935,11 +934,7 @@ function newGame(opts){
   }
   // land nobody reached (an island with no sea route) and seedless World pockets start unowned
   for(let i=0;i<cells.length;i++) if(cells[i]===-3) cells[i]=-1;
-  balanceStates(cells,W,H,counts);
-  smoothStates(cells,W,H,counts);
-  unthin(cells,W,H,counts,lk);
-  if(preset==="world"){ bandStates(cells,W,H,counts,lk,R.startGap); unthin(cells,W,H,counts,lk); } // World: starting sizes within startGap km² of each other
-  bandStates(cells,W,H,counts,lk,1,true); unthin(cells,W,H,counts,lk); // even sizes out again without new strips, and clear any left
+  relaxStates(cells,W,H,counts,lk); // equal, compact states (see relaxStates)
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
   // more states than the fixed lists: invent names, spread extra colors by golden-ratio hue
   const used=new Set(names), SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"];
@@ -1202,127 +1197,71 @@ function carveRivers(m,W,H,target,unit,rnd){
   for(const [fx,fy] of fords) for(let dy=-2;dy<=b+1;dy++) for(let dx=-2;dx<=b+1;dx++){
     const X=fx+dx,Y=fy+dy; if(X>=0&&Y>=0&&X<W&&Y<H){ const i=Y*W+X; if(river[i]){ m[i]=0; river[i]=0; } } }
 }
-// Even out state sizes after growth: bigger states hand border cells to smaller neighbors.
-// A cell only moves if the giver stays in one piece (checked in its 3x3 window)
-// and the receiver already surrounds it on 3+ sides of 8, which keeps borders smooth.
-function balanceStates(cells,W,H,counts,tMin,need=3,okMove=null,maxPass=120){
-  const N=W*H;
+// Equal, compact starting states. Each round every state starts again from its middle and all grow at the same speed,
+// one cell per turn, always the free cell nearest its middle, up to an equal share of the land (`cap`). Then the middles
+// move to where each state ended up, so crowded states drift apart, and the next round is more even. Land nobody
+// could reach within its share stays unowned.
+function relaxStates(cells,W,H,counts,lk,rounds=10){
+  const N=W*H, n=counts.length, SH=2097152; if(N>=SH) rounds=Math.min(rounds,4);
+  const nbs=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const L=lk?.get(i); if(L) for(const j of L) f(j); };
   let land=0; for(let i=0;i<N;i++) if(cells[i]>=0) land++;
-  const T=tMin||Math.max(2,Math.round(land/counts.length*0.04)); // ignore differences under ~4% (avoids endless small trades)
+  const cap=Math.floor(land/n), speed=new Float64Array(n).fill(1), acc=new Float64Array(n), cx=new Float64Array(n), cy=new Float64Array(n), mid=new Int32Array(n), heaps=[];
+  const push=(h,v)=>{ let k=h.length; h.push(v); while(k>0){ const p=(k-1)>>1; if(h[p]<=v) break; h[k]=h[p]; k=p; } h[k]=v; };
+  const pop=h=>{ const top=h[0], v=h.pop(); const L=h.length; if(L){ let k=0; for(;;){ let c=2*k+1; if(c>=L) break; if(c+1<L&&h[c+1]<h[c]) c++; if(h[c]>=v) break; h[k]=h[c]; k=c; } h[k]=v; } return top; };
+  let best=null, bestMin=-1, bestCounts=null;
+  for(let r=0;r<rounds;r++){
+    // middles: the own cell nearest the state's centre of mass
+    cx.fill(0); cy.fill(0); const cnt=new Int32Array(n);
+    for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
+    const bd=new Float64Array(n).fill(Infinity);
+    for(let s=0;s<n;s++) if(cnt[s]){ cx[s]/=cnt[s]; cy[s]/=cnt[s]; }
+    for(let i=0;i<N;i++){ const o=cells[i]; if(o<0) continue; const d=(i%W-cx[o])**2+(((i/W)|0)-cy[o])**2; if(d<bd[o]){ bd[o]=d; mid[o]=i; } }
+    for(let i=0;i<N;i++) if(cells[i]>=0) cells[i]=-1;
+    counts.fill(0);
+    const key=(s,i)=>Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2)*SH+i;
+    for(let s=0;s<n;s++){ heaps[s]=[]; if(cnt[s]) heaps[s].push(key(s,mid[s])); }
+    let live=[...Array(n).keys()].filter(s=>cnt[s]);
+    while(live.length){ const next=[];
+      for(const s of live){ const h=heaps[s]; let ok=true;
+        for(acc[s]+=speed[s];acc[s]>=1&&ok&&counts[s]<cap;acc[s]--){ let i=-1;
+          while(h.length){ const c=pop(h)%SH; if(cells[c]===-1){ i=c; break; } }
+          if(i<0){ ok=false; break; } // boxed in
+          cells[i]=s; counts[s]++; nbs(i,j=>{ if(cells[j]===-1) push(h,key(s,j)); }); }
+        if(ok&&counts[s]<cap) next.push(s); }
+      live=next; }
+    // a state that ended short of its share grows faster next round (it claims its land before the neighbors close in)
+    let mn=Infinity; for(let s=0;s<n;s++) if(cnt[s]&&counts[s]<mn) mn=counts[s];
+    if(mn>bestMin){ bestMin=mn; best=cells.slice(); bestCounts=counts.slice(); } // keep the most even round
+    if(mn>=cap*0.98) break;
+    for(let s=0;s<n;s++){ acc[s]=0; if(counts[s]&&counts[s]<cap) speed[s]=Math.min(20,speed[s]*Math.pow(cap/counts[s],2)); } }
+  if(best){ cells.set(best); for(let s=0;s<n;s++) counts[s]=bestCounts[s]; }
+  // finishing: a state short of land takes the cells nearest its middle, free ones first, then from bigger neighbors
+  // (each giver stays in one piece), so a shortfall is shared out thinly among the states around it
   const at=(x,y)=>x<0||y<0||x>=W||y>=H?-9:cells[y*W+x];
-  const isEdge=i=>{ const o=cells[i], x=i%W; return (x>0&&cells[i-1]>=0&&cells[i-1]!==o)||(x<W-1&&cells[i+1]>=0&&cells[i+1]!==o)||(i>=W&&cells[i-W]>=0&&cells[i-W]!==o)||(i+W<N&&cells[i+W]>=0&&cells[i+W]!==o); };
-  // only cells on a border between two states can move; track just those
-  const allEdges=()=>{ const l=[]; for(let i=0;i<N;i++) if(cells[i]>=0&&isEdge(i)) l.push(i); return l; };
-  let list=allEdges(), wasFull=true;
-  const stamp=new Int32Array(N).fill(-1), failP=okMove?new Int32Array(N):null;
-  for(let pass=0;pass<maxPass&&list.length;pass++){
-    let moved=0; const rev=pass&1, next=[];
-    const keep=j=>{ if(stamp[j]!==pass&&cells[j]>=0){ stamp[j]=pass; next.push(j); } };
-    for(let k=0;k<list.length;k++){
-      const i=rev?list[list.length-1-k]:list[k], o=cells[i]; if(o<0) continue;
-      const x=i%W, y=(i/W)|0;
-      const nN=at(x,y-1), nE=at(x+1,y), nS=at(x,y+1), nW=at(x-1,y);
-      // smallest different neighbor
-      let p=-1;
-      if(nN>=0&&nN!==o) p=nN;
-      if(nE>=0&&nE!==o&&(p<0||counts[nE]<counts[p])) p=nE;
-      if(nS>=0&&nS!==o&&(p<0||counts[nS]<counts[p])) p=nS;
-      if(nW>=0&&nW!==o&&(p<0||counts[nW]<counts[p])) p=nW;
-      if(p<0||counts[o]-counts[p]<T) continue;
-      keep(i); // could move later
-      const nNE=at(x+1,y-1), nSE=at(x+1,y+1), nSW=at(x-1,y+1), nNW=at(x-1,y-1);
-      const pc=(nN===p)+(nNE===p)+(nE===p)+(nSE===p)+(nS===p)+(nSW===p)+(nW===p)+(nNW===p);
-      if(pc<need) continue;
-      // giver stays connected: its 4-neighbors must form one group inside the 3x3 window
-      const aN=nN===o, aE=nE===o, aS=nS===o, aW=nW===o, a4=aN+aE+aS+aW; if(a4===0) continue;
-      const links=(aN&&aE&&nNE===o)+(aE&&aS&&nSE===o)+(aS&&aW&&nSW===o)+(aW&&aN&&nNW===o);
-      if(a4-links!==1 && !(a4===4&&links===4)) continue;
-      if(okMove){ if(failP&&failP[i]===p+1) continue; if(!okMove(i,o,p)){ failP[i]=p+1; continue; } } // a failed check is remembered until something nearby moves
-      cells[i]=p; counts[o]--; counts[p]++; moved++;
-      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const X=x+dx,Y=y+dy; if(X>=0&&Y>=0&&X<W&&Y<H) keep(Y*W+X); }
-      if(failP) for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){ const X=x+dx,Y=y+dy; if(X>=0&&Y>=0&&X<W&&Y<H) failP[Y*W+X]=0; }
-    }
-    // a full scan with no moves means we're done; otherwise rescan all borders
-    // every 15 passes or when the short list dries up (sizes elsewhere may have changed)
-    if(!moved && wasFull) break;
-    const full=!moved||pass%15===14;
-    list=full?allEdges():next; wasFull=full;
-  }
-}
-// World map: every state starts within `gap` km² of the others (a band around the median size).
-// Too big: its farthest cells go to a smaller neighbor or become unowned (farthest first never splits it).
-// Too small: it claims unowned land next to it, then cells its neighbors can spare. Still too small (squeezed onto
-// too little land): its land is freed for its neighbors and it starts again in the biggest unowned pocket.
-function bandStates(cells,W,H,counts,lk,gap,safe=false){
-  if(!(gap>0)) return;
-  const N=W*H, n=counts.length, dist=new Int32Array(N), q=new Int32Array(N);
-  const nbs=i=>{ const x=i%W,o=[]; if(x>0)o.push(i-1); if(x<W-1)o.push(i+1); if(i>=W)o.push(i-W); if(i+W<N)o.push(i+W); const L=lk.get(i); if(L) o.push(...L); return o; };
-  const at=(x,y)=>x<0||y<0||x>=W||y>=H?-9:cells[y*W+x];
-  const keepsWhole=(o,i)=>{ if(lk.get(i)?.some(j=>cells[j]===o)) return false;const x=i%W,y=(i/W)|0; // 3x3 test: o stays in one piece without cell i
+  const whole=(o,i)=>{ if(lk?.get(i)?.some(j=>cells[j]===o)) return false; const x=i%W,y=(i/W)|0;
     const aN=at(x,y-1)===o,aE=at(x+1,y)===o,aS=at(x,y+1)===o,aW=at(x-1,y)===o,a4=aN+aE+aS+aW; if(!a4) return false;
     const l=(aN&&aE&&at(x+1,y-1)===o)+(aE&&aS&&at(x+1,y+1)===o)+(aS&&aW&&at(x-1,y+1)===o)+(aW&&aN&&at(x-1,y-1)===o);
     return a4-l===1||(a4===4&&l===4); };
-  // solid: cell (x,y) lies in some 3×3 block owned wholly by o. A move keeps the map strip-free if the cell is solid for
-  // the receiver afterwards and every giver cell around it that was solid stays solid
-  const solid=(x,y,o)=>{ for(let cy=y-1;cy<=y+1;cy++) for(let cx=x-1;cx<=x+1;cx++){ let ok=true; for(let dy=-1;dy<=1&&ok;dy++) for(let dx=-1;dx<=1;dx++) if(at(cx+dx,cy+dy)!==o){ ok=false; break; } if(ok) return true; } return false; };
-  const noStrip=(i,o,p)=>{ const x=i%W,y=(i/W)|0;
-    if(sur(i,p)<4){ cells[i]=p; const ok=solid(x,y,p); cells[i]=o; if(!ok) return false; } // receiver: the cell must sit in its solid land
-    const was=[]; for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){ const X=x+dx,Y=y+dy; if((dx||dy)&&at(X,Y)===o&&solid(X,Y,o)) was.push(X,Y); }
-    cells[i]=p; let ok=true; for(let k=0;k<was.length&&ok;k+=2) if(!solid(was[k],was[k+1],o)) ok=false; cells[i]=o; return ok; }; // giver: its solid land stays solid
-  const sur=(i,p)=>{ const x=i%W,y=(i/W)|0; let k=0; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if((dx||dy)&&at(x+dx,y+dy)===p) k++; return k; }; // how much of cell i p already surrounds
-  const byState=()=>{ const by=Array.from({length:n},()=>[]); for(let i=0;i<N;i++) if(cells[i]>=0) by[cells[i]].push(i); return by; };
-  // cells of a set, farthest from its middle first (middle = the cell deepest inside it)
-  const outerFirst=(list,own)=>{ let h=0,t=0; for(const i of list){ dist[i]=-1; if(nbs(i).some(j=>!own(j))){ dist[i]=0; q[t++]=i; } }
-    let root=list[0]; while(h<t){ const i=q[h++]; root=i; for(const j of nbs(i)) if(own(j)&&dist[j]<0){ dist[j]=dist[i]+1; q[t++]=j; } }
-    for(const i of list) dist[i]=-1; h=0; t=0; dist[root]=0; q[t++]=root;
-    while(h<t){ const i=q[h++]; for(const j of nbs(i)) if(own(j)&&dist[j]<0){ dist[j]=dist[i]+1; q[t++]=j; } }
-    return list.slice().sort((a,b)=>(dist[b]<0?1e9:dist[b])-(dist[a]<0?1e9:dist[a])); };
-  // grow s over unowned land, nearest first, up to `to` cells
-  const claim=(s,from,to)=>{ let h=0,t=0; const got=[]; for(const i of from) q[t++]=i;
-    while(h<t&&counts[s]<to){ const i=q[h++]; for(const j of nbs(i)) if(cells[j]===-1&&counts[s]<to){ cells[j]=s; counts[s]++; q[t++]=j; got.push(j); } }
-    return got; };
-  if(safe){ balanceStates(cells,W,H,counts,1,3,noStrip,40); return; } // after unthin: even sizes again without making new strips
-  for(let it=0;it<25;it++){
-    const med=counts.slice().sort((a,b)=>a-b)[n>>1], lo=Math.round(med-gap/2), hi=lo+gap, mid=Math.round(med);
-    if(Math.min(...counts)>=lo&&Math.max(...counts)<=hi) break;
-    let by=byState();
-    for(let s=0;s<n;s++) if(counts[s]>hi){ const ord=outerFirst(by[s],j=>cells[j]===s), m=ord.at(-1), mx=m%W, my=(m/W)|0;
-      const give=i=>{ let p=-1,ps=-1; for(const j of nbs(i)){ const o=cells[j]; if(o<0||o===s||counts[o]>=hi) continue; const so=sur(i,o); if(so>ps||(so===ps&&counts[o]<counts[p])){ p=o; ps=so; } }
-        cells[i]=p; counts[s]--; if(p>=0) counts[p]++; };
-      // round: farthest in a straight line from the middle first, while it stays in one piece
-      const far=by[s].slice().sort((a,b)=>((b%W-mx)**2+(((b/W)|0)-my)**2)-((a%W-mx)**2+(((a/W)|0)-my)**2));
-      for(let grew=true;grew&&counts[s]>hi;){ grew=false;
-        for(const i of far){ if(counts[s]<=hi) break; if(cells[i]===s&&i!==m&&nbs(i).some(j=>cells[j]!==s)&&keepsWhole(s,i)){ give(i); grew=true; } } }
-      for(const i of ord){ if(counts[s]<=hi) break; if(cells[i]===s) give(i); } } // fallback: by walking distance (never splits it)
-    by=byState();
-    // unowned land goes to the smallest states next to it first, then land flows from bigger to smaller neighbors (also through chains)
-    for(const s of [...counts.keys()].sort((a,b)=>counts[a]-counts[b])) if(counts[s]<mid) claim(s,by[s],mid);
-    balanceStates(cells,W,H,counts,1);
-    by=byState();
-    for(let s=0;s<n;s++) if(counts[s]<lo){ let mine=by[s];
-      for(let pass=0;pass<60&&counts[s]<lo;pass++){ const got=[]; // then take cells its neighbors can spare (across sea routes too)
-        for(const k of mine){ if(cells[k]!==s) continue;
-          for(const i of nbs(k)){ if(counts[s]>=lo) break; const o=cells[i];
-            if(o<0||o===s||counts[o]<=lo||(pass<40&&sur(i,s)<3)||!keepsWhole(o,i)) continue; cells[i]=s; counts[o]--; counts[s]++; got.push(i); } }
-        if(!got.length) break; mine=mine.concat(got); } }
-    // still too small: move to the biggest unowned pocket, if it's bigger than what it has
-    const stuck=[...counts.keys()].filter(s=>counts[s]<lo).sort((a,b)=>counts[a]-counts[b]);
-    if(stuck.length){ const seen=new Uint8Array(N), pockets=[]; by=byState();
-      for(let i=0;i<N;i++){ if(cells[i]!==-1||seen[i]) continue; const comp=[i]; seen[i]=1;
-        for(let k=0;k<comp.length;k++) for(const j of nbs(comp[k])) if(cells[j]===-1&&!seen[j]){ seen[j]=1; comp.push(j); }
-        pockets.push(comp); }
-      pockets.sort((a,b)=>b.length-a.length);
-      for(const s of stuck){ const p=pockets[0]; if(!p||p.length<=counts[s]) break; pockets.shift();
-        for(const i of by[s]) if(cells[i]===s) cells[i]=-1;
-        const start=outerFirst(p,j=>cells[j]===-1).at(-1), sx=start%W, sy=(start/W)|0; cells[start]=s; counts[s]=1;
-        // grow round from the middle: nearest cells first, each touching land it already holds
-        const ord=p.slice().sort((a,b)=>((a%W-sx)**2+(((a/W)|0)-sy)**2)-((b%W-sx)**2+(((b/W)|0)-sy)**2));
-        for(let grew=true;grew&&counts[s]<mid;){ grew=false;
-          for(const i of ord){ if(counts[s]>=mid) break; if(cells[i]===-1&&nbs(i).some(j=>cells[j]===s)){ cells[i]=s; counts[s]++; grew=true; } } } } }
-  }
+  const seen=new Int32Array(N); let tick=0;
+  const finish=()=>{ cx.fill(0); cy.fill(0); const cnt=new Int32Array(n);
+    for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
+    for(let s=0;s<n;s++) if(cnt[s]){ cx[s]/=cnt[s]; cy[s]/=cnt[s]; }
+    const key=(s,i)=>Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2)*SH+i;
+    for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const by=new Map();
+      for(let s=0;s<n;s++) if(counts[s]){ if(counts[s]<mn) mn=counts[s]; if(counts[s]>mx) mx=counts[s]; }
+      if(mn>=cap*0.985&&mx<=cap*1.015) break; // everyone within 1.5% of the share
+      const over=mx>cap*1.015; // someone holds too much (after the arm cleanup): then every state may pull from a bigger neighbor
+      for(let s=0;s<n;s++) if(counts[s]&&(over||counts[s]<cap)) by.set(s,[]);
+      for(let i=0;i<N;i++){ const l=by.get(cells[i]); if(l) l.push(i); }
+      for(const s of [...by.keys()].sort((a,b)=>counts[a]-counts[b])){
+        const h=[]; tick++; const add=j=>{ if(cells[j]!==s&&cells[j]>=-1&&seen[j]!==tick){ seen[j]=tick; push(h,key(s,j)); } };
+        for(const i of by.get(s)) if(cells[i]===s) nbs(i,add);
+        while(h.length){ const j=pop(h)%SH, o=cells[j]; if(o===s) continue;
+          if(o<0?counts[s]>=cap:(counts[o]-counts[s]<2||(counts[s]>=cap&&counts[o]<=cap)||!whole(o,j))) continue;
+          cells[j]=s; counts[s]++; if(o>=0) counts[o]--; moved++; nbs(j,add); } }
+      if(moved<Math.max(1,n/50)) break; } }; // little left to gain
+  finish(); unthin(cells,W,H,counts,lk); finish(); // no narrow arms (peninsulas shared lengthwise), then sizes evened again
 }
-// Remove 1-cell bumps and notches: a cell joins the neighbor state that holds 5+ of its
-// 8 surrounding cells, if its own state stays in one piece (same 3x3 test as above).
 // No narrow arms: land squeezed between other states (not part of any solid K×K block of its own state, and touching
 // another state) goes to the neighbor state around it most; pieces cut off from a state then go to the neighbor sharing
 // the longest border. Thin land that only touches sea (peninsulas, coasts) stays.
@@ -1346,25 +1285,6 @@ function unthin(cells,W,H,counts,lk,K=4){
   comps.forEach((c,ci)=>{ const o=cells[c[0]]; if(best.get(o)===ci) return; const b=new Map();
     for(const i of c) for(const j of nbs(i)){ const v=cells[j]; if(v>=0&&v!==o) b.set(v,(b.get(v)||0)+1); }
     if(!b.size) return; const p=[...b].sort((a,b)=>b[1]-a[1])[0][0]; for(const i of c){ cells[i]=p; counts[o]--; counts[p]++; } });
-}
-function smoothStates(cells,W,H,counts){
-  for(let pass=0;pass<3;pass++){
-    let moved=0;
-    for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++){
-      const i=y*W+x, o=cells[i]; if(o<0) continue;
-      const nN=cells[i-W], nE=cells[i+1], nS=cells[i+W], nW=cells[i-1], nNE=cells[i-W+1], nSE=cells[i+W+1], nSW=cells[i+W-1], nNW=cells[i-W-1];
-      let p=-1; for(const q of [nN,nE,nS,nW]) if(q>=0&&q!==o){ p=q; break; }
-      if(p<0) continue;
-      const pc=(nN===p)+(nNE===p)+(nE===p)+(nSE===p)+(nS===p)+(nSW===p)+(nW===p)+(nNW===p);
-      if(pc<5||counts[o]<=1) continue;
-      const aN=nN===o, aE=nE===o, aS=nS===o, aW=nW===o, a4=aN+aE+aS+aW;
-      if(a4>0){ const links=(aN&&aE&&nNE===o)+(aE&&aS&&nSE===o)+(aS&&aW&&nSW===o)+(aW&&aN&&nNW===o);
-        if(a4-links!==1 && !(a4===4&&links===4)) continue; }
-      else continue; // a lone cell can't happen for a connected state bigger than 1
-      cells[i]=p; counts[o]--; counts[p]++; moved++;
-    }
-    if(!moved) break;
-  }
 }
 // turn land that's cut off from the largest landmass into water
 function keepMainland(m,W,H){
@@ -3769,7 +3689,7 @@ const SETTINGS_META=[
   ["Wars",[["aiAidShare","Allied aid: share of its surplus a computer ally gives a year","%"],["aidTrust","Allied aid: trust gained per 1,000 gold of value"],["aidTrustMax","Allied aid: most trust gained from one gift"],["awarHostile","Alliance war starts when an alliance's relation reaches"],["arStep","Alliance relation: moves toward members' feelings per year","%"],["arWar","Alliance relation: per year of a state war between members"],["arBattle","Alliance relation: per battle between members"],["arBattleBig","Alliance relation: per battle taking over 10% of the land"],["warHostile","War starts when either side's feelings reach"],["warMin","War length: shortest (years)"],["warMax","War length: longest (years)"],["warRest","Years without new wars after peace"],["warDeclare","Computer declares war above this score"],["warDeclareHit","Victim's grievance when war is declared on it"]]],
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
-  ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["startGap","World map: biggest minus smallest starting state, at most (km², new games; 0 = off)"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
+  ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
   ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiArmyPeace","Army in peace (share of people)","%"],["aiArmyPeaceMil","Army in peace, warlike (share of people)","%"],["aiArmyWar","Army at war (share of people)","%"],["aiArmyWarMil","Army at war, warlike (share of people)","%"],["aiFootStep","War footing: change per year toward war or peace","%"],["aiKeepPeace","Peasants kept in peace (share of people)","%"],["aiKeepWar","Peasants kept at war (share of people)","%"],["aiDensPeace","Density research share in peace"],["aiDensWar","Density research share at war"],["aiGrowPeace","Growth research share in peace"],["aiGrowWar","Growth research share at war"],["aiInteriorArmy","Only allied neighbors: army (share of people)","%"],["aiInteriorCut","Only allied neighbors: surplus soldiers sent home per year","%"],["aiPeaceCut","At peace: surplus soldiers sent home per year","%"],["aiAtkRoom","Not at war: below this fullness, attacks only out of grudge, fear or for a wonder","%"],["aiAtkFull","Not at war: from this fullness, attacks as usual","%"],["aiAtkRoomEdge","Not at war: extra edge needed at the low end","%"],["aiPeaceThreat","Threat from a neighbor it isn't at war with (× its army)"],["aiDefCapPeace","Defense top-up: at most this share of people armed in peace","%"],["aiDefCapWar","Defense top-up: at most this share of people armed at war","%"],["aiMixTilt","Main army: weight of the stat the army lacks (attack + defense valued together)"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
 ];
@@ -3914,6 +3834,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Equal starting land","2026-11-12 00:10",["Every state now starts with almost the same land: within about 1% on most maps, within 5% on the biggest world maps","States start compact and rounded, with no narrow arms","Land left over after everyone has an equal share starts unowned","Big world maps take a few seconds longer to create"]],
 ["Cleaner map borders","2026-11-11 22:30",["No more narrow arms or strips of one state squeezing between others, on every map","Starting sizes on random maps are more even","On big world maps most states start within 5% of each other; a few start smaller"]],
 ["Rules & guide","2026-11-11 20:40",["? buttons next to headings in every tab, the map views, battle reports and the alliance window open the matching guide topic","New topic: How it all fits together (what feeds what, what snowballs and what brakes it)","Rules & tips is now a full guide in a big window","Menu on the left with every system, tab and mode","Search at the top left highlights matches","Tables for troops, research areas, civilizations, leaders, land types and wonders follow your Settings"]],
 ["Aid over allied land only","2026-11-11 19:45",["Aid reaches an ally only over allied land: bordering you, or through a chain of allies (sea links count)","Computer allies follow the same rule","Send aid lists only allies you can reach"]],
@@ -4243,6 +4164,7 @@ ${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders,
 <li><b>World:</b> a random map or a pre-made one (like the World map), and the number of states.</li>
 <li><b>More options:</b> territory size per state, water (lakes, rivers or both: chokepoints), and the rules below.</li></ul>
 ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="function"?f():f]))}
+<p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one compact piece. Land left over once everyone has an equal share starts unowned, and neighbors settle it.</p>
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
