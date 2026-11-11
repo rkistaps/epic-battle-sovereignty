@@ -224,6 +224,19 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Writes**: AI target choice (enemies only while at war), relations (declaration hit, reset at peace), news.
 - Notes: in 60-state games, about 100–120 wars per 150 years; most start from hostility, 3–16 are declared; states are at war ~30% of the time; ~2/3 of battles happen inside wars; 30–50% of wars start mostly from fear (the planned replacement of the coalition mechanic).
 
+### 3.14c War footing (computer states)
+- **Intent**: in peace a state fills its land (small army, density research); at war it spends people and refills them (bigger army, growth research) *(your direction)*.
+- `c.footing` 0..1 moves `aiFootStep` 40% a year toward 1 (in any war) or 0.
+- Army target share: `aiArmyPeace` 6% (warlike `aiArmyPeaceMil` 12%) → `aiArmyWar` 25% (35%) by footing, plus the late-game bonus (up to +10%), grudge and coalition extras; still at least the strong-neighbor minimum (half the strongest neighbor's attack, up to 20% of people). Defense top-ups arm at most `aiDefCapPeace` 30% → `aiDefCapWar` 40% of people.
+- At peace (footing < 0.2) a state sends `aiPeaceCut` 10% of its soldiers above 1.25× its target home each year.
+- Peasant reserve `aiKeepPeace` 80% → `aiKeepWar` 65% of people.
+- Spare gold buys soldiers only in proportion to footing; in peace it stays (the gold-hoard rule moves hands to research).
+- Research: density `aiDensPeace` 14 → `aiDensWar` 4, growth `aiGrowPeace` 6 → `aiGrowWar` 18; the difference comes from science.
+- **Interior states** (only allied neighbors, sea routes count): a token army of `aiInteriorArmy` 2%, sending `aiInteriorCut` 20% of the surplus home a year; scientist cap +15%; research sci 35, density 30, agri 10, fin 10, growth 5, wood 5, iron 5; no spare gold into soldiers. Back to normal as soon as a non-allied neighbor appears.
+- **Reads**: wars, neighbors and their armies (threat), relations, population and capacity, gold.
+- **Writes**: army size, peasants (births, work), research allocation, scientists.
+- Notes: armies react to neighbors' armies (an arms race): peaceful states still sit around 20–30% army by mid-game next to armed neighbors. Discounting peaceful neighbors' threat (`aiPeaceThreat` < 1) lowered peace armies but left states under-defended and conquest got much faster, so it stays 1. Effect in simulation: early conquest slower (60 states: ~50 left at year 30 instead of ~40; 1000 states: 854 left at year 30 instead of 686), states fuller (≈99% at year 60), endgame unchanged.
+
 ### 3.15 Alliances
 - **Intent**: Team scenarios with clear, fixed sides. *(inferred)*
 - Fixed teams chosen at setup (by count or size, regional or scattered). Allies never attack each other and win together. Solidarity links allies' feelings. No forming or breaking during play.
@@ -403,7 +416,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 - **End:** each war lasts a random **8–15 years**, or until one side is eliminated. At the end: grievance, solidarity and wariness between the two reset to 0 (fear stays, it reflects size); 5 rest years; news "Peace between X and Y".
 - **The player:** no declaring war or offering peace. The player takes part through normal play: their attacks can start a war through the victim's hostility, and computer states can declare on them.
 
-### 12.2 War footing (computer states)
+### 12.2 War footing (computer states) — **built** (see 3.14c); kept here for the record
 - Level **0 = peace, 1 = in any war** (state or alliance); moves 40% a year toward that (2–3 years to mobilise or stand down). Values below blend with the level.
 
 | | Peace (0) | War (1) |
@@ -467,7 +480,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 
 ### 12.8 Build order
 1. ~~State wars~~ — built.
-2. War footing: army share, peasant reserve, spare gold and research by level, and interior states. Simulate and tune against section 6.
+2. ~~War footing and interior states~~ — built.
 3. Showing wars: War tab, tooltip, map view, news.
 4. Remove the coalition mechanic (fear wars replace it). Simulate.
 5. Trade embargo between states at war.

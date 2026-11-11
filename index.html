@@ -483,7 +483,10 @@ const R = {
   aiPriceK: 0.5, aiPriceStep: 0.03, aiPriceMin: 0.75, aiPriceMax: 1.3, aiBuyPlan: 0.85, aiSellFrac: 0.5, aiNeedK: 0.6, aiMargin: 0.08, // AI and the market: farm less when grain is cheap (to 75%), more when dear (to 130%), moving 3 points a year; plan purchases for an 85% harvest; sell 30% of the surplus a year
   aiResLean: 3,                                   // AI wood/iron workers lean toward its better resource: (iron yield ÷ wood yield)^3 (0 = fixed split)
   aiPersonValue: 60, aiTroopYears: 5, aiTroopLoss: 0.1, // AI troop choice: a person's worth in money (higher when births are slow or peasants short), years of upkeep counted, share lost per year at toughness 1
-  aiKeepPop: 0.72, aiKeepCap: 0.35, aiRebuild: 0.3, // AI peasant reserve (scientists count as peasants): 72% of pop / 35% of capacity (see aiPeasantFloor); rebuilds 30% of a shortfall per year
+  aiKeepPeace: 0.8, aiKeepWar: 0.65, aiKeepCap: 0.35, aiRebuild: 0.3, // AI peasant reserve (scientists count as peasants): 80% of pop in peace, 65% at war / 35% of capacity (see aiPeasantFloor); rebuilds 30% of a shortfall per year
+  aiArmyPeace: 0.06, aiArmyPeaceMil: 0.12, aiArmyWar: 0.25, aiArmyWarMil: 0.35, aiFootStep: 0.4, // AI army as a share of people: in peace 6% (warlike 12%), at war 25% (35%); war footing moves 40% a year toward 1 (any war) or 0
+  aiDensPeace: 14, aiDensWar: 4, aiGrowPeace: 6, aiGrowWar: 18,   // AI research shares: density in peace (fill the land), growth at war (refill losses); the difference comes from science
+  aiInteriorArmy: 0.02, aiInteriorCut: 0.2, aiPeaceCut: 0.1, aiPeaceThreat: 1, aiDefCapPeace: 0.3, aiDefCapWar: 0.4,        // AI with only allied neighbors: a 2% token army, dismissing 20% of the surplus a year; research and science pushed; at peace any state sends 10% of its surplus soldiers (over 1.25× its target) home a year; a neighbor it isn't at war with counts in full (lower = less arms race, but weaker defenses); defense top-ups arm at most 30% of people in peace, 40% at war
   // how strongly each civilization/leader bonus applies here (tuned so no type dominates)
   // defense and population compound strongly in this game, so their bonuses apply at 40% (simulated so no type dominates)
   traitWeight: {attack:1, defense:0.4, food:1, wood:1, iron:1, science:1, growth:0.4, housing:0.4, explore:1, foodBirths:0},
@@ -1597,7 +1600,7 @@ const inPeace=g=>g.turn<=(g.peace||0);
 // stops feeding its army until it regrows. Scientists don't die, so they use the lenient one.
 function aiPeasantFloor(c,strict){
   // capacity without the housing bonus: more housing should mean room to grow, not a bigger forced reserve
-  const a=R.aiKeepPop*popOf(c), b=R.aiKeepCap*popCap(c)/M(c,"capacity");
+  const f=c.footing??0, a=(R.aiKeepPeace+(R.aiKeepWar-R.aiKeepPeace)*f)*popOf(c), b=R.aiKeepCap*popCap(c)/M(c,"capacity"); // war footing loosens the reserve
   return Math.max(50,Math.round(strict?Math.max(a,b):Math.min(a,b))); }
 // AI troop choice: strength per cost, with wood and iron at their market value (what the state has in stock doesn't matter).
 // Cost per soldier = training + years of upkeep + the person, plus replacing expected losses (fewer for tough troops),
@@ -1666,10 +1669,13 @@ function aiTurn(g,c){
   const d=g.difficulty, t=g.turn, adj=neighbors(g,c.id);
   const eff = [0.8,1,1.15][d];
   c.attacks=[];
+  // war footing: 0 in peace, 1 in any war, moving a share of the way each year (mobilising and standing down take a few years)
+  c.footing=(c.footing??0)+((warsOf(g,c.id).length?1:0)-(c.footing??0))*R.aiFootStep;
+  const interior=!adj.length; // only allies around: no one to fight, no land to take
   const milStart = (c.persona==="mil"? 14: 30) - d*3 + (c.id%5);
   // panic: big recent losses or overwhelming threat
   // their attack against us (research edge capped), weighted by how they feel about us: friends are less of a threat
-  const threat = Math.max(0,...adj.map(j=>{ const o=g.countries[j]; return troopSum(troopsOf(o),"atk")*clashPowers(o,c)[0]*(1-R.relGuard*relOf(g,o,c.id)/100); }));
+  const threat = Math.max(0,...adj.map(j=>{ const o=g.countries[j]; return troopSum(troopsOf(o),"atk")*clashPowers(o,c)[0]*(1-R.relGuard*relOf(g,o,c.id)/100)*(atWar(g,c.id,j)?1:R.aiPeaceThreat); })); // a neighbor we're not at war with counts less
   const myPow = armyAtk(c);
   const lost3 = c.lostRecent.reduce((a,b)=>a+b,0);
   const panic=(lost3>c.land*0.3 || threat>myPow*3+400) && t>milStart-6 && R01(g)<0.7; // halves research to free hands
@@ -1692,7 +1698,7 @@ function aiTurn(g,c){
     const dv=Math.min((c.fdev||0)+R.aiPriceStep,Math.max((c.fdev||0)-R.aiPriceStep,Math.min(0.9,Math.max(0.1,need*pf/perFarmer/P))-f0)); c.fdev=dv;
     const farmShare=Math.min(0.9,Math.max(0.1,f0+dv));
     const netNoSci=projectedNet(g,c)+workers(c).sci*R.sciWage, payable=Math.max(0,netNoSci*0.9+Math.max(0,c.money-1000)*0.15)/R.sciWage;
-    let sciShare=Math.min(t<milStart?0.25:t<60?0.22:0.18, R.aiSciMax, payable/P, 0.9-farmShare); if(panic) sciShare*=0.5;
+    let sciShare=Math.min((t<milStart?0.25:t<60?0.22:0.18)+(interior?R.aiGlutSci:0), R.aiSciMax+(interior?R.aiGlutSci:0), payable/P, 0.9-farmShare); if(panic) sciShare*=0.5;
     sciShare=Math.max(0,sciShare);
     // wood vs iron: lean toward whichever this state produces better (bonuses and research, vs the base yields)
     const yW=M(c,"wood")*(1+R.woodPerLevel*lvl(c,"wood"))*wonderMul(c,"wood"), yI=M(c,"iron")*(1+R.ironPerLevel*lvl(c,"iron"))*wonderMul(c,"iron");
@@ -1716,7 +1722,8 @@ function aiTurn(g,c){
   }
   // army target
   const pop=popOf(c);
-  let ratio = early ? (c.persona==="mil"?0.06:0.02) : (c.persona==="mil"?0.3:0.16)+Math.min(0.1,t/600);
+  const mil0=c.persona==="mil", foot=c.footing??0;
+  let ratio = early ? (mil0?0.06:0.02) : (mil0?R.aiArmyPeaceMil:R.aiArmyPeace)+((mil0?R.aiArmyWarMil:R.aiArmyWar)-(mil0?R.aiArmyPeaceMil:R.aiArmyPeace))*foot+Math.min(0.1,t/600); // peace → war by footing, plus a late-game bonus
   // feelings toward each neighbor, 0..1: grudge (grievance and solidarity: wants revenge), fear (they're much bigger)
   const feel=adj.map(j=>{ const f=rfOf(g,c,j)||{}; return {j,gN:Math.min(1,-(f.g||0)/100),sN:Math.min(1,-(f.s||0)/R.rsMax),tN:Math.max(0,(f.t||0)/R.rtMax),fN:Math.min(1,Math.max(0,-(f.f||0)/R.rfMax)),eN:Math.max(0,(f.e||0)/R.reMax),f}; });
   for(const q of feel) q.wN=Math.min(1,Math.max(0,-(q.f.w||0)/R.rwMax)); // wariness 0..1
@@ -1726,20 +1733,23 @@ function aiTurn(g,c){
   if(nextToLeader&&!early) ratio+=R.coalArm*ck; // coalition members keep a bigger army
   let wantSol=Math.round(Math.max(pop*ratio, Math.min(threat*0.5/defPower(c), pop*0.2)));
   if(t<5) wantSol=Math.min(wantSol,20);
+  if(interior){ wantSol=Math.round(pop*R.aiInteriorArmy); if(c.soldiers>wantSol) act.fireSol(g,c,Math.ceil((c.soldiers-wantSol)*R.aiInteriorCut)); } // a token guard; the rest go home
+  else if(!early&&!panic&&foot<0.2&&c.soldiers>wantSol*1.25) act.fireSol(g,c,Math.ceil((c.soldiers-wantSol*1.25)*R.aiPeaceCut)); // at peace: stand down slowly (still enough for a strong neighbor)
   const buffer = wages(c)*2+50;
   if(c.soldiers<wantSol){ aiHireSol(g,c,wantSol-c.soldiers); }
   // defense: never sit nearly unarmed next to a strong neighbor (may dip into the peasant reserve, down to the lenient level)
   if(t>=4 && threat>0){
     // defense strength wanted, compared with the army's actual defense
     const defWant=threat*R.aiDefense*(leaderOf(c)?.guard??1)*(1+0.5*fearMax), have=armyDef(c); // fear: guard harder
-    if(have<defWant && c.soldiers<popOf(c)*0.4){
+    const defCap=R.aiDefCapPeace+(R.aiDefCapWar-R.aiDefCapPeace)*foot; // most of its people it will arm for defense: less in peace
+    if(have<defWant && c.soldiers<popOf(c)*defCap){
       const best=TROOPS.filter(t=>troopUnlocked(c,t.id)).sort((a,b)=>b.def-a.def)[0];
-      const short=Math.min(Math.ceil(popOf(c)*0.4-c.soldiers), Math.ceil((defWant-have)/(defPower(c)*best.def))), room=c.peasants-aiPeasantFloor(c,false);
+      const short=Math.min(Math.ceil(popOf(c)*defCap-c.soldiers), Math.ceil((defWant-have)/(defPower(c)*best.def))), room=c.peasants-aiPeasantFloor(c,false);
       aiRecruit(g,c,short,"def",false);
     }
   }
   // dump excess money into army once the war phase starts
-  if(!early && c.money>wages(c)*6+3000){ aiHireSol(g,c,Math.floor((c.money-wages(c)*6-3000)/60)); }
+  if(!early && !interior && c.money>wages(c)*6+3000){ const n=Math.floor((c.money-wages(c)*6-3000)/60*foot); if(n>0) aiHireSol(g,c,n); } // at war spare gold buys soldiers; in peace it stays for research (gold piling up moves hands to research)
   // rich and short on people? retrain cheap spearmen into better troops
   aiUpgrade(g,c);
   // research allocation
@@ -1747,7 +1757,10 @@ function aiTurn(g,c){
   if(t<milStart) c.alloc={...zeroAreas(),sci:30,agri:20,fin:15,dens:10,grow:5,wood:10,iron:10};
   else if(t<60) c.alloc={...zeroAreas(),sci:16,agri:12,fin:8,dens:8,grow:12,atk:mil?16:10,def:guard?16:12,wood:6,iron:8,explore:4};
   else c.alloc={...zeroAreas(),sci:10,agri:10,fin:6,dens:8,grow:14,atk:mil?22:16,def:guard?20:15,wood:5,iron:8,explore:4};
-  if(popOf(c)>popCap(c)*0.9){ c.alloc.dens+=10; c.alloc.sci-=10; }
+  { const dD=R.aiDensPeace+(R.aiDensWar-R.aiDensPeace)*foot-c.alloc.dens, dG=R.aiGrowPeace+(R.aiGrowWar-R.aiGrowPeace)*foot-c.alloc.grow; // peace: fill the land; war: refill losses
+    c.alloc.dens+=dD; c.alloc.grow+=dG; c.alloc.sci=Math.max(0,c.alloc.sci-dD-dG); }
+  if(interior) c.alloc={...zeroAreas(),sci:35,dens:30,agri:10,fin:10,grow:5,wood:5,iron:5}; // nothing to fight: grow the only way left (density), and research
+  if(popOf(c)>popCap(c)*0.9){ c.alloc.dens+=10; c.alloc.sci=Math.max(0,c.alloc.sci-10); }
   // attacks
   // stalemate breaker: the longer without a fight (or the fewer states left), the bolder
   const idleYrs=t-Math.max(c.lastWar||0,g.peace||0), aliveN=g.countries.filter(x=>x.alive).length;
@@ -3615,7 +3628,7 @@ const SETTINGS_META=[
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
   ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["startGap","World map: biggest minus smallest starting state, at most (km², new games; 0 = off)"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
-  ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiMixTilt","Main army: weight of the stat the army lacks (attack + defense valued together)"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepPop","Peasant reserve: share of population","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
+  ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiArmyPeace","Army in peace (share of people)","%"],["aiArmyPeaceMil","Army in peace, warlike (share of people)","%"],["aiArmyWar","Army at war (share of people)","%"],["aiArmyWarMil","Army at war, warlike (share of people)","%"],["aiFootStep","War footing: change per year toward war or peace","%"],["aiKeepPeace","Peasants kept in peace (share of people)","%"],["aiKeepWar","Peasants kept at war (share of people)","%"],["aiDensPeace","Density research share in peace"],["aiDensWar","Density research share at war"],["aiGrowPeace","Growth research share in peace"],["aiGrowWar","Growth research share at war"],["aiInteriorArmy","Only allied neighbors: army (share of people)","%"],["aiInteriorCut","Only allied neighbors: surplus soldiers sent home per year","%"],["aiPeaceCut","At peace: surplus soldiers sent home per year","%"],["aiPeaceThreat","Threat from a neighbor it isn't at war with (× its army)"],["aiDefCapPeace","Defense top-up: at most this share of people armed in peace","%"],["aiDefCapWar","Defense top-up: at most this share of people armed at war","%"],["aiMixTilt","Main army: weight of the stat the army lacks (attack + defense valued together)"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
   ["Coalition (balance of power)",[["coalition","Coalitions on","bool"],["coalitionShare","A leader is a runaway above this × an average share"],["coalitionMin","…but at least this share of all land","%"],["coalitionMax","…and at most this share of all land","%"],["coalJoint","Joint-attack optimism per extra member"],["coalJointMax","Joint-attack optimism cap (×)"],["coalMargin","Lower attack margin against the leader","%"],["coalArm","Extra army share for members","%"]]],
 ];
 const TABLE_META={
@@ -3778,6 +3791,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["War footing","2026-11-11 02:30",["Computer states keep smaller armies in peace, send surplus soldiers home and research density to fill their land","At war they mobilise over a few years: bigger armies, more people armed, growth research to refill losses","States with only allies around keep a token army and put their people into research","New computer player settings for peace and war"]],
 ["Wars","2026-11-11 01:40",["States go to war when relations fall to −50 (fear of a giant counts), or when a computer state declares war","Wars last 8–15 years, then old grudges are forgotten and 5 years of rest follow","Computer states at war attack only their enemies and declare one war at a time","Year report tells you when a war starts or ends","New Wars settings"]],
 ["Steadier growth","2026-11-11 00:55",["Population grows at full speed until a state is about 80% full, then slows to a stop at capacity (it used to slow down from half full)","Base birth rate 3% (was 6%), so early growth feels the same"]],
 ["Swordsmen, the backbone","2026-11-11 00:30",["Swordsmen stronger and cheaper: attack and defense 1.85 (was 1.75), 45 iron (was 50), 3 food (was 5)","Computer states build their main army by attack and defense together, so swordsmen lead it, and send them on attacks","\"Offensive only\" attack pick includes swordsmen and spearmen"]],
@@ -3871,7 +3885,7 @@ function helpModal(){
   <li>Strength = soldiers × Attack/Defense research × general (skill and morale) × your civilization's and leader's attack (when attacking) or defense (when defending) bonus. A research lead counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy. Defenders get +15%. A state with no guards loses as much land as the attacker's general and army can take.</li>
   <li>The winner takes land and the peasants on it: (general's Speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness. Decisiveness runs from 25% for a narrow win to 100% at twice the defender's strength (or no defenders). Each surviving soldier can hold at most ${R.occupy} km².</li>
   <li><b>Relations:</b> every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings (hover a relation to see them): <b>Grievance</b> when you attack them, <b>Solidarity</b> when you attack their ally, <b>Wariness</b> when you attack their other neighbors, <b>Fear</b> when you are much bigger than them, <b>Trust</b> from years of peace (up to +${R.rtMax}), and a <b>Common enemy</b> bond when two states hold a grudge against the same one. Wrongs are settled by revenge: a state that strikes back and wins clears most of its grievance (its allies' solidarity cools too). Fear only fades when you shrink compared with them, and wariness only while you attack nobody. Striking back at someone who attacked you within ${R.relJustYears} years angers them and onlookers half as much.</li>
-  <li><b>Wars:</b> two states go to war when either one's relation toward the other falls to ${R.warHostile} (fear of a much bigger neighbor counts too), or when a computer state declares war, for example out of a grudge, fear, or because it is full and has no land left to settle. A war lasts ${R.warMin}–${R.warMax} years or until one side is destroyed. Then grievance, solidarity and wariness between the two are forgotten, and for ${R.warRest} years they can't go to war again and neither declares a new war. A computer state at war attacks only its enemies, and doesn't declare a second war of its own.</li><li><b>Computer states and feelings:</b> they still attack anyone they can clearly beat. A grudge makes them want revenge: they need a smaller edge, send more troops and may strike even at near-even odds, by chance each year, more likely after you fought elsewhere, lost a battle or starved. Wariness makes them step in: while you keep attacking others, a wary neighbor may strike you while your army is away. Before attacking, they also add up every neighbor that is angry or wary of them: the more exposed, the more troops they keep home and the bigger the edge they need. Fear makes them guard, and join in only when others are already attacking you. Trust and a common enemy make them pick other targets. You are warned when a state starts to want revenge.</li>
+  <li><b>Wars:</b> two states go to war when either one's relation toward the other falls to ${R.warHostile} (fear of a much bigger neighbor counts too), or when a computer state declares war, for example out of a grudge, fear, or because it is full and has no land left to settle. A war lasts ${R.warMin}–${R.warMax} years or until one side is destroyed. Then grievance, solidarity and wariness between the two are forgotten, and for ${R.warRest} years they can't go to war again and neither declares a new war. A computer state at war attacks only its enemies, and doesn't declare a second war of its own. In peace computer states keep smaller armies, send surplus soldiers home and research density to fill their land; at war they mobilise over a few years, arm more of their people and research growth to refill losses. A state with only allies around keeps a token army and puts its people into research.</li><li><b>Computer states and feelings:</b> they still attack anyone they can clearly beat. A grudge makes them want revenge: they need a smaller edge, send more troops and may strike even at near-even odds, by chance each year, more likely after you fought elsewhere, lost a battle or starved. Wariness makes them step in: while you keep attacking others, a wary neighbor may strike you while your army is away. Before attacking, they also add up every neighbor that is angry or wary of them: the more exposed, the more troops they keep home and the bigger the edge they need. Fear makes them guard, and join in only when others are already attacking you. Trust and a common enemy make them pick other targets. You are warned when a state starts to want revenge.</li>
   <li><b>Balance of power:</b> when one state holds far more than its share of the land (1.5× an average state's share, at least ${R.coalitionMin*100}% and at most ${R.coalitionMax*100}% of all land), its neighbors form a coalition. They arm more, stop fighting each other and attack it together, including when the leader is you.</li>
   <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering it settles ${R.settleBase} km² plus ${R.settleRate*100}% of its own size each year, no army needed.</li>
   <li><b>Wonders</b> (optional): ten landmarks, one per science area. Whoever holds the land a wonder stands on gets that area's effect raised by the wonder's bonus (+25% by default, e.g. +25% attack strength or +25% research). Conquer the land and the wonder is yours.</li>
