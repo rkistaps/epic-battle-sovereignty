@@ -1211,7 +1211,7 @@ function carveRivers(m,W,H,target,unit,rnd){
 // one cell per turn, always the free cell nearest its middle, up to an equal share of the land (`cap`). Then the middles
 // move to where each state ended up, so crowded states drift apart, and the next round is more even. Land nobody
 // could reach within its share stays unowned.
-function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10){
+function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10,ROUGH=60){
   const N=W*H, n=counts.length, SH=2097152; if(N>=SH) rounds=Math.min(rounds,4);
   const nbs=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const L=lk?.get(i); if(L) for(const j of L) f(j); };
   // land to share: every land cell a state can reach over land or sea routes (also unowned land next to states)
@@ -1281,7 +1281,7 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10){
     for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
     for(let s=0;s<n;s++) if(cnt[s]){ cx[s]/=cnt[s]; cy[s]/=cnt[s]; }
     const key=(s,i)=>Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2)*SH+i;
-    for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const by=new Map(); genProg(0.86+0.11*(1-Math.pow(0.85,++fin)),"Evening out borders");
+    for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const by=new Map(); genProg(0.86+0.05*(1-Math.pow(0.85,++fin)),"Evening out borders");
       for(let s=0;s<n;s++) if(counts[s]){ if(counts[s]<mn) mn=counts[s]; if(counts[s]>mx) mx=counts[s]; }
       if(mn>=cap*0.985&&mx<=cap*1.015) break; // everyone within 1.5% of the share
       const over=mx>cap*1.015; // someone holds too much (after the arm cleanup): then every state may pull from a bigger neighbor
@@ -1295,6 +1295,17 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10){
           cells[j]=s; counts[s]++; if(o>=0) counts[o]--; moved++; nbs(j,add); } }
       if(moved<Math.max(1,n/50)) break; } }; // little left to gain
   finish(); unthin(cells,W,H,counts,lk); finish(); // no narrow arms (peninsulas shared lengthwise), then sizes evened again
+  // rough borders: border cells switch to a neighbor state that already half surrounds them, in random order, many times,
+  // so borders fray like old maps. A cell only moves if the giver stays in one piece and isn't smaller than the taker
+  // (so sizes only drift a cell or two)
+  const sur=(i,p)=>{ const x=i%W,y=(i/W)|0; let k=0; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if((dx||dy)&&at(x+dx,y+dy)===p) k++; return k; };
+  for(let pass=0;pass<ROUGH;pass++){ const edge=[]; genProg(0.91+0.06*pass/ROUGH,"Roughening borders");
+    for(let i=0;i<N;i++){ const o=cells[i]; if(o<0) continue; const x=i%W; if((x>0&&cells[i-1]>=0&&cells[i-1]!==o)||(x<W-1&&cells[i+1]>=0&&cells[i+1]!==o)||(i>=W&&cells[i-W]>=0&&cells[i-W]!==o)||(i+W<N&&cells[i+W]>=0&&cells[i+W]!==o)) edge.push(i); }
+    for(let k=edge.length-1;k>0;k--){ const j=Math.floor(rnd()*(k+1)); const tmp=edge[k]; edge[k]=edge[j]; edge[j]=tmp; }
+    for(const i of edge){ if(rnd()<0.5) continue; const o=cells[i], x=i%W, ns=[x>0?cells[i-1]:-9,x<W-1?cells[i+1]:-9,i>=W?cells[i-W]:-9,i+W<N?cells[i+W]:-9].filter(v=>v>=0&&v!==o);
+      if(!ns.length) continue; const p=ns[Math.floor(rnd()*ns.length)];
+      if(counts[o]<counts[p]||sur(i,p)<3||!whole(o,i)) continue;
+      cells[i]=p; counts[o]--; counts[p]++; } }
 }
 // No narrow arms: land squeezed between other states (not part of any solid K×K block of its own state, and touching
 // another state) goes to the neighbor state around it most; pieces cut off from a state then go to the neighbor sharing
@@ -3870,6 +3881,7 @@ function turnReport(prev){
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
 ["Map progress bar","2026-11-12 01:00",["A progress bar shows while a new map is made, with what it is doing (placing states, growing states round by round, evening out borders)","The map preview in New game shows the same progress"]],
+["Rough borders","2026-11-12 01:30",["Borders are rough and ragged again, like the old maps","Starting land stays almost equal"]],
 ["Natural state shapes","2026-11-12 00:40",["States start in varied, natural shapes with wandering borders instead of round blobs","All land a state can reach is shared out, so no big empty regions at the start (like southern Africa)","Starting land stays almost equal"]],
 ["Equal starting land","2026-11-12 00:10",["Every state now starts with almost the same land: within about 1% on most maps, within 5% on the biggest world maps","States start compact and rounded, with no narrow arms","Land left over after everyone has an equal share starts unowned","Big world maps take a few seconds longer to create"]],
 ["Cleaner map borders","2026-11-11 22:30",["No more narrow arms or strips of one state squeezing between others, on every map","Starting sizes on random maps are more even","On big world maps most states start within 5% of each other; a few start smaller"]],
@@ -4201,7 +4213,7 @@ ${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders,
 <li><b>World:</b> a random map or a pre-made one (like the World map), and the number of states.</li>
 <li><b>More options:</b> territory size per state, water (lakes, rivers or both: chokepoints), and the rules below.</li></ul>
 ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="function"?f():f]))}
-<p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one piece with its own natural shape. Only scraps of land, and islands no sea route reaches, start unowned; neighbors settle them.</p>
+<p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one piece with its own natural shape and rough, ragged borders. Only scraps of land, and islands no sea route reaches, start unowned; neighbors settle them.</p>
 <p>Big maps take a few seconds to make; a progress bar shows how far along it is.</p>
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
