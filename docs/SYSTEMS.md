@@ -374,3 +374,72 @@ Intents the code can't answer. When one is decided, write the answer into the sy
 7. **Difficulty**: should harder levels give computer states economic bonuses, or only smarter and bolder play?
 8. **Market**: should relations block trade later (hostile states can't buy from each other)? Is merchants paying 0.9× normal for grain the intended income level for farming states?
 9. **Research**: should computer states adapt their research to their situation (costs, caps, wonders, threats) instead of a fixed table?
+
+## 12. Planned: war and peace (designed, not built yet)
+
+Agreed with the designer *(your direction)*. When a part is built, move it into section 3 (and the table, yearly order and loops) and delete it here.
+
+**Why:** today every attack is a one-off, the computer's army size follows the calendar and personality, and research ignores war. Wars give attacks a context, and war footing makes states fill their land in peace and spend people in war.
+
+### 12.1 State wars
+- **Start** (either is enough):
+  1. **Hostility:** either state's relation toward the other reaches **−50**. All factors count, fear included (a war of fear against a runaway state).
+  2. **Computer declaration:** each year, while planning attacks, the computer scores every neighbor: *motive × feasibility − cost*, and declares on the best one above a threshold.
+     - Motive: grudge (grievance, solidarity); fear of a runaway; land hunger (≥ ~85% full and no unowned land to settle); a wonder they hold; warlike leaders count motive higher.
+     - Feasibility: its attack against their estimated defense (the edge it needs for attacks today); an army free to use (not tied down, home not exposed).
+     - Cost: trust with them; their allies (once alliance wars exist).
+- **Limits on starting wars:** a state never declares while it is in a state war, while its alliance is in an alliance war, during the game's peace years, or within **5 rest years** after a war ended. It can still be declared on, so it can be in several wars, never by its own choice. States already at war **can** be declared on.
+- **During a war:** a state at war attacks only its enemies (no side raids).
+- **End:** each war lasts a random **8–15 years**, or until one side is eliminated. At the end: grievance, solidarity and wariness between the two reset to 0 (fear stays, it reflects size); 5 rest years; news "Peace between X and Y".
+- **The player:** no declaring war or offering peace. The player takes part through normal play: their attacks can start a war through the victim's hostility, and computer states can declare on them.
+
+### 12.2 War footing (computer states)
+- Level **0 = peace, 1 = in any war** (state or alliance); moves 40% a year toward that (2–3 years to mobilise or stand down). Values below blend with the level.
+
+| | Peace (0) | War (1) |
+|---|---|---|
+| Army, warlike persona | 12% of population | 35% |
+| Army, other persona | 6% | 25% |
+| Late-game bonus (up to +10% over time) | as today | as today |
+| Strong-neighbor defense minimum | as today | as today |
+| Peasant reserve (`aiKeepPop`) | 80% (fill the land) | 65% (mobilise) |
+| Spare gold | science and reserve | soldiers (as today) |
+| Density research share | 14% | 4% |
+| Growth research share | 6% | 18% |
+
+- Attack and defense research keep today's table; the density/growth shift is taken from or given to science.
+- Starting values: simulate against section 6 and tune.
+
+### 12.3 Balance of power
+- Fear wars against a runaway state **replace the coalition mechanic** (section 3.16); remove `coalition*` rules and hegemon targeting once state wars exist.
+
+### 12.4 Trade embargo
+- States at war with each other can't fill each other's market orders (they don't see each other's orders). Merchants still trade with both.
+
+### 12.5 Alliance relations and alliance wars
+- **Alliance relation:** −100..+100 for each pair of alliances, each direction, **starting at 0**.
+  - Yearly target: how members feel about the other alliance's members, averaged over neighboring pairs and weighted by land; alliances with no shared border drift toward 0. No fear at this level.
+  - Moves **10% a year** toward the target (slow).
+  - Direct hits on top: **−3** per year a state war runs between members; **−1** per battle between members (**−2** if more than 10% of the defender's land is taken). So state wars between members push their alliances toward war.
+- **Alliance war:** starts when an alliance relation reaches **−40**. An alliance never declares while already in an alliance war; members' state wars don't hold it back.
+  - During it, every member is at war with every member of the enemy alliance (targeting and war footing). State wars already running continue; members can't start new state wars.
+  - Ends like state wars: random 8–15 years (or one alliance eliminated); the alliance relation resets to 0; members' own state relations stay; 5 rest years.
+
+### 12.6 Showing wars
+- War tab: "At war with X" (since year, years left hidden or shown — decide when building).
+- Map tooltip: a war mark on neighbors at war.
+- A "Wars" map view.
+- News when wars start and end.
+
+### 12.7 Single-alliance view
+- Opened from an alliance's tag on map labels, its row in the Alliances tab, or the map tooltip.
+- Header (colour, name, tag, members left/fallen); stats (land, population, army attack/defense, average research, share of the world); member list (sortable, click selects on the map); relations with other alliances (bars, both directions); active wars and recent battles; "Show on map".
+
+### 12.8 Build order
+1. State wars: war state, start (hostility, declaration), limits, fixed-length end, reset, rest years, news; AI targets only enemies while at war. Simulate.
+2. War footing: army share, peasant reserve, spare gold and research by level. Simulate and tune against section 6.
+3. Showing wars: War tab, tooltip, map view, news.
+4. Remove the coalition mechanic (fear wars replace it). Simulate.
+5. Trade embargo between states at war.
+6. Alliance relations and alliance wars. Simulate.
+7. Single-alliance view.
