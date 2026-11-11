@@ -72,7 +72,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Intent**: People are the core currency. Growth rewards peace and room, and capacity is what makes land valuable: a state that stops growing has to expand (settle, conquer) or research density. Overcrowding is meant to hurt (births turn negative). Growth bonuses are kept small because people compound. *(inferred)*
 - Population = peasants + soldiers (scientists are peasants with a job; `c.sci` is a legacy field, always 0).
 - Capacity: `popCap = land × (popPerKm 3 + densPerLevel 0.15·lvl(dens)) × M(capacity) × wonder(dens)`.
-- Births: `peasants × growthRate × (1 − pop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. Logistic: negative above capacity. None in a famine year.
+- Births: `(peasants + armyBirths 0.5 × soldiers) × growthRate × roomFactor(pop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. `roomFactor(x) = 1 − x^birthCurve` (24): births stay near full speed until ~80% full, peak near 87%, stop at capacity; above capacity `1 − x` (a gentle decline) *(your direction: growth should not slow from half full)*. None in a famine year.
 - Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants.
 - **Reads**: land (battle, settle), dens/grow research, identity, famine, battle losses and captures.
 - **Writes**: taxes, food use, every job, research cost (size factor), AI decisions.
@@ -264,7 +264,7 @@ Rows act on columns (● strong, ○ weak).
 ## 5. Feedback loops
 
 Positive (snowball) loops, and what brakes them:
-- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: logistic births, size-scaled research cost, captured peasants arrive at 80%, coalition against the hegemon, fear and wariness, general speed and holding limits on land per battle.
+- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, captured peasants arrive at 80%, coalition against the hegemon, fear and wariness, general speed and holding limits on land per battle.
 - **Science → research points.** Brakes: cost exponent 2.5, size cost, lead penalty, caps, scientist wages vs tax.
 - **Land → settling budget.** Brake: unowned land runs out.
 - **Grudges → revenge → new grudges.** Brakes: revenge clears grievance, justified strikes count half, floors, cooldowns.
