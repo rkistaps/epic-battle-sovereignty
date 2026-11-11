@@ -33,7 +33,7 @@ All code is in `index.html`. Function names are given rather than line numbers (
   └──── conquest, captured peasants ◄─ BATTLE ──► losses, grievances ──► RELATIONS ──► AI targeting
                                        ▲                                                   │
                                        └──────── AI decisions (work, market, army, attacks) ◄┘
-                                                   balance of power (hegemon coalition)
+                                                   fear of a giant → wars (balance of power)
 ```
 
 **The one resource everything competes for is people.** Each peasant is either a farmer, woodcutter, miner or scientist (the work split), or is turned into a soldier. Only peasants pay tax and have children. So every system that uses people (research, army, production) takes from the others and from growth. Most balance questions come down to "what is one person worth in this job vs that one?"
@@ -49,13 +49,13 @@ The order matters: it decides which systems see this year's values and which see
 **End turn (`endTurnNow`).** Auto-sell posts surplus grain at the market price for one year. Then `ENGINE.call("endTurn", G)` runs:
 
 1. Save migrations; logs reset; `g.avgLv` (world research average, used for catch-up pricing); `c.mod` recomputed for every state (settings changes apply).
-2. **AI turns** (`aiTurn`), in state-id order, **before the harvest**: work split, market (trades happen now, so later ids see a changed book), generals, recruiting, research allocation, attack orders. AI reads last year's relations, hegemon, market averages, and `c.wxSys` (next harvest's weather systems, rolled last year).
+2. **AI turns** (`aiTurn`), in state-id order, **before the harvest**: work split, market (trades happen now, so later ids see a changed book), generals, recruiting, research allocation, attack orders. AI reads last year's relations, wars, market averages, and `c.wxSys` (next harvest's weather systems, rolled last year).
 3. **Battles**: attacks filtered (alive, general exists, adjacent, not allied, not peace time); attackers taken out of the army; the rest are guards. All attack strengths (with luck) computed first, then battles resolved one by one in shuffled order. Land, peasants and grain move; relations updated per battle (`relOnAttack`).
 4. `settle` (unowned land claimed), `computeShore`, `refreshWonders`.
 5. **Economy** per state (`economy`): harvest (× this year's weather) → eating → famine → spoilage → wood/iron → taxes − wages → empty treasury → births (none in a famine year) → research → generals age/train/recover → collapse below `minPop`.
 6. **Market year** (`mkYear`): orders age and expire, the market price is updated, merchant prices reset, merchants take orders that beat them (`mkSweep`).
 7. **Weather** (`mkWeather`): systems drift/merge/clash/spawn; next year's `c.wx` and `c.wxSys` are rolled.
-8. **Relations year** (`relYear`), **wars** (`warYear`: wars that ran their time end, new ones start from hostility), history, **hegemon** (`computeHegemon`), `turn++`, victory check. Computer declarations happen earlier, in step 2 (AI turns).
+8. **Relations year** (`relYear`), **wars** (`warYear`: wars that ran their time end, new ones start from hostility), history, `turn++`, victory check. Computer declarations happen earlier, in step 2 (AI turns).
 
 Consequences:
 - Conquests, settling, shore and wonders are applied **before** the economy: new land and captured peasants farm, eat and pay tax the same year.
@@ -228,7 +228,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.14c War footing (computer states)
 - **Intent**: in peace a state fills its land (small army, density research); at war it spends people and refills them (bigger army, growth research) *(your direction)*.
 - `c.footing` 0..1 moves `aiFootStep` 40% a year toward 1 (in any war) or 0.
-- Army target share: `aiArmyPeace` 6% (warlike `aiArmyPeaceMil` 12%) → `aiArmyWar` 25% (35%) by footing, plus the late-game bonus (up to +10%), grudge and coalition extras; still at least the strong-neighbor minimum (half the strongest neighbor's attack, up to 20% of people). Defense top-ups arm at most `aiDefCapPeace` 30% → `aiDefCapWar` 40% of people.
+- Army target share: `aiArmyPeace` 6% (warlike `aiArmyPeaceMil` 12%) → `aiArmyWar` 25% (35%) by footing, plus the late-game bonus (up to +10%), grudge extra; still at least the strong-neighbor minimum (half the strongest neighbor's attack, up to 20% of people). Defense top-ups arm at most `aiDefCapPeace` 30% → `aiDefCapWar` 40% of people.
 - At peace (footing < 0.2) a state sends `aiPeaceCut` 10% of its soldiers above 1.25× its target home each year.
 - Peasant reserve `aiKeepPeace` 80% → `aiKeepWar` 65% of people.
 - Spare gold buys soldiers only in proportion to footing; in peace it stays (the gold-hoard rule moves hands to research).
@@ -244,16 +244,15 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Fixed teams chosen at setup (by count or size, regional or scattered). Allies never attack each other and win together. Solidarity links allies' feelings. No forming or breaking during play.
 - Notes: states deep inside an alliance block can have no enemy neighbours and stay idle.
 
-### 3.16 Balance of power (hegemon)
-- **Intent**: Stop a runaway winner, the player included: the world pushes back on whoever gets too big. *(from the comments)*
-- The largest state by land becomes the hegemon when its share passes `1.5/alive` (6–40%). Strength `k` grows with its lead.
-- AI only: the hegemon's neighbours keep bigger armies, prefer it as a target, need less edge, count a joint-attack bonus, and at k ≥ 0.5 ignore other armed targets.
-- Notes: measured by land only; the player as hegemon is the main brake on a runaway player.
+### 3.16 Balance of power (through fear wars)
+- **Intent**: stop a runaway winner, the player included: the world pushes back on whoever gets too big *(your direction: fear wars replaced the old coalition)*.
+- No separate mechanic any more: neighbors fear a state from 1.5× their size (relations, fear factor up to −50), and fear counts toward the −50 war trigger (3.14b), so a runaway state ends up at war with the neighbors it frightens. Fear also lowers the edge a computer state needs against a target others are already attacking.
+- Notes: compared with the removed coalition, runaway states grow a little faster mid-game (in 2 of 4 test games the leader held 18% vs 8% and 30% vs 24% of the land at year 70) and fight fewer wars at once; the endgame is similar. Fear's strength (`rfFrom`, `rfPer`, `rfMax`) and `warHostile` are the knobs if it needs to be stronger.
 
 ### 3.17 Computer players (AI)
 - **Intent**: Play by the same rules as the player: no free resources (difficulty only scales research and how bold it is). Personalities differ so each world plays differently. The AI should use every lever the player has. *(inferred)*
 - Runs every system above for computer states: work split, market, generals, recruiting, defense, research allocation, attacks. Personality from the leader (`mil`, `guard`), a per-state random lean (`kk`), and difficulty (research ×0.8/1/1.15, earlier war phase, smaller attack edge needed `[1.7, 1.35, 1.2]`).
-- Attack decision: estimate the target's guard (with noise), apply relations, coalition and exposure, send enough to win by the edge and hold the land, keep a home guard. At most 2 attacks a year; a stalemate breaker makes it bolder after 5–25 idle years.
+- Attack decision: estimate the target's guard (with noise), apply relations, wars and exposure, send enough to win by the edge and hold the land, keep a home guard. At most 2 attacks a year; a stalemate breaker makes it bolder after 5–25 idle years.
 - **Every new system needs an AI side.** If the AI ignores a lever the player has, the player gets a free edge and the world drifts away from the player's experience.
 
 ### 3.18 Setup and difficulty
@@ -283,13 +282,12 @@ Rows act on columns (● strong, ○ weak).
 | Battle | ● | | ○ (loot) | | | | ○ (size) | ● | | ● | ● | ● |
 | Land | ● (capacity) | | ○ (shore) | | | | | | ● (fronts) | ● (settle) | ○ (fear) | ● |
 | Relations | | | | | | | | | | | | ● |
-| Hegemon | | | | | | | | | | | ○ | ● |
 | AI | ● | ● | | | | ● | ● | ● | ● | | | |
 
 ## 5. Feedback loops
 
 Positive (snowball) loops, and what brakes them:
-- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, captured peasants arrive at 80%, coalition against the hegemon, fear and wariness, general speed and holding limits on land per battle.
+- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, captured peasants arrive at 80%, fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
 - **Science → research points.** Brakes: cost exponent 2.5, size cost, lead penalty, caps, scientist wages vs tax.
 - **Land → settling budget.** Brake: unowned land runs out.
 - **Grudges → revenge → new grudges.** Brakes: revenge clears grievance, justified strikes count half, floors, cooldowns.
@@ -359,7 +357,6 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 - Elimination thresholds differ: battle checks peasants < 20, famine collapse checks population < 20.
 - An eliminated state's gold, wood and iron vanish.
 - Battle order is random; an earlier battle can make later ones on the same target do nothing.
-- The hegemon is measured by land only; an alliance spread over many mid-size states never triggers it. Joint-attack size counts the leader's own allies.
 - The AI research allocation is a fixed table; it ignores costs, caps and wonders.
 - AI difficulty scales only research (and AI thresholds), not the economy.
 - The `R` comment on `aiSellFrac` says 30% but the value is 0.5.
@@ -395,7 +392,7 @@ Intents the code can't answer. When one is decided, write the answer into the sy
 3. **Weather**: should it reward states that keep big grain stores? Should a drought make computer states more likely to attack a fertile neighbour?
 4. **Alliances**: should they stay fixed, or form and break during play (relations could drive it)?
 5. **Conquest loot**: should a defeated or eliminated state's gold, wood and iron go to the winner instead of vanishing?
-6. **Balance of power**: should the hegemon be measured by land only, or by overall power (population, army, research)? Should alliances count as one bloc?
+6. **Balance of power**: fear (and so fear wars) is measured by land only; should it use overall power (population, army, research)? Should alliances count as one bloc?
 7. **Difficulty**: should harder levels give computer states economic bonuses, or only smarter and bolder play?
 8. **Market**: should relations block trade later (hostile states can't buy from each other)? Is merchants paying 0.9× normal for grain the intended income level for farming states?
 9. **Research**: should computer states adapt their research to their situation (costs, caps, wonders, threats) instead of a fixed table?
@@ -443,7 +440,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 - **Back to normal** as soon as a non-allied neighbor appears (borders changed, an ally fell, or a new sea route): it uses the normal peace or war values at once and rebuilds its army at the war-footing pace.
 - Unowned land next to it doesn't change this (settling is automatic); it is still an interior state.
 
-### 12.3 Balance of power
+### 12.3 Balance of power — **built** (see 3.16)
 - Fear wars against a runaway state **replace the coalition mechanic** (section 3.16); remove `coalition*` rules and hegemon targeting once state wars exist.
 
 ### 12.4 Trade embargo
@@ -484,7 +481,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 1. ~~State wars~~ — built.
 2. ~~War footing and interior states~~ — built.
 3. ~~Showing wars~~ — built.
-4. Remove the coalition mechanic (fear wars replace it). Simulate.
+4. ~~Remove the coalition mechanic~~ — done.
 5. Trade embargo between states at war.
 6. Alliance relations and alliance wars. Simulate.
 7. Single-alliance view, together with allied aid (12.9): the computer's aid rules and the player's "Send aid" form. Simulate.
