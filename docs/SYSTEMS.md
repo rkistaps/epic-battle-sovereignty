@@ -232,6 +232,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Peasant reserve `aiKeepPeace` 80% → `aiKeepWar` 65% of people.
 - Spare gold buys soldiers only in proportion to footing; in peace it stays (the gold-hoard rule moves hands to research).
 - Research: density `aiDensPeace` 14 → `aiDensWar` 4, growth `aiGrowPeace` 6 → `aiGrowWar` 18; the difference comes from science.
+- **Fullness and attacks** (not at war) *(your direction)*: below `aiAtkRoom` 70% full a state attacks only out of a grudge, fear or for a wonder; from 70% to `aiAtkFull` 90% the edge it needs falls from +`aiAtkRoomEdge` 50% to normal. At war, fullness doesn't matter. Effect: attacks outside wars by states under 70% full fell from 49% to 17%; conquest slower in mid-game (1000 states: 741 left at year 60 instead of 547), endgame similar (48 vs 41 at year 150).
 - **Interior states** (only allied neighbors, sea routes count): a token army of `aiInteriorArmy` 2%, sending `aiInteriorCut` 20% of the surplus home a year; scientist cap +15%; research sci 35, density 30, agri 10, fin 10, growth 5, wood 5, iron 5; no spare gold into soldiers. Back to normal as soon as a non-allied neighbor appears.
 - **Reads**: wars, neighbors and their armies (threat), relations, population and capacity, gold.
 - **Writes**: army size, peasants (births, work), research allocation, scientists.
