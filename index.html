@@ -411,7 +411,7 @@ const R = {
   sciWage: 3.5,                    // wage per scientist per year (scientists are peasants set to research in Work)
   foodSpoil: 0.1,                  // share of stored grain that spoils each year
   famineDeath: 0.5,                // share of a food shortfall that dies of famine
-  popPerKm: 3, birthRate: 0.06, armyBirths: 0.5, minPop: 20, // base capacity per km², base birth rate, soldiers count half toward births, a state below minPop collapses
+  popPerKm: 3, birthRate: 0.06, armyBirths: 0.5, birthCurve: 1, minPop: 20, // base capacity per km², base birth rate, soldiers count half toward births, birthCurve: how long births stay strong as a state fills (1 = classic, peak at half full; 24 = strong until ~80% full, peak near 87%), a state below minPop collapses
   priceMean: 1.1,                 // grain: normal price
   // world market: an order book per resource, with outside merchants behind it
   mkMerchSell: 2.5, mkMerchBuy: 0.5, mkMerchBuyG: 0.9, mkMerchMul: 2, // merchants sell at 2.5× normal or 2× the market price (whichever is more); they buy wood and iron at 0.5× normal, grain at 0.9×
@@ -587,7 +587,9 @@ function wonderPct(a){ return Math.round((WONDERS[a]?.bonus??0.25)*100); }
 function popCap(c){ return Math.round(c.land*(R.popPerKm+R.densPerLevel*lvl(c,"dens"))*M(c,"capacity")*wonderMul(c,"dens")); }
 function growthRate(c){ return (R.birthRate+R.growPerLevel*lvl(c,"grow"))*M(c,"births")*wonderMul(c,"grow"); }
 // births this year: peasants and (at a share) soldiers have children, slowing as the state fills up; newborns are peasants
-function birthsOf(c,peasants=c.peasants,pop=popOf(c)){ return Math.round((peasants+R.armyBirths*c.soldiers)*growthRate(c)*(1-pop/popCap(c))); }
+// how much of the birth rate is left at this fullness: 1 − fullness^birthCurve (1 = classic, peaks at half full; 24 = full speed until ~80%, peak near 87%); overcrowded: shrinks gently
+function roomFactor(x){ return x<=1?1-Math.pow(Math.max(0,x),Math.max(1,R.birthCurve)):1-x; }
+function birthsOf(c,peasants=c.peasants,pop=popOf(c)){ return Math.round((peasants+R.armyBirths*c.soldiers)*growthRate(c)*roomFactor(pop/popCap(c))); }
 // food per year: farmers × rate × Agriculture (+4.5%/level) × shore farmland × civilization/leader/land food bonus
 function foodPerFarmer(c){ return R.foodPerFarmer*(1+R.agriPerLevel*lvl(c,"agri"))*(1+shoreBonus(c))*M(c,"food")*wonderMul(c,"agri"); }
 function foodProduction(c){ return Math.round(workers(c).farm*foodPerFarmer(c)); }
