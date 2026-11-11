@@ -410,6 +410,14 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 - Attack and defense research keep today's table; the density/growth shift is taken from or given to science.
 - Starting values: simulate against section 6 and tune.
 
+### 12.2b Interior states (no non-allied neighbors)
+- A computer state whose only neighbors are allies (sea routes count as borders) has no one to fight and no land to conquer *(your direction)*:
+  - **Army:** shrinks to a token guard, about **2% of population**, dismissing about 20% of the surplus a year (soldiers return to the fields).
+  - **Work and research:** pushes research: the scientist cap rises (as with surplus, up to +15%), and research leans hard to **density** (its only way to grow), then science.
+  - **Spare gold:** science, not soldiers.
+- **Back to normal** as soon as a non-allied neighbor appears (borders changed, an ally fell, or a new sea route): it uses the normal peace or war values at once and rebuilds its army at the war-footing pace.
+- Unowned land next to it doesn't change this (settling is automatic); it is still an interior state.
+
 ### 12.3 Balance of power
 - Fear wars against a runaway state **replace the coalition mechanic** (section 3.16); remove `coalition*` rules and hegemon targeting once state wars exist.
 
@@ -437,7 +445,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 
 ### 12.8 Build order
 1. State wars: war state, start (hostility, declaration), limits, fixed-length end, reset, rest years, news; AI targets only enemies while at war. Simulate.
-2. War footing: army share, peasant reserve, spare gold and research by level. Simulate and tune against section 6.
+2. War footing: army share, peasant reserve, spare gold and research by level, and interior states. Simulate and tune against section 6.
 3. Showing wars: War tab, tooltip, map view, news.
 4. Remove the coalition mechanic (fear wars replace it). Simulate.
 5. Trade embargo between states at war.
