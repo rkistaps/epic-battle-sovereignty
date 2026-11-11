@@ -55,7 +55,7 @@ The order matters: it decides which systems see this year's values and which see
 5. **Economy** per state (`economy`): harvest (× this year's weather) → eating → famine → spoilage → wood/iron → taxes − wages → empty treasury → births (none in a famine year) → research → generals age/train/recover → collapse below `minPop`.
 6. **Market year** (`mkYear`): orders age and expire, the market price is updated, merchant prices reset, merchants take orders that beat them (`mkSweep`).
 7. **Weather** (`mkWeather`): systems drift/merge/clash/spawn; next year's `c.wx` and `c.wxSys` are rolled.
-8. **Relations year** (`relYear`), history, **hegemon** (`computeHegemon`), `turn++`, victory check.
+8. **Relations year** (`relYear`), **wars** (`warYear`: wars that ran their time end, new ones start from hostility), history, **hegemon** (`computeHegemon`), `turn++`, victory check. Computer declarations happen earlier, in step 2 (AI turns).
 
 Consequences:
 - Conquests, settling, shore and wonders are applied **before** the economy: new land and captured peasants farm, eat and pay tax the same year.
@@ -213,6 +213,16 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Reads**: battles, land sizes, adjacency, alliances.
 - **Writes**: AI threat estimate, army size, home guard, target choice, edge needed, revenge chances, protector attacks; player-facing labels, map view, warnings, and the map tooltip (each state's feelings toward its neighbours and theirs toward it, worst first).
 - Notes: trust builds on every quiet border and makes the AI pickier; grudges can spiral (damped by revenge clearing grievance, floors and cooldowns).
+
+### 3.14b Wars
+- **Intent**: attacks happen in a context: single raids stay incidents, repeated or heavy blows, a grudge, fear of a giant or a full state with nowhere to grow lead to war, and wars end so old grudges can be forgotten *(your direction)*.
+- A war between two states (`g.wars`: `{a, b, from, to, why}`) starts when **either** state's relation toward the other reaches `warHostile` −50 (all factors, fear included), or when a **computer state declares** one (`warScore`: motive × feasibility − cost above `warDeclare` 0.5; motive = grudge + ½ solidarity + fear + land hunger (≥85% full, nothing settled for 2 years) + wonders, scaled by the leader's warlikeness; feasibility = its sendable attack ÷ the edge it needs; cost = trust). Declaring costs −`warDeclareHit` 15 grievance with the victim and wariness with the declarer's other neighbors.
+- A computer state declares only when it has no war and no rest years left; it can be declared on (and drawn into hostility wars) any time. While at war it attacks only its enemies.
+- Each war lasts `warMin`–`warMax` (8–15) years or until a side is eliminated. At the end grievance, solidarity and wariness between the two reset (fear stays); both get `warRest` 5 years without declaring, and the pair can't go to war again in that time.
+- No wars during the game's peace years. The player can't declare war; their attacks can start one through the victim's hostility, and computer states can declare on them.
+- **Reads**: relations (all factors), battles (through relations), land and capacity (land hunger), settling (`c.settleT`), army strength, leaders, wonders.
+- **Writes**: AI target choice (enemies only while at war), relations (declaration hit, reset at peace), news.
+- Notes: in 60-state games, about 100–120 wars per 150 years; most start from hostility, 3–16 are declared; states are at war ~30% of the time; ~2/3 of battles happen inside wars; 30–50% of wars start mostly from fear (the planned replacement of the coalition mechanic).
 
 ### 3.15 Alliances
 - **Intent**: Team scenarios with clear, fixed sides. *(inferred)*
@@ -381,7 +391,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 
 **Why:** today every attack is a one-off, the computer's army size follows the calendar and personality, and research ignores war. Wars give attacks a context, and war footing makes states fill their land in peace and spend people in war.
 
-### 12.1 State wars
+### 12.1 State wars — **built** (see 3.14b); kept here for the record
 - **Start** (either is enough):
   1. **Hostility:** either state's relation toward the other reaches **−50**. All factors count, fear included (a war of fear against a runaway state).
   2. **Computer declaration:** each year, while planning attacks, the computer scores every neighbor: *motive × feasibility − cost*, and declares on the best one above a threshold.
@@ -456,7 +466,7 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 - **Effects:** aid raises the receiver's trust toward the giver (later: can feed alliance strength).
 
 ### 12.8 Build order
-1. State wars: war state, start (hostility, declaration), limits, fixed-length end, reset, rest years, news; AI targets only enemies while at war. Simulate.
+1. ~~State wars~~ — built.
 2. War footing: army share, peasant reserve, spare gold and research by level, and interior states. Simulate and tune against section 6.
 3. Showing wars: War tab, tooltip, map view, news.
 4. Remove the coalition mechanic (fear wars replace it). Simulate.
