@@ -443,6 +443,18 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 - Opened from an alliance's tag on map labels, its row in the Alliances tab, or the map tooltip.
 - Header (colour, name, tag, members left/fallen); stats (land, population, army attack/defense, average research, share of the world); member list (sortable, click selects on the map); relations with other alliances (bars, both directions); active wars and recent battles; "Show on map".
 
+### 12.9 Allied aid
+- Allies can send each other **grain, wood, iron and gold** *(your direction)*. Troops are left for later (they need army-movement rules).
+- **Who gives (computer):** interior states and allies at peace, from surplus only: grain above their reserve, wood/iron above the 3-year reserve, gold above a cushion. At most **50% of the surplus a year**, so a donor never weakens itself. Aid comes **before** selling to the market, so surplus goes to the front instead of to merchants.
+- **Who receives:** allies at war or bordering an enemy that are short of grain, of wood/iron for troops, or of gold. Neediest first, front-line states ahead of others.
+- **When:** once a year, in the computer's turn, before its market trading; aid arrives at once.
+- **The player:**
+  - Sends aid from the single-alliance view: a "Send aid" form (ally, resource, amount).
+  - Receives aid from allied computer states when at war or on the front line, like any ally.
+  - News both ways ("Realm of X sent you 2,000 grain").
+  - Hot seat: humans on one team can send each other aid.
+- **Effects:** aid raises the receiver's trust toward the giver (later: can feed alliance strength).
+
 ### 12.8 Build order
 1. State wars: war state, start (hostility, declaration), limits, fixed-length end, reset, rest years, news; AI targets only enemies while at war. Simulate.
 2. War footing: army share, peasant reserve, spare gold and research by level, and interior states. Simulate and tune against section 6.
@@ -450,4 +462,4 @@ Agreed with the designer *(your direction)*. When a part is built, move it into 
 4. Remove the coalition mechanic (fear wars replace it). Simulate.
 5. Trade embargo between states at war.
 6. Alliance relations and alliance wars. Simulate.
-7. Single-alliance view.
+7. Single-alliance view, together with allied aid (12.9): the computer's aid rules and the player's "Send aid" form. Simulate.
