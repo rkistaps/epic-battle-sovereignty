@@ -143,7 +143,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.8 Research
 - **Intent**: Long-term investment that competes with the army for people and gold. Caps make the late game converge so a tech lead can't become permanent; catch-up pricing keeps laggards in the game; size-scaled cost stops big empires out-researching by scale alone. *(inferred)*
 - 10 areas: sci, agri, fin, dens, grow, atk, def, wood, iron, explore.
-- Points: scientists × (1 + 0.075·lvl(sci)) × M(science) × wonder × `c.eff` (AI difficulty 0.8/1/1.15; humans 1). Split by `c.alloc`.
+- Points: scientists × (1 + 0.075·lvl(sci)) × M(science) × wonder × `c.eff` (AI difficulty 0.8/1/1.15; humans 1). Split by `c.alloc` (whole % per area) ÷ max(100, sum): a player's shares may total under 100% and the unassigned rest is lost (Science tab warns, tab badge "!"); AI tables sum to 100.
 - Level cost: `5 × (L+1)^2.5 × size × edge`; size = `max(1, pop/1000)^0.5`; edge = −5% per level behind the world average (max −50%), +5% per level ahead (max ×3).
 - Bonus curve: `lvl = L / (1 + L·per/(max·base))`, approaching each area's cap (`sciMax`, `agriMax`, …) and never passing it. In battle, one side's atk/def tech counts at most `techEdgeMax` 3× the other's.
 - **Reads**: work split (scientists), gold (wages), population (size cost), the world average.
