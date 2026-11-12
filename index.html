@@ -57,6 +57,7 @@ table.rank td:first-child{overflow:hidden;text-overflow:ellipsis;white-space:now
 .lvbox{display:inline-block;min-width:26px;text-align:center;font-weight:700;color:var(--acc);background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-variant-numeric:tabular-nums}
 .rsplit{display:grid;grid-template-columns:minmax(60px,1fr) auto;align-items:center;gap:2px 6px} .rsplit>input[type=range]{width:100%;margin:0} .rsplit .rctl{display:flex;align-items:center;white-space:nowrap} .rsplit>.bar{margin:0}
 .rbar{display:flex} .rbar>i{flex:none} .rbar>i.nxt{background:var(--good);opacity:.55}
+table.btab.mchain td:nth-child(2),table.btab.mchain th:nth-child(2){background:none} table.btab.mchain td:last-child,table.btab.mchain th:last-child{background:#ffffff08} .mchain td.op,.mchain th.op{color:var(--mut);padding:0 1px!important;text-align:center;font-weight:400} .mchain td{vertical-align:top}
 .aslot{display:inline-flex;justify-content:center;align-items:center;width:26px;flex:none} .aslot>button{padding:1px 3px;min-width:0}
 .lockbtn{padding:2px 4px;min-width:0;opacity:.55;background:none;border-color:transparent}
 .lockbtn.on{opacity:1;border-color:var(--acc)}
@@ -3391,12 +3392,16 @@ function bonusTable(c){
     ["Capacity", tr("housing"),           rw("dens",R.densPerLevel,R.popPerKm), 0, M(c,"capacity")*(R.popPerKm+R.densPerLevel*lvl(c,"dens"))/R.popPerKm*wonderMul(c,"dens")],
     ["Conquest", tr("explore"),           rw("explore",R.explorePerLevel), 0, exploreMul(c)],
   ];
-  const pct=v=>{ const r=Math.round(v*100); return r===0?'<span class="mut">—</span>':`<span class="${r>0?"good":"bad"}">${r>0?"+":""}${r}%</span>`; };
+  // shown as a chain of multipliers: (civ + leader + land) × research × wonder × shore = total
+  const mul=(v,bold)=>{ const x=1+v; if(Math.abs(v)<0.005) return '<span class="mut">—</span>'; const t=`×${x.toFixed(2)}`; return `<span class="${v>0?"good":"bad"}">${bold?`<b>${t}</b>`:t}</span>`; };
+  const sg=v=>{ const r=Math.round(v*100); return r===0?"":`${r>0?"+":"−"}${Math.abs(r)}`; };
+  const hasW=rows.some(r=>Math.abs(r[2][1])>0.005), hasS=rows.some(r=>Math.abs(r[3])>0.005), names=[cv?.name,ld?.name,ln?.name];
   return `<h3>Total bonuses ${gl("identity")}</h3>
-  <div class="stable"><table class="btab small"><tr><th>Stat</th><th class="r">Total</th><th class="r" title="${esc(cv?.name||"")}">Civ.</th><th class="r" title="${esc(ld?.name||"")}">Leader</th><th class="r" title="${esc(ln?.name||"")}">Land</th><th class="r">Research</th><th class="r">Wonder</th><th class="r" title="Shore farmland">Shore</th></tr>
-  ${rows.map(([name,t,[r,w],o,tot])=>`<tr><td style="white-space:nowrap">${name}</td><td class="r"><b>${pct(tot-1)}</b></td>${t.map(v=>`<td class="r">${pct(v)}</td>`).join("")}<td class="r">${pct(r)}</td><td class="r">${pct(w)}</td><td class="r">${pct(o)}</td></tr>`).join("")}
+  <div class="stable"><table class="btab small mchain"><tr><th>Stat</th><th class="r" title="Civilization (${esc(names[0]||"")}), leader (${esc(names[1]||"")}) and land (${esc(names[2]||"")}) bonuses, added together">Civ+leader+land<div class="mut" style="font-size:10.5px;font-weight:400">civ · leader · land %</div></th><th class="op">×</th><th class="r">Research</th>${hasW?`<th class="op">×</th><th class="r">Wonder</th>`:""}${hasS?`<th class="op">×</th><th class="r" title="Shore farmland">Shore</th>`:""}<th class="op">=</th><th class="r">Total</th></tr>
+  ${rows.map(([name,t,[r,w],o,tot])=>{ const id=t.reduce((a,b)=>a+b,0), parts=t.map(sg), tip=["Civ.","Leader","Land"].map((n,k)=>`${n} ${parts[k]||"0"}%`).join(" + ");
+    return `<tr><td style="white-space:nowrap">${name}</td><td class="r" title="${tip}">${mul(id)}<div class="mut" style="font-size:10.5px">${parts.some(Boolean)?parts.map(x=>x||"0").join(" · "):""}</div></td><td class="op">×</td><td class="r">${mul(r)}</td>${hasW?`<td class="op">×</td><td class="r">${mul(w)}</td>`:""}${hasS?`<td class="op">×</td><td class="r">${mul(o)}</td>`:""}<td class="op">=</td><td class="r">${mul(tot-1,1)}<div class="mut" style="font-size:10.5px">${sg(tot-1)?sg(tot-1)+"%":""}</div></td></tr>`; }).join("")}
   </table></div>
-  <div class="small mut">Civilization, leader and land bonuses add together; research, a held wonder and shore farmland then multiply on top, so Total is the real effect. Birth rate and capacity research are shown relative to the base rate (${+(R.birthRate*100).toFixed(2)}%/yr, ${R.popPerKm} people per km²).</div>`;
+  <div class="small mut">Read each row left to right: your civilization, leader and land bonuses add up into one multiplier (the small numbers under it are civilization · leader · land in %), then research${hasW?", a held wonder":""}${hasS?" and shore farmland":""} multiply it. ×1.00 (—) is no change. A trait bonus keeps its full value however far research goes. Birth rate and capacity research are shown relative to the base rate (${+(R.birthRate*100).toFixed(2)}%/yr, ${R.popPerKm} people per km²).</div>`;
 }
 function pScience(){
   const c=me(); const pts=researchPoints(c); const sumA=AREAS.reduce((s,a)=>s+Math.max(0,c.alloc[a]||0),0), tot=Math.max(100,sumA), free=Math.max(0,Math.round(100-sumA));
@@ -4024,6 +4029,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Clearer bonus table","2026-11-12 17:00",["Science tab: Total bonuses reads as a sum: civilization + leader + land × research = total","Each part shown as a multiplier (×1.20); the small line shows civilization · leader · land in %","Wonder and Shore columns only show when one of them counts"]],
 ["Simpler research levels","2026-11-12 16:43",["Every research level gives the same bonus; no max any more","Each level costs 1.8× the one before (the first costs 35 points)","Per-level bonuses adjusted: Science +6%, Agriculture +5%, Finance +4.7% taxes, Attack and Defense +6.5%, Expansion +3.7%, Pop. density +0.16, Pop. growth +0.11%","Overall research strength stays about the same as before","Saved games convert each area to the level with the nearest bonus"]],
 ["Share and progress together","2026-11-12 15:05",["Science tab: each area's share slider sits on top with its progress bar right under it, the same length","Longer sliders; shorter rows in a narrow panel","Progress bar shows in green how far next year's points will take it","Shares can add up to less than 100%: a warning shows how much research is unassigned and lost, with a Spread it button","Raising a share past 100% takes from the unlocked areas; lowering one no longer moves the others","Header buttons for all areas: ✕ clears unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all"]],
 ["Aligned research buttons","2026-11-12 15:02",["Science tab: sliders, ✕, ⏩ and 🔒 line up on every row"]],
@@ -4255,7 +4261,7 @@ ${gTab(["Area","Each level gives"],AREAS.map(a=>[`${WONDERS[a]?.icon||""} ${AREA
 <li><b>Ideas spread:</b> an area costs ${gP(R.catchUpPer)} less per level you are behind the world average (at most −${gP(R.catchUpMax)}) and ${gP(R.leadPer)} more per level you are ahead (at most ×${R.leadMax}).</li></ul>
 <h3>On top of research</h3><p>Civilization, leader, land and wonder bonuses multiply on top of research. In battle, one side's attack or defense research counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy.</p>`; }],
 ["identity","Your state","🏛️","Civilizations, leaders and land",()=>`
-<p>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties; the three <b>add together</b> (two +20% bonuses make +40%, not +44%). Defense, population growth and capacity bonuses apply at ${gP(R.traitWeight.defense)} because they compound. Islands and Oceanic land only go to states with a coastline. Your Home tab lists your bonuses.</p>
+<p>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties; the three <b>add together</b> (two +20% bonuses make +40%, not +44%). Defense, population growth and capacity bonuses apply at ${gP(R.traitWeight.defense)} because they compound. Islands and Oceanic land only go to states with a coastline. Your Home tab lists your bonuses, and the Science tab's Total bonuses table shows how they combine: civilization, leader and land add up into one multiplier, then research, a held wonder and shore farmland multiply it (×1.70 × ×1.20 = ×2.04).</p>
 <p>Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home.</p>
 <h3>Civilizations</h3>${gTab(["Civilization","Bonuses"],CIVS.map(x=>[x.name,gTraits(x)]))}
 <h3>Leaders</h3>${gTab(["Leader","Bonuses"],LEADERS.map(x=>[x.name,gTraits(x)]))}
