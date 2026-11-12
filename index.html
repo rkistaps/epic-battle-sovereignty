@@ -1025,7 +1025,7 @@ function newGame(opts){
   let p = opts.observer ? OBSERVER : hot ? -1 : opts.player;
   if(!hot&&(p==null||(p<0&&p!==OBSERVER))) p=Math.floor(rnd()*n);
   g.player=p; if(p===OBSERVER) g.observer=true; else if(!hot){ countries[p].ai=false; pickTraits(countries[p],opts.civ,opts.leader); }
-  g.feat=preset==="world"?worldFeatures(W,H,cells,seed):makeFeatures(W,H,cells,Math.sqrt(landEach),seed);
+  g.feat=preset==="world"?worldFeatures(W,H,cells,seed):makeFeatures(W,H,cells,Math.sqrt(landEach),seed,opts.forest!=null?opts.forest/100:undefined,opts.mtn!=null?opts.mtn/100:undefined);
   recount(g); computeShore(g);
   // land type: random, but Islands/Oceanic only for coastal states (3%+ shore land)
   countries.forEach(c=>{ const coastal=c.shore>=c.land*R.coastalShore, pool=LANDS.filter(l=>coastal||!l.coastal);
@@ -1459,7 +1459,7 @@ function makeGeneral(g,age,speed,mind){
 // ---------- terrain features: forests and mountains ----------
 // g.feat: 0 open land, 1 forest, 2 mountains. Fixed for the whole game, whoever owns the land. Uses its own dice
 // (from the seed), so adding it doesn't change the rest of a seed's map. `unit` = typical state width in cells.
-function makeFeatures(W,H,cells,unit,seed){
+function makeFeatures(W,H,cells,unit,seed,fShare=R.forestShare??0.16,mShare=R.mtnShare??0.08){
   const rnd=mulberry32((seed^0x5f3759df)>>>0), N=W*H, f=new Uint8Array(N);
   // mountains: thin winding chains where a smooth noise field crosses its middle value, only in some regions
   const a=valueNoise(W,H,unit*1.8,rnd), d=valueNoise(W,H,unit*0.6,rnd), reg=valueNoise(W,H,unit*4,rnd);
@@ -1468,13 +1468,13 @@ function makeFeatures(W,H,cells,unit,seed){
   const sm=t=>t<=0?0:t>=1?1:t*t*(3-2*t);
   const ms=new Float32Array(N), fs=new Float32Array(N), land=[];
   for(let i=0;i<N;i++){ if(cells[i]===-2) continue; land.push(i);
-    ms[i]=(1-Math.abs(a[i]+0.3*(d[i]-0.5)-0.5)*2)*sm((reg[i]-0.3)/0.25);
+    ms[i]=(1-Math.abs(a[i]+0.3*(d[i]-0.5)-0.5)*2)*(0.1+0.9*sm((reg[i]-0.3)/0.25)); // mostly in mountain regions, but every cell can rank
     fs[i]=b[i]+0.45*e[i]+0.2*h[i]; }
   const cut=(v,share,ok)=>{ const s=[]; for(let k=0;k<land.length;k+=Math.max(1,(land.length/40000)|0)){ const i=land[k]; if(ok(i)) s.push(v[i]); }
     s.sort((x,y)=>y-x); return s.length?s[Math.min(s.length-1,Math.floor(s.length*share))]:Infinity; };
-  const tm=cut(ms,R.mtnShare??0.08,()=>true);
-  for(const i of land) if(ms[i]>tm&&ms[i]>0) f[i]=2;
-  const tf=cut(fs,(R.forestShare??0.16)/(1-(R.mtnShare??0.08)),i=>f[i]!==2);
+  mShare=Math.max(0,Math.min(1,mShare)); fShare=Math.max(0,Math.min(1-mShare,fShare));
+  if(mShare>0){ const tm=cut(ms,mShare,()=>true); for(const i of land) if(ms[i]>=tm) f[i]=2; }
+  const tf=fShare>0?cut(fs,fShare/Math.max(0.01,1-mShare),i=>f[i]!==2):Infinity;
   for(const i of land) if(!f[i]&&fs[i]>tf) f[i]=1;
   // tidy: drop lone cells, fill pinholes (one pass of a 3x3 majority per kind)
   const c=f.slice();
@@ -2791,8 +2791,8 @@ class MapView{
     this.palD=pal.map(c=>shade(c,0,0.32));
     // terrain: forest and mountain versions of every color. "atlas" = shades of the state's own color, "natural" = tinted green / stone
     const fst=UI.featStyle||"atlas", tint=(c,to,t)=>rgba(((c&255)*(1-t)+to[0]*t)|0,((c>>>8&255)*(1-t)+to[1]*t)|0,((c>>>16&255)*(1-t)+to[2]*t)|0,255);
-    this.palF=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[52,92,48],0.38):shade(c,0,0.14));
-    this.palM=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[150,138,120],0.42):shade(c,255,0.16));
+    this.palF=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[52,92,48],0.2):shade(c,0,0.07));
+    this.palM=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[150,138,120],0.22):shade(c,255,0.08));
     this.palGF=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[24,56,26],0.6):shade(c,0,0.42));   // tree crowns
     this.palGH=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[64,112,58],0.5):shade(c,0,0.24)); // light side of tree tops
     this.palGD=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[70,60,50],0.6):shade(c,0,0.45));  // mountain shadow side and outline
@@ -4161,6 +4161,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Terrain sliders","2026-11-12 18:11",["New game: Forests and Mountains sliders for generated maps (together up to 100% of the land)","Lighter forest and mountain shading"]],
 ["Real terrain on the World map","2026-11-12 18:09",["World map forests and mountains sit where they are on Earth: the Alps, Andes, Himalayas, Rockies, the Amazon, Congo and Siberian taiga"]],
 ["Trees and clearer labels","2026-11-12 18:03",["Forests drawn as leafy trees and pines, with shadows","Trees and peaks are cleared under state names, so labels read cleanly"]],
 ["Forests and mountains","2026-11-12 17:18",["New maps have forest patches and mountain ranges","Shown as a darker or lighter shade of the owner's color, with little trees and peaks when zoomed in","For now they only change how the map looks"]],
@@ -4450,7 +4451,7 @@ ${STANCE_UI.map(([id,ic,nm])=>{ const k=STANCE_KEY[id]; return `<tr><td>${ic} ${
 <li><b>Sea routes</b> (dashed lines on pre-made maps) count as borders. An attack that only crosses the sea gives defenders +${gP(R.seaBonus)} instead of the narrow-front bonus.</li>
 <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering unowned land settles ${R.settleBase} km² plus ${gP(R.settleRate)} of its own size a year, no army needed (times Expansion research).</li>
 <li><b>Coasts:</b> land next to water harvests more (see Food).</li>
-<li><b>Forests and mountains:</b> new maps have forest patches (a darker shade of the owner's color, with little trees) and mountain ranges (a lighter shade, with peaks). They stay put whoever owns the land. On the World map they sit where real forests and mountains are. For now they only change how the map looks.</li></ul>`],
+<li><b>Forests and mountains:</b> new maps have forest patches (a darker shade of the owner's color, with little trees) and mountain ranges (a lighter shade, with peaks). They stay put whoever owns the land. On the World map they sit where real forests and mountains are; on generated maps you choose how much of the land each covers when you set up the game (together up to 100%). For now they only change how the map looks.</li></ul>`],
 ["attack","Military","🗡️","Planning an attack",()=>`
 <ol class="glist"><li>Open the <b>War</b> tab, or click a neighbor on the map and press <b>Plan attack</b>.</li>
 <li>Pick a general, the attack mode and which troops go. The window estimates the defenders and gives a verdict: <i>Undefended</i>, <i>Favorable</i>, <i>Risky</i> or <i>Likely defeat</i>.</li>
@@ -4605,7 +4606,7 @@ function guideMark(root,words){ const src="("+words.map(w=>w.replace(/[.*+?^${}(
 // new-game choices are remembered in this browser: saved on every change, restored when the window opens
 const SETUP_KEY="eb.setup";
 function setupDefaults(){ let lastName=""; try{ lastName=localStorage.getItem("eb.empireName")||""; }catch{}
-  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,weather:true,al:false,alMode:"count",alN:2,alLay:"region",peaceOn:false,peace:5,more:false,
+  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",forest:16,mtn:8,map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,weather:true,al:false,alMode:"count",alN:2,alLay:"region",peaceOn:false,peace:5,more:false,
     hot:false,players:[newPlayer(),newPlayer()],allHumans:false,rotate:true}; }
 const newPlayer=()=>({name:"",civ:"random",leader:"random",landType:"random"});
 function loadSetup(){
@@ -4668,12 +4669,16 @@ function setupModal(){
       <select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select></div>
     <div class="fld"><span class="lr"><label for="sN">States</label><input type="text" inputmode="numeric" id="sNV" min="2" max="1000" value="${s.n}" aria-label="Number of states (2 to 1000)"></span>
       <input type="range" id="sN" min="0" max="${N_STEPS.length-1}" value="${nStep(s.n)}" aria-valuetext="${s.n} states"></div></section>
-  <div class="more"><button type="button" class="mbtn" data-smore aria-expanded="${!!s.more}" aria-controls="sMore"><span class="chev" aria-hidden="true">›</span><b>More options</b><span class="mut">Territory size, water, rules</span></button>
+  <div class="more"><button type="button" class="mbtn" data-smore aria-expanded="${!!s.more}" aria-controls="sMore"><span class="chev" aria-hidden="true">›</span><b>More options</b><span class="mut">Territory size, water, terrain, rules</span></button>
   <div id="sMore" role="region" aria-label="More options" ${s.more?"":"hidden"}>
     <div class="fld"><span class="lr"><span><label for="sT">Territory size</label>${preset?" "+info("Territory size","The World map has a fixed size, so with fewer states each one gets more land."):""}</span><span><b id="sTV">${s.terr}</b> <span class="mut" id="sTK">${fmt(Math.round(s.terr*5.5))} km² each</span></span></span>
       <input type="range" id="sT" min="50" max="200" value="${s.terr}"></div>
     <div class="fld ${preset?"hidden":""}"><span class="lr"><span><label for="sW">Water</label> ${info("Water","Water makes chokepoints. The map grows so land per state stays the same.")}</span><b id="sWV">${s.water}%</b></span>
       <div class="wrow"><input type="range" id="sW" min="0" max="40" value="${s.water}"><select id="sWS" aria-label="Water type" ${s.water?"":"disabled"}>${[["lakes","Lakes"],["rivers","Rivers"],["mixed","Lakes + rivers"]].map(([k,l])=>`<option value="${k}" ${s.wstyle===k?"selected":""}>${l}</option>`).join("")}</select></div></div>
+    <div class="fld ${preset?"hidden":""}"><span class="lr"><span><label for="sFo">🌲 Forests</label> ${info("Forests","Share of the land covered by forest. Forests and mountains together can cover at most 100%.")}</span><b id="sFoV">${s.forest??16}%</b></span>
+      <input type="range" id="sFo" min="0" max="100" step="1" value="${s.forest??16}"></div>
+    <div class="fld ${preset?"hidden":""}"><span class="lr"><span><label for="sMo">⛰️ Mountains</label> ${info("Mountains","Share of the land covered by mountain ranges. Forests and mountains together can cover at most 100%.")}</span><b id="sMoV">${s.mtn??8}%</b></span>
+      <input type="range" id="sMo" min="0" max="100" step="1" value="${s.mtn??8}"></div>
     <h3 class="sh">Rules ${gl("setup")}</h3>
     <div class="rules">${SETUP_RULES.map(rule).join("")}</div>
     <div id="pv" class="${s.choose&&!obs?'':'hidden'}"><div class="row small mut">Click a state to pick it${hot?" for the next player":""}. Scroll to zoom, drag to pan. <button class="sm" data-a="reroll">New map</button></div>
@@ -4703,12 +4708,12 @@ function setupSummary(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id)?.name,
   if(s.hot&&!s.observer) return `<div class="sname">Hot-seat · ${P} players</div><div class="sub">Each player takes a turn on this device, then the year runs</div>
   <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)} <span class="sub">· ${fmt(Math.max(0,s.n-P))} computer</span></dd></div>
     <div><dt>Alliances</dt><dd>${s.allHumans?"All humans together":"Free for all"}</dd></div><div><dt>Turn order</dt><dd>${s.rotate?"Rotates yearly":"Fixed"}</dd></div>
-    <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
+    <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div><div><dt>Terrain</dt><dd>${preset?"Real":`🌲 ${s.forest??16}% · ⛰️ ${s.mtn??8}%`}</dd></div>
     <div><dt>Peace</dt><dd>${s.peaceOn?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
     <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`;
   return `${s.observer?`<div class="sname">Observer mode</div><div class="sub">The computer runs every state</div>`:`<div class="sname">${esc((s.empire||"").trim()||"Random empire")}</div><div class="sub">${people}</div>`}
   <dl class="sumgrid"><div><dt>Map</dt><dd>${preset?esc(PRESET_MAPS[s.map].name):"Generated"}</dd></div><div><dt>States</dt><dd>${fmt(s.n)}</dd></div>
-    <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div>
+    <div><dt>Territories</dt><dd>${s.terr} <span class="sub">· ${fmt(Math.round(s.terr*5.5))} km²</span></dd></div><div><dt>Water</dt><dd>${water}</dd></div><div><dt>Terrain</dt><dd>${preset?"Real":`🌲 ${s.forest??16}% · ⛰️ ${s.mtn??8}%`}</dd></div>
     <div><dt>Peace</dt><dd>${s.peaceOn?s.peace+(s.peace===1?" year":" years"):"None"}</dd></div>
     <div style="grid-column:1/-1"><dt>Rules on</dt><dd>${rules?`<div class="rchips">${rules}</div>`:"None"}</dd></div></dl>`; }
 function updateSummary(){ const s=UI.setup; if(!s||!$("sSum")) return;
@@ -4719,7 +4724,7 @@ function randomizeSetup(){ const s=UI.setup, ri=(a,b)=>a+Math.floor(Math.random(
   s.empire=""; s.civ=pick(CIVS).id; s.leader=pick(LEADERS).id; s.landType=pick(LANDS).id;
   s.players=s.players.map(()=>({name:"",civ:pick(CIVS).id,leader:pick(LEADERS).id,landType:pick(LANDS).id}));
   s.map=pick(["random",...Object.keys(PRESET_MAPS)]);
-  s.n=Math.max(s.hot?s.players.length:2,pick(N_STEPS.filter(v=>v<=200))); s.terr=ri(5,20)*10; s.water=ri(0,8)*5; s.wstyle=pick(["lakes","rivers","mixed"]);
+  s.n=Math.max(s.hot?s.players.length:2,pick(N_STEPS.filter(v=>v<=200))); s.terr=ri(5,20)*10; s.water=ri(0,8)*5; s.wstyle=pick(["lakes","rivers","mixed"]); s.forest=ri(0,8)*5; s.mtn=ri(0,4)*5;
   s.fog=coin(); s.wonders=coin(); s.relNoise=coin(); s.weather=coin(); s.peaceOn=coin(); s.peace=ri(1,10); s.al=coin(); s.alMode=pick(["count","size"]); s.alLay=pick(["region","scattered"]);
   s.alN=s.alMode==="count"?ri(2,Math.max(2,Math.min(6,s.n))):ri(1,Math.max(1,Math.floor(s.n/2)));
   s.preview=null; s.pick=null; saveSetup(); setupModal(); }
@@ -4756,7 +4761,7 @@ function pickText(){ const s=UI.setup;
 function setPickText(){ const l=$("pvPick"); if(l) l.innerHTML=pickText(); setPstText(); }
 async function makePreview(){
   const s=UI.setup, tok=s.tok=(s.tok||0)+1; s.preview=null; s.pick=null; s.genP=null; setPickText();
-  const g=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,alliances:allyOpts()},(p,l)=>{ if(UI.setup===s&&s.tok===tok){ s.genP=p; s.genL=l; setPickText(); } });
+  const g=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,forest:s.forest,mtn:s.mtn,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,alliances:allyOpts()},(p,l)=>{ if(UI.setup===s&&s.tok===tok){ s.genP=p; s.genL=l; setPickText(); } });
   if(UI.setup!==s||s.tok!==tok) return; // settings changed meanwhile
   g.player=-1; s.preview=g; setPickText(); drawPreview();
 }
@@ -4894,7 +4899,7 @@ document.addEventListener("click",async ev=>{
       else if(!hot&&s.choose&&!s.observer&&s.preview&&s.pick!=null){ G=s.preview; G.player=s.pick; G.relNoise=!!s.relNoise; G.countries.forEach(x=>x.ai=x.id!==s.pick); pickTraits(G.countries[s.pick],s.civ,s.leader,s.landType); }
       else {
         UI.busy=true; modal(`<h2>Generating map…</h2><p class="mut">${fmt(s.n)} states.</p>${genBar()}`);
-        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,alliances:allyOpts(),...(ho||{})},genShow); }
+        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,forest:s.forest,mtn:s.mtn,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,alliances:allyOpts(),...(ho||{})},genShow); }
         catch(e){ console.error(e); UI.busy=false; flash("Map generation failed."); setupModal(); return; }
         UI.busy=false;
       }
@@ -4931,6 +4936,9 @@ document.addEventListener("input",ev=>{
   if(t.id==="sAlN"){ const v=Math.floor(+t.value); if(v>=1){ s.alN=s.alMode==="count"?Math.max(2,v):v; $("sAlInfo").innerHTML=allyInfo(); } return; }
   if(t.id==="sT"){ s.terr=+t.value; $("sTV").textContent=s.terr; $("sTK").textContent=fmt(Math.round(s.terr*5.5))+" km² each"; s.preview=null; s.pick=null; }
   if(t.id==="sW"){ s.water=+t.value; $("sWV").textContent=s.water+"%"; s.preview=null; s.pick=null; }
+  if(t.id==="sFo"||t.id==="sMo"){ // forests + mountains share the land: moving one past 100% in total pushes the other down
+    const me_=t.id==="sFo"?"forest":"mtn", ot=me_==="forest"?"mtn":"forest"; s[me_]=+t.value; if(s[me_]+s[ot]>100) s[ot]=100-s[me_];
+    s.forest??=16; s.mtn??=8; $("sFo").value=s.forest; $("sMo").value=s.mtn; $("sFoV").textContent=s.forest+"%"; $("sMoV").textContent=s.mtn+"%"; s.preview=null; s.pick=null; }
 });
 document.addEventListener("change",ev=>{
   const t=ev.target;
@@ -4953,7 +4961,7 @@ document.addEventListener("change",ev=>{
     s.preview=null; s.pick=null; setupModal(); return; }
   if(t.id==="sAlN"){ s.preview=null; s.pick=null; if(s.choose&&!s.observer) drawPreview(); return; }
   if(t.id==="sNV"){ const v=Math.max(minStates(),Math.min(1000,Math.floor(+t.value)||s.n)); setStates(v,""); }
-  if(["sN","sNV","sT","sW","sWS"].includes(t.id)&&s.choose) drawPreview();
+  if(["sN","sNV","sT","sW","sWS","sFo","sMo"].includes(t.id)&&s.choose) drawPreview();
   if(t.id==="sC"){ s.choose=t.checked; setupModal(); }
   if(t.id==="sF"){ s.fog=t.checked; }
   if(t.id==="sCiv"||t.id==="sLead"||t.id==="sLand"){ s[{sCiv:"civ",sLead:"leader",sLand:"landType"}[t.id]]=t.value; $("sTraits").innerHTML=setupTraits(); }
