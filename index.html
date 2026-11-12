@@ -1845,7 +1845,7 @@ function aiTurn(g,c){
     let used=0; const bigNb=adj.reduce((b,j)=>b<0||g.countries[j].land>g.countries[b].land?j:b,-1); // the only state it harasses
     for(const tg of targets){
       if(used>=Math.min(2,gens.length)) break;
-      if(room>=1){ const q=feel.find(x=>x.j===tg.j); if(!(tg.v>0||q.fN>0.2||tg.o.wb)) continue; } // plenty of room at home: no land grab
+      if(room>=1){ const q=feel.find(x=>x.j===tg.j); if(!(tg.v>0||q.fN>0.2||Object.keys(tg.o.wb||{}).length)) continue; } // plenty of room at home: no land grab (wb is {} for everyone without a wonder)
       const gen=gens[used];
       const myStrPer=myUnit*tg.ka*genFactor(gen);
       const floor=c.persona==="mil"?R.rvFloorWar:R.rvFloor;
@@ -3990,6 +3990,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Fix: peaceful states with room","2026-11-12 14:03",["Computer states with plenty of room no longer attack for land without a grudge, fear or a wonder to win (as the guide says)"]],
 ["Raids, kidnaps and massacres","2026-11-12 12:58",["Attack window: new modes Raid, Kidnap and Massacre","Raid: steal gold, grain, wood and iron with low losses; angers less than a normal attack","Kidnap: carry off peasants to your land, as many as you have room for; angers a bit more","Massacre: kill their peasants; they fight back; angers twice as much","These take no land and need no win: the stronger your force, the more you get","Computer states raid or kidnap from a much bigger neighbor they fear, every few years","Assault mode removed","Settings: new Attack modes group"]],
 ["Assault attacks","2026-11-12 10:57",["Attack window: pick Normal or Assault","Assault: 15% more of your own losses for 10% more land","Computer states assault when they have a clear edge and want land","Orders list and battle reports show assaults","Settings → Battle: losses and land multipliers for each mode"]],
 ["Defense stances","2026-11-12 10:57",["War tab: pick how your guards fight when attacked: Fall back, Hold or Stand ground","Fall back: both sides lose fewer troops","Stand ground: both sides lose more troops, but you lose half as much land","Computer states pick a stance too; battle reports show the defender's stance","Settings → Battle: losses and land multipliers for each stance"]],

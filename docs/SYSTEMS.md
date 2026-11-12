@@ -240,7 +240,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Peasant reserve `aiKeepPeace` 80% → `aiKeepWar` 65% of people.
 - Spare gold buys soldiers only in proportion to footing; in peace it stays (the gold-hoard rule moves hands to research).
 - Research: density `aiDensPeace` 14 → `aiDensWar` 4, growth `aiGrowPeace` 6 → `aiGrowWar` 18; the difference comes from science.
-- **Fullness and attacks** (not at war) *(your direction)*: below `aiAtkRoom` 70% full a state attacks only out of a grudge, fear or for a wonder; from 70% to `aiAtkFull` 90% the edge it needs falls from +`aiAtkRoomEdge` 50% to normal. At war, fullness doesn't matter. Effect: attacks outside wars by states under 70% full fell from 49% to 17%; conquest slower in mid-game (1000 states: 741 left at year 60 instead of 547), endgame similar (48 vs 41 at year 150).
+- **Fullness and attacks** (not at war) *(your direction)*: below `aiAtkRoom` 70% full a state attacks only out of a grudge, fear or for a wonder; from 70% to `aiAtkFull` 90% the edge it needs falls from +`aiAtkRoomEdge` 50% to normal. At war, fullness doesn't matter. Effect: attacks outside wars by states under 70% full fell from 49% to 17%; conquest slower in mid-game (1000 states: 741 left at year 60 instead of 547), endgame similar (48 vs 41 at year 150). (Until 2026-11-12 the wonder test was always true, so this skip never fired; fixing it changed little: 60 states, year 150: 6–9 alive instead of 5–12, biggest state 21–32% instead of 24–40%; 1000 states: 131–179 alive instead of 129–157.)
 - **Interior states** (only allied neighbors, sea routes count): a token army of `aiInteriorArmy` 2%, sending `aiInteriorCut` 20% of the surplus home a year; scientist cap +15%; research sci 35, density 30, agri 10, fin 10, growth 5, wood 5, iron 5; no spare gold into soldiers. Back to normal as soon as a non-allied neighbor appears.
 - **Reads**: wars, neighbors and their armies (threat), relations, population and capacity, gold.
 - **Writes**: army size, peasants (births, work), research allocation, scientists.
@@ -388,7 +388,6 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 - AI difficulty scales only research (and AI thresholds), not the economy.
 - The `R` comment on `aiSellFrac` says 30% but the value is 0.5.
 - The `placeWonders` comment says six wonders; ten are placed.
-- AI attack loop: the "plenty of room at home: no land grab" skip tests `tg.o.wb`, which is always an object (`{}`), so it never skips; states with room still attack for land. Left as is: fixing it changes pacing and needs its own simulation.
 - **Arms race in peace** (left as is, by choice): a computer state's threat is its strongest neighbor's *whole* army (relations shift it at most ±40%), and both the strong-neighbor minimum (up to 20% of people) and the defense top-up (up to 30% in peace) follow it, so armed neighborhoods keep each other at ~25–33% army even in peace. Halving peaceful neighbors' threat (`aiPeaceThreat` 0.5) left states under-defended and sped conquest up a lot. Candidate fixes: count only the share of a neighbor's army that could reach us (split across its fronts or by shared border), and count our defender bonus (+15%) and narrow-front/sea bonuses in the defense target.
 
 ## 10. Keeping this map current
