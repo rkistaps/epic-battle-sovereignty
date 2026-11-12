@@ -3883,6 +3883,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Setup remembers the map","2026-11-12 08:59",["New game remembers your Map choice, and the Alliances, Peace and Choose your state boxes"]],
 ["Strait of Gibraltar","2026-11-12 07:56",["World map: Spain and Morocco no longer joined by land; a sea route crosses the strait instead"]],
 ["Big maps fill fully","2026-11-12 07:42",["Fixed: on very big maps (e.g. the world with 1000 states and more than 100% land per state) the southern part stayed unowned"]],
 ["Map progress bar","2026-11-12 01:00",["A progress bar shows while a new map is made, with what it is doing (placing states, growing states round by round, evening out borders)","The map preview in New game shows the same progress"]],
@@ -4643,7 +4644,8 @@ document.addEventListener("change",ev=>{
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&tipFor) hide(); });
   document.addEventListener("scroll",()=>{ if(tipFor) tipFor.isConnected?show(tipFor):hide(); },true); }
 // remember new-game choices (runs after the handlers above have updated UI.setup)
-for(const ev of ["input","change"]) document.addEventListener(ev,e=>{ if(UI.setup&&e.target.closest?.("#modal")){ saveSetup(); updateSummary(); } });
+// (a field that redraws the setup window is already detached here: still save it)
+for(const ev of ["input","change"]) document.addEventListener(ev,e=>{ if(UI.setup&&(e.target.closest?.("#modal")||!e.target.isConnected)){ saveSetup(); updateSummary(); } });
 // End a turn. Used by the End turn button and by auto-run.
 async function endTurnNow(){
   if(!canPlay()||UI.busy) return; UI.busy=true; $("end").disabled=true;
