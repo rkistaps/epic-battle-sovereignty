@@ -362,6 +362,7 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 | Grain sold to merchants (share of world food use) | about 3% |
 | States with an empty treasury | well under 0.1% of state-years |
 | Turn time on a 1000-state map | about 200–250 ms |
+| 1000 states, Rebellions on vs off (seeds 11 world, 12–13 random; 150 years) | 51–92 revolts per game (211 in all: by rebel states 1/2/3/4/5/6/7/8/9 = 63/40/28/38/13/11/10/5/3), almost all after year 60; 30–35% of the land lost per revolt; year 150: 217–312 alive (off: 138–242), biggest 1.8–2.1% (off: 2.2–2.7%), top 10 hold 15% (off: 19–20%); turns about 10% slower |
 | Rebellions (60 states, seeds 11–16) | 0–8 revolts in 150 years (4/2/8/0/3/7), 0–21 rebel states; rebel states alive at the 30-year checkpoints: 0–4. Forced revolts (seeds 11–13, 96 revolts): rebel states per revolt 1–3 in ~70%, 9 in ~2%; about 30% of the land lost on average |
 | Starting land (any map up to 300 states) | every state within ±2% of the median |
 | Creating a 1000-state world map | about 14 s |
