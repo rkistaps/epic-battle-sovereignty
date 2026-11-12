@@ -3419,7 +3419,11 @@ function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w
     return `<tr class="click" data-pick="${o.id}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${o.color}"></span>${esc(o.name)}</td><td class="small mut">since year ${w.from} · ${how}</td></tr>`; };
   const t=c.team, aw=aWarOf(G,t), arow=w=>{ const o=w.a===t?w.b:w.a; return `<tr class="click" data-alliance="${o}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${G.teams[o].color}"></span>${esc(G.teams[o].name)} <span class="mut">(alliance)</span></td><td class="small mut">since year ${w.from} · every member is your enemy</td></tr>`; };
   return `<h3>Wars ${gl("wars")}</h3>${mine.length||aw.length?`<table>${mine.map(row).join("")}${aw.map(arow).join("")}</table>`:`<div class="small mut">At peace.</div>`}
-  <div class="small mut">${known?`${known} other war${known>1?"s":""} among the states you know. `:""}Wars start when either side's relation falls to ${R.warHostile} or a computer state declares one, and last ${R.warMin}–${R.warMax} years.${G.teams?` Alliances go to war when one's relation toward another falls to ${R.awarHostile}.`:""}</div>${G.teams&&t!=null?allianceRelTable(t):""}`; }
+  <div class="small mut">${known?`${known} other war${known>1?"s":""} among the states you know. `:""}Wars start when either side's relation falls to ${R.warHostile} or a computer state declares one, and last ${R.warMin}–${R.warMax} years.${G.teams?` Alliances go to war when one's relation toward another falls to ${R.awarHostile}.`:""}</div>${G.teams&&t!=null?allianceTension(t):""}`; }
+// War tab: one line naming the alliances closest to war with yours (the full table is in the Allies tab and each alliance's window)
+function allianceTension(t){ const lim=R.awarHostile/2, rows=G.teams.map((_,k)=>k).filter(k=>k!==t&&!teamsAtWar(G,t,k)&&G.countries.some(c=>c.alive&&c.team===k)).map(k=>({k,v:Math.min(arelOf(G,t,k),arelOf(G,k,t))})).filter(x=>x.v<=lim).sort((a,b)=>a.v-b.v);
+  const a=x=>`<button class="sm" data-alliance="${x.k}" title="Open ${esc(G.teams[x.k].name)}"><span class="sw" style="background:${G.teams[x.k].color}"></span>${esc(G.teams[x.k].name)} <b style="color:${relColor(x.v)}">${Math.round(x.v)}</b></button>`;
+  return `<div class="row small" style="margin-top:6px;align-items:center">${rows.length?`<span class="mut">Close to alliance war:</span>${rows.slice(0,3).map(a).join("")}${rows.length>3?`<span class="mut">+${rows.length-3} more</span>`:""}`:`<span class="mut">No alliance is close to war with yours.</span>`}<button class="sm" data-tab="alliances">All alliance relations</button></div>`; }
 // your alliance's relations with the other alliances (both directions), worst first
 function allianceRelTable(t){ const own=!observing()&&me().team===t; const n=G.teams.length, alive=G.teams.map((_,k)=>G.countries.some(c=>c.alive&&c.team===k));
   const rows=[...Array(n).keys()].filter(k=>k!==t&&alive[k]).map(k=>({k,out:arelOf(G,t,k),inn:arelOf(G,k,t)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn)); if(!rows.length) return "";
@@ -3591,7 +3595,7 @@ function allianceModal(t){ const T=G.teams[t], all=G.countries.filter(c=>c.team=
 function pAlliances(){
   if(!G.teams) return `<div class="mut">This game has no alliances.</div>`;
   if(!["land","states","pop","atk","def","sci"].includes(UI.asort?.k)) UI.asort=null;
-  const S=UI.asort||{k:"land",dir:-1}, sciTot=c=>AREAS.reduce((s,a)=>s+c.lv[a],0);
+  const S=UI.asort||{k:"land",dir:-1}, sciTot=c=>AREAS.reduce((s,a)=>s+c.lv[a],0), my=observing()?null:me().team;
   const rows=G.teams.map(t=>{ const m=G.countries.filter(c=>c.team===t.id&&c.alive);
     return {t, states:m.length, all:G.countries.filter(c=>c.team===t.id).length, land:m.reduce((s,c)=>s+c.land,0), pop:m.reduce((s,c)=>s+popOf(c),0),
       atk:m.reduce((s,c)=>s+armyAtk(c),0), def:m.reduce((s,c)=>s+armyDef(c),0), sci:m.reduce((s,c)=>s+sciTot(c),0), mine:!observing()&&me().team===t.id}; });
@@ -3604,7 +3608,8 @@ function pAlliances(){
   ${rows.map((r,i)=>{ const num=(v,f)=>`<td class="r" title="${fmt(v)}">${r.states?f(v):"—"}</td>`;
     return `<tr class="click${r.mine?" sel":""}" data-alliance="${r.t.id}" title="Open ${esc(r.t.name)}"><td class="pl">${r.states?i+1:"—"}</td><td class="nm" title="${esc(r.t.name)}: ${r.states} of ${r.all} states standing"><div class="nmtxt"><b class="small" style="color:${inkOnDark(r.t.color)}">${esc(allyTag(G,r.t.id))}</b> ${r.mine?"★ ":""}${esc(r.t.name)}${r.states?"":` <span class="small bad">defeated</span>`}</div>${memberStrip(r.t.color,r.states,r.all)}</td>
     <td class="r" title="${r.states} of ${r.all} standing"><b>${fmt(r.states)}</b><span class="mut small">/${fmt(r.all)}</span></td>${num(r.land,fmtK)}${num(r.pop,fmtK)}${num(r.atk,fmtK)}${num(r.def,fmtK)}${num(r.sci,fmtK)}</tr>`; }).join("")}</table>
-  <div class="small mut" style="margin-top:6px">Click a column to sort, an alliance to open it. Members of each alliance are listed with their tag in the World tab.</div>`;
+  <div class="small mut" style="margin-top:6px">Click a column to sort, an alliance to open it. Members of each alliance are listed with their tag in the World tab.</div>
+  ${my!=null?allianceRelTable(my):""}`;
 }
 function wonderList(){
   if(!G.wonders) return "";
@@ -3990,6 +3995,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Calmer War tab","2026-11-12 14:09",["War tab: the alliance relations table is gone; one line names only the alliances close to war with yours","Alliance relations table moved to the Allies tab, under the rankings"]],
 ["Fix: peaceful states with room","2026-11-12 14:03",["Computer states with plenty of room no longer attack for land without a grudge, fear or a wonder to win (as the guide says)"]],
 ["Raids, kidnaps and massacres","2026-11-12 12:58",["Attack window: new modes Raid, Kidnap and Massacre","Raid: steal gold, grain, wood and iron with low losses; angers less than a normal attack","Kidnap: carry off peasants to your land, as many as you have room for; angers a bit more","Massacre: kill their peasants; they fight back; angers twice as much","These take no land and need no win: the stronger your force, the more you get","Computer states raid or kidnap from a much bigger neighbor they fear, every few years","Assault mode removed","Settings: new Attack modes group"]],
 ["Assault attacks","2026-11-12 10:57",["Attack window: pick Normal or Assault","Assault: 15% more of your own losses for 10% more land","Computer states assault when they have a clear edge and want land","Orders list and battle reports show assaults","Settings → Battle: losses and land multipliers for each mode"]],
@@ -4307,7 +4313,8 @@ ${gTab(["Feeling","Comes from","Fades"],[
 ["alliances","Diplomacy","🤝","Alliances",()=>`
 <p>Alliances are fixed teams chosen in New game (by number of alliances or states per alliance, in a region or scattered). Allies never attack each other and win together. Attacking a state also angers its allies (solidarity).</p>
 <h3>Alliance relations and wars</h3><ul class="log"><li>Alliances have relations with each other, starting at 0. Each year they move ${gP(R.arStep)} toward how members feel about the other alliance's members, and drop by ${R.arWar} a year for every state war between members and ${R.arBattle} per battle (${R.arBattleBig} for a big one).</li>
-<li>When one alliance's relation toward another falls to <b>${R.awarHostile}</b>, the two go to war: every member is at war with every member of the other, for ${R.warMin}–${R.warMax} years. Then the relation resets to 0.</li></ul>
+<li>When one alliance's relation toward another falls to <b>${R.awarHostile}</b>, the two go to war: every member is at war with every member of the other, for ${R.warMin}–${R.warMax} years. Then the relation resets to 0.</li>
+<li><b>Where to see them:</b> the Allies tab lists your alliance's relations with every other alliance, both ways, worst first (⚔️ = at war). The War tab names only the alliances already at ${Math.round(R.awarHostile/2)} or worse, the ones close to war. Each alliance's window has the full table with bars.</li></ul>
 <h3>Alliance window</h3><p>Click an alliance (Allies tab, War tab, or the alliance line of a selected state) to see its members, land, population, army, research, wars and relations with the other alliances, and to show it on the map.</p>
 <h3>Aid</h3><ul class="log"><li>From your own alliance's window, send an ally grain, wood, iron or gold. It arrives at once and raises their trust in you (+${R.aidTrust} per 1,000 gold of value, at most +${R.aidTrustMax} a gift).</li>
 <li>Aid travels over allied land only: to an ally that borders you, or one you reach through a chain of bordering allies (sea links count). Aid never crosses the world.</li>
@@ -4337,7 +4344,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li><b>End turn ▶</b> runs the year.</li></ul>
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Tabs",()=>`
-${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders, money, stores, year ahead"],["2","⚖️ Market","Order books for grain, wood and iron; trade now, post orders, your orders, auto-sell"],["3","🔬 Science","Research split, levels, costs, presets"],["4","⚔️ Army","Your army, supplies, train and dismiss troops"],["5","🎖️ Generals","Hire, dismiss, rest; choose the defender"],["6","🗡️ War","Wars, alliance relations, neighbors, defense, orders this year"],["7","🌍 World","Rankings of every state, recent wars"],["8","🤝 Allies","Alliances ranked; click one to open it"],["9","📰 News","Every report and battle, newest first"]])}
+${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders, money, stores, year ahead"],["2","⚖️ Market","Order books for grain, wood and iron; trade now, post orders, your orders, auto-sell"],["3","🔬 Science","Research split, levels, costs, presets"],["4","⚔️ Army","Your army, supplies, train and dismiss troops"],["5","🎖️ Generals","Hire, dismiss, rest; choose the defender"],["6","🗡️ War","Wars, alliances close to war, neighbors, defense, orders this year"],["7","🌍 World","Rankings of every state, recent wars"],["8","🤝 Allies","Alliances ranked, their relations with yours; click one to open it"],["9","📰 News","Every report and battle, newest first"]])}
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade).</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
