@@ -773,6 +773,7 @@ function worldFeatures(W,H,cells,seed){
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const i=y*W+x; if(cells[i]===-2) continue;
     const sx=(x+0.5)*SW/W-0.5, sy=(y+0.5)*SH/H-0.5, j=0.35*(nz[i]-0.5)+0.25*(nz2[i]-0.5);
     if(samp(L[2],sx,sy)+j>0.5) f[i]=2; else if(samp(L[1],sx,sy)+j>0.5) f[i]=1; }
+  const near=shoreStrip(W,H,cells,Math.max(1.2,W/SW*1.2),nz2); for(let i=0;i<f.length;i++) if(near[i]) f[i]=0; // open land along coasts and rivers
   return f;
 }
 function worldMap(W,H){
@@ -1459,27 +1460,41 @@ function makeGeneral(g,age,speed,mind){
 // ---------- terrain features: forests and mountains ----------
 // g.feat: 0 open land, 1 forest, 2 mountains. Fixed for the whole game, whoever owns the land. Uses its own dice
 // (from the seed), so adding it doesn't change the rest of a seed's map. `unit` = typical state width in cells.
+// land next to water stays open: a ragged strip k cells wide (0.6k..1.4k, from `noise`) along every shore and river bank,
+// so forests and mountains end before the water instead of being cut off by it. Returns 1 for cells in the strip.
+function shoreStrip(W,H,cells,k,noise){
+  const N=W*H, d=new Int32Array(N).fill(1e9), q=new Int32Array(N), out=new Uint8Array(N), K=Math.ceil(k*1.4); let h=0,t=0;
+  for(let i=0;i<N;i++) if(cells[i]===-2){ d[i]=0; q[t++]=i; }
+  while(h<t){ const i=q[h++], nd=d[i]+1, x=i%W; if(nd>K) continue;
+    if(x>0&&d[i-1]>nd){d[i-1]=nd;q[t++]=i-1;} if(x<W-1&&d[i+1]>nd){d[i+1]=nd;q[t++]=i+1;}
+    if(i>=W&&d[i-W]>nd){d[i-W]=nd;q[t++]=i-W;} if(i+W<N&&d[i+W]>nd){d[i+W]=nd;q[t++]=i+W;} }
+  for(let i=0;i<N;i++) if(cells[i]!==-2&&d[i]<=k*(0.6+0.8*noise[i])) out[i]=1;
+  return out;
+}
 function makeFeatures(W,H,cells,unit,seed,fShare=R.forestShare??0.16,mShare=R.mtnShare??0.08){
   const rnd=mulberry32((seed^0x5f3759df)>>>0), N=W*H, f=new Uint8Array(N);
   // mountains: thin winding chains where a smooth noise field crosses its middle value, only in some regions
   const a=valueNoise(W,H,unit*1.8,rnd), d=valueNoise(W,H,unit*0.6,rnd), reg=valueNoise(W,H,unit*4,rnd);
   // forests: soft blobs a bit under a state wide, with ragged edges
   const b=valueNoise(W,H,unit*1.3,rnd), e=valueNoise(W,H,unit*0.5,rnd), h=valueNoise(W,H,unit*0.22,rnd);
-  const sm=t=>t<=0?0:t>=1?1:t*t*(3-2*t);
+  const sm=t=>t<=0?0:t>=1?1:t*t*(3-2*t), near=shoreStrip(W,H,cells,Math.max(1.5,unit*0.09),valueNoise(W,H,Math.max(3,unit*0.3),rnd));
   const ms=new Float32Array(N), fs=new Float32Array(N), land=[];
   for(let i=0;i<N;i++){ if(cells[i]===-2) continue; land.push(i);
     ms[i]=(1-Math.abs(a[i]+0.3*(d[i]-0.5)-0.5)*2)*(0.1+0.9*sm((reg[i]-0.3)/0.25)); // mostly in mountain regions, but every cell can rank
     fs[i]=b[i]+0.45*e[i]+0.2*h[i]; }
-  const cut=(v,share,ok)=>{ const s=[]; for(let k=0;k<land.length;k+=Math.max(1,(land.length/40000)|0)){ const i=land[k]; if(ok(i)) s.push(v[i]); }
-    s.sort((x,y)=>y-x); return s.length?s[Math.min(s.length-1,Math.floor(s.length*share))]:Infinity; };
+  // shares are of all land, picked from land away from water (so the strip doesn't shrink them)
+  let open=0; for(const i of land) if(!near[i]) open++; const sc=land.length/Math.max(1,open);
+  const cut=(v,share,ok)=>{ const s=[]; for(let k=0;k<land.length;k+=Math.max(1,(land.length/40000)|0)){ const i=land[k]; if(!near[i]&&ok(i)) s.push(v[i]); }
+    s.sort((x,y)=>y-x); return s.length?s[Math.min(s.length-1,Math.floor(s.length*Math.min(1,share*sc)))]:Infinity; };
   mShare=Math.max(0,Math.min(1,mShare)); fShare=Math.max(0,Math.min(1-mShare,fShare));
-  if(mShare>0){ const tm=cut(ms,mShare,()=>true); for(const i of land) if(ms[i]>=tm) f[i]=2; }
+  if(mShare>0){ const tm=cut(ms,mShare,()=>true); for(const i of land) if(!near[i]&&ms[i]>=tm) f[i]=2; }
   const tf=fShare>0?cut(fs,fShare/Math.max(0.01,1-mShare),i=>f[i]!==2):Infinity;
-  for(const i of land) if(!f[i]&&fs[i]>tf) f[i]=1;
+  for(const i of land) if(!near[i]&&!f[i]&&fs[i]>tf) f[i]=1;
   // tidy: drop lone cells, fill pinholes (one pass of a 3x3 majority per kind)
   const c=f.slice();
   for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++){ const i=y*W+x; if(cells[i]===-2) continue;
     const cnt=[0,0,0]; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const j=i+dy*W+dx; if(cells[j]!==-2) cnt[c[j]]++; }
+    if(near[i]) continue;
     if(c[i]&&cnt[c[i]]<=2) f[i]=0; else if(!c[i]){ if(cnt[2]>=6) f[i]=2; else if(cnt[1]>=6) f[i]=1; } }
   return f;
 }
@@ -4158,6 +4173,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Terrain stops at the shore","2026-11-12 18:18",["Forests and mountains end a little before coasts and rivers instead of running into the water"]],
 ["Spruce forests","2026-11-12 18:14",["Forests drawn as spruces of different sizes"]],
 ["Terrain sliders","2026-11-12 18:11",["New game: Forests and Mountains sliders for generated maps (together up to 100% of the land)","Lighter forest and mountain shading"]],
 ["Real terrain on the World map","2026-11-12 18:09",["World map forests and mountains sit where they are on Earth: the Alps, Andes, Himalayas, Rockies, the Amazon, Congo and Siberian taiga"]],
@@ -4449,7 +4465,7 @@ ${STANCE_UI.map(([id,ic,nm])=>{ const k=STANCE_KEY[id]; return `<tr><td>${ic} ${
 <li><b>Sea routes</b> (dashed lines on pre-made maps) count as borders. An attack that only crosses the sea gives defenders +${gP(R.seaBonus)} instead of the narrow-front bonus.</li>
 <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering unowned land settles ${R.settleBase} km² plus ${gP(R.settleRate)} of its own size a year, no army needed (times Expansion research).</li>
 <li><b>Coasts:</b> land next to water harvests more (see Food).</li>
-<li><b>Forests and mountains:</b> new maps have forest patches (a darker shade of the owner's color, with little spruces) and mountain ranges (a lighter shade, with peaks). They stay put whoever owns the land. On the World map they sit where real forests and mountains are; on generated maps you choose how much of the land each covers when you set up the game (together up to 100%). For now they only change how the map looks.</li></ul>`],
+<li><b>Forests and mountains:</b> new maps have forest patches (a darker shade of the owner's color, with little spruces) and mountain ranges (a lighter shade, with peaks). They stay put whoever owns the land. They stop a little before coasts and rivers, leaving open land along the water. On the World map they sit where real forests and mountains are; on generated maps you choose how much of the land each covers when you set up the game (together up to 100%). For now they only change how the map looks.</li></ul>`],
 ["attack","Military","🗡️","Planning an attack",()=>`
 <ol class="glist"><li>Open the <b>War</b> tab, or click a neighbor on the map and press <b>Plan attack</b>.</li>
 <li>Pick a general, the attack mode and which troops go. The window estimates the defenders and gives a verdict: <i>Undefended</i>, <i>Favorable</i>, <i>Risky</i> or <i>Likely defeat</i>.</li>
