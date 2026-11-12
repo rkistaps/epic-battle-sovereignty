@@ -57,7 +57,7 @@ table.rank td:first-child{overflow:hidden;text-overflow:ellipsis;white-space:now
 .lvbox{display:inline-block;min-width:26px;text-align:center;font-weight:700;color:var(--acc);background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-variant-numeric:tabular-nums}
 .rsplit{display:grid;grid-template-columns:minmax(60px,1fr) auto;align-items:center;gap:2px 6px} .rsplit>input[type=range]{width:100%;margin:0} .rsplit .rctl{display:flex;align-items:center;white-space:nowrap} .rsplit>.bar{margin:0}
 .rbar{display:flex} .rbar>i{flex:none} .rbar>i.nxt{background:var(--good);opacity:.55}
-table.btab.mchain td:nth-child(2),table.btab.mchain th:nth-child(2){background:none} table.btab.mchain td:last-child,table.btab.mchain th:last-child{background:#ffffff08} .mchain td.op,.mchain th.op{color:var(--mut);padding:0 1px!important;text-align:center;font-weight:400} .mchain td{vertical-align:top}
+table.btab.mchain td:nth-child(2),table.btab.mchain th:nth-child(2){background:none} table.btab.mchain td{vertical-align:baseline} table.btab.mchain td:last-child,table.btab.mchain th:last-child{background:#ffffff08} .mchain td.op,.mchain th.op{color:var(--mut);padding:0 1px!important;text-align:center;font-weight:400}
 .aslot{display:inline-flex;justify-content:center;align-items:center;width:26px;flex:none} .aslot>button{padding:1px 3px;min-width:0}
 .lockbtn{padding:2px 4px;min-width:0;opacity:.55;background:none;border-color:transparent}
 .lockbtn.on{opacity:1;border-color:var(--acc)}
@@ -3379,29 +3379,30 @@ function bonusTable(c){
   const tr=(k,wk)=>[cv,ld,ln].map(o=>o?(W[wk??k]??1)*((o[k]??1)-1):0);
   const rw=(area,per,base=1,wonder=true)=>[per*lvl(c,area)/base, wonder?wonderMul(c,area)-1:0]; // research, wonder
   const births=[cv,ld,ln].map(o=>o?W.growth*((o.growth??1)-1)+W.foodBirths*((o.food??1)-1):0);
+  // same order as the research areas: [area, name, civ/leader/land, research+wonder, shore, total]
   const rows=[
-    ["Attack",     tr("attack"),            rw("atk",R.atkPerLevel),   0, atkPower(c)],
-    ["Defense",    tr("defense"),           rw("def",R.defPerLevel),   0, defPower(c)],
-    ["Food",     tr("food"),              rw("agri",R.agriPerLevel), shoreBonus(c), foodPerFarmer(c)/R.foodPerFarmer],
-    ["Wood", tr("wood"),              rw("wood",R.woodPerLevel), 0, M(c,"wood")*(1+R.woodPerLevel*lvl(c,"wood"))*wonderMul(c,"wood")],
-    ["Iron",      tr("iron"),              rw("iron",R.ironPerLevel), 0, M(c,"iron")*(1+R.ironPerLevel*lvl(c,"iron"))*wonderMul(c,"iron")],
-    ["Research",     tr("science"),           rw("sci",R.sciPerLevel),   0, M(c,"science")*(1+R.sciPerLevel*lvl(c,"sci"))*wonderMul(c,"sci")],
-    ["Taxes",               [0,0,0],                 rw("fin",R.finTaxPerLevel),0, (1+R.finTaxPerLevel*lvl(c,"fin"))*wonderMul(c,"fin")],
-    ["Sell prices",         [0,0,0],                 rw("fin",R.finPricePerLevel,1,false),0, 1+R.finPricePerLevel*lvl(c,"fin")],
-    ["Births",          births,                  rw("grow",R.growPerLevel,R.birthRate), 0, growthRate(c)/R.birthRate],
-    ["Capacity", tr("housing"),           rw("dens",R.densPerLevel,R.popPerKm), 0, M(c,"capacity")*(R.popPerKm+R.densPerLevel*lvl(c,"dens"))/R.popPerKm*wonderMul(c,"dens")],
-    ["Conquest", tr("explore"),           rw("explore",R.explorePerLevel), 0, exploreMul(c)],
+    ["sci","Research",     tr("science"),           rw("sci",R.sciPerLevel),   0, M(c,"science")*(1+R.sciPerLevel*lvl(c,"sci"))*wonderMul(c,"sci")],
+    ["agri","Food",        tr("food"),              rw("agri",R.agriPerLevel), shoreBonus(c), foodPerFarmer(c)/R.foodPerFarmer],
+    ["fin","Taxes",        [0,0,0],                 rw("fin",R.finTaxPerLevel),0, (1+R.finTaxPerLevel*lvl(c,"fin"))*wonderMul(c,"fin")],
+    ["fin","Sell prices",  [0,0,0],                 rw("fin",R.finPricePerLevel,1,false),0, 1+R.finPricePerLevel*lvl(c,"fin")],
+    ["dens","Capacity",    tr("housing"),           rw("dens",R.densPerLevel,R.popPerKm), 0, M(c,"capacity")*(R.popPerKm+R.densPerLevel*lvl(c,"dens"))/R.popPerKm*wonderMul(c,"dens")],
+    ["grow","Births",      births,                  rw("grow",R.growPerLevel,R.birthRate), 0, growthRate(c)/R.birthRate],
+    ["atk","Attack",       tr("attack"),            rw("atk",R.atkPerLevel),   0, atkPower(c)],
+    ["def","Defense",      tr("defense"),           rw("def",R.defPerLevel),   0, defPower(c)],
+    ["wood","Wood",        tr("wood"),              rw("wood",R.woodPerLevel), 0, M(c,"wood")*(1+R.woodPerLevel*lvl(c,"wood"))*wonderMul(c,"wood")],
+    ["iron","Iron",        tr("iron"),              rw("iron",R.ironPerLevel), 0, M(c,"iron")*(1+R.ironPerLevel*lvl(c,"iron"))*wonderMul(c,"iron")],
+    ["explore","Conquest", tr("explore"),           rw("explore",R.explorePerLevel), 0, exploreMul(c)],
   ];
-  // shown as a chain of multipliers: (civ + leader + land) × research × wonder × shore = total
-  const mul=(v,bold)=>{ const x=1+v; if(Math.abs(v)<0.005) return '<span class="mut">—</span>'; const t=`×${x.toFixed(2)}`; return `<span class="${v>0?"good":"bad"}">${bold?`<b>${t}</b>`:t}</span>`; };
-  const sg=v=>{ const r=Math.round(v*100); return r===0?"":`${r>0?"+":"−"}${Math.abs(r)}`; };
-  const hasW=rows.some(r=>Math.abs(r[2][1])>0.005), hasS=rows.some(r=>Math.abs(r[3])>0.005), names=[cv?.name,ld?.name,ln?.name];
+  // each row reads as a formula: (1 + civ + leader + land) × research × wonder × shore = total
+  const add=v=>{ const r=Math.round(v*100); return r===0?'<span class="mut">+0%</span>':`<span class="${r>0?"good":"bad"}">${r>0?"+":"−"}${Math.abs(r)}%</span>`; };
+  const mul=(v,bold)=>{ const t=`×${(1+v).toFixed(2)}`; if(Math.abs(v)<0.005) return `<span class="mut">${t}</span>`; return `<span class="${v>0?"good":"bad"}">${bold?`<b>${t}</b>`:t}</span>`; };
+  const sg=v=>{ const r=Math.round(v*100); return r===0?"":`${r>0?"+":"−"}${Math.abs(r)}%`; };
+  const hasW=rows.some(r=>Math.abs(r[3][1])>0.005), hasS=rows.some(r=>Math.abs(r[4])>0.005), names=[cv?.name,ld?.name,ln?.name], P='<td class="op">';
   return `<h3>Total bonuses ${gl("identity")}</h3>
-  <div class="stable"><table class="btab small mchain"><tr><th>Stat</th><th class="r" title="Civilization (${esc(names[0]||"")}), leader (${esc(names[1]||"")}) and land (${esc(names[2]||"")}) bonuses, added together">Civ+leader+land<div class="mut" style="font-size:10.5px;font-weight:400">civ · leader · land %</div></th><th class="op">×</th><th class="r">Research</th>${hasW?`<th class="op">×</th><th class="r">Wonder</th>`:""}${hasS?`<th class="op">×</th><th class="r" title="Shore farmland">Shore</th>`:""}<th class="op">=</th><th class="r">Total</th></tr>
-  ${rows.map(([name,t,[r,w],o,tot])=>{ const id=t.reduce((a,b)=>a+b,0), parts=t.map(sg), tip=["Civ.","Leader","Land"].map((n,k)=>`${n} ${parts[k]||"0"}%`).join(" + ");
-    return `<tr><td style="white-space:nowrap">${name}</td><td class="r" title="${tip}">${mul(id)}<div class="mut" style="font-size:10.5px">${parts.some(Boolean)?parts.map(x=>x||"0").join(" · "):""}</div></td><td class="op">×</td><td class="r">${mul(r)}</td>${hasW?`<td class="op">×</td><td class="r">${mul(w)}</td>`:""}${hasS?`<td class="op">×</td><td class="r">${mul(o)}</td>`:""}<td class="op">=</td><td class="r">${mul(tot-1,1)}<div class="mut" style="font-size:10.5px">${sg(tot-1)?sg(tot-1)+"%":""}</div></td></tr>`; }).join("")}
+  <div class="stable"><table class="btab small mchain"><tr><th>Stat</th><th class="op"></th><th class="r" title="Civilization: ${esc(names[0]||"")}">Civ.</th><th class="r" title="Leader: ${esc(names[1]||"")}">Leader</th><th class="r" title="Land: ${esc(names[2]||"")}">Land</th><th class="op"></th><th class="r">Research</th>${hasW?`<th class="r">Wonder</th>`:""}${hasS?`<th class="r" title="Shore farmland">Shore</th>`:""}<th class="op"></th><th class="r">Total</th></tr>
+  ${rows.map(([a,name,t,[r,w],o,tot])=>`<tr><td style="white-space:nowrap">${WONDERS[a]?.icon||""} ${name}</td>${P}(1</td>${t.map(v=>`<td class="r">${add(v)}</td>`).join("")}${P})</td><td class="r">${mul(r)}</td>${hasW?`<td class="r">${mul(w)}</td>`:""}${hasS?`<td class="r">${mul(o)}</td>`:""}${P}=</td><td class="r">${mul(tot-1,1)}<div class="mut" style="font-size:10.5px">${sg(tot-1)}</div></td></tr>`).join("")}
   </table></div>
-  <div class="small mut">Read each row left to right: your civilization, leader and land bonuses add up into one multiplier (the small numbers under it are civilization · leader · land in %), then research${hasW?", a held wonder":""}${hasS?" and shore farmland":""} multiply it. ×1.00 (—) is no change. A trait bonus keeps its full value however far research goes. Birth rate and capacity research are shown relative to the base rate (${+(R.birthRate*100).toFixed(2)}%/yr, ${R.popPerKm} people per km²).</div>`;
+  <div class="small mut">Each row is a formula: start from 1, add your civilization, leader and land bonuses, then multiply by research${hasW?", a held wonder":""}${hasS?" and shore farmland":""}. Your food: (1 ${rows[1][2].map(v=>`${v<0?"−":"+"}${Math.abs(Math.round(v*100))}%`).join(" ")}) × ${(1+rows[1][3][0]).toFixed(2)}${hasW?` × ${(1+rows[1][3][1]).toFixed(2)}`:""}${hasS?` × ${(1+rows[1][4]).toFixed(2)}`:""} = ×${rows[1][5].toFixed(2)}. A trait bonus keeps its full value however far research goes. Rows follow the research areas above. Birth rate and capacity research are shown relative to the base rate (${+(R.birthRate*100).toFixed(2)}%/yr, ${R.popPerKm} people per km²).</div>`;
 }
 function pScience(){
   const c=me(); const pts=researchPoints(c); const sumA=AREAS.reduce((s,a)=>s+Math.max(0,c.alloc[a]||0),0), tot=Math.max(100,sumA), free=Math.max(0,Math.round(100-sumA));
@@ -4029,7 +4030,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Clearer bonus table","2026-11-12 17:00",["Science tab: Total bonuses reads as a sum: civilization + leader + land × research = total","Each part shown as a multiplier (×1.20); the small line shows civilization · leader · land in %","Wonder and Shore columns only show when one of them counts"]],
+["Clearer bonus table","2026-11-12 17:00",["Science tab: each row of Total bonuses reads as a formula: (1 + civilization + leader + land) × research = total","Rows follow the research areas, with the same icons","Wonder and Shore columns only show when one of them counts"]],
 ["Simpler research levels","2026-11-12 16:43",["Every research level gives the same bonus; no max any more","Each level costs 1.8× the one before (the first costs 35 points)","Per-level bonuses adjusted: Science +6%, Agriculture +5%, Finance +4.7% taxes, Attack and Defense +6.5%, Expansion +3.7%, Pop. density +0.16, Pop. growth +0.11%","Overall research strength stays about the same as before","Saved games convert each area to the level with the nearest bonus"]],
 ["Share and progress together","2026-11-12 15:05",["Science tab: each area's share slider sits on top with its progress bar right under it, the same length","Longer sliders; shorter rows in a narrow panel","Progress bar shows in green how far next year's points will take it","Shares can add up to less than 100%: a warning shows how much research is unassigned and lost, with a Spread it button","Raising a share past 100% takes from the unlocked areas; lowering one no longer moves the others","Header buttons for all areas: ✕ clears unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all"]],
 ["Aligned research buttons","2026-11-12 15:02",["Science tab: sliders, ✕, ⏩ and 🔒 line up on every row"]],
