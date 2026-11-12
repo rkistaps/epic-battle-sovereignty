@@ -30,7 +30,7 @@ All code is in `index.html`. Function names are given rather than line numbers (
   │                                  │
   │              GENERALS ──────────►│
   │                                  ▼
-  └──── conquest, captured peasants ◄─ BATTLE ──► losses, grievances ──► RELATIONS ──► AI targeting
+  └──── conquest (land; all people + stocks of a wiped-out state) ◄─ BATTLE ──► losses, grievances ──► RELATIONS ──► AI targeting
                                        ▲                                                   │
                                        └──────── AI decisions (work, market, army, attacks) ◄┘
                                                    fear of a giant → wars (balance of power)
@@ -49,7 +49,7 @@ The order matters: it decides which systems see this year's values and which see
 **End turn (`endTurnNow`).** Auto-sell posts surplus grain at the market price for one year. Then `ENGINE.call("endTurn", G)` runs:
 
 1. Save migrations; logs reset; `g.avgLv` (world research average, used for catch-up pricing); `c.mod` recomputed for every state (settings changes apply).
-2. **AI turns** (`aiTurn`), in state-id order, **before the harvest**: work split, market (trades happen now, so later ids see a changed book), generals, recruiting, research allocation, attack orders. AI reads last year's relations, wars, market averages, and `c.wxSys` (next harvest's weather systems, rolled last year).
+2. **AI turns** (`aiTurn`), in state-id order, **before the harvest**: work split, market (trades happen now, so later ids see a changed book), generals, recruiting, research allocation, defense stance, attack orders. AI reads last year's relations, wars, market averages, and `c.wxSys` (next harvest's weather systems, rolled last year).
 3. **Battles**: attacks filtered (alive, general exists, adjacent, not allied, not peace time); attackers taken out of the army; the rest are guards. All attack strengths (with luck) computed first, then battles resolved one by one in shuffled order. Land, peasants and grain move; relations updated per battle (`relOnAttack`).
 4. `settle` (unowned land claimed), `computeShore`, `refreshWonders`.
 5. **Economy** per state (`economy`): harvest (× this year's weather) → eating → famine → spoilage → wood/iron → taxes − wages → empty treasury → births (none in a famine year) → research → generals age/train/recover → collapse below `minPop`.
@@ -58,7 +58,7 @@ The order matters: it decides which systems see this year's values and which see
 8. **Relations year** (`relYear`), **wars** (`warYear`: wars that ran their time end, new ones start from hostility), history, `turn++`, victory check. Computer declarations happen earlier, in step 2 (AI turns).
 
 Consequences:
-- Conquests, settling, shore and wonders are applied **before** the economy: new land and captured peasants farm, eat and pay tax the same year.
+- Conquests, settling, shore and wonders are applied **before** the economy: new land (and the people and stocks of a wiped-out state) farm, eat and pay tax the same year; a beaten state's people squeezed past its capacity are gone before the economy runs.
 - Weather is rolled a year ahead, so the AI and the player can see droughts coming (`c.wxSys`, "Weather ahead"). The random patches part is not shown ahead.
 - Troops hired this turn fight this turn. Troops sent to attack do not defend this turn.
 
@@ -73,8 +73,9 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Population = peasants + soldiers (scientists are peasants with a job; `c.sci` is a legacy field, always 0).
 - Capacity: `popCap = land × (popPerKm 3 + densPerLevel 0.15·lvl(dens)) × M(capacity) × wonder(dens)`.
 - Births: `(peasants + armyBirths 0.5 × soldiers) × growthRate × roomFactor(pop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. `roomFactor(x) = 1 − x^birthCurve` (24): births stay near full speed until ~80% full, peak near 87%, stop at capacity; above capacity `1 − x` (a gentle decline) *(your direction: growth should not slow from half full)*. None in a famine year.
-- Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants.
-- **Reads**: land (battle, settle), dens/grow research, identity, famine, battle losses and captures.
+- Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants (with `keepPeople`, the capacity trim can push it there).
+- Losing land in battle (`keepPeople`): peasants above the new capacity are removed at once, so a beaten state sits at about 0.95× capacity instead of overcrowding (a land-only test without the trim left losers at 3.5–5×).
+- **Reads**: land (battle, settle), dens/grow research, identity, famine, battle losses, the capacity trim of a beaten state and takeovers of wiped-out states.
 - **Writes**: taxes, food use, every job, research cost (size factor), AI decisions.
 - Notes: peasants drive births, taxes and all jobs, so population compounds. That is why housing and growth traits apply at 40% (`traitWeight`).
 
@@ -94,7 +95,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Harvest = farmers × foodPerFarmer × `c.wx` × `g.clim` (weather).
 - Use: 1 per peasant; troops eat their `upFood` (2; axe 3; cavalry 5).
 - Shortfall: `deficit × famineDeath 0.5` die, soldiers weighted ×1.5. Then the store spoils `foodSpoil` 10%.
-- **Reads**: work split, agri research, shore (land/borders), identity, weather, troop mix, market buys, loot.
+- **Reads**: work split, agri research, shore (land/borders), identity, weather, troop mix, market buys, stocks of a wiped-out state (and grain loot when `keepPeople` is off).
 - **Writes**: famine deaths, births (blocked by famine), market supply/demand, AI work split, `projectedNet`.
 
 ### 3.4 Weather
@@ -190,14 +191,17 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Reads**: gold. **Writes**: battle strength, land taken.
 
 ### 3.12 Battle
-- **Intent**: Defending is easier: +15%, narrow passes and sea crossings, and ties go to the defender, so attacking needs a clear edge. Narrow wins take little land; crushing wins take a lot. Sending troops away leaves home open the same year, so timing and home guard are real trade-offs. Conquest captures people and grain but not the treasury. *(inferred)*
+- **Intent**: Defending is easier: +15%, narrow passes and sea crossings, and ties go to the defender, so attacking needs a clear edge. Narrow wins take little land; crushing wins take a lot. Sending troops away leaves home open the same year, so timing and home guard are real trade-offs. A win brings land only: the beaten state keeps its people and goods up to what its land can hold, so it shrinks without being stripped, and winners must grow their own people (this slows mid-game snowballing). Wiping a state out pays: the winner takes all its people and stocks. *(your direction)*
 - Attack strength = troops' attack × capped tech × M(attack) × wonder × general × luck (±15%).
 - Defense = guards' defense (troops not sent this year, split between attackers by their strength) × capped tech × M(defense) × wonder × general × 1.15 × (1 + front bonus) × luck. Front bonus: +40% on a border ≤ 3 km, fading to 0 at 15 km; +15% for sea-only fronts.
-- Losses: attacker `0.7 × strD/(strA+strD)` (×1.2 if it lost), defender `0.7 × strA/(strA+strD)`, each ÷ toughness. No guards: attacker loses 2%.
+- Losses: attacker `0.7 × strD/(strA+strD)` (×1.2 if it lost), defender `0.7 × strA/(strA+strD)`, each × the defender's stance loss multiplier (the attacker's also × its attack mode's), capped at 100%, then ÷ toughness. No guards: attacker loses 2% (no stance).
 - Win if strA > strD. Decisiveness 25% at a narrow win, 100% at 2×.
-- Land taken = `min((speedCap + 2√survivors) × exploreMul × decisiveness, survivors × holds)`, at least 1.
-- Captures: the share of land taken moves the same share of peasants (80% arrive) and half the same share of grain. Gold, wood and iron are not looted. An eliminated state's stocks vanish.
-- **Reads**: troops, generals, atk/def/explore research, identity, wonders, map fronts, AI/player orders.
+- Land taken = `min((speedCap + 2√survivors) × exploreMul × decisiveness × m, survivors × holds × m)` × the defender's stance land multiplier, at least 1, where `m` is the attack mode's land multiplier (it scales the hold cap too, so extra losses don't eat the gain).
+- Attack mode (`a.mode` on the order; older orders: normal). Normal `atLossNormal 1` / `atLandNormal 1`. Assault `atLossAssault 1.15` / `atLandAssault 1.1`: more of the attacker's own losses for more land; the defender's losses are unchanged. Stacks with the stance (assault vs stand ground: attacker ×1.61 losses, land ×0.55; vs fall back: ×0.69, land ×1.1). Shown in the battle report (`det.md`). *(your direction: started at 1.4/1.5, cut to 1.1/1.1 as too drastic; losses then set to 1.15, where a forced test (half the states always assault, half never) came out even: 47% vs 53% of world land at year 150, against 60/40 at 1.1 and 43/57 at 1.2)*
+- Defense stance (`c.stance`, one per state for the year; older saves: hold). Fall back `stLossFall 0.6` / `stLandFall 1`: a cheaper fight for both sides, same land. Hold: 1 / 1. Stand ground `stLossStand 1.4` / `stLandStand 0.5`: bloodier for both, half the land. Only applies when there are guards. Hidden from other states; the battle report shows it (`det.st` = [stance, loss ×, land ×]). The player sets it on the War tab. *(your direction: fall back and hold are about troops only; stand ground is the one stance that trades lives for land)*
+- Spoils (`keepPeople` true, the default): the winner gets only land. The people on it move to the beaten state's remaining land; peasants and scientists above its `popCap` are removed in proportion (soldiers never). If the state is wiped out (no land, or under `minPop`), the winner takes all its peasants and scientists (as peasants) and all its gold, grain, wood and iron; its soldiers are lost. No trim when no land is left, so the winner gets everyone. A trim that leaves fewer than `minPop` peasants (soldiers fill most of the capacity) makes the state fall at once, handing over only what is left.
+- With `keepPeople` false (the old rule): the share of land taken moves the same share of peasants (`capturedPeasants` 80% arrive) and `lootGrain` 50% of the same share of grain; a wiped-out state gives half its peasants and its stocks vanish.
+- **Reads**: troops, generals, atk/def/explore research, identity, wonders, map fronts, AI/player orders (incl. attack mode), the defender's stance.
 - **Writes**: land (→ capacity, production, shore, wonders), population on both sides, research cost (size), relations, general skill/morale, AI memory (`lastWar`, `lostRecent`, `sentShare`, `openTurn`).
 
 ### 3.13 Territory and map
@@ -260,6 +264,8 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.17 Computer players (AI)
 - **Intent**: Play by the same rules as the player: no free resources (difficulty only scales research and how bold it is). Personalities differ so each world plays differently. The AI should use every lever the player has. *(inferred)*
 - Runs every system above for computer states: work split, market, generals, recruiting, defense, research allocation, attacks. Personality from the leader (`mil`, `guard`), a per-state random lean (`kk`), and difficulty (research ×0.8/1/1.15, earlier war phase, smaller attack edge needed `[1.7, 1.35, 1.2]`).
+- Attack mode: assault when it can send `aiAssaultEdge` 1.5× the troops needed and wants land (at least `aiAtkFull` full, at war, or the target holds a wonder); never for a grudge-only attack. In simulation about 34–44% of battles are assaults (most come from wars). Its send size counts the assault's extra land and losses.
+- Defense stance: stand ground once land is under `aiLastStand` 50% of its biggest ever (`c.landMax`) or while holding a wonder in a war; fall back when its army's defense is under `aiFallBack` 50% of the strongest neighbor's threat; otherwise hold. In simulation about 22–34% of state-years fall back and 1–3% stand ground. Attack planning ignores the target's stance (it is hidden).
 - Attack decision: estimate the target's guard (with noise), apply relations, wars and exposure, send enough to win by the edge and hold the land, keep a home guard. At most 2 attacks a year; a stalemate breaker makes it bolder after 5–25 idle years.
 - **Every new system needs an AI side.** If the AI ignores a lever the player has, the player gets a free edge and the world drifts away from the player's experience.
 
@@ -287,7 +293,7 @@ Rows act on columns (● strong, ○ weak).
 | Identity | ● | | ● | | ● | | ● | | ● | ● | | ● (persona) |
 | Troops | ● | | ● | ○ | ● | ○ | | | ● | | | ● |
 | Generals | | | | ○ | | | | | ● | ● | | |
-| Battle | ● | | ○ (loot) | | | | ○ (size) | ● | | ● | ● | ● |
+| Battle | ● | | ○ (wipe-out) | | | | ○ (size) | ● | | ● | ● | ● |
 | Land | ● (capacity) | | ○ (shore) | | | | | | ● (fronts) | ● (settle) | ○ (fear) | ● |
 | Relations | | | | | | | | | | | | ● |
 | AI | ● | ● | | | | ● | ● | ● | ● | | | |
@@ -295,7 +301,7 @@ Rows act on columns (● strong, ○ weak).
 ## 5. Feedback loops
 
 Positive (snowball) loops, and what brakes them:
-- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, captured peasants arrive at 80%, fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
+- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, conquest brings land but no people (only a wipe-out hands over people and stocks), fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
 - **Science → research points.** Brakes: cost exponent 2.5, size cost, lead penalty, caps, scientist wages vs tax.
 - **Land → settling budget.** Brake: unowned land runs out.
 - **Grudges → revenge → new grudges.** Brakes: revenge clears grievance, justified strikes count half, floors, cooldowns.
@@ -306,17 +312,23 @@ Negative (stabilising) loops:
 - Merchant prices climb while states keep buying from them, so demand dies out in a long shortage.
 - Famine kills soldiers first (×1.5), shrinking food use.
 - Empty treasury sends soldiers and scientists home.
+- Defense stance: outgunned states fall back, which slows how fast both armies wear down and so slows conquest; states that lost half their land stand ground, so the last cells cost more lives to take.
 
 ## 6. Balance anchors
 
-Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11/12/13, observer mode):
+Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11–16 (11/12/13 for quick checks), observer mode). Refreshed with `keepPeople`, defense stances and assault (2026-11-12); the old ranges had drifted with the map changes before them:
 
 | Measure | Expected range |
 |---|---|
-| States alive at year 30 | 45–51 |
-| States alive at year 150 | 10–18 |
-| Average gold at year 30 | 3–6k |
-| Average research levels (sum of areas) at year 150 | 105–125 |
+| States alive at year 30 | 59–60 |
+| States alive at year 90 | 37–48 (6 seeds 11–16; without stances and assault: 31–39; old spoils rule: 3–36) |
+| States alive at year 150 | 5–17 (old spoils rule: 1–9) |
+| Biggest state's share of world land at year 150 | 24–42% (old spoils rule: 37–100%) |
+| Games with one state left by year 300 (seeds 11–13) | 1 of 3 (old spoils rule: 3 of 3) |
+| Average gold at year 30 | 6–7k |
+| Average research levels (sum of areas) at year 150 | 138–185 |
+| Defense stances (share of state-years) | fall back 23–34%, stand ground 1–3% |
+| Assaults (share of battles) | 34–44% |
 | Famine collapses in 150 years | 0 |
 | Grain sold to merchants (share of world food use) | about 3% |
 | States with an empty treasury | well under 0.1% of state-years |
@@ -365,12 +377,14 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 - The empty-treasury rule rewrites `c.work.sci`, including the player's setting.
 - `workers()` floors each job, so rounding always adds farmers.
 - Elimination thresholds differ: battle checks peasants < 20, famine collapse checks population < 20.
-- An eliminated state's gold, wood and iron vanish.
+- An eliminated state's gold, wood and iron vanish only with `keepPeople` off; otherwise the winner takes them.
+- `keepPeople`: a beaten state whose soldiers nearly fill its remaining capacity loses its peasants to the trim and falls at once, even with land left; the winner then gets few or no people (only its stocks). Handing over the untrimmed people instead was tested: endgame much faster (states alive at year 150: 4/1/3), so it was dropped.
 - Battle order is random; an earlier battle can make later ones on the same target do nothing.
 - The AI research allocation is a fixed table; it ignores costs, caps and wonders.
 - AI difficulty scales only research (and AI thresholds), not the economy.
 - The `R` comment on `aiSellFrac` says 30% but the value is 0.5.
 - The `placeWonders` comment says six wonders; ten are placed.
+- AI attack loop: the "plenty of room at home: no land grab" skip tests `tg.o.wb`, which is always an object (`{}`), so it never skips; states with room still attack for land. Left as is: fixing it changes pacing and needs its own simulation.
 - **Arms race in peace** (left as is, by choice): a computer state's threat is its strongest neighbor's *whole* army (relations shift it at most ±40%), and both the strong-neighbor minimum (up to 20% of people) and the defense top-up (up to 30% in peace) follow it, so armed neighborhoods keep each other at ~25–33% army even in peace. Halving peaceful neighbors' threat (`aiPeaceThreat` 0.5) left states under-defended and sped conquest up a lot. Candidate fixes: count only the share of a neighbor's army that could reach us (split across its fronts or by shared border), and count our defender bonus (+15%) and narrow-front/sea bonuses in the defense target.
 
 ## 10. Keeping this map current
@@ -404,11 +418,10 @@ Intents the code can't answer. When one is decided, write the answer into the sy
 2. **Victory**: should a peaceful research or economy strategy be able to win (or at least survive to the end), or is conquest the only path?
 3. **Weather**: should it reward states that keep big grain stores? Should a drought make computer states more likely to attack a fertile neighbour?
 4. **Alliances**: should they stay fixed, or form and break during play (relations could drive it)?
-5. **Conquest loot**: should a defeated or eliminated state's gold, wood and iron go to the winner instead of vanishing?
-6. **Balance of power**: fear (and so fear wars) is measured by land only; should it use overall power (population, army, research)? Should alliances count as one bloc?
-7. **Difficulty**: should harder levels give computer states economic bonuses, or only smarter and bolder play?
-8. **Market**: should relations block trade later (hostile states can't buy from each other)? Is merchants paying 0.9× normal for grain the intended income level for farming states?
-9. **Research**: should computer states adapt their research to their situation (costs, caps, wonders, threats) instead of a fixed table?
+5. **Balance of power**: fear (and so fear wars) is measured by land only; should it use overall power (population, army, research)? Should alliances count as one bloc?
+6. **Difficulty**: should harder levels give computer states economic bonuses, or only smarter and bolder play?
+7. **Market**: should relations block trade later (hostile states can't buy from each other)? Is merchants paying 0.9× normal for grain the intended income level for farming states?
+8. **Research**: should computer states adapt their research to their situation (costs, caps, wonders, threats) instead of a fixed table?
 
 ## 12. Planned: war and peace (designed, not built yet)
 
