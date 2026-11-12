@@ -34,6 +34,8 @@ All code is in `index.html`. Function names are given rather than line numbers (
                                        ▲                                                   │
                                        └──────── AI decisions (work, market, army, attacks) ◄┘
                                                    fear of a giant → wars (balance of power)
+  conquest ──► LOYALTY ──(too low)──► REVOLT: land, people, troops, goods → new rebel states (Rebel Alliance, at war with the parent)
+                 ▲  quiet years, festivals (gold)        ▼ unrest: taxes −10%
 ```
 
 **The one resource everything competes for is people.** Each peasant is either a farmer, woodcutter, miner or scientist (the work split), or is turned into a soldier. Only peasants pay tax and have children. So every system that uses people (research, army, production) takes from the others and from growth. Most balance questions come down to "what is one person worth in this job vs that one?"
@@ -51,13 +53,14 @@ The order matters: it decides which systems see this year's values and which see
 1. Save migrations; logs reset; `g.avgLv` (world research average, used for catch-up pricing); `c.mod` recomputed for every state (settings changes apply).
 2. **AI turns** (`aiTurn`), in state-id order, **before the harvest**: work split, market (trades happen now, so later ids see a changed book), generals, recruiting, research allocation, defense stance, attack orders. AI reads last year's relations, wars, market averages, and `c.wxSys` (next harvest's weather systems, rolled last year).
 3. **Battles**: attacks filtered (alive, general exists, adjacent, not allied, not peace time); attackers taken out of the army; the rest are guards. All attack strengths (with luck) computed first, then battles resolved one by one in shuffled order. Land, peasants and grain move; relations updated per battle (`relOnAttack`).
-4. `settle` (unowned land claimed), `computeShore`, `refreshWonders`.
+4. `settle` (unowned land claimed), `loyaltyYear` (loyalty moves from this year's conquests and settling; states under `loyRevolt` may `revolt`, creating rebel states), `computeShore`, `refreshWonders`.
 5. **Economy** per state (`economy`): harvest (× this year's weather) → eating → famine → spoilage → wood/iron → taxes − wages → empty treasury → births (none in a famine year) → research → generals age/train/recover → collapse below `minPop`.
 6. **Market year** (`mkYear`): orders age and expire, the market price is updated, merchant prices reset, merchants take orders that beat them (`mkSweep`).
 7. **Weather** (`mkWeather`): systems drift/merge/clash/spawn; next year's `c.wx` and `c.wxSys` are rolled.
 8. **Relations year** (`relYear`), **wars** (`warYear`: wars that ran their time end, new ones start from hostility), history, `turn++`, victory check. Computer declarations happen earlier, in step 2 (AI turns).
 
 Consequences:
+- Rebel states are created before the economy, so they farm, eat and pay tax the year they break away; famine and an empty treasury cost loyalty in the economy step, which counts toward next year's revolt check.
 - Conquests, settling, shore and wonders are applied **before** the economy: new land (and the people and stocks of a wiped-out state) farm, eat and pay tax the same year; a beaten state's people squeezed past its capacity are gone before the economy runs.
 - Weather is rolled a year ahead, so the AI and the player can see droughts coming (`c.wxSys`, "Weather ahead"). The random patches part is not shown ahead.
 - Troops hired this turn fight this turn. Troops sent to attack do not defend this turn.
@@ -75,7 +78,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Births: `(peasants + armyBirths 0.5 × soldiers) × growthRate × roomFactor(pop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. `roomFactor(x) = 1 − x^birthCurve` (24): births stay near full speed until ~80% full, peak near 87%, stop at capacity; above capacity `1 − x` (a gentle decline) *(your direction: growth should not slow from half full)*. None in a famine year.
 - Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants (with `keepPeople`, the capacity trim can push it there).
 - Losing land in battle (`keepPeople`): peasants above the new capacity are removed at once, so a beaten state sits at about 0.95× capacity instead of overcrowding (a land-only test without the trim left losers at 3.5–5×).
-- **Reads**: land (battle, settle), dens/grow research, identity, famine, battle losses, the capacity trim of a beaten state and takeovers of wiped-out states.
+- **Reads**: land (battle, settle), dens/grow research, identity, famine, battle losses, the capacity trim of a beaten state and takeovers of wiped-out states, revolts (people leave with the land).
 - **Writes**: taxes, food use, every job, research cost (size factor), AI decisions.
 - Notes: peasants drive births, taxes and all jobs, so population compounds. That is why housing and growth traits apply at 40% (`traitWeight`).
 
@@ -96,7 +99,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Use: 1 per peasant; troops eat their `upFood` (2; axe 3; cavalry 5).
 - Shortfall: `deficit × famineDeath 0.5` die, soldiers weighted ×1.5. Then the store spoils `foodSpoil` 10%.
 - **Reads**: work split, agri research, shore (land/borders), identity, weather, troop mix, market buys, stocks of a wiped-out state (and grain loot when `keepPeople` is off).
-- **Writes**: famine deaths, births (blocked by famine), market supply/demand, AI work split, `projectedNet`.
+- **Writes**: famine deaths, births (blocked by famine), market supply/demand, AI work split, `projectedNet`, loyalty (a famine year −`loyFamine`).
 
 ### 3.4 Weather
 - **Intent**: Outside shocks that give reasons to trade and to fight: drought states grow weak or desperate, fertile ones rich. Weather systems travel, end and restart elsewhere after a gap, several at once, and bad ones meeting make something worse *(your direction)*. They last decades and show a year ahead so players can plan: stockpile, buy early, farm more. Local yearly noise is texture only and must never outweigh a system *(your direction)*.
@@ -115,8 +118,8 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Wages: scientists × 3.5 + troops × `upGold` (only cavalry, 6).
 - Empty treasury: debt forgiven, but `ceil(−money/2)` soldiers go home, then scientists are cut.
 - Sinks: troop gold cost (cavalry), generals (`genPrice`, mind is exponential), market buys and buy orders (gold held). Sources: taxes, market sales (Finance adds +1.5%/level to what sellers get).
-- **Reads**: population, fin research, market.
-- **Writes**: research (can I pay scientists?), army (cavalry, generals, buying wood/iron), AI decisions (`projectedNet`, money dump into soldiers above `6·wages + 3000`).
+- **Reads**: population, fin research, market, loyalty (unrest: taxes −`loyUnrestTax` below `loyUnrest`).
+- **Writes**: research (can I pay scientists?), army (cavalry, generals, buying wood/iron), AI decisions (`projectedNet`, money dump into soldiers above `6·wages + 3000`), loyalty (festivals; an empty treasury −`loyBroke`).
 - Notes: one scientist costs about six peasants' tax. That ratio is the main brake on research.
 
 ### 3.6 Wood and iron
@@ -205,7 +208,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Spoils (`keepPeople` true, the default): the winner gets only land. The people on it move to the beaten state's remaining land; peasants and scientists above its `popCap` are removed in proportion (soldiers never). If the state is wiped out (no land, or under `minPop`), the winner takes all its peasants and scientists (as peasants) and all its gold, grain, wood and iron; its soldiers are lost. No trim when no land is left, so the winner gets everyone. A trim that leaves fewer than `minPop` peasants (soldiers fill most of the capacity) makes the state fall at once, handing over only what is left.
 - With `keepPeople` false (the old rule): the share of land taken moves the same share of peasants (`capturedPeasants` 80% arrive) and `lootGrain` 50% of the same share of grain; a wiped-out state gives half its peasants and its stocks vanish.
 - **Reads**: troops, generals, atk/def/explore research, identity, wonders, map fronts and their forest/mountain cells, AI/player orders (incl. attack mode), the defender's stance, the attacker's free room (kidnap), both sides' stocks (raid).
-- **Writes**: land (→ capacity, production, shore, wonders), population on both sides, research cost (size), relations, general skill/morale, AI memory (`lastWar`, `lostRecent`, `sentShare`, `openTurn`).
+- **Writes**: land (→ capacity, production, shore, wonders), population on both sides, research cost (size), relations, general skill/morale, AI memory (`lastWar`, `lostRecent`, `sentShare`, `openTurn`), loyalty (cells won: `loyGain` counts them as conquest or retake).
 
 ### 3.13 Territory and map
 - **Intent**: Land is the prize. Unowned land at the start is a race; coasts are worth more (food). Collapsed states' land goes to whoever settles it first. *(inferred)*
@@ -214,7 +217,8 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Settling: each state bordering unowned land claims `(5 + 2% of its land) × exploreMul` a year. Unowned land comes from the map start and from collapsed states.
 - Shore: land cells next to water → harvest bonus. Land type is fixed at start even if the coast is lost.
 - Forests and mountains (`makeFeatures`, `g.feat`: 0 open, 1 forest, 2 mountains): fixed per map, own dice from the seed (the rest of a seed's map is unchanged). Mountains: thin winding ranges where a value-noise field crosses its middle, only in some regions, share of land from the setup's Mountains slider (default 8%, `opts.mtn`; fallback `R.mtnShare`). Forests: noise blobs about a state wide, share from the Forests slider (default 16%, `opts.forest`; fallback `R.forestShare`; forests + mountains ≤ 100%). World map: real terrain instead (`WORLD_FEAT`, 0.5° grid like `WORLD`, built from NASA Blue Marble canopy colour and NOAA ETOPO1 shaded-relief roughness, both public domain; ~11% mountains, ~14% forest of land (densest canopy only)), scaled with a little noise on the edges (`worldFeatures`). Both kinds stop short of water: `shoreStrip` keeps a ragged strip of open land along coasts and rivers (~2 cells on generated maps, ~1 on the World map); generated-map shares are of all land but picked from land outside the strip, so high slider values come out a bit lower. Forest land raises wood and mountain land iron (`forestBonus`/`mtnBonus`, like shore: `forestYield`/`mtnYield` 1 = +1% per 1% of land, max `forestMax`/`mtnMax` 25%); counted per state in `computeShore` (`c.forest`, `c.mtn`) whenever borders move. Borders through forest/mountains also defend better (see 3.12). Saves made before this have no `feat` and show no terrain.
-- **Reads**: battles, collapses, explore research. **Writes**: capacity, production (shore food, forest wood, mountain iron), wonders, fronts, adjacency.
+- **Reads**: battles, collapses, explore research, revolts (land handed to new rebel states). **Writes**: capacity, production (shore food, forest wood, mountain iron), wonders, fronts, adjacency, loyalty (settling lowers it a little; land share sets the ceiling).
+- The list of states can grow mid-game (rebels): new ids are appended to `g.countries`, `ADJ` is dropped and `OWNED` gets a new entry; `g.cells` holds up to 32,767 ids.
 
 ### 3.14 Relations
 - **Intent**: Aggression has memory and reaches beyond the victim: neighbours grow wary, allies hold solidarity, peace slowly builds trust. Revenge is understandable (a strike back counts half). The world should react to the player believably, not randomly. *(inferred from comments)*
@@ -229,7 +233,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - A computer state declares only when it has no war and no rest years left; it can be declared on (and drawn into hostility wars) any time. While at war it attacks only its enemies.
 - Each war lasts `warMin`–`warMax` (8–15) years or until a side is eliminated. At the end grievance, solidarity and wariness between the two reset (fear stays); both get `warRest` 5 years without declaring, and the pair can't go to war again in that time.
 - No wars during the game's peace years. The player can't declare war; their attacks can start one through the victim's hostility, and computer states can declare on them.
-- **Reads**: relations (all factors), battles (through relations), land and capacity (land hunger), settling (`c.settleT`), army strength, leaders, wonders.
+- **Reads**: relations (all factors), battles (through relations), land and capacity (land hunger), settling (`c.settleT`), army strength, leaders, wonders, revolts (each rebel state starts a war with its parent, `why: "rebels"`).
 - **Writes**: AI target choice (enemies only while at war), relations (declaration hit, reset at peace), news (year report to both sides, and to humans bordering or allied to either side).
 - **Player sees**: War tab "Wars" section (each war, since when, how it started; count of other known wars), ⚔️ on enemies in the neighbors list and in the map tooltip, a "Wars" map view (your enemies red, states at war orange, at peace grey).
 - Notes: in 60-state games, about 100–120 wars per 150 years; most start from hostility, 3–16 are declared; states are at war ~30% of the time; ~2/3 of battles happen inside wars; 30–50% of wars start mostly from fear (the planned replacement of the coalition mechanic).
@@ -244,7 +248,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - Research: density `aiDensPeace` 14 → `aiDensWar` 4, growth `aiGrowPeace` 6 → `aiGrowWar` 18; the difference comes from science.
 - **Fullness and attacks** (not at war) *(your direction)*: below `aiAtkRoom` 70% full a state attacks only out of a grudge, fear or for a wonder; from 70% to `aiAtkFull` 90% the edge it needs falls from +`aiAtkRoomEdge` 50% to normal. At war, fullness doesn't matter. Effect: attacks outside wars by states under 70% full fell from 49% to 17%; conquest slower in mid-game (1000 states: 741 left at year 60 instead of 547), endgame similar (48 vs 41 at year 150). (Until 2026-11-12 the wonder test was always true, so this skip never fired; fixing it changed little: 60 states, year 150: 6–9 alive instead of 5–12, biggest state 21–32% instead of 24–40%; 1000 states: 131–179 alive instead of 129–157.)
 - **Interior states** (only allied neighbors, sea routes count): a token army of `aiInteriorArmy` 2%, sending `aiInteriorCut` 20% of the surplus home a year; scientist cap +15%; research sci 35, density 30, agri 10, fin 10, growth 5, wood 5, iron 5; no spare gold into soldiers. Back to normal as soon as a non-allied neighbor appears.
-- **Reads**: wars, neighbors and their armies (threat), relations, population and capacity, gold.
+- **Reads**: wars, neighbors and their armies (threat), relations, population and capacity, gold. Loyalty doesn't change footing; rebel states start at footing 0.5.
 - **Writes**: army size, peasants (births, work), research allocation, scientists.
 - Notes: armies react to neighbors' armies (an arms race): peaceful states still sit around 20–30% army by mid-game next to armed neighbors. Discounting peaceful neighbors' threat (`aiPeaceThreat` < 1) lowered peace armies but left states under-defended and conquest got much faster, so it stays 1. Effect in simulation: early conquest slower (60 states: ~50 left at year 30 instead of ~40; 1000 states: 854 left at year 30 instead of 686), states fuller (≈99% at year 60), endgame unchanged.
 
@@ -254,7 +258,8 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Alliance relations** (`g.arel["i>j"]`, −100..100, starting at 0): each year move `arStep` 10% toward how members feel about the other alliance's members (averaged over bordering pairs, weighted by land; no shared border: toward 0), plus direct hits: −`arWar` 1 per year of each state war between members, −`arBattle` 0.3 per battle between members (−`arBattleBig` 0.6 if over 10% of the defender's land is taken). No fear at this level.
 - **Alliance wars** (`g.awars`: `{a, b, from, to}` between team indexes): start when an alliance's relation toward another reaches `awarHostile` −40 and that alliance isn't already in an alliance war (members' state wars don't hold it back). Every member is then at war with every member of the other (`atWar`, `inWar`, `foeTest` cover both kinds of war): embargo, computer targets and war footing, ⚔️ marks and the Wars map. State wars already running continue; members don't declare new state wars. Ends after `warMin`–`warMax` years or when one alliance is gone: the alliance relation resets to 0 (members' state relations stay), `warRest` years of rest for the pair.
 - **Player sees**: War tab lists alliance wars and one line naming the alliances close to war with yours (min of both directions ≤ `awarHostile/2`, worst 3, as buttons); the Alliances tab (under the rankings) and each alliance window have the full "Alliance relations" table (both directions, bars, worst first); news to the members of both alliances when an alliance war starts or ends.
-- **Reads**: members' relations, adjacency, land, state wars and battles between members. **Writes**: wars (through `atWar`), AI targets and footing, market (embargo), news.
+- **Reads**: members' relations, adjacency, land, state wars and battles between members, revolts. **Writes**: wars (through `atWar`), AI targets and footing, market (embargo), news.
+- **Rebel Alliance**: the first revolt adds a team `{rebel:true}` named "Rebel Alliance" (tag RA, color `REBEL_COLOR`), creating `g.teams` if the game had no alliances; every rebel state joins it. States without a team stand alone (victory compares `team ?? "s"+id`), so rebels can win together.
 - Notes: in 60-state, 4-alliance games, 4–7 alliance wars per game; relations bottom out around −70..−97. With hits of −3/−1/−2 alliance wars were near-constant (13–17 per game) because battles between many members add up.
 - **Allied aid** *(your direction)*: allies joined over allied land, directly bordering or through a chain of bordering allies (sea links count, `allyGroup`/`aidReach`), send each other grain, wood, iron or gold (`aidSend`), arriving at once; no aid across the world (an ally with no allied neighbor gets none); the receiver's trust toward the giver rises (`aidTrust` 1 per 1,000 gold of value, at most `aidTrustMax` 5 a gift). Computer allies at peace (or interior) give up to `aiAidShare` 50% of their surplus a year (grain above 1.3 years of food incl. this harvest, wood/iron above the 3-year reserve, gold above 6 years of wages + 2,000) to reachable allies at war that are short, neediest first, before market trading. The player sends aid from their alliance's window. In 60-state, 4-alliance games: ~800–1,300 gifts per game, mostly iron.
 - **Alliance window** (`allianceModal`): opened from the Alliances tab, the War tab (alliance wars, alliances close to war) or the alliance line of a selected state: stats (states, land and world share, population, army, average research), alliance wars and members' state wars, relations with the other alliances, members (click to select), Send aid (your own alliance), Show on map.
@@ -263,7 +268,21 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.16 Balance of power (through fear wars)
 - **Intent**: stop a runaway winner, the player included: the world pushes back on whoever gets too big *(your direction: fear wars replaced the old coalition)*.
 - No separate mechanic any more: neighbors fear a state from 1.5× their size (relations, fear factor up to −50), and fear counts toward the −50 war trigger (3.14b), so a runaway state ends up at war with the neighbors it frightens. Fear also lowers the edge a computer state needs against a target others are already attacking.
+- With Rebellions on, **loyalty** (3.16b) brakes a runaway state from the inside: conquest costs loyalty, big states recover it slowly under a lower ceiling, and a revolt splits off its newest land.
 - Notes: compared with the removed coalition, runaway states grow a little faster mid-game (in 2 of 4 test games the leader held 18% vs 8% and 30% vs 24% of the land at year 70) and fight fewer wars at once; the endgame is similar. Fear's strength (`rfFrom`, `rfPer`, `rfMax`) and `warHostile` are the knobs if it needs to be stronger.
+
+### 3.16b Loyalty and rebels
+- **Intent**: a brake on states that expand too fast, the player included: conquered land doesn't stay loyal, and big empires break up into rebel states that fight them. Every state has a ceiling; rebellions don't weaken late in the game; rebels are regular states that share one alliance and can win *(your direction)*.
+- New-game rule "Rebellions" (`g.rebels`, on by default; older saves: off). `c.loy` 0..100, starting at the state's ceiling.
+- Yearly (`loyaltyYear`, after battles and settling): `loy += rec − loyConq × 100 × (won + loyRetake × retaken + loySettle × settled) ÷ land at the start of the year`, then clamped to `[0, ceiling]`. `rec` = `loyRec` 4 at peace / `loyRecWar` 2 at war × √(min(1, `g.land0` ÷ land)), at least `loyRecMin` 1. Cells won are counted in `transferCells` and wipe-outs (`loyGain`): a cell the state lost in the last `loyRetakeYears` 20 counts as retaken (× 0.5), except when taken back from its own rebels. Ceiling = 100 − `loyCeilMax` 70 × (share of the world's land)^`loyCeilExp` 0.5: 93 at 1%, 65 at 25%, 30 for the whole world (so conquering the world stays possible). Famine −`loyFamine` 5, empty treasury −`loyBroke` 5 (in `economy`).
+- Effects: below `loyUnrest` 40 taxes −`loyUnrestTax` 10% (`taxIncome`). Below `loyRevolt` 25, a state with at least `rebParent` 1.5× `g.land0` revolts with chance (25 − loy) × `loyRevoltPer` 4% a year (no revolts in peace years).
+- `revolt`: 1 + ⌊land ÷ (`rebEvery` 4 × `g.land0`)⌋ rebel states, at most `rebMax` 3. Each is one connected piece of `rebShareMin`–`rebShareMax` (10–20%) of the land, grown best-first from the highest score: 2 × recency (won in the last `rebRecent` 30 years; settled land half) + distance from the core (cells with the oldest `takenAt`) + noise; at least `rebMinLand` × `g.land0`; the parent keeps 40%+. Peasants, scientists (as peasants), gold, grain, wood, iron go by land share; troops by `rebArmy` 1.5 × land share; militia: `rebMilitia` 10% of the rebels' peasants become spearmen; each rebel takes a general with `rebGen` 50% if the parent has 2+. Rebel: parent's civilization, land type and research levels, random leader, name from `rebelName` ("Rebels of X", "X Rebels", …), `color` `REBEL_COLOR` dark grey, `rebelOf`, `born`, the Rebel Alliance team. Grievance −`rebGrudge` 60 both ways and a war (`warStart(..., "rebels")`). The parent's loyalty +`rebAfter` 30. `g.revolts` lists the year's revolts.
+- Festivals (`act.festival`): gold per point = `festCost` 1 × population ÷ 100 × √(max(1, land ÷ `g.land0`)); at most `festMax` 10 points a year; never above the ceiling.
+- **AI**: festivals with gold above 3 years of wages + 500 when loyalty < `aiFestLoy` 45; not at war and loyalty < `aiLoyCalm` 30: no land grabs (raids, kidnaps, massacres still allowed); an attack whose land would leave loyalty under `aiLoyFloor` 15 (warlike 10) becomes a raid (at war or for a grudge) or is dropped.
+- **Reads**: battles and wipe-outs (cells won), settling, land and world land (ceiling, recovery), wars (recovery), famine, empty treasury, gold (festivals), peace years.
+- **Writes**: taxes (unrest), territory (rebel states take land), population, troops, generals, stocks (they leave with the land), relations and wars (rebels vs parent), alliances (Rebel Alliance), AI target choice and attack mode, victory (rebels win together).
+- **Player sees**: ❤️ in the header; Home tab Loyalty card (value / ceiling, status, last year's changes, next year's recovery, revolt chance, Festivals); War tab line; loyalty in state details; the Loyalty map view; the year report's 🔥 Rebellion note; war news to neighbors.
+- Notes (60 states, seeds 11–16, 150 years): see section 6. Computer states mostly hold themselves back (the AI floor), so revolts are uncommon in all-computer games (about 0–5 per game, mostly in years 60–150) and rebels rarely last long; the main braking comes from slower expansion of the biggest states. A player who conquers fast meets revolts much sooner.
 
 ### 3.17 Computer players (AI)
 - **Intent**: Play by the same rules as the player: no free resources (difficulty only scales research and how bold it is). Personalities differ so each world plays differently. The AI should use every lever the player has. *(inferred)*
@@ -284,23 +303,24 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 
 Rows act on columns (● strong, ○ weak).
 
-| ↓ acts on → | Pop | Work | Food | Gold | Wood/Iron | Market | Research | Troops | Battle | Land | Relations | AI |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Population | | ● | ● | ● | ● | | ○ (cost) | ● | | | | ● |
-| Work split | | | ● | ● | ● | | ● | | | | | |
-| Food | ● (famine, births) | | | ○ | | ● | | ○ | | | | ● |
-| Weather | | | ● | | | ● | | | | | | ○ |
-| Gold | ○ (desertion) | ● (wages) | | | | ● | ● | ● | | | | ● |
-| Wood/Iron | | | | | | ● | | ● | | | | ○ |
-| Market | | ○ (AI) | ● | ● | ● | | | ○ | | | | ● |
-| Research | ● | | ● | ● | ● | ○ | ● (sci) | | ● | ● (explore) | | ○ |
-| Identity | ● | | ● | | ● | | ● | | ● | ● | | ● (persona) |
-| Troops | ● | | ● | ○ | ● | ○ | | | ● | | | ● |
-| Generals | | | | ○ | | | | | ● | ● | | |
-| Battle | ● (kidnap, massacre) | | ○ (wipe-out, raid) | ○ (raid) | ○ (raid) | | ○ (size) | ● | | ● | ● (× mode anger) | ● |
-| Land | ● (capacity) | | ○ (shore) | | | | | | ● (fronts) | ● (settle) | ○ (fear) | ● |
-| Relations | | | | | | | | | | | | ● |
-| AI | ● | ● | | | | ● | ● | ● | ● | | | |
+| ↓ acts on → | Pop | Work | Food | Gold | Wood/Iron | Market | Research | Troops | Battle | Land | Relations | AI | Loyalty |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Population | | ● | ● | ● | ● | | ○ (cost) | ● | | | | ● | |
+| Work split | | | ● | ● | ● | | ● | | | | | | |
+| Food | ● (famine, births) | | | ○ | | ● | | ○ | | | | ● | ○ (famine) |
+| Weather | | | ● | | | ● | | | | | | ○ | |
+| Gold | ○ (desertion) | ● (wages) | | | | ● | ● | ● | | | | ● | ○ (festivals, empty treasury) |
+| Wood/Iron | | | | | | ● | | ● | | | | ○ | |
+| Market | | ○ (AI) | ● | ● | ● | | | ○ | | | | ● | |
+| Research | ● | | ● | ● | ● | ○ | ● (sci) | | ● | ● (explore) | | ○ | |
+| Identity | ● | | ● | | ● | | ● | | ● | ● | | ● (persona) | |
+| Troops | ● | | ● | ○ | ● | ○ | | | ● | | | ● | |
+| Generals | | | | ○ | | | | | ● | ● | | | |
+| Battle | ● (kidnap, massacre) | | ○ (wipe-out, raid) | ○ (raid) | ○ (raid) | | ○ (size) | ● | | ● | ● (× mode anger) | ● | ● (conquest) |
+| Land | ● (capacity) | | ○ (shore) | | | | | | ● (fronts) | ● (settle) | ○ (fear) | ● | ● (ceiling, recovery) |
+| Relations | | | | | | | | | | | | ● | |
+| AI | ● | ● | | | | ● | ● | ● | ● | | | | ○ (festivals) |
+| Loyalty | ● (revolt) | | ○ (stocks leave) | ○ (unrest tax) | ○ (stocks leave) | | | ● (defect, militia) | | ● (revolt) | ● (rebel wars) | ● (restraint) | |
 
 ## 5. Feedback loops
 
@@ -308,6 +328,7 @@ Positive (snowball) loops, and what brakes them:
 - **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, conquest brings land but no people (only a wipe-out hands over people and stocks), fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
 - **Science → research points.** Brakes: cost ×1.8 per level, size cost, lead penalty, scientist wages vs tax.
 - **Land → settling budget.** Brake: unowned land runs out.
+- **Conquest → land → more conquest** is also braked by loyalty (Rebellions on): each conquest costs loyalty, recovery slows with size and the ceiling falls with world share; a revolt hands land, people and troops to rebel states at war with the parent. Revolt → +30 loyalty → conquest resumes, so big states can cycle (revolt, retake at full cost, revolt).
 - **Grudges → revenge → new grudges.** Brakes: revenge clears grievance, justified strikes count half, floors, cooldowns.
 
 Negative (stabilising) loops:
@@ -321,14 +342,15 @@ Negative (stabilising) loops:
 
 ## 6. Balance anchors
 
-Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11–16 (11/12/13 for quick checks), observer mode). Refreshed with `keepPeople`, defense stances and raid/kidnap/massacre (2026-11-12); the old ranges had drifted with the map changes before them:
+Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11–16 (11/12/13 for quick checks), observer mode, Rebellions on unless noted). Refreshed with `keepPeople`, defense stances and raid/kidnap/massacre (2026-11-12); the old ranges had drifted with the map changes before them:
 
 | Measure | Expected range |
 |---|---|
 | States alive at year 30 | 59–60 |
-| States alive at year 90 | 35–48 (6 seeds 11–16; old spoils rule: 3–36) |
-| States alive at year 150 | 5–20 (old spoils rule: 1–9) |
-| Biggest state's share of world land at year 150 | 14–40% (old spoils rule: 37–100%) |
+| States alive at year 90 | 43–50 (Rebellions off: 35–48; old spoils rule: 3–36) |
+| States alive at year 150 | 8–23 (Rebellions off: 5–20; old spoils rule: 1–9) |
+| Biggest state's share of world land at year 150 | 14–29% (Rebellions off: 14–40%; old spoils rule: 37–100%) |
+| Year 300 (seeds 11–13) | 2–3 states left, biggest 62–98%: games still end (Rebellions off, seeds 11–12: 2–4 left, biggest 59–64%) |
 | Battles by mode (per game) | normal ~400, raid ~120–150, massacre ~13–15, kidnap ~3 |
 | 1000 states, seeds 11–13, year 150 | 129–157 alive, biggest 2–3%, top 10 hold 17–21%, ~3,000 raids per game (old spoils rule: 38–44 alive, top 10 52–60%) |
 | Games with one state left by year 300 (seeds 11–13) | 1 of 3 before raids (old spoils rule: 3 of 3); not re-run |
@@ -340,6 +362,7 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 | Grain sold to merchants (share of world food use) | about 3% |
 | States with an empty treasury | well under 0.1% of state-years |
 | Turn time on a 1000-state map | about 200–250 ms |
+| Rebellions (60 states, seeds 11–16, 150 years) | 0–5 revolts per game (4/0/5/0/4/4), 0–7 rebel states; at most 1 rebel state alive at the 30-year checkpoints |
 | Starting land (any map up to 300 states) | every state within ±2% of the median |
 | Creating a 1000-state world map | about 14 s |
 
@@ -370,7 +393,7 @@ Run the engine headless in Node to compare versions:
 // node sim.js path/to/index.html
 const fs=require("fs"), h=fs.readFileSync(process.argv[2],"utf8"), src=h.match(/<script id="engine">([\s\S]*?)<\/script>/)[1];
 const E=new Function("module",src+";return module.exports;")({exports:{}});
-for(const seed of [11,12,13]){ let g=E.newGame({nStates:60,terr:100,difficulty:1,seed,observer:true}); const out=[];
+for(const seed of [11,12,13]){ let g=E.newGame({nStates:60,terr:100,difficulty:1,seed,observer:true}); // rebels:false to compare without Rebellions const out=[];
   for(let y=1;y<=150;y++){ g=E.endTurn(g)||g;
     if(y%30===0){ const A=g.countries.filter(c=>c.alive), avg=f=>A.reduce((s,c)=>s+f(c),0)/A.length;
       out.push(`y${y}: ${A.length} states, gold ${Math.round(avg(c=>c.money))}, research ${avg(c=>Object.values(c.lv).reduce((a,b)=>a+b,0)).toFixed(0)}, soldiers ${Math.round(avg(c=>c.soldiers))}`); } }
@@ -382,6 +405,8 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 ## 9. Known fragile spots
 
 - The empty-treasury rule rewrites `c.work.sci`, including the player's setting.
+- Rebels add states mid-game: anything that sizes per-state arrays once (instead of from `g.countries.length` each time) breaks. Caches keyed by adjacency rebuild after `ADJ.delete`.
+- Computer states rarely revolt because they stop conquering near `aiLoyFloor`; lowering it gives more revolts (12: 2–8 per 300 years), raising it fewer.
 - `workers()` floors each job, so rounding always adds farmers.
 - Elimination thresholds differ: battle checks peasants < 20, famine collapse checks population < 20.
 - An eliminated state's gold, wood and iron vanish only with `keepPeople` off; otherwise the winner takes them.

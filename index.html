@@ -402,6 +402,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   <span class="chip" title="Iron">⛏️ <b id="hIron"></b></span>
   <button class="chip hfind" data-find="land" title="Land: click to find yourself in the rankings">🗺️ <b id="hLand"></b> km²</button>
   <button class="chip hfind" data-find="pop" title="Population: click to find yourself in the rankings">👥 <b id="hPop"></b></button>
+  <button class="chip hfind" data-tab="economy" id="hLoyBox" title="Loyalty: click to see it on the Home tab">❤️ <b id="hLoy"></b></button>
   <span class="grow"></span>
   <span class="auto">
     <span class="split"><button id="bAuto" title="End turns automatically">▶ Auto</button><button id="bAutoOpt" data-pop="autoPop" aria-haspopup="true" aria-expanded="false" aria-label="Auto-run options" title="Auto-run options">▾</button>
@@ -413,7 +414,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   </span>
 </header>
 <main>
-  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
+  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="loy" id="loyBtn" title="Color states by loyalty: red = revolt possible, green = loyal">Loyalty</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
     <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. Right-click (or press and hold) a state for actions. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
@@ -428,7 +429,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
 // ===== Epic Battle: Sovereignty — rules engine (no DOM; also runs inside the Web Worker) =====
 // state names (editable in Settings → State names; this is the default list)
 const NAMES = ["Empire of Azaleon","Rhealian Hegemony","Realm of Irirosa","Empire of Vororis","Republic of Azerina","Holy Eldelarian Empire","Maya Kingdoms","Pelarian Dynasty","Azonican Hegemony","Sultanate of Ureshys","Carolingian Empire","Khaganate of Ureneon","Empire of Myrenae","Republic of Calilea","Realm of Epheon","Ishathan Republic","Empire of Tyrae","Kingdom of Rheonea","Almohad Caliphate","Dominion of Ebrelar","Kingdom of Ureleth","Republic of Genoa","Confederacy of Lydelys","Kingdom of Sicily","Theocracy of Zoronae","Kingdom of Ashalia","Asoruran Dynasty","Tsardom of Magenys","Kingdom of Phrar","Ostrogothic Kingdom","Empire of Ilorae","Iraran Dynasty","Federation of Jorarar","Sacred Realm of Zoros","Satrapy of Deledra","Kingdom of Alenesh","Lands of Adareth","Empire of Akharos","Confederacy of Anelyra","Belian Kingdom","Ephethian Dynasty","Lands of Sidilis","Principality of Athorea","Free Cities of Hamilia","Emirate of Myravia","Empire of Athiria","Lands of Aurida","City-States of Echenar","Satrapy of Athilar","Clans of Halonis","Tribes of Vorina","Frankish Kingdom","Lydonian Empire","Kingdom of Drailis","Kingdom of Magadha","Empire of Kerirae","Empire of Calavia","Free Cities of Pyrenea","Theocracy of Kiria","Khaganate of Elmiros","Kingdom of Anorona","Federation of Joronea","Republic of Ororuna","Theocracy of Aurarys","Nerylonian Dynasty","Empire of Ibiresh","Meladorian Hegemony","Zadilian Federation","Republic of Darylon","Satrapy of Borelar","Barathan Empire","Kanem-Bornu Empire","Tang Dynasty","Lands of Taroria","Realm of Isarora","Imperium of Iserea","Achaemenid Empire","Dominion of Taria","Lands of Talara","Empire of Olene","Kingdom of Alba","Lands of Xerorae","Emirate of Suranea","Exarchate of Alathia","Ebriran Federation","City-States of Lemica","Empire of Akilath","Narylonian Dynasty","Zapotec Realm","Realm of Aganica","Agerathian Kingdom","Halanan Republic","Arenean Empire","Kingdom of Karelis","Federation of Maganis","Realm of Kirarar","City-States of Surirar","Emirate of Coralar","Kingdom of Caronis","Empire of Isorona","Lands of Ulonica","Kingdom of Omelura","Confederacy of Lemessa","Irorean Kingdom","Ilkhanate","Marches of Nararar","Lands of Uthessa","Crown of Aragon","Khaganate of Azorene","Grand Duchy of Talyra","League of Iskalis","Kingdom of Bosporus","Holy Adalaran Empire","Empire of Sarerar","Republic of Kyrelos","Byzantine Empire","Shogunate of Xanadon","Lands of Uloryra","Kingdom of Numidia","Sultanate of Zarerea","Zorian Khanate","Sultanate of Zadenna","Caliphate of Isiresh","Rosonian Empire","Alilinan Empire","Han Dynasty","Tribes of Jorirar","Mamluk Sultanate","Khaganate of Ibalura","Grand Duchy of Amanos","Kingdom of Silla","Caliphate of Orenos","Dominion of Ophiros","Sultanate of Uraria","Empire of Arelida","Empire of Ulica","Zhou Dynasty","Timurid Empire","Federation of Babelar","Song Dynasty","Hunnic Empire","Eldian Empire","Empire of Lemirae","Empire of Horalos","Ilorian Empire","Suronean Republic","Sultanate of Mirarae","Imperium of Azona","Uleleonian Empire","Republic of Echaros","Kara-Khitan Khanate","Dominion of Elderia","Republic of Xerelia","Sultanate of Jorilos","Kingdom of Mauretania","Kingdom of Karar","Malarean Kingdom","Sacred Realm of Kemalae","Grand Duchy of Valuria","Grand Duchy of Sabovia","Clans of Anelesh","Federation of Boreros","Dominion of Balanea","Akeneshian Dynasty","Realm of Nabavia","Khaganate of Belanar","Lands of Ibalene","Lands of Perirys","Empire of Galissa","Dominion of Kiressa","Emirate of Sicily","League of Varerae","Theocracy of Barosa","High Kingdom of Kalanae","Kingdom of Calenea","Delhi Sultanate","Agarunan Empire","Tsardom of Nimoros","Principality of Babilae","Ethiopian Empire","Republic of Xanorea","Thalassocracy of Tirora","Talonean Dynasty","Empire of Uthoris","Empire of Barovia","Sultanate of Saralia","Lands of Sabonae","Akhuran Horde","Realm of Adanuna","Serbian Empire","Lumelian Hegemony","Caliphate of Cordoba","Tsardom of Coria","Kingdom of Lydia","Balian Republic","Sultanate of Tarosa","Satrapy of Saranis","Haloran Empire","Avar Khaganate","Osonuran Federation","Yamato Kingdom","Damian Dynasty","Imperium of Solorys","Carthaginian Republic","Marches of Suroria","Alarian Hegemony","Anelan Dynasty","Neo-Hittite States","Empire of Norilys","Empire of Ularath","Xerethian Khanate","Realm of Menaros","Principality of Deladon","Dominion of Loranth","Kingdom of Jarylon","Sultanate of Caledra","Spartan Hegemony","Asanican Hegemony","Empire of Kerylon","Imperium of Zaneros","Shogunate of Zadaros","Theocracy of Talorae","Sidelian Empire","Joseon Dynasty","Dominion of Gororis","Khaganate of Ulalesh","Tribes of Arica","Iceni Tribes","Shogunate of Omorene","Kingdom of Mari","Sultanate of Tamonia","Dominion of Zaros","Visigothic Kingdom","Dominion of Isirura","Theocracy of Kiriris","Lands of Canaan","Dominion of Velis","Empire of Babanys","Kingdom of Aksum","Marches of Ireruna","Federation of Omirys","Realm of Qarilae","High Kingdom of Azalida","Kingdom of Ilarara","Dominion of Phrilia","Emirate of Asereon","Empire of Balylon","Tribes of Vorerys","Republic of Caryra","Aztec Empire","Etruscan League","Chimu Kingdom","Kingdom of Funan","Dominion of Delaria","Grand Duchy of Helis","Lands of Lumalys","Republic of Larerar","Serilarian Empire","Empire of Menath","High Kingdom of Torelar","Ardanean Dynasty","Tribes of Irelar","Republic of Iloneon","Dominion of Nabanis","Zanilian Hegemony","Thalassocracy of Karida","Kingdom of Rosirea","Perosan Dynasty","Imperium of Ramanth","Ilanthian Kingdom","Dominion of Akiruna","Empire of Aranesh","Dominion of Alerida","Holy Omarian Empire","Kingdom of Mitanni","Urerican Empire","Galonian Dynasty","Khazar Khaganate","Confederacy of Amerida","Carirean Dynasty","Dominion of Oraneon","Sabenean Hegemony","Kingdom of Quelar","Abbasid Caliphate","Confederacy of Jarilos","Kingdom of Roselea","Inca Empire","Kingdom of Judah","Akkadian Empire","Lands of Amereon","Aseshean Commonwealth","Kingdom of Lemador","Kirilian Kingdom","Khaganate of Nerara","Lands of Ibonis","Federation of Aronene","Osoronan Horde","Emirate of Neria","Free Cities of Melirar","Basennan Empire","Kingdom of Etharea","Kingdom of Asarath","Federation of Ishonys","Lands of Punt","Kingdom of Qaros","Seleucid Empire","Federation of Adorea","Dominion of Kyravia","Empire of Ililis","Dominion of Caressa","Republic of Caranea","Grand Duchy of Carerar","Satrapy of Hyranar","Dominion of Malerar","Sultanate of Sidanth","Republic of Morelar","Republic of Azenura","Tiwanaku Empire","Exarchate of Ulerara","Lands of Irelyra","Omonyran Empire","Urenian Dynasty","Ashirian Federation","Archduchy of Melarys","Vesenan Empire","Ghana Empire","Kingdom of Sabirae","Realm of Ulanene","Kingdom of Saba","Empire of Serorae","Khaganate of Loredra","Caliphate of Areleon","Lands of Irilyra","Delian League","Lands of Nabyra","Satrapy of Lumiros","Lands of Kasalia","Pagan Kingdom","City-States of Torarea","Lands of Tharesh","Grand Duchy of Kalos","Dominion of Isalosa","Kingdom of Varina","Empire of Ishelae","Principality of Antioch","Irirenean Empire","Lands of Akissa","Valonian Empire","Athelian Hegemony","Empire of Valiria","Tribes of Ephona","Dai Viet","Ulilonan Dynasty","Confederacy of Ironuna","Empire of Urorosa","Kingdom of Haralos","Phoenician City-States","Iseleonian Empire","Kingdom of Armenia","Gorenian Horde","Emirate of Aerenar","Anal Probe","Kingdom of Hungary","Dominion of Hamura","Kingdom of Anonea","Empire of Trebizond","Realm of Tarira","Realm of Phralos","Federation of Oselesh","Marches of Voraris","Empire of Orenira","Grand Duchy of Iboros","Thalassocracy of Uronos","Realm of Olilara","Khaganate of Sarirar","Federation of Xanelea","Vesidan Kingdom","League of Ophanos","Dominion of Lumos","Kingdom of Larilae","Kasanian Kingdom","Federation of Kadosia","Aererean Empire","Kingdom of Tyrirys","Free Cities of Neris","Indo-Greek Kingdom","Realm of Iladon","Satrapy of Ageruna","Radian Commonwealth","Ilelathian Dynasty","Empire of Amenura","Echelean Khanate","Soladorian Dynasty","Asilian Empire","Federation of Neralys","Kingdom of Aerirar","Kingdom of Colchis","Kingdom of Olarosa","Olerethian Kingdom","Federation of Phroros","Lands of Asirae","County of Edessa","Dominion of Anarene","Principality of Tamora","Kingdom of Ethene","City-States of Aniris","Lands of Nimene","Tribes of Alanara","Kingdom of Asadon","Empire of Zanica","Mycenaean Kingdoms","Jin Dynasty","Realm of Saradon","Exarchate of Galerea","Dominion of Azonea","Kingdom of Urireth","Kingdom of Belonos","Kingdom of Osenuna","Aganunan Empire","Ayyubid Sultanate","Old Kingdom of Egypt","Ashean Horde","Empire of Aldonar","Dacian Kingdom","Republic of Coraros","Duchy of Normandy","Hyksos Dynasty","Grand Duchy of Astonar","Kingdom of Kyrorys","Ryukyu Kingdom","Khmer Empire","Hanseatic League","Principality of Dorerar","Empire of Helea","Federation of Eldonys","Dorethian Khanate","Mali Empire","Free Cities of Pyrilar","Kingdom of Casiros","Sultanate of Ulalara","Great Zimbabwe","Archduchy of Sidyra","Realm of Nyserae","Republic of Agarene","Scythian Kingdom","Exarchate of Praerea","Republic of Lydorea","Holy Arenosan Empire","Garovian Dynasty","Kadonian Horde","Realm of Thelia","Bulgarian Empire","Sultanate of Melanys","Kushan Empire","Umayyad Caliphate","Caliphate of Qarona","Khaganate of Alenys","Satavahana Dynasty","Lands of Azareon","Pala Empire","Lands of Cyronar","Kingdom of Akhiros","Khaganate of Damilar","Realm of Doralis","Serylonian Khanate","Dorararian Khanate","Kalerean Commonwealth","Narosan Federation","Kingdom of Uronuna","Empire of Joralia","Sylorian Dynasty","Serean Federation","Astathian Dynasty","Republic of Ararosa","Celtiberian Tribes","Kingdom of Ularene","Theocracy of Zarorae","Shogunate of Ebrea","Holy Roman Empire","Sultanate of Malacca","Miralian Dynasty","Republic of Menilos","Holy Eldilan Empire","Kingdom of Horydon","Federation of Urenos","Federation of Garanys","Grand Duchy of Voresh","Sultanate of Norirar","Third Dynasty of Ur","Republic of Novgorod","Clans of Nysos","Tribes of Omalona","Sereonian Empire","Khwarazmian Empire","Alenarian Empire","League of Dararae","Kingdom of Ugarit","Empire of Iserora","Kingdom of Arenia","Empire of Ibeon","Free Cities of Nysenia","Empire of Hyrona","Kingdom of Arvoris","Sasanian Empire","Republic of Sererys","Khaganate of Ishalae","Liao Dynasty","Confederacy of Basonia","Theocracy of Damalae","Satrapy of Azonosa","Horovian Kingdom","Iskanan Empire","Caliphate of Agura","Caliphate of Tareris","Tribes of Anarae","New Kingdom of Egypt","Imperium of Phreth","Radalarian Commonwealth","Ebrorian Kingdom","Hamirian Dynasty","Rashtrakuta Dynasty","Khaganate of Ananene","Empire of Miradon","Zadylonian Empire","Empire of Vereon","Qin Dynasty","Loririan Dynasty","Tibetan Empire","Yuan Dynasty","Kingdom of Adiria","Republic of Goralys","Realm of Uranora","Dominion of Osanina","Veloran Empire","Empire of Menerys","Kingdom of Isarara","Isenenean Hegemony","Empire of Verylon","Empire of Hamalea","Empire of Ephilia","Republic of Iranora","Jororarian Hegemony","Kingdom of Israel","Samirian Empire","Khaganate of Tamaros","Kingdom of Ulenos","Dominion of Isora","Fatimid Caliphate","Dominion of Toralis","Songhai Empire","Republic of Irathys","Principality of Xeriros","Mixtec Kingdoms","Confederacy of Arvanar","High Kingdom of Selenna","Ebrerian Horde","Kingdom of Drairar","Marches of Xeraros","Tribes of Ararura","Kingdom of Solovia","Suressan Federation","Malelarian Khanate","Anerean Hegemony","Empire of Kerosa","Valenian Hegemony","Gokturk Khaganate","Republic of Ularys","Grand Duchy of Kirorys","Despotate of Naronae","Exarchate of Osaneon","Lands of Carenos","Dominion of Malenar","Wari Empire","Republic of Vesilos","Republic of Radea","Empire of Uraruna","Federation of Jarelea","Danelaw","Free Cities of Kasosa","Kingdom of Kongo","Empire of Surenys","Kingdom of Kasia","Kingdom of Anenica","Olmec Lands","Magirean Dynasty","Theocracy of Damirea","Republic of Baruria","Lands of Areshar","Dominion of Kalalos","Athan Khanate","Verenian Khanate","Theocracy of Kadirys","Kingdom of Tiranys","Dominion of Cyrara","Dominion of Aganara","Kingdom of Adiryra","Empire of Asiluna","Holy Athurian Empire","Empire of Telerae","Republic of Pelelys","Khaganate of Ebronar","Principality of Kemonos","Dominion of Irilina","Empire of Ephirea","Echalian Horde","Republic of Zanenia","Kingdom of Adeshar","Norse Dominion","Kingdom of Ishissa","Mongol Empire","Sultanate of Anovia","Thracian Odrysian Kingdom","Uryran Kingdom","Empire of Isorene","Republic of Solonys","Varathian Empire","Lands of Menedra","Exarchate of Malica","Isonian Empire","Empire of Uthanis","Nanzhao Kingdom","Kingdom of Pyrae","Holy Hyrirarian Empire","Lorian Hegemony","Imperium of Varanth","High Kingdom of Norarae","Lands of Deloros","Federation of Boronis","Dominion of Omalea","Kingdom of Dal Riata","Realm of Lorys","Rosenean Horde","Realm of Zeledra","Republic of Venice","Lydilan Khanate","League of Kyrirea","Clans of Sidoros","Federation of Aerorar","Sultanate of Karanar","Hittite Empire","Free Cities of Azelosa","High Kingdom of Halilae","Valelarian Kingdom","Kingdom of Ebralys","Sultanate of Nysirae","Dominion of Xanaria","Kingdom of Urartu","Dominion of Garos","Serunan Empire","Federation of Asonesh","Astarean Kingdom","Sacred Realm of Ireshar","Empire of Talelia","Mughal Empire","Nabataean Kingdom","Realm of Therea","Tsardom of Adosa","Dominion of Aurelea","Kingdom of Arvalae","Kingdom of Kasina","Echanian Khanate","Caliphate of Asonina","Empire of Ostorar","Empire of Ibalar","Tribes of Tireris","Confederacy of Anelis","Kingdom of Nimanos","Mauryan Empire","Despotate of Prailar","Principality of Omelys","Azyran Federation","Empire of Karonia","Imperium of Thelae","Federation of Omirosa","Zanean Dynasty","Republic of Phravia","Caliphate of Tarydon","Confederacy of Ephalys","Grand Duchy of Ardelar","Empire of Azeth","League of Balea","Empire of Omonida","Uyghur Khaganate","Caliphate of Hararys","Kingdom of Melenar","Theocracy of Iskenna","Alylonian Hegemony","Elmarean Dynasty","Empire of Omarea","Lands of Velilae","Kingdom of Zarenar","Caliphate of Ulireon","Confederacy of Ostaris","Lands of Osareth","Latin Empire","Principality of Amarura","Emirate of Granada","Sarydonian Dynasty","Kingdom of Belirys","Kingdom of Malalea","Theocracy of Vesica","Khaganate of Taratha","Kingdom of Peranys","Empire of Orilida","Archduchy of Verea","Chalukya Dynasty","Kingdom of Kirenos","Zadelian Commonwealth","Carian Kingdom","Dominion of Epharar","Empire of Sureth","Lydadonian Kingdom","Cyrorean Hegemony","Realm of Lumaria","Republic of Iskonae","League of Ramerar","Lands of Narerys","Kingdom of Carida","Federation of Isathos","Auririan Hegemony","Kingdom of Osarura","Satrapy of Athenea","Pyroran Khanate","Sarmatian Tribes","Kingdom of Benin","Ptolemaic Kingdom","Empire of Damenys","Kingdom of Kush","Empire of Karedra","Realm of Zeluna","Emirate of Medanar","Kingdom of Elmona","Republic of Adenos","Empire of Ramedra","Grand Duchy of Olelira","Kingdom of Northumbria","Kingdom of Hyrea","Lands of Azerura","Velydonian Empire","Confederacy of Kereris","Kingdom of Tharona","Nimelian Dynasty","Telaran Hegemony","Empire of Seliria","Dominion of Zarydon","Tsardom of Ethona","Lands of Aseon","High Kingdom of Ephos","Despotate of Koraros","Shogunate of Borilae","Republic of Pelorys","Jaranian Commonwealth","Ramosan Dynasty","Roman Republic","Tribes of Myranae","Dominion of Perene","Ephennan Republic","Zadirian Horde","Phrygian Kingdom","Samnite League","Sultanate of Arerar","Tirarean Commonwealth","Kingdom of Ishira","Kalmar Union","Shogunate of Kelanar","Kingdom of Leon","Kingdom of Akenyra","Kingdom of Darirae","Federation of Astoris","Free Cities of Azenina","Republic of Vesuna","Tsardom of Tamelys","Chagatai Khanate","Kingdom of Troy","Kingdom of Wessex","Torirean Empire","High Kingdom of Akelora","Ostunan Dynasty","Zelarean Empire","Zephidan Kingdom","Emirate of Balerea","Tribes of Akarea","Empire of Kemissa","Empire of Menosa","Lands of Myronos","Realm of Alerara","Kingdom of Jerusalem","Kingdom of Teloria","Xiongnu Empire","Grand Duchy of Echiros","Empire of Cyrelar","Almoravid Empire","Ebreshian Hegemony","Dominion of Nysilis","Kingdom of Pontus","Osilian Kingdom","Champa Kingdom","Confederacy of Uranae","Holy Adunan Empire","Palmyrene Empire","Elmian Hegemony","Horarean Republic","Vijayanagara Empire","Republic of Morilea","Eldenean Hegemony","Emirate of Osoryra","Tribes of Ramirae","Empire of Ilathae","Archduchy of Caluna","Lands of Cyranae","Republic of Uthelar","Palenean Kingdom","Confederacy of Malanea","Greco-Bactrian Kingdom","Goryeo Dynasty","Theocracy of Ameneon","Median Empire","City-States of Barilea","Haranian Dynasty","Garinan Dynasty","Adelaran Dynasty","Republic of Amarar","League of Damarar","Olenian Republic","Roman Empire","Athenian League","Gupta Empire","Nabelean Hegemony","Irarethian Empire","Dominion of Menonar","Angevin Empire","Caliphate of Menelar","Federation of Joranis","Khaganate of Pyrira","Helonan Kingdom","Kingdom of Jaravia","Mirorarian Hegemony","Confederacy of Varelis","Hesarian Horde","Ghaznavid Empire","Kingdom of Kemanar","League of Agalona","Tribes of Talida","Empire of Atharae","Empire of Alelona","Realm of Azerosa","Sabian Hegemony","Tribes of Irorara","Empire of Adanae","Kingdom of Castile","Tsardom of Adilia","Dominion of Serarae","Republic of Irylon","Lands of Aldaris","Republic of Halerar","Kelalean Hegemony","Kingdom of Auruna","Dominion of Morerae","Holy Anoridan Empire","Realm of Jorosa","Carathian Hegemony","Tamennan Empire","Satrapy of Akhenea","Republic of Surica","Kingdom of Asoreon","Rosanean Empire","Borurian Khanate","League of Nabarys","Pandya Kingdom","Lands of Pelae","Goguryeo Kingdom","Shang Dynasty","Despotate of Norene","Kingdom of Korirea","Federation of Neranth","Lands of Damonis","Empire of Iledra","Empire of Zelador","Emirate of Kerarea","Tribes of Melina","High Kingdom of Akelina","Lands of Tharis","Kingdom of Athesh","Pictish Kingdom","Balorarian Kingdom","Republic of Velenea","Kingdom of Aselura","Sumerian City-States","Sultanate of Balonos","Republic of Ardea","Calovian Empire","Principality of Valanys","Kingdom of Amarene","Koranian Federation","Cyreshian Hegemony","Elamite Kingdom","Republic of Isonene","Empire of Zanonia","Baranian Hegemony","Khaganate of Arvira","Kingdom of the Lombards","Empire of Uroneth","Ardirean Dynasty","Empire of Esharis","Realm of Darosia","Holy Ebrilian Empire","Theocracy of Peraros","Old Babylonian Empire","Ottoman Empire","Sultanate of Solida","Theocracy of Iboresh","Emirate of Surilar","Majapahit Empire","Holy Samilian Empire","Caliphate of Qarelis","Empire of Kelia","Osirian Kingdom","Seljuk Sultanate","Republic of Ibalira","Akanoran Kingdom","Empire of Orilona","Kingdom of Tyruria","Keravian Dynasty","Emirate of Myrirar","Osereonian Dynasty","Emirate of Ophalis","Holy Aziraran Empire","Kamakura Shogunate","Despotate of Epirus","Tsardom of Alilar","Golden Horde","Empire of Velath","Caliphate of Arirosa","Kingdom of Poland","Sultanate of Ardador","Asterarian Khanate","Chola Dynasty","Empire of Suryra","Empire of Tamilar","Grand Duchy of Lithuania","Despotate of Elmavia","Germanic Tribes","League of Cyrilar","Realm of Alona","Srivijaya Empire","Free Cities of Samara","Lands of Urovia","Dominion of Balura","Confederacy of Osaleon","Holy Selian Empire","Empire of Zaralia","Emirate of Palilis","Toltec Empire","Kingdom of Agelura","Republic of Ethora","Minoan Thalassocracy","Satrapy of Amaneth","Sultanate of Mironis","Federation of Cyralis","Archduchy of Myrara","Republic of Iskerar","Principality of Sylarea","Kingdom of Kelaria","Parthian Empire","Kievan Rus","Zanedran Hegemony","Kingdom of Macedon","Belaran Commonwealth","Kingdom of Commagene","Vesonan Empire","Confederacy of Helaria","Republic of Amilina","Vandal Kingdom","Archduchy of Anonora","Lands of Kororos","Nimeonian Empire","Ophorean Empire","Ming Dynasty","Lands of Anilia","Republic of Azathar","High Kingdom of Belyra","Kingdom of Ebla","Realm of Horenia","Lemorean Kingdom","Shogunate of Kemilae","Neo-Assyrian Empire","Sultanate of Noratha","Jarerian Empire","High Kingdom of Garilia","Realm of Basorar","Realm of Moriros","Hororarian Horde","Republic of Osalida","Ibarean Federation","Lands of Hamadon","Lands of Queleth","Empire of Alenia","Gallic Confederacy","Sultanate of Isida","Urenunan Commonwealth"];
-const COLORS = ["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#bfef45","#fabed4","#469990","#dcbeff","#9a6324","#c9b458","#800000","#aaffc3","#808000","#ffd8b1","#000075","#a9a9a9","#ff6f61"];
+const COLORS = ["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#bfef45","#fabed4","#469990","#dcbeff","#9a6324","#c9b458","#800000","#aaffc3","#808000","#ffd8b1","#000075","#ffe119","#ff6f61"];
 // alliance names (editable in Settings → Alliance names; this is the default list)
 const ANAMES = ["Iron Pact","Northern Concord","Golden League","Silver Covenant","Crimson Accord","Azure Compact","Eastern Entente","Western Union","Southern Alliance","Grand Coalition","Holy League","League of the Sun","Order of the Lion","Pact of the Eagle","Covenant of the Rose","Alliance of the Crown","Concord of Kings","Shield Union","Sword Pact","Oaken League","Stone Accord","Storm Alliance","Thunder Compact","Frost Covenant","Ember League","Ashen Pact","Obsidian Order","Jade Concord","Amber Union","Ivory League","Sapphire Accord","Emerald Compact","Ruby Covenant","Onyx Alliance","Pearl League","Bronze Pact","Copper Concord","Cobalt Union","Scarlet Entente","Violet League","League of Rivers","Mountain Pact","Coastal Union","Steppe Alliance","Desert Concord","Forest Compact","Island League","Highland Accord","Lowland Union","Valley Covenant","Pact of the Wolf","Pact of the Bear","League of the Stag","Order of the Falcon","Covenant of the Serpent","Alliance of the Dragon","Union of the Raven","Concord of the Owl","League of the Boar","Compact of the Hawk","Dawn Alliance","Dusk League","Midnight Pact","Twilight Concord","Solstice Union","Equinox Accord","Starfall Covenant","Moonlit Compact","Sunrise Entente","Polar Alliance","League of Free Cities","Merchant Union","Maritime League","Caravan Pact","Harbor Concord","Trade Compact","Guild Alliance","Silk Road Union","Spice League","Salt Pact","Common Shield","United Banners","Allied Crowns","Concert of Nations","Federated Realms","Union of Thrones","League of Peace","Pact of Valor","Compact of Honor","Covenant of Faith","Accord of the Seas","League of the Seven","Triad Pact","Fourfold Union","League of a Hundred Banners","Ironwood Accord","Greywater Pact","Redcliff League","Whitestone Union","Blackmoor Concord"];
 const AREAS = ["sci","agri","fin","dens","grow","atk","def","wood","iron","explore"];
@@ -452,6 +453,7 @@ function migrateResearch(g){
     g.resSteady=1; }
   if(g.wonders) for(const w of g.wonders) if(w.area==="mil") w.area="def";
 }
+const NAME_SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], NAME_END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"]; // invented names
 const GEN_FIRST = ["Ivan","Karl","Pavel","Otto","Lev","Anton","Boris","Emil","Felix","Gustav","Hugo","Igor","Jan","Konrad","Leon","Mikhail","Nikolai","Oskar","Piotr","Rudolf","Stefan","Taras","Viktor","Yuri"];
 const GEN_LAST = ["Volkov","Brandt","Orlov","Kessler","Zorin","Lind","Novak","Sokol","Reiner","Petrov","Halden","Dragan","Marek","Stein","Kuzmin","Varga","Holt","Belov","Wolff","Radek"];
 
@@ -527,6 +529,18 @@ const R = {
   rvWary: 0.25, rvWaryChance: 0.5,                       // protector: full wariness of a neighbor that attacked someone last year: edge needed −25%, revenge-style chance as at half a grudge
   rxShare: 0.5, rxGuard: 1, rxGuardMax: 0.8, rxEdge: 0.3, // exposure: angry neighbors could each send 50% of their army; guard against all of them together (at most 80% of the army); edge needed up to +30%
   rvBold: 0.5, rvArmy: 0.15, rvAway: 0.5,              // a grudge: home guard as if bold up to 50%, army up to +15%; counts half of the troops the target sent out last year as still away
+  // loyalty and rebels (new-game rule "Rebellions"): each state's loyalty 0..100; land won in battle lowers it, quiet years raise it; too low and recently won land breaks away
+  loyConq: 1.5, loyRetake: 0.5, loyRetakeYears: 20, loySettle: 0.3, // −1.5 per 1% of your land won in battle in a year; land you lost in the last 20 years counts half, settled land 0.3×
+  loyRec: 4, loyRecWar: 2, loyRecMin: 1,          // +4 a year at peace, +2 at war, × √(starting land ÷ your land) for states bigger than at the start, at least +1
+  loyCeilMax: 70, loyCeilExp: 0.5,                // ceiling: 100 − 70 × (share of the world's land)^0.5: 93 at 1%, 65 at 25%, 30 for the whole world
+  loyFamine: 5, loyBroke: 5,                      // a famine year −5, an empty treasury −5
+  loyUnrest: 40, loyUnrestTax: 0.1,               // below 40: taxes −10%
+  loyRevolt: 25, loyRevoltPer: 0.04,              // below 25: a revolt chance of 4% a year per point under 25
+  rebParent: 1.5, rebEvery: 4, rebMax: 3,         // only states with 1.5× the starting land revolt; 1 rebel state, +1 per 4× the starting land, at most 3
+  rebShareMin: 0.1, rebShareMax: 0.2, rebRecent: 30, rebMinLand: 0.25, // each takes 10–20% of the land (land won in the last 30 years first, then far from the core), at least 25% of a starting state's land
+  rebArmy: 1.5, rebMilitia: 0.1, rebGen: 0.5, rebAfter: 30, rebGrudge: 60, // the garrison of that land defects (1.5× its land share of every troop type); rebels arm 10% of their peasants; 50% chance a general goes with each; the parent's loyalty +30 after a revolt; grievance −60 both ways
+  festCost: 1, festMax: 10,                       // festivals: gold per loyalty point = 1 per 100 people × √(land ÷ starting land); at most +10 a year
+  aiFestLoy: 45, aiLoyCalm: 30, aiLoyFloor: 15,   // computer: festivals below 45; not at war, no land grabs below 30; raids instead of conquering when an attack would leave it under 15 (warlike: 10)
   // generals
   genCostBase: 30, genCostMind: 2.6, speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
   moraleDefend: 5,                 // the defending general loses 5 morale a year instead of recovering (holding the border wears him down)
@@ -718,7 +732,7 @@ function casualties(tr,f){
   return {out,n};
 }
 function applyLosses(c,pool,loss){ const tr=troopsOf(c); for(const k in loss){ pool[k]=Math.max(0,(pool[k]||0)-loss[k]); tr[k]=Math.max(0,(tr[k]||0)-loss[k]); } c.soldiers=troopCount(tr); }
-function taxIncome(c){ return Math.round(c.peasants*R.taxPerPeasant*(1+R.finTaxPerLevel*lvl(c,"fin"))*wonderMul(c,"fin")); }
+function taxIncome(c){ return Math.round(c.peasants*R.taxPerPeasant*(1+R.finTaxPerLevel*lvl(c,"fin"))*wonderMul(c,"fin")*(c.loy!=null&&c.loy<R.loyUnrest?1-R.loyUnrestTax:1)); } // unrest: lower taxes
 function exploreMul(c){ return M(c,"explore")*(1+R.explorePerLevel*lvl(c,"explore"))*wonderMul(c,"explore"); }
 function wages(c){ let w=workers(c).sci*R.sciWage; const tr=troopsOf(c); for(const k in tr) w+=tr[k]*(TROOP[k]?.upGold??0); return Math.round(w); } // scientists + cavalry gold upkeep
 function sellPrice(g,c){ return +(g.price*mkFin(c)).toFixed(2); } // market price, with this state's Finance bonus
@@ -1009,7 +1023,7 @@ function newGame(opts){
   genProg(0.98,"Naming states");
   const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
   // more states than the fixed lists: invent names, spread extra colors by golden-ratio hue
-  const used=new Set(names), SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"];
+  const used=new Set(names), SYL=NAME_SYL, END=NAME_END;
   while(names.length<n){
     let nm; do{ nm=SYL[Math.floor(rnd()*SYL.length)]+(rnd()<0.5?SYL[Math.floor(rnd()*SYL.length)]:"")+END[Math.floor(rnd()*END.length)]; nm=nm[0].toUpperCase()+nm.slice(1); }while(used.has(nm));
     used.add(nm); names.push(nm);
@@ -1052,6 +1066,8 @@ function newGame(opts){
   mkInit(g); mkWeather(g); // world market and the first year's weather
   if(opts.alliances) assignAlliances(g,opts.alliances,rnd);
   if(hot) setupHumans(g,opts,rnd);
+  g.rebels=opts.rebels!==false; g.land0=Math.max(1,Math.round(counts.reduce((a,b)=>a+b,0)/n)); // rebellions on unless turned off; average starting land
+  if(g.rebels) countries.forEach(c=>c.loy=loyCeil(g,c)); // everyone starts at their ceiling
   return g;
 }
 
@@ -1535,6 +1551,8 @@ const act = {
   sell(g,c,n){ return act.sellRes(g,c,"grain",n); },
   buy(g,c,n){ return act.buyRes(g,c,"grain",n); },
   buyGeneral(g,c,age,speed,mind){ const p=genPrice(age,speed,mind); if(c.money<p) return null; c.money-=p; const gen=makeGeneral(g,age,speed,mind); c.generals.push(gen); if(c.defGen==null) c.defGen=gen.id; return gen; },
+  festival(g,c,n){ if(!loyOn(g)||!c.alive) return 0; const p=festCost(g,c); n=Math.max(0,Math.min(Math.floor(n),festRoom(g,c),Math.floor(c.money/p))); if(!n) return 0;
+    c.money-=n*p; c.loy=+(loyOf(c)+n).toFixed(1); if(c.festT!==g.turn){ c.festT=g.turn; c.festN=0; } c.festN+=n; return n; },
   dismissGeneral(g,c,id){ c.generals=c.generals.filter(x=>x.id!==id); c.attacks=c.attacks.filter(a=>a.gen!==id); if(c.defGen===id) c.defGen=null; },
 };
 function resPrice(r,g){ return mkPrice(g,r); }
@@ -1840,6 +1858,7 @@ function aiTurn(g,c){
     c.work={wood:Math.floor(wS*100), iron:Math.floor(iS*100), sci:Math.floor(sciShare*100)}; }
   aiAid(g,c); // help allies at war first, then trade the rest
   aiMarket(g,c);
+  if(loyOn(g)&&loyOf(c)<R.aiFestLoy){ const n=Math.min(festRoom(g,c),Math.floor(Math.max(0,c.money-wages(c)*3-500)/festCost(g,c))); if(n>0) act.festival(g,c,n); } // low loyalty: hold festivals with spare gold
   // generals
   const wantGen = t<(c.persona==="mil"?8:24)-d*2 ? 0 : Math.min(4,1+Math.floor(t/22));
   if(c.generals.length<wantGen){
@@ -1957,16 +1976,19 @@ function aiTurn(g,c){
         const send=Math.min(canSend,Math.max(R.aiHarassMin,Math.ceil(tg.theirStr*R.aiHarassStr/myStrPer)));
         c.attacks.push({target:tg.j,gen:gen.id,soldiers:send,mode:hm}); (c.harN||(c.harN={}))[tg.j]=t+R.aiHarassGapMin+Math.floor(R01(g)*(R.aiHarassGapMax-R.aiHarassGapMin+1)); available-=send; used++; continue; }
       // raid instead of conquest when short of gold and they have more
-      const mode=canWin&&!byFeel&&c.money<wages(c)*R.aiRaidPoor&&tg.o.money>c.money*2?"raid":"normal";
+      let mode=canWin&&!byFeel&&c.money<wages(c)*R.aiRaidPoor&&tg.o.money>c.money*2?"raid":"normal";
       // land this attack could take (general, army bonus and Expansion, no holding cap), never more than the target has
       const want=Math.min(tg.o.land,conquest(gen,canSend,1,c,Infinity));
+      // loyalty: not at war and restless, or an attack that would push loyalty near revolt: raid instead (at war or for a grudge), else hold back
+      if(loyOn(g)&&mode==="normal"&&(loyOf(c)-R.loyConq*100*want/Math.max(1,c.land)<R.aiLoyFloor-(c.persona==="mil"?5:0)||(!foes.size&&loyOf(c)<R.aiLoyCalm))){
+        if(!foes.size&&!byFeel) continue; mode="raid"; }
       if(need<=canSend && need>0){
         const base=want/holdPer, lossF=Math.min(0.9,R.battleLoss*tg.theirStr/(tg.theirStr+myStrPer*base)*modeMul(mode,"atLoss"));
         const send=Math.min(canSend,Math.max(10,Math.ceil(need*1.15),Math.ceil(base/(1-lossF)))); // enough to win and to hold everything it can take
         if(send<10) continue;
         c.attacks.push({target:tg.j,gen:gen.id,soldiers:send,...(mode!=="normal"?{mode}:{}),...(byFeel?{why:tg.why}:{})}); available-=send; used++;
       } else if(tg.o.soldiers===0 && canSend>10){
-        const raid=Math.min(canSend,Math.max(30,Math.ceil(want/holdPer/(1-R.raidLoss)))); c.attacks.push({target:tg.j,gen:gen.id,soldiers:raid}); available-=raid; used++;
+        const raid=Math.min(canSend,Math.max(30,Math.ceil(want/holdPer/(1-R.raidLoss)))); c.attacks.push({target:tg.j,gen:gen.id,soldiers:raid,...(mode!=="normal"?{mode}:{})}); available-=raid; used++;
       }
     }
   }
@@ -2011,6 +2033,7 @@ function warStart(g,a,b,why){ if(!g.wars) g.wars=[]; if(stateWar(g,a,b)) return 
   const w={a,b,from:g.turn,to:g.turn+Math.round(rr(g,R.warMin,R.warMax)),why}; g.wars.push(w);
   if(why==="declared"){ const f=rfGet(g,C[b],a); f.g=Math.max(-100,(f.g||0)-R.warDeclareHit); rfTidy(f); // the victim resents it, the declarer's other neighbors grow wary
     for(const j of adjacency(g)[a]) if(j!==b&&C[j].alive&&!allied(g,a,j)){ const fj=rfGet(g,C[j],a); fj.w=Math.max(-R.rwMax,(fj.w||0)-R.rwHit); rfTidy(fj); } }
+  if(why==="rebels"){ warNews(g,a,b,`🔥 ${C[a].name} rose up against ${C[b].name} and is at war with it.`); return w; } // the parent's own news comes from revolt()
   warNews(g,a,b,`⚔️ ${why==="declared"?`${C[a].name} declared war on ${C[b].name}`:`War broke out between ${C[a].name} and ${C[b].name}`}.`);
   note(g,a,why==="declared"?`⚔️ You declared war on ${C[b].name}.`:`⚔️ War with ${C[b].name}: hostility between you boiled over.`);
   note(g,b,why==="declared"?`⚔️ ${C[a].name} declared war on you!`:`⚔️ War with ${C[a].name}: hostility between you boiled over.`);
@@ -2190,6 +2213,92 @@ function projectedNet(g,c){
 }
 function bestDefGen(o){ return o.generals.find(x=>x.id===o.defGen) || null; }
 
+// ---------- loyalty and rebels ----------
+// With the "Rebellions" rule (g.rebels) every state has loyalty 0..100 (c.loy). Land won in battle lowers it (per 1% of the state's
+// land), quiet years raise it (slower for states bigger than at the start), famine and an empty treasury cost a little, and a ceiling
+// falls as a state's share of the world's land grows. Festivals buy it back with gold. Under R.loyUnrest taxes drop;
+// under R.loyRevolt each year may bring a revolt: recently won land far from the core breaks away as 1–3 rebel states, which join
+// the Rebel Alliance (a team like any other: rebels can win together) and go to war with the state they left.
+const REBEL_COLOR="#5c5c5c";
+function loyOn(g){ return !!g?.rebels; }
+function loyOf(c){ return c.loy??100; }
+function landRef(g){ if(!g.land0){ const A=g.countries.filter(c=>c.history?.length&&c.rebelOf==null); g.land0=Math.max(1,Math.round(A.reduce((s,c)=>s+c.history[0],0)/Math.max(1,A.length))); } return g.land0; }
+function worldLand(g){ if(!g.wLand){ let n=0; for(const v of g.cells) if(v!==-2) n++; g.wLand=Math.max(1,n); } return g.wLand; } // all land, owned or not
+function loyCeil(g,c){ return Math.max(0,Math.round(100-R.loyCeilMax*Math.pow(Math.max(0,c.land)/worldLand(g),R.loyCeilExp))); }
+function loyRecOf(g,c){ return Math.max(R.loyRecMin,(inWar(g,c.id)?R.loyRecWar:R.loyRec)*Math.sqrt(Math.min(1,landRef(g)/Math.max(1,c.land)))); }
+function revoltChance(g,c){ return loyOn(g)&&c.alive&&c.land>=R.rebParent*landRef(g)&&loyOf(c)<R.loyRevolt?Math.min(1,(R.loyRevolt-loyOf(c))*R.loyRevoltPer):0; }
+function festCost(g,c){ return Math.max(1,Math.round(R.festCost*popOf(c)/100*Math.sqrt(Math.max(1,c.land/landRef(g))))); } // gold per loyalty point
+function festRoom(g,c){ return Math.max(0,Math.floor(Math.min(R.festMax-(c.festT===g.turn?c.festN||0:0),loyCeil(g,c)-loyOf(c)))); }
+// a cell changes hands to A in battle: land it lost lately counts as taken back (not from its own rebels: that counts in full)
+function loyGain(g,A,i){ if(g.takenFrom[i]===A.id&&g.countries[g.cells[i]]?.rebelOf!==A.id&&g.turn-g.takenAt[i]<=R.loyRetakeYears) A.gRet=(A.gRet||0)+1; else A.gConq=(A.gConq||0)+1; }
+// once a year after battles and settling: loyalty moves, then states under R.loyRevolt may revolt
+function loyaltyYear(g){
+  if(!loyOn(g)) return;
+  const C=g.countries;
+  for(const c of C){ if(!c.alive) continue;
+    const base=Math.max(1,c.land0y??c.land), was=loyOf(c), rec=loyRecOf(g,c), ceil=loyCeil(g,c);
+    const lc=R.loyConq*100*((c.gConq||0)+R.loyRetake*(c.gRet||0))/base, ls=R.loyConq*R.loySettle*100*(c.gSet||0)/base, v=was+rec-lc-ls;
+    c.loy=+Math.max(0,Math.min(ceil,v)).toFixed(1);
+    c.loyY={was:+was.toFixed(1),rec:+rec.toFixed(1),conq:+lc.toFixed(1),set:+ls.toFixed(1),ceil,cut:v>ceil?1:0}; }
+  if(inPeace(g)) return;
+  for(const c of C.slice()){ const p=revoltChance(g,c); if(p>0&&R01(g)<p) revolt(g,c); }
+}
+// a new rebel state's name: an invented place with "Rebels" in it
+function rebelName(g){ const used=new Set(g.countries.map(c=>c.name)), PAT=["Rebels of %","% Rebels","Free % Rebels","Rebels of Free %"], pick=a=>a[Math.floor(R01(g)*a.length)];
+  for(let t=0;t<300;t++){ let nm=pick(NAME_SYL)+(R01(g)<0.5?pick(NAME_SYL):"")+pick(NAME_END); nm=nm[0].toUpperCase()+nm.slice(1); const s=pick(PAT).replace("%",nm); if(!used.has(s)) return s; }
+  return "Rebels "+g.countries.length; }
+// P revolts: 1..R.rebMax pieces of its land break away (each one piece, R.rebShareMin–Max of its land), recently won land first,
+// then land far from its core (the land it has held longest). People, goods and troops go with the land; rebels arm a militia.
+function revolt(g,P){
+  const C=g.countries, T=g.turn, {W,cells}=g, N=cells.length, ref=landRef(g), lk=linksOf(g), own=ownedCells(g);
+  const mine=own[P.id]=own[P.id].filter(i=>cells[i]===P.id), L=mine.length; if(L<2) return;
+  const nb=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const Lk=lk?.get(i); if(Lk) for(const j of Lk) f(j); };
+  let m=Infinity; for(const i of mine) m=Math.min(m,g.takenAt[i]);
+  const dist=new Map(), q=[]; for(const i of mine) if(g.takenAt[i]===m){ dist.set(i,0); q.push(i); }
+  for(let h=0;h<q.length;h++){ const i=q[h], d=dist.get(i)+1; nb(i,j=>{ if(cells[j]===P.id&&!dist.has(j)){ dist.set(j,d); q.push(j); } }); }
+  let dmax=1; for(const v of dist.values()) dmax=Math.max(dmax,v);
+  const score=new Map(); for(const i of mine){ const t=g.takenAt[i], rc=t>m?Math.max(0,1-(T-t)/R.rebRecent)*(g.takenFrom[i]>=0?1:0.5):0; // settled land counts half
+    score.set(i,2*rc+(dist.get(i)??dmax+1)/dmax+0.3*R01(g)); }
+  const k=Math.min(R.rebMax,1+Math.floor(P.land/(R.rebEvery*ref))), minLand=Math.max(3,Math.round(R.rebMinLand*ref)), claimed=new Set(), regions=[];
+  for(let r=0;r<k;r++){
+    const want=Math.round(L*rr(g,R.rebShareMin,R.rebShareMax)); if(want<minLand||L-claimed.size-want<L*0.4) break; // the parent keeps at least 40%
+    let seed=-1,bs=-Infinity; for(const i of mine) if(!claimed.has(i)&&score.get(i)>bs){ bs=score.get(i); seed=i; } if(seed<0) break;
+    const reg=[seed], fr=[], inF=new Set(); claimed.add(seed);
+    const grow=i=>nb(i,j=>{ if(cells[j]===P.id&&!claimed.has(j)&&!inF.has(j)){ inF.add(j); fr.push(j); } }); grow(seed);
+    while(reg.length<want&&fr.length){ let b=0; for(let x=1;x<fr.length;x++) if(score.get(fr[x])>score.get(fr[b])) b=x;
+      const i=fr[b]; fr[b]=fr[fr.length-1]; fr.pop(); inF.delete(i); claimed.add(i); reg.push(i); grow(i); }
+    if(reg.length<minLand){ for(const i of reg) claimed.delete(i); break; }
+    regions.push(reg); }
+  if(!regions.length) return;
+  if(!g.teams) g.teams=[];
+  let rt=g.teams.findIndex(t=>t.rebel);
+  if(rt<0){ rt=g.teams.length; g.teams.push({id:rt,name:"Rebel Alliance",tag:g.teams.some(t=>t.tag==="RA")?"Reb":"RA",color:REBEL_COLOR,rebel:true}); }
+  const b0={land:P.land,peasants:P.peasants,sci:P.sci||0,money:P.money,grain:P.grain,wood:P.wood||0,iron:P.iron||0,tr:{...troopsOf(P)}}, out=[];
+  for(const reg of regions){
+    const id=C.length, sh=reg.length/b0.land;
+    const c={id,name:rebelName(g),color:REBEL_COLOR,alive:true,ai:true,peasants:0,sci:0,soldiers:0,troops:{},money:0,grain:0,wood:0,iron:0,work:{...P.work},land:0,
+      lv:{...P.lv},rp:zeroAreas(),alloc:{...P.alloc},generals:[],attacks:[],defGen:null,rf:{},hitBy:{},history:new Array(P.history.length).fill(0),lostRecent:[0,0,0],diedTurn:null,killer:null,
+      team:rt,rebelOf:P.id,born:T,loy:100,footing:0.5,lostThis:0,eff:1};
+    C.push(c); own[id]=[];
+    for(const i of reg){ cells[i]=id; g.takenAt[i]=T; g.takenFrom[i]=P.id; own[id].push(i); c.land++; P.land--; }
+    for(const k2 of ["peasants","money","grain","wood","iron"]){ const n=Math.max(0,Math.floor(b0[k2]*sh)); P[k2]-=n; c[k2]+=n; }
+    const ns=Math.floor(b0.sci*sh); P.sci-=ns; c.peasants+=ns; // scientists join as peasants (the work split sets new ones)
+    const tr=troopsOf(P); for(const t in b0.tr){ const n=Math.min(tr[t]||0,Math.floor(b0.tr[t]*sh*R.rebArmy)); if(n>0){ tr[t]-=n; P.soldiers-=n; addTroops(c,t,n); } } // the garrison of that land defects
+    const mil=Math.floor(c.peasants*R.rebMilitia); c.peasants-=mil; addTroops(c,"spear",mil);
+    setTraits(c,P.civ,LEADERS[Math.floor(R01(g)*LEADERS.length)].id,P.landType); c.persona=R01(g)<leaderOf(c).mil?"mil":"sci";
+    if(P.generals.length>=2&&R01(g)<R.rebGen){ const gen=P.generals.splice(Math.floor(R01(g)*P.generals.length),1)[0];
+      if(P.defGen===gen.id) P.defGen=P.generals[0]?.id??null; c.generals.push(gen); c.defGen=gen.id; c.genFrom=gen.name; }
+    c.landMax=c.land; c.loy=loyCeil(g,c); out.push(c); }
+  ADJ.delete(g);
+  P.lostThis=(P.lostThis||0)+out.reduce((s,c)=>s+c.land,0);
+  const lw=loyOf(P); P.loy=Math.min(loyCeil(g,P),lw+R.rebAfter); if(P.loyY) P.loyY.revolt=+(P.loy-lw).toFixed(1);
+  for(const c of out){ rfGet(g,c,P.id).g=-R.rebGrudge; rfGet(g,P,c.id).g=-R.rebGrudge; warStart(g,c.id,P.id,"rebels"); }
+  const sum=k2=>out.reduce((s,c)=>s+(k2==="pop"?popOf(c):c[k2]),0);
+  (g.revolts||(g.revolts=[])).push({p:P.id,ids:out.map(c=>c.id),land:sum("land"),pop:sum("pop"),sol:sum("soldiers")});
+  note(g,P.id,`🔥 Rebellion! ${out.map(c=>c.name).join(", ")} broke away with ${fmtN(sum("land"))} km², ${fmtN(sum("pop"))} people and ${fmtN(sum("soldiers"))} soldiers${out.some(c=>c.genFrom)?` (general ${out.filter(c=>c.genFrom).map(c=>c.genFrom).join(", ")} went with them)`:""}. ${out.length>1?"They are":"It is"} at war with you. Your loyalty rose to ${Math.round(P.loy)}.`);
+}
+const fmtN=n=>Math.round(n).toLocaleString("en-US");
+
 // ---------- turn resolution ----------
 function endTurn(g){
   const C=g.countries, me=C[g.player]||{alive:true,generals:[],observer:true}; // observer: a stand-in that never loses
@@ -2201,6 +2310,7 @@ function endTurn(g){
   migrateResearch(g); migrateRelations(g);
   g.avgLv=worldAvgLv(g); g.avgPop=worldAvgPop(g); // research costs compare against the averages at the start of the year
   C.forEach(c=>{ if(c.civ) c.mod=computeMods(civOf(c),leaderOf(c),landOf(c)); }); // settings may have changed
+  g.revolts=[]; C.forEach(c=>{ c.gConq=c.gRet=c.gSet=0; c.land0y=c.land; }); // land won this year (loyalty)
   C.forEach(c=>{ if(c.alive&&c.ai) aiTurn(g,c); if(!c.ai) c.eff=1; c.lostThis=0; });
   // battles
   const adjNow=adjacency(g);
@@ -2232,6 +2342,7 @@ function endTurn(g){
   C.forEach(c=>c.attacks=[]);
   // economy
   settle(g);
+  loyaltyYear(g); // loyalty moves; revolts break states apart
   computeShore(g); // borders moved; shore farmland may have changed hands
   refreshWonders(g);
   for(const e of g.wonderEvents){ const W_=WONDERS[e.area].name;
@@ -2250,11 +2361,12 @@ function endTurn(g){
   // player defaults for next turn
   const alive=C.filter(c=>c.alive);
   // with alliances the war ends when all survivors are allies; the whole alliance wins (even members who fell)
-  const teamsLeft=g.teams?new Set(alive.map(c=>c.team??"s"+c.id)):null, done=g.teams?teamsLeft.size<=1:alive.length<=1;
-  const winTeam=g.teams&&done&&alive.length?alive[0].team:null;
+  const side=c=>c.team??"s"+c.id; // states outside any alliance stand alone (rebels can make alliances appear mid-game)
+  const teamsLeft=g.teams?new Set(alive.map(side)):null, done=g.teams?teamsLeft.size<=1:alive.length<=1;
+  const winTeam=g.teams&&done&&alive.length?alive[0].team??null:null, winSide=done&&alive.length?side(alive[0]):null;
   if(g.hot){ if(done) g.over="end"; } // hot-seat: one player's defeat doesn't end the game
   else if(me.observer){ if(done) g.over="end"; }
-  else if(g.teams&&done&&me.team===winTeam){ g.over="win"; }
+  else if(g.teams&&done&&side(me)===winSide){ g.over="win"; }
   else if(!me.alive){ g.over="lose"; }
   else if(!g.teams&&alive.length===1){ g.over="win"; }
   if(done){ g.worldOver=true; g.winner=alive.length===1?alive[0].id:null; g.winnerTeam=winTeam; }
@@ -2354,7 +2466,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   // conquered: no land left, too few people, or no peasants left to farm (soldiers alone would only starve)
   if(D.land<=0 || popOf(D)<R.minPop || D.peasants<R.minPop){
     const own=ownedCells(g);
-    for(const i of own[D.id]) if(g.cells[i]===D.id){ g.cells[i]=A.id; g.takenAt[i]=g.turn; g.takenFrom[i]=D.id; own[A.id].push(i); A.land++; }
+    for(const i of own[D.id]) if(g.cells[i]===D.id){ loyGain(g,A,i); g.cells[i]=A.id; g.takenAt[i]=g.turn; g.takenFrom[i]=D.id; own[A.id].push(i); A.land++; }
     own[D.id]=[]; ADJ.delete(g);
     if(R.keepPeople){ elimPeas=D.peasants+D.sci; loot=["money","grain","wood","iron"].map(k=>{ const v=Math.max(0,Math.round(D[k]||0)); A[k]=(A[k]||0)+v; D[k]=0; return v; }); } // all its people and stocks
     else elimPeas=Math.round(D.peasants*0.5);
@@ -2405,7 +2517,7 @@ function settle(g){
       cells[i]=id; own[id].push(i); c.land++; g.takenAt[i]=g.turn; g.takenFrom[i]=-1; k++;
       nb(i,j2=>{ if(cells[j2]===-1) q.push(j2); });
     }
-    if(k){ ADJ.delete(g); c.settleT=g.turn; note(g,id,`🏕 Settlers claimed ${k} km² of unowned land.`); }
+    if(k){ ADJ.delete(g); c.settleT=g.turn; c.gSet=(c.gSet||0)+k; note(g,id,`🏕 Settlers claimed ${k} km² of unowned land.`); }
   }
 }
 function frontierCells(g,a,d){
@@ -2420,7 +2532,7 @@ function transferCells(g,a,d,n,frontier){
   ADJ.delete(g);
   while(k<n && q.length){
     const j=Math.floor(R01(g)*Math.min(q.length,8)); const i=q.splice(j,1)[0];
-    if(cells[i]!==d) continue; cells[i]=a; g.takenAt[i]=g.turn; g.takenFrom[i]=d; own[a].push(i); A.land++; D.land--; k++;
+    if(cells[i]!==d) continue; loyGain(g,A,i); cells[i]=a; g.takenAt[i]=g.turn; g.takenFrom[i]=d; own[a].push(i); A.land++; D.land--; k++;
     const x=i%W,y=(i/W)|0;
     if(x>0&&cells[i-1]===d) q.push(i-1); if(x<W-1&&cells[i+1]===d) q.push(i+1);
     if(y>0&&cells[i-W]===d) q.push(i-W); if(y<H-1&&cells[i+W]===d) q.push(i+W);
@@ -2445,6 +2557,7 @@ function economy(g,c){
     const dP=Math.min(c.peasants,deaths-dS-dK);
     removeTroops(c,dS,"prop"); c.sci-=dK; c.peasants-=dP;
     L(`⚠ Famine: ${deaths} people starved (${dS} soldiers, ${dK} scientists, ${dP} peasants).`);
+    if(loyOn(g)){ c.loy=Math.max(0,loyOf(c)-R.loyFamine); if(c.loyY) c.loyY.fam=R.loyFamine; }
   }
   // harvest
   // stored grain spoils a little each year
@@ -2459,6 +2572,7 @@ function economy(g,c){
     const dS=Math.min(c.soldiers,unpaid); removeTroops(c,dS,"prop"); c.peasants+=dS; unpaid-=dS;
     const sciW=workers(c).sci, dK=Math.min(sciW,unpaid); if(dK&&c.peasants) c.work.sci=Math.max(0,Math.floor(100*(sciW-dK)/c.peasants));
     L(`⚠ Treasury empty: ${dS} soldiers left unpaid and ${dK} scientists went back to farming.`);
+    if(loyOn(g)){ c.loy=Math.max(0,loyOf(c)-R.loyBroke); if(c.loyY) c.loyY.broke=R.loyBroke; }
   }
   // growth
   if(!starving){
@@ -2947,6 +3061,7 @@ class MapView{
     if(this.o.war?.()&&g){ const me_=g.countries[g.player], ws=g.wars||[]; if(me_&&c.id===g.player) return REL_YOU;
       return me_&&atWar(g,c.id,g.player)?WAR_FOE:inWar(g,c.id)?WAR_ON:WAR_PEACE; }
     if(this.o.wx?.()&&g) return wxColor(c.lastWx??1);
+    if(this.o.loy?.()&&g) return loyColor(loyOf(c));
     if(this.o.rel?.()&&g&&g.countries[g.player]) return c.id===g.player?REL_YOU:relColor(relOf(g,c,g.player));
     return this.o.ally?.()&&g?.teams&&c.team!=null?g.teams[c.team].color:c.color; }
   // alliance letter after a state's name, e.g. " (b)"
@@ -3185,7 +3300,7 @@ function placeTip(tip,ev){ // fixed-position, so it can't make the pane scroll; 
   const left=x+14+w>r.right?x-14-w:x+14, top=y+10+h>r.bottom?y-10-h:y+10;
   tip.style.left=Math.max(r.left,left)+"px"; tip.style.top=Math.max(r.top,top)+"px"; }
 const mainView=new MapView($("map"),{
-  sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView, war:()=>!!UI.warView,
+  sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView, war:()=>!!UI.warView, loy:()=>!!UI.loyView,
   height:()=>Math.max(320, window.innerHeight-($("mapbox").getBoundingClientRect().top+window.scrollY+$("mapwrap").scrollTop)-72), // fill the window below the map's top edge (ignores scrolling)
   focus:g=>g.fog?g.player:null,
   onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="war") UI.tab="world"; render(); },
@@ -3251,9 +3366,12 @@ function renderAllyMap(){
   rb.classList.toggle("hidden",!relOn); rb.classList.toggle("on",!!UI.relView); rb.textContent="Relations";
   const wb=$("wxBtn"); if(!G) UI.wxView=false; wb.classList.toggle("hidden",!G); wb.classList.toggle("on",!!UI.wxView); wb.textContent="Weather";
   const xb=$("warBtn"); if(!G) UI.warView=false; xb.classList.toggle("hidden",!G); xb.classList.toggle("on",!!UI.warView); xb.textContent="Wars";
-  const st=$("stBtn"), shown=[st,b,rb,xb,wb].filter(x=>x!==st&&!x.classList.contains("hidden")); st.classList.toggle("hidden",!shown.length); st.classList.toggle("on",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView);
-  const vis=[st,b,rb,xb,wb].filter(x=>!x.classList.contains("hidden")); vis.forEach((x,i)=>{ x.classList.toggle("first",i===0); x.classList.toggle("last",i===vis.length-1); x.setAttribute("aria-pressed",x.classList.contains("on")); });
-  lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView);
+  const lb=$("loyBtn"), loyV=!!G&&loyOn(G); if(!loyV) UI.loyView=false; lb.classList.toggle("hidden",!loyV); lb.classList.toggle("on",!!UI.loyView);
+  const st=$("stBtn"), shown=[st,b,rb,xb,lb,wb].filter(x=>x!==st&&!x.classList.contains("hidden")); st.classList.toggle("hidden",!shown.length); st.classList.toggle("on",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView&&!UI.loyView);
+  const vis=[st,b,rb,xb,lb,wb].filter(x=>!x.classList.contains("hidden")); vis.forEach((x,i)=>{ x.classList.toggle("first",i===0); x.classList.toggle("last",i===vis.length-1); x.setAttribute("aria-pressed",x.classList.contains("on")); });
+  lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView&&!UI.loyView);
+  if(UI.loyView){ const open=legendOpen(), A=G.countries.filter(c=>c.alive), rb_=A.filter(c=>c.team!=null&&G.teams?.[c.team]?.rebel).length;
+    lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Loyalty <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${[[100,"Loyal 100"],[70,"Restless 70"],[R.loyUnrest,`Unrest ${R.loyUnrest}`],[R.loyRevolt-1,`Revolt possible <${R.loyRevolt}`],[0,"0"]].map(([v,l])=>`<div><span class="sw" style="background:${loyColor(v)}"></span>${l}</div>`).join("")}<div class="mut">Rebel states: ${fmt(rb_)}</div></div>`); return; }
   if(UI.warView){ const open=legendOpen(), n=(G.wars||[]).length, me_=!observing()&&me();
     lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Wars · ${fmt(n+(G.awars||[]).length)} going on <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${me_?`<div><span class="sw" style="background:${WAR_FOE}"></span>At war with you</div>`:""}<div><span class="sw" style="background:${WAR_ON}"></span>At war${me_?" with others":""}</div><div><span class="sw" style="background:${WAR_PEACE}"></span>At peace</div>${me_?`<div><span class="sw" style="background:${REL_YOU}"></span>You</div>`:""}</div>`); return; }
   if(UI.wxView){ const open=legendOpen(), wa=worldWx(G);
@@ -3280,6 +3398,8 @@ function renderHeader(){
   $("hLand").textContent=fmt(c.land);
   $("hPop").textContent=fmt(popOf(c));
   }
+  { const b=$("hLoyBox"), on=loyOn(G)&&!observing()&&c.alive; b.style.display=on?"":"none";
+    if(on){ const v=loyOf(c), [st,cls]=loyState(v); $("hLoy").textContent=Math.round(v); $("hLoy").className=cls; b.title=`Loyalty ${Math.round(v)} of ${loyCeil(G,c)} (${st}): click to see it on the Home tab`; } }
   $("end").disabled=!canPlay()||UI.busy; $("bAuto").disabled=!canPlay()||!!G.hot; if((!canPlay()||G.hot)&&AUTO.on) setAuto(false); $("bAutoOpt").disabled=$("bAuto").disabled; $("bRep").disabled=!lastPrev();
   $("end").textContent=G.hot?(hotLast()?"End year ▶":"Done ▶"):watching()?"Next year ▶":"End turn ▶";
   $("end").title=G.hot?(hotLast()?"You're the last player this year: the year runs now":"Hand over to the next player"):"";
@@ -3392,6 +3512,28 @@ function yearAhead(c){ const food=foodUse(c), prod=foodProduction(c), wk=workers
   ${card("💰","Money",net,row("Taxes",`+${fmt(tax)}`,"good")+row("Scientists",`−${fmt(sw)}`,"bad")+(cw>0?row("Cavalry",`−${fmt(cw)}`,"bad"):"")+moneyRow(c.money,net,row),`In store 💰 <b>${fmt(c.money)}</b>`)}</div>
   <div class="note ${c.grain+prod>=food?'':'warn'}">${foodNote(c)}</div>
   ${net<0&&c.money+net<0?`<div class="note warn">You can't pay wages next year. Unpaid soldiers and scientists will leave. Sell grain or dismiss staff.</div>`:""}`; }
+// loyalty: status label and class
+function loyState(v){ return v<R.loyRevolt?["Revolt possible","bad"]:v<R.loyUnrest?["Unrest","bad"]:v<70?["Restless","warn"]:["Loyal","good"]; }
+const loyColor=v=>{ const t=Math.max(0,Math.min(1,v/100)), a=t<0.5?[200,50,40]:[220,170,60], b=t<0.5?[220,170,60]:[60,170,80], k=t<0.5?t*2:t*2-1;
+  return "#"+a.map((x,i)=>Math.round(x+(b[i]-x)*k).toString(16).padStart(2,"0")).join(""); };
+// next year's revolt chance if no land is won (after this year's recovery)
+function revoltNext(g,c){ if(inPeace(g)&&g.turn+1<=g.peace) return 0; const v=Math.min(loyCeil(g,c),loyOf(c)+loyRecOf(g,c)); return loyOn(g)&&c.land>=R.rebParent*landRef(g)&&v<R.loyRevolt?Math.min(1,(R.loyRevolt-v)*R.loyRevoltPer):0; }
+function loyCard(c){
+  const v=loyOf(c), ceil=loyCeil(G,c), [st,cls]=loyState(v), rec=loyRecOf(G,c), p=revoltNext(G,c), y=c.loyY, pc=festCost(G,c), room=festRoom(G,c), can=Math.min(room,Math.floor(c.money/pc));
+  const card=(l,val,sub)=>`<div class="stat"><span class="mut">${l}</span><b>${val}</b><span style="color:var(--mut)">${sub}</span></div>`, n1=x=>+(+x).toFixed(1);
+  const last=y?[["recovery",+y.rec],["land won",-y.conq],["settling",-y.set],["famine",-(y.fam||0)],["empty treasury",-(y.broke||0)],["revolt",+(y.revolt||0)]].filter(x=>Math.abs(x[1])>=0.05).map(([l,x])=>`<span class="${x>0?"good":"bad"}">${x>0?"+":"−"}${n1(Math.abs(x))}</span> ${l}`).join(" · ")+(y.cut?` · held at the ceiling`:""):"";
+  const fest=c.festT===G.turn&&c.festN?` · <span class="good">+${c.festN}</span> festivals this year`:"";
+  return `<h3>Loyalty ${gl("loyalty")}</h3>
+  <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    ${card("Loyalty",`<span class="${cls}">${Math.round(v)}</span> <span class="small mut">/ ${ceil}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${Math.round(v)}%;background:${loyColor(v)}"></i></span>${st}`)}
+    ${card("Next year",`+${n1(rec)}`,`if you win no land${rec<R.loyRec?` (slower: you're ${(c.land/landRef(G)).toFixed(1)}× the starting size)`:""}`)}
+    ${card("Revolt",p?`<span class="bad">${Math.round(p*100)}%</span>`:"—",p?"chance next year":c.land<R.rebParent*landRef(G)?`not while under ${fmt(Math.ceil(R.rebParent*landRef(G)))} km²`:`only below ${R.loyRevolt}`)}</div>
+  ${last||fest?`<div class="small mut">Last year: ${last||"no change"}${fest}</div>`:""}
+  ${v<R.loyUnrest?`<div class="note warn">${p?`Revolt possible: about ${Math.round(p*100)}% chance next year that your newest land breaks away as rebel states. `:""}Unrest: taxes −${gP(R.loyUnrestTax)}.</div>`:""}
+  <div class="row small" style="margin-top:6px;align-items:center;gap:6px;flex-wrap:wrap">🎉 <b>Festivals</b> <input type="text" inputmode="numeric" id="festN" maxlength="2" value="${Math.max(0,Math.min(can,UI.festN??can))}" style="width:3em" aria-label="Loyalty points to buy"> points × ${fmt(pc)} gold
+    <button class="sm" data-fest="1" ${can?"":"disabled"}>Hold festival</button><button class="sm" data-fest="max" ${can?"":"disabled"}>Max (${can})</button>
+    <span class="mut">${room?`up to ${room} more this year`:v>=ceil?"at the ceiling":`used up this year (${R.festMax} a year)`}</span></div>`;
+}
 function pEconomy(){
   const c=me(); c.work=c.work||{wood:0,iron:0};
   const cap=popCap(c), pop=popOf(c), full=Math.min(100,Math.round(100*pop/cap)), yf=yearsToFull(c);
@@ -3407,6 +3549,7 @@ function pEconomy(){
     ${card("People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
     ${card("Growth",(()=>{ const n=birthsOf(c); return `${n>=0?"+":""}${fmt(n)}<span class="small" style="color:var(--mut)">/yr</span>`; })(),yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
     ${card("Peasants",fmt(c.peasants),`${fmt(c.soldiers)} soldiers`)}</div>
+  ${loyOn(G)?loyCard(c):""}
   <h3>Work ${gl("work")}</h3>
   <div class="wgrid">${job("farm","👨‍🌾 Farmers")}${job("wood","🌲 Woodcutters")}${job("iron","⛏️ Miners")}${job("sci","🔬 Scientists")}</div>
   <div class="small mut">Shares of your ${fmt(c.peasants)} peasants. Each job takes at most ${WORK_MAX}% and at least ${100-WORK_TOTAL}% keep farming. Lock 🔒 a job to keep its share while you move the others.</div>
@@ -3747,7 +3890,7 @@ function pGenerals(){
 
 // War tab: the wars you are in, and how many are going on among the states you know
 function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w.a!==c.id&&w.b!==c.id&&isKnown(w.a)&&isKnown(w.b)).length;
-  const row=w=>{ const o=G.countries[warFoe(w,c.id)], how=w.why==="declared"?(w.a===c.id?"you declared it":"they declared it"):"hostility boiled over";
+  const row=w=>{ const o=G.countries[warFoe(w,c.id)], how=w.why==="declared"?(w.a===c.id?"you declared it":"they declared it"):w.why==="rebels"?(w.a===c.id?"you broke away":"they broke away from you"):"hostility boiled over";
     return `<tr class="click" data-pick="${o.id}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${o.color}"></span>${esc(o.name)}</td><td class="small mut">since year ${w.from} · ${how}</td></tr>`; };
   const t=c.team, aw=aWarOf(G,t), arow=w=>{ const o=w.a===t?w.b:w.a; return `<tr class="click" data-alliance="${o}"><td style="white-space:nowrap">⚔️ <span class="sw" style="background:${G.teams[o].color}"></span>${esc(G.teams[o].name)} <span class="mut">(alliance)</span></td><td class="small mut">since year ${w.from} · every member is your enemy</td></tr>`; };
   return `<h3>Wars ${gl("wars")}</h3>${mine.length||aw.length?`<table>${mine.map(row).join("")}${aw.map(arow).join("")}</table>`:`<div class="small mut">At peace.</div>`}
@@ -3790,6 +3933,7 @@ function pWar(){
   <div class="kv"><span class="mut">Border guards</span><b>${fmt(guards)} <span class="small mut">(defense ${fmtPow(armyDef(c,plannedPools(c)))})</span></b><span class="mut">Defending general</span><b>${dg?esc(dg.name)+` (skill ${dg.skill.toFixed(0)})`:'<span class="bad">none</span>'}</b></div>
   <div style="margin:8px 0"><span class="mut">Stance ${gl("stance")}</span>${stancePicker(c)}</div>
   ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
+  ${loyOn(G)?`<div class="small" style="margin:4px 0">❤️ Loyalty <b style="color:${loyColor(loyOf(c))}">${Math.round(loyOf(c))}</b>: every 1% of your land you win in battle costs ${R.loyConq} loyalty. Raids, kidnaps and massacres take no land. ${gl("loyalty")}</div>`:""}
   <h3>Orders this year ${gl("attack")}</h3>
   ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${a.mix?mixShort(a.mix):fmt(a.soldiers)+" soldiers"}</td><td>→ ${esc(G.countries[a.target].name)}${a.mode&&a.mode!=="normal"&&MODES.includes(a.mode)?` <span class="small" title="${esc(MODE_UI[MODES.indexOf(a.mode)][2]+": "+modeEffect(MODES.indexOf(a.mode)))}">${MODE_UI[MODES.indexOf(a.mode)][1]} ${MODE_UI[MODES.indexOf(a.mode)][2].toLowerCase()}</span>`:""}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}
   <h3>Neighbors ${gl("relations")}</h3>
@@ -3961,7 +4105,7 @@ function inspect(c){
   const pl=me(); const adj=!observing()&&neighbors(G,pl.id).includes(c.id);
   return `<div class="gen sel"><div class="row"><span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}</b>${c.id===G.player?" (you)":""}<span class="grow"></span><button class="sm" data-pick="-1">✕</button></div>
   ${G.teams&&c.team!=null?`<div class="small" style="margin:2px 0 4px"><button class="mlink" data-alliance="${c.team}" title="Open the alliance">${allyPrefix(c)}${esc(G.teams[c.team].name)}</button></div>`:""}
-  ${c.alive?`<div class="kv small"><span class="mut">Land</span><b>${fmt(c.land)} km²</b><span class="mut">Population</span><b>${fmt(popOf(c))}</b><span class="mut">Soldiers</span><b>${fmt(c.soldiers)} <span class="small mut">(atk ${fmtPow(armyAtk(c))} / def ${fmtPow(armyDef(c))})</span></b><span class="mut">Generals</span><b>${c.generals.length}</b>${traitName(c)?`<span class="mut">People</span><b>${esc(traitName(c))}</b>`:""}<span class="mut">Science levels</span><b class="small" style="font-weight:500">${AREAS.map(x=>`${AREA_NAMES[x]} ${c.lv[x]}`).join(" · ")}</b>${wondersOf(G,c.id).length?`<span class="mut">Wonders</span><b>${wondersOf(G,c.id).map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", ")}</b>`:""}
+  ${c.alive?`<div class="kv small"><span class="mut">Land</span><b>${fmt(c.land)} km²</b><span class="mut">Population</span><b>${fmt(popOf(c))}</b><span class="mut">Soldiers</span><b>${fmt(c.soldiers)} <span class="small mut">(atk ${fmtPow(armyAtk(c))} / def ${fmtPow(armyDef(c))})</span></b><span class="mut">Generals</span><b>${c.generals.length}</b>${loyOn(G)?`<span class="mut">Loyalty</span><b style="color:${loyColor(loyOf(c))}">${Math.round(loyOf(c))} <span class="small mut">(${loyState(loyOf(c))[0].toLowerCase()})</span></b>`:""}${c.rebelOf!=null?`<span class="mut">Rebels</span><b class="small" style="font-weight:500">Broke away from ${esc(G.countries[c.rebelOf]?.name||"?")} in year ${c.born}</b>`:""}${traitName(c)?`<span class="mut">People</span><b>${esc(traitName(c))}</b>`:""}<span class="mut">Science levels</span><b class="small" style="font-weight:500">${AREAS.map(x=>`${AREA_NAMES[x]} ${c.lv[x]}`).join(" · ")}</b>${wondersOf(G,c.id).length?`<span class="mut">Wonders</span><b>${wondersOf(G,c.id).map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", ")}</b>`:""}
   ${c.id!==G.player&&!observing()?`<span class="mut">Relations with you</span><b>${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}</b><span class="mut">Borders you</span><b>${adj?"yes":"no"}</b>`:""}</div>
   ${c.id!==G.player?(UI.takeConfirm===c.id
     ?`<div class="row small"><span>Rule <b>${esc(c.name)}</b> from now on?${me().alive?` The computer takes over ${esc(me().name)}.`:""}</span><button class="sm pri" data-takeover="${c.id}">Yes, take over</button><button class="sm" data-takeask="-1">Cancel</button></div>`
@@ -4186,6 +4330,7 @@ const SETTINGS_META=[
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
   ["Land, terrain & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["forestYield","Forest: wood bonus per share of forest land (×)"],["forestMax","Forest: maximum wood bonus","%"],["mtnYield","Mountains: iron bonus per share of mountain land (×)"],["mtnMax","Mountains: maximum iron bonus","%"],["forestDef","Forest: defenders' bonus when the whole attacked border is forest","%"],["mtnDef","Mountains: defenders' bonus when the whole attacked border is mountains","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
+  ["Loyalty and rebels (new-game rule: Rebellions)",[["loyConq","Land won in battle: loyalty lost per 1% of your land"],["loyRetake","Taking back land you lost lately counts this share","%"],["loyRetakeYears","…land lost within (years)"],["loySettle","Settled land counts this share","%"],["loyRec","Recovery per year at peace"],["loyRecWar","Recovery per year at war"],["loyRecMin","Recovery at least (big states recover slower)"],["loyCeilMax","Ceiling: 100 minus up to this (a state holding the whole world)"],["loyCeilExp","Ceiling: curve (power of the world share)"],["loyFamine","A famine year costs"],["loyBroke","An empty treasury costs"],["loyUnrest","Unrest below"],["loyUnrestTax","Unrest: taxes lower by","%"],["loyRevolt","Revolt possible below"],["loyRevoltPer","Revolt chance per year, per point below that","%"],["rebParent","Only states with this × the starting land revolt"],["rebEvery","One more rebel state per this × the starting land"],["rebMax","Rebel states per revolt, at most"],["rebShareMin","Each rebel state takes at least this share of the land","%"],["rebShareMax","…and at most","%"],["rebRecent","Land won within this many years breaks away first"],["rebMinLand","A rebel state needs at least this share of a starting state's land","%"],["rebArmy","Troops that go over: × the land share"],["rebMilitia","Rebels arm this share of their peasants","%"],["rebGen","Chance a general goes with each rebel state","%"],["rebAfter","The state's loyalty after a revolt: +"],["rebGrudge","Grievance between rebels and the state they left"],["festCost","Festivals: gold per point, per 100 people (× √ of land ÷ starting land)"],["festMax","Festivals: most points a year"],["aiFestLoy","Computer: holds festivals below this loyalty"],["aiLoyCalm","Computer, not at war: no land grabs below this loyalty"],["aiLoyFloor","Computer: raids instead of conquering when an attack would leave loyalty under this (warlike −5)"]]],
   ["Computer players",[["aiHarassMin","Harassing its biggest neighbor (feared, 1.5× its size, too strong to beat): send at least this many soldiers"],["aiHarassStr","Harassing: aim at this share of their defense","%"],["aiHarassFear","Harassing: only states it fears more than this","%"],["aiHarassGapMin","Harassing: then waits at least this many years"],["aiHarassGapMax","Harassing: and at most this many years"],["aiMassacreGrudge","Harassing: massacre instead with a grudge above","%"],["aiRaidPoor","Raid a beatable neighbor instead of conquering when gold is under this many years of wages"],["aiFallBack","Defense stance: fall back when its defense is under this share of the strongest neighbor's attack","%"],["aiLastStand","Defense stance: stand ground once its land is under this share of its biggest","%"],["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiArmyPeace","Army in peace (share of people)","%"],["aiArmyPeaceMil","Army in peace, warlike (share of people)","%"],["aiArmyWar","Army at war (share of people)","%"],["aiArmyWarMil","Army at war, warlike (share of people)","%"],["aiFootStep","War footing: change per year toward war or peace","%"],["aiKeepPeace","Peasants kept in peace (share of people)","%"],["aiKeepWar","Peasants kept at war (share of people)","%"],["aiDensPeace","Density research share in peace"],["aiDensWar","Density research share at war"],["aiGrowPeace","Growth research share in peace"],["aiGrowWar","Growth research share at war"],["aiInteriorArmy","Only allied neighbors: army (share of people)","%"],["aiInteriorCut","Only allied neighbors: surplus soldiers sent home per year","%"],["aiPeaceCut","At peace: surplus soldiers sent home per year","%"],["aiAtkRoom","Not at war: below this fullness, attacks only out of grudge, fear or for a wonder","%"],["aiAtkFull","Not at war: from this fullness, attacks as usual","%"],["aiAtkRoomEdge","Not at war: extra edge needed at the low end","%"],["aiPeaceThreat","Threat from a neighbor it isn't at war with (× its army)"],["aiDefCapPeace","Defense top-up: at most this share of people armed in peace","%"],["aiDefCapWar","Defense top-up: at most this share of people armed at war","%"],["aiMixTilt","Main army: weight of the stat the army lacks (attack + defense valued together)"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
 ];
 const TABLE_META={
@@ -4329,6 +4474,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Loyalty and rebels","2026-11-12 20:56",["New rule Rebellions (on by default in New game)","Every state has loyalty: winning land in battle lowers it, quiet years raise it, big states have a lower ceiling","Below 40: unrest, taxes −10%. Below 25: your newest land can break away as rebel states","Rebels take land, people, goods, troops and sometimes a general, and go to war with you","All rebels join the dark grey Rebel Alliance, which can win the game","Festivals on the Home tab buy loyalty with gold","❤️ loyalty in the header, a Loyalty map view, loyalty in state details","Computer states hold festivals and slow down when loyalty is low","New guide topic: Loyalty and rebels","No grey colors for normal states any more"]],
 ["Save and load files","2026-11-12 20:14",["Menu → Save to file downloads your game as a .json file","Menu → Load from file opens it, also on another computer","Load from file on the first window too","The file keeps the map, news archive and your Settings"]],
 ["Science sliders","2026-11-12 19:15",["A research slider stops at the most it can reach instead of sliding past and jumping back","Progress bars, shares and years to the next level update while you drag"]],
 ["Guide: terrain in battles","2026-11-12 19:01",["Battles guide lists the forest and mountain border bonus in the defense formula"]],
@@ -4474,7 +4620,8 @@ const GUIDE=[
 <p>When the year ends, things happen in this order. It decides what sees this year's values and what sees last year's.</p>
 <ol class="glist"><li><b>Computer states decide</b>: work, market trades, generals, troops, research, attacks, war declarations.</li>
 <li><b>Battles</b> are fought, in random order. Land, peasants and grain change hands.</li>
-<li><b>Settling</b> of unowned land; coasts and wonders are recounted.</li>
+<li><b>Settling</b> of unowned land.</li>
+<li><b>Loyalty</b> moves (this year's conquests count) and states under ${R.loyRevolt} may revolt; coasts and wonders are recounted.</li>
 <li><b>Economy</b> for every state: harvest (× weather) → eating → famine → spoilage → wood and iron → taxes minus wages → empty treasury → births → research → generals train and recover → collapse below ${R.minPop} people.</li>
 <li><b>Market year</b>: orders age, the market price updates, merchants set new prices.</li>
 <li><b>Weather</b> moves; next year's weather is rolled (so you can see it coming).</li>
@@ -4495,9 +4642,10 @@ ${gTab(["System","Feeds","Is fed by"],[
 ["Research","Bonuses to almost everything","Scientists (paid in gold)"],
 ["Army and generals","Land (conquest), safety","People, food, wood, iron, gold"],
 ["Relations and wars","Who attacks whom, embargoes","Battles, size (fear), years of peace"],
+["Loyalty","Taxes (unrest), revolts that split a state into rebel states","Conquest and settling lower it, quiet years and festivals (gold) raise it, size lowers its ceiling"],
 ["Weather","Harvest shocks, market prices","The map; drifts by itself"]])}
 <h3>What snowballs, and what stops it</h3>
-<ul class="log"><li><b>Land → people → taxes, food and troops → more land.</b> Brakes: births stop at capacity; ${R.keepPeople?"conquest brings land but no people, so a winner must grow its own (only wiping a state out hands over its people and stocks), and a beaten state keeps what its land can hold;":`captured peasants only partly arrive (${gP(R.capturedPeasants)});`} land per battle is capped by the general's speed and by what survivors can hold; big states pay more for research; neighbors fear a state from ${R.rfFrom}× their size and fear leads to war.</li>
+<ul class="log"><li><b>Land → people → taxes, food and troops → more land.</b> Brakes: births stop at capacity; ${R.keepPeople?"conquest brings land but no people, so a winner must grow its own (only wiping a state out hands over its people and stocks), and a beaten state keeps what its land can hold;":`captured peasants only partly arrive (${gP(R.capturedPeasants)});`} land per battle is capped by the general's speed and by what survivors can hold; big states pay more for research; neighbors fear a state from ${R.rfFrom}× their size and fear leads to war; with Rebellions on, every conquest costs loyalty, big states recover it slowly under a lower ceiling, and too little loyalty splits newly won land off as rebel states.</li>
 <li><b>Science → more research points.</b> Brakes: each level costs ${R.researchGrowth}× the last, being ahead of the world costs up to ×${R.leadMax}, and each scientist costs ${R.sciWage} gold, about six peasants' tax.</li>
 <li><b>Grudges → revenge → new grudges.</b> Brakes: a winning strike back clears most of a grudge, striking back counts half, and wars end after ${R.warMin}–${R.warMax} years with grievances forgotten.</li>
 <li><b>Settling unowned land.</b> Brake: the land runs out.</li></ul>
@@ -4515,7 +4663,8 @@ ${gTab(["System","Feeds","Is fed by"],[
 <li>Sending troops vs keeping guards: soldiers sent away don't defend that year.</li>
 <li>Soldiers vs land in battle: falling back saves troops on both sides, standing ground spends them to keep land.</li>
 <li>Land vs goods vs people: a conquest takes land, a raid goods, a kidnap people, a massacre takes nothing but hurts; the cheaper ones anger less, the crueler ones more.</li>
-<li>Growing fast vs staying unthreatening: the biggest state makes enemies.</li></ul>`],
+<li>Growing fast vs staying unthreatening: the biggest state makes enemies.</li>
+<li>Conquering now vs keeping loyalty: land taken this year can break away later; gold for festivals is gold not spent on the army or research.</li></ul>`],
 ["pop","Your state","👥","Population",()=>`
 <p>People are the core resource: every peasant farms or works, pays tax and has children; every soldier is one person taken from them.</p>
 <h3>Capacity</h3><p>Your land holds <b>land × density</b> people: ${R.popPerKm} per km² at the start, +${R.densPerLevel} per km² for each Pop. density level, times your civilization's, leader's and land's capacity bonus (and the Tower of Babel). Conquest and settling add land, so they add room.</p>
@@ -4536,7 +4685,8 @@ ${gTab(["Job","Makes per worker per year","Notes"],[["Farmer",`${R.foodPerFarmer
 <p>The Home tab's <b>Year ahead</b> card shows next year's harvest, food use and what is left, including the weather forecast. If it shows a shortfall, buy grain or move workers to farming.</p>`],
 ["gold","Your state","💰","Gold and taxes",()=>`
 <ul class="log"><li><b>Income:</b> every peasant pays ${R.taxPerPeasant} gold a year (+${gP(R.finTaxPerLevel)} per Finance level), plus market sales.</li>
-<li><b>Costs:</b> scientists ${R.sciWage} gold a year each, cavalry upkeep, troop and general prices, and market buys (buy orders hold their gold until they fill).</li>
+<li><b>Costs:</b> scientists ${R.sciWage} gold a year each, cavalry upkeep, troop and general prices, festivals (loyalty), and market buys (buy orders hold their gold until they fill).</li>
+<li><b>Unrest:</b> with loyalty under ${R.loyUnrest}, taxes are ${gP(R.loyUnrestTax)} lower.</li>
 <li><b>Empty treasury:</b> debt can't build up. If you end a year below zero, the debt is forgiven but unpaid soldiers go home and scientists go back to farming.</li></ul>
 <p>The Home tab's money card shows income and costs. When you spend more than you earn it also shows how many years your gold lasts.</p>`],
 ["res","Your state","🌲","Wood and iron",()=>`
@@ -4671,10 +4821,12 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li>States at war can't trade with each other (embargo).</li>
 <li>A computer state at war attacks only its enemies, mobilises over a few years and declares no second war of its own.</li>
 <li>You can't declare war yourself; your attacks can start one through the victim's anger, and computer states can declare on you.</li>
+<li>Rebel states are at war with the state they broke away from from day one.</li>
 <li>No wars during the game's peace years (the header shows how many are left).</li></ul>
 <p><b>Where to see wars:</b> the War tab's Wars section, ⚔️ marks in the neighbors list and map tooltip, the <b>Wars</b> map view (your enemies red, states at war orange, at peace grey), and the news.</p>`],
 ["alliances","Diplomacy","🤝","Alliances",()=>`
 <p>Alliances are fixed teams chosen in New game (by number of alliances or states per alliance, in a region or scattered). Allies never attack each other and win together. Attacking a state also angers its allies (solidarity).</p>
+<p>The one exception is the <b>Rebel Alliance</b> (with Rebellions on): it appears with the first revolt, even in games without alliances, and every rebel state joins it. It works like any other alliance and can win the game.</p>
 <h3>Alliance relations and wars</h3><ul class="log"><li>Alliances have relations with each other, starting at 0. Each year they move ${gP(R.arStep)} toward how members feel about the other alliance's members, and drop by ${R.arWar} a year for every state war between members and ${R.arBattle} per battle (${R.arBattleBig} for a big one).</li>
 <li>When one alliance's relation toward another falls to <b>${R.awarHostile}</b>, the two go to war: every member is at war with every member of the other, for ${R.warMin}–${R.warMax} years. Then the relation resets to 0.</li>
 <li><b>Where to see them:</b> the Allies tab lists your alliance's relations with every other alliance, both ways, worst first (⚔️ = at war). The War tab names only the alliances already at ${Math.round(R.awarHostile/2)} or worse, the ones close to war. Each alliance's window has the full table with bars.</li></ul>
@@ -4684,7 +4836,32 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li>Computer allies at peace give up to ${gP(R.aiAidShare)} of their surplus a year to reachable allies at war that are short of something.</li></ul>`],
 ["power","Diplomacy","⚖️","Balance of power",()=>`
 <p>Neighbors fear a state that grows much bigger than them (from ${R.rfFrom}× their size, up to −${R.rfMax}). Fear counts toward the ${R.warHostile} war trigger, so a runaway state, you included, ends up fighting the neighbors it frightens. Computer states also need a smaller edge against a feared state that others are already attacking.</p>
-<p>Fear fades only when you shrink compared with them, so the bigger you get, the more fronts you must hold.</p>`],
+<p>Fear fades only when you shrink compared with them, so the bigger you get, the more fronts you must hold.</p>
+<p>With Rebellions on, <b>loyalty</b> pushes from the inside too: conquest costs loyalty, big states recover it slowly under a lower ceiling, and a revolt splits newly won land off as rebel states at war with you. See ${gl("loyalty")} Loyalty and rebels.</p>`],
+["loyalty","Diplomacy","🔥","Loyalty and rebels",()=>`
+<p>With the <b>Rebellions</b> rule (on by default in New game) every state has <b>loyalty</b> from 0 to 100. It is the brake on growing too fast: land taken by force doesn't love its new rulers, and a big empire is hard to hold together.</p>
+<h3>What moves it</h3>${gTab(["Change","How much"],[
+["Land won in battle",`−${R.loyConq} per 1% of your land (taking 10% of your size in a year costs ${+(R.loyConq*10).toFixed(1)})`],
+[`Taking back land you lost in the last ${R.loyRetakeYears} years`,`counts ${gP(R.loyRetake)} (not land taken back from your own rebels: that counts in full)`],
+["Settling unowned land",`counts ${gP(R.loySettle)}`],
+["A famine year",`−${R.loyFamine}`],["An empty treasury",`−${R.loyBroke}`],
+["Every year",`+${R.loyRec} at peace, +${R.loyRecWar} at war; a state bigger than at the start recovers slower (× √(starting land ÷ your land)), but always at least +${R.loyRecMin}`],
+["Festivals","+1 per point bought (see below)"]])}
+<p><b>Ceiling:</b> loyalty can't rise above 100 − ${R.loyCeilMax} × √(your share of the world's land): ${[0.01,0.1,0.25,0.5,1].map(x=>`${gP(x)} of the world → ${Math.round(100-R.loyCeilMax*Math.pow(x,R.loyCeilExp))}`).join(", ")}. Growing pushes it down by itself.</p>
+<h3>What it does</h3>${gTab(["Loyalty","State","Effect"],[["70–100","Loyal","none"],[`${R.loyUnrest}–70`,"Restless","none yet"],[`${R.loyRevolt}–${R.loyUnrest}`,"Unrest",`taxes −${gP(R.loyUnrestTax)}`],[`under ${R.loyRevolt}`,"Revolt possible",`each year a ${gP(R.loyRevoltPer)} chance per point under ${R.loyRevolt} (${gP(Math.min(1,R.loyRevolt*R.loyRevoltPer))} at 0)`]])}
+<p>Only states with at least ${R.rebParent}× the average starting land can revolt. The check comes right after the year's battles and settling, so this year's conquests count. No revolts in peace years.</p>
+<h3>A revolt</h3><ul class="log"><li>1 rebel state, plus 1 for every ${R.rebEvery}× the starting land you hold, at most ${R.rebMax}. Each takes one piece of ${gP(R.rebShareMin)}–${gP(R.rebShareMax)} of your land: first land you won in the last ${R.rebRecent} years, then land far from your core (the land you have held longest). You always keep at least 40%.</li>
+<li>People, grain, wood, iron and gold go with the land in proportion. The troops there go over at ${R.rebArmy}× the land share, and the rebels arm ${gP(R.rebMilitia)} of their peasants as spearmen. If you have two or more generals, each rebel state has a ${gP(R.rebGen)} chance to take one with it.</li>
+<li>Rebel states get a new name with "Rebels" in it, your civilization, your research levels, a random leader and loyalty 100. They are dark grey on the map.</li>
+<li>They hold a grievance of −${R.rebGrudge} toward you (and you toward them) and are at war with you at once.</li>
+<li>Your loyalty jumps +${R.rebAfter} (up to the ceiling): the unhappy provinces are gone.</li></ul>
+<h3>Rebel Alliance</h3><p>Every rebel state, from any revolt anywhere, joins the <b>Rebel Alliance</b> (dark grey). It is a normal alliance: members never attack each other, can send aid over joined land, have alliance relations and alliance wars, and <b>win together</b>, so rebels can win the game. After that they play like any computer state, and they can revolt themselves if they grow too fast.</p>
+<h3>Festivals</h3><p>On the Home tab, buy loyalty with gold: each point costs ${R.festCost} gold per 100 people × √(your land ÷ the starting land), so the bigger you are, the dearer. At most ${R.festMax} points a year, and never above the ceiling. Gold for festivals is gold not spent on scientists, troops or generals.</p>
+<h3>Computer states</h3><ul class="log"><li>Hold festivals with spare gold when loyalty is under ${R.aiFestLoy}.</li>
+<li>Outside wars, take no land while loyalty is under ${R.aiLoyCalm}.</li>
+<li>Raid instead of conquering when an attack would leave loyalty under ${R.aiLoyFloor} (warlike leaders go ${R.aiLoyFloor-5}).</li></ul>
+<h3>Where to see it</h3><p>The ❤️ number in the header, the Loyalty card on the Home tab (with last year's changes, next year's recovery and the revolt chance), the War tab, each state's details, and the <b>Loyalty</b> map view.</p>
+<p><b>How it balances:</b> conquest is fast but loyalty recovers slowly, so even a strong state can only grow a little each year without risking revolt, and the bigger it is the slower it recovers and the lower its ceiling. Revolts hand land, people and troops to new states that fight the giant, so runaway empires break up instead of rolling over everyone.</p>`],
 ["ai","Diplomacy","🤖","Computer players",()=>`
 <p>Computer states play by the same rules as you: no free resources. Their leader shapes their personality.</p>
 <ul class="log"><li><b>Peace and war footing:</b> in peace they keep small armies (about ${gP(R.aiArmyPeace)}–${gP(R.aiArmyPeaceMil)} of people, more next to strong neighbors), send surplus soldiers home and research density. At war they arm up to ${gP(R.aiArmyWar)}–${gP(R.aiArmyWarMil)} over a few years and research growth to refill losses.</li>
@@ -4693,6 +4870,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li><b>Wariness:</b> while you keep attacking others, a wary neighbor may strike you while your army is away.</li>
 <li><b>Exposure:</b> before attacking they add up every neighbor that is angry or wary of them, keep more troops home and need a bigger edge.</li>
 <li><b>Fear</b> makes them guard, and join in only when others are already attacking you. <b>Trust</b> and a common enemy make them pick other targets.</li>
+<li><b>Loyalty</b> (with Rebellions on): under ${R.aiFestLoy} they hold festivals with spare gold; outside wars they take no land under ${R.aiLoyCalm}; they raid instead of conquering when an attack would leave them under ${R.aiLoyFloor}.</li>
 <li><b>Interior states</b> (only allies around) keep a token army and put their people into research.</li>
 <li>They still attack anyone they can clearly beat, at most two attacks a year, and grow bolder after long quiet years.</li>
 <li>They trade on the market by need, cut jobs whose goods pile up, and help allies at war.</li>
@@ -4703,6 +4881,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <ul class="log"><li><b>☰ Menu:</b> New game, Save to file, Load from file, Last year's report, Rules &amp; guide, Change log, Settings.</li>
 <li><b>Year</b> and a peace pill with the years of peace left.</li>
 <li>Your <b>gold, grain, wood, iron</b>. Click land 🗺️ or population 👥 to find yourself in the rankings.</li>
+<li>❤️ Your <b>loyalty</b> (with Rebellions on): green loyal, amber restless, red unrest or revolt possible. Click it for the Home tab.</li>
 <li><b>▶ Auto</b> ends turns by itself; ▾ sets seconds per turn and whether to stop when you are attacked. It pauses while a window is open or you're typing.</li>
 <li><b>End turn ▶</b> runs the year.</li></ul>
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
@@ -4713,9 +4892,9 @@ ${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders,
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
 <li>Click a state to inspect it in the side panel; click again or press Esc to unselect. Hover a state to raise it off the map, with a tooltip showing its relations to every neighbor, both ways.</li>
 <li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form in the War tab; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
-<li>▨ Striped land was conquered last year. Grey-brown land is unowned.</li>
+<li>▨ Striped land was conquered last year (or broke away in a revolt). Grey-brown land is unowned. Dark grey states are rebels.</li>
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
-<h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
+<h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
 ["news","Interface","📰","News and reports",()=>`
 <ul class="log"><li>After each year the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
 <li>The <b>News</b> tab keeps every report, page by page (← Newer / Older). <b>Details ›</b> opens a full battle report.</li>
@@ -4789,7 +4968,7 @@ function guideMark(root,words){ const src="("+words.map(w=>w.replace(/[.*+?^${}(
 // new-game choices are remembered in this browser: saved on every change, restored when the window opens
 const SETUP_KEY="eb.setup";
 function setupDefaults(){ let lastName=""; try{ lastName=localStorage.getItem("eb.empireName")||""; }catch{}
-  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",forest:16,mtn:8,map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,weather:true,al:false,alMode:"count",alN:2,alLay:"region",peaceOn:false,peace:5,more:false,
+  return {empire:lastName,n:8,terr:100,water:0,wstyle:"lakes",forest:16,mtn:8,map:"random",diff:1,fog:false,wonders:false,civ:"random",leader:"random",landType:"random",choose:false,observer:false,relNoise:false,rebels:true,weather:true,al:false,alMode:"count",alN:2,alLay:"region",peaceOn:false,peace:5,more:false,
     hot:false,players:[newPlayer(),newPlayer()],allHumans:false,rotate:true}; }
 const newPlayer=()=>({name:"",civ:"random",leader:"random",landType:"random"});
 function loadSetup(){
@@ -4820,6 +4999,7 @@ const SETUP_RULES=[ // [id, setup key, label, one-line description, full explana
   ["sPc","peaceOn","Peace years","Nobody can attack at the start","No state can attack anyone during the first years of the game.",false],
   ["sWx","weather","Weather systems","Droughts and fertile spells drift across the map","Droughts and fertile spells last decades and drift across the map, raising or cutting harvests. Off: only small yearly weather changes.",false],
   ["sWo","wonders","Wonders","Landmarks that boost one science area","10 landmarks, one per science area. Holding one boosts that area's effect (+25% by default).",false],
+  ["sRb","rebels","Rebellions","States that grow too fast can break apart",()=>`Every state has loyalty (0–100). Winning land in battle lowers it, quiet years raise it, and big states have a lower ceiling. Below ${R.loyRevolt} the newest land can break away as rebel states, which join the Rebel Alliance.`,false],
   ["sRn","relNoise","Random starting relations","States start a little friendly or hostile",()=>`Each pair of states starts between −${R.relNoiseAmp} and +${R.relNoiseAmp} instead of 0.`,false],
   ["sC","choose","Choose my state on the map","Pick your starting state on a preview","Generates the map now so you can click the state you want to lead.",true]];
 function setupModal(){
@@ -4971,11 +5151,12 @@ document.addEventListener("click",async ev=>{
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
     else if(d.map==="me"&&G&&me().alive) v.centerOn(G.player,Math.max(v.z,v.focusZoom()));
-    else if(d.map==="states"){ UI.allyView=UI.relView=UI.wxView=UI.warView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=UI.wxView=UI.warView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=UI.wxView=UI.warView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="war"){ UI.warView=!UI.warView; if(UI.warView) UI.allyView=UI.relView=UI.wxView=false; renderAllyMap(); v.refresh(); }
-    else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=UI.warView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="states"){ UI.allyView=UI.relView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="war"){ UI.warView=!UI.warView; if(UI.warView) UI.allyView=UI.relView=UI.wxView=UI.loyView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="loy"){ UI.loyView=!UI.loyView; if(UI.loyView) UI.allyView=UI.relView=UI.wxView=UI.warView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
     return; }
   if(d.rep){ openReport(d.rep); return; }
   if(d.repback!=null){ const bk=UI.repBack; UI.repBack=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); return; }
@@ -4995,7 +5176,7 @@ document.addEventListener("click",async ev=>{
   if(d.wonder!=null){ const w=G.wonders[+d.wonder]; mainView.centerOnCell(w.cell, Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.alliance!=null&&G?.teams){ allianceModal(+d.alliance); return; }
   if(d.amember!=null){ const id=+d.amember; closeModal(); UI.sel=id; UI.tab="world"; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
-  if(d.allymap!=null){ closeModal(); UI.allyView=true; UI.relView=UI.wxView=UI.warView=false; renderAllyMap(); mainView.refresh(); return; }
+  if(d.allymap!=null){ closeModal(); UI.allyView=true; UI.relView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); mainView.refresh(); return; }
   if(d.pick!=null){ const v=+d.pick; UI.sel=v<0?null:v; render();
     // center the map on the picked state (zoom in first if showing the whole map)
     if(v>=0&&G.countries[v].alive) mainView.centerOn(v, mainView.z<=mainView.minZ*1.001?mainView.focusZoom():mainView.z);
@@ -5010,6 +5191,8 @@ document.addEventListener("click",async ev=>{
   if(d.cancel!=null){ me().attacks.splice(+d.cancel,1); render(); return; }
   if(d.defgen){ me().defGen=+d.defgen<0?null:+d.defgen; render(); return; }
   if(d.dismiss){ act.dismissGeneral(G,me(),+d.dismiss); render(); return; }
+  if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=act.festival(G,c,n); UI.festN=undefined;
+    flash(got?`Festivals held: loyalty +${got} for ${fmt(got*festCost(G,c))} gold.`:"Not enough gold, or no room for more loyalty this year."); render(); return; }
   if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
   if(d.find){ if(!G||observing()) return; UI.tab="world"; UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
   if(d.mfill){ const box=$("mkAmt"); if(box){ box.value=d.n; paintMkt(); box.focus(); } return; }
@@ -5079,11 +5262,12 @@ document.addEventListener("click",async ev=>{
         if(new Set(names).size<names.length){ flash("Two players have the same state name."); return; }
         if(s.n<s.players.length) setStates(s.players.length,"");
         ho={humans:s.players.map(q=>({...q})),picks:s.choose&&s.preview?picksOf(s).slice():[],allHumans:!!s.allHumans,rotate:!!s.rotate}; }
-      if(hot&&s.choose&&s.preview){ G=s.preview; G.relNoise=!!s.relNoise; setupHumans(G,ho,Math.random); }
-      else if(!hot&&s.choose&&!s.observer&&s.preview&&s.pick!=null){ G=s.preview; G.player=s.pick; G.relNoise=!!s.relNoise; G.countries.forEach(x=>x.ai=x.id!==s.pick); pickTraits(G.countries[s.pick],s.civ,s.leader,s.landType); }
+      const rebRule=g=>{ g.rebels=!!s.rebels; g.countries.forEach(x=>{ if(g.rebels) x.loy=loyCeil(g,x); else delete x.loy; }); }; // the preview map was made with the default
+      if(hot&&s.choose&&s.preview){ G=s.preview; G.relNoise=!!s.relNoise; rebRule(G); setupHumans(G,ho,Math.random); }
+      else if(!hot&&s.choose&&!s.observer&&s.preview&&s.pick!=null){ G=s.preview; G.player=s.pick; G.relNoise=!!s.relNoise; rebRule(G); G.countries.forEach(x=>x.ai=x.id!==s.pick); pickTraits(G.countries[s.pick],s.civ,s.leader,s.landType); }
       else {
         UI.busy=true; modal(`<h2>Generating map…</h2><p class="mut">${fmt(s.n)} states.</p>${genBar()}`);
-        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,forest:s.forest,mtn:s.mtn,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,alliances:allyOpts(),...(ho||{})},genShow); }
+        try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,forest:s.forest,mtn:s.mtn,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,rebels:!!s.rebels,alliances:allyOpts(),...(ho||{})},genShow); }
         catch(e){ console.error(e); UI.busy=false; flash("Map generation failed."); setupModal(); return; }
         UI.busy=false;
       }
@@ -5150,6 +5334,7 @@ document.addEventListener("change",ev=>{
   if(t.id==="sF"){ s.fog=t.checked; }
   if(t.id==="sCiv"||t.id==="sLead"||t.id==="sLand"){ s[{sCiv:"civ",sLead:"leader",sLand:"landType"}[t.id]]=t.value; $("sTraits").innerHTML=setupTraits(); }
   if(t.id==="sRn"){ s.relNoise=t.checked; }
+  if(t.id==="sRb"){ s.rebels=t.checked; }
   if(t.id==="sRot"){ s.rotate=t.checked; }
   if(t.id==="sPeace"){ s.peace=Math.max(1,Math.min(999,Math.floor(+t.value)||s.peace)); t.value=s.peace; updateSummary(); }
   if(t.id==="sPc"){ s.peaceOn=t.checked; setupModal(); if(s.peaceOn) $("sPeace")?.select(); return; }
