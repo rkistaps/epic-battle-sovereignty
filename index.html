@@ -2655,7 +2655,7 @@ let FGLY=null;
 function featGlyphs(g){
   const key=g.seed+":"+g.W+"x"+g.H; if(FGLY&&FGLY.key===key) return FGLY;
   const {W,H,feat}=g, rnd=mulberry32((g.seed^0x2545f491)>>>0), X=[],Y=[],K=[],Rk=[],S=[];
-  for(const [kind,sp] of [[1,0.85],[2,1.25]]) for(let gy=0;gy<H;gy+=sp) for(let gx=0;gx<W;gx+=sp){
+  for(const [kind,sp] of [[1,1],[2,1.25]]) for(let gy=0;gy<H;gy+=sp) for(let gx=0;gx<W;gx+=sp){
     const x=gx+(kind===2?((gy/sp|0)&1)*sp/2:0)+(rnd()-0.5)*sp*0.7, y=gy+(rnd()-0.5)*sp*0.6;
     if(x<0||y<0||x>=W||y>=H||feat[(y|0)*W+(x|0)]!==kind){ continue; }
     X.push(x); Y.push(y); K.push(kind); Rk.push(rnd()); S.push(0.8+rnd()*0.4); }
@@ -2775,6 +2775,7 @@ class MapView{
     this.palF=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[52,92,48],0.38):shade(c,0,0.14));
     this.palM=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[150,138,120],0.42):shade(c,255,0.16));
     this.palGF=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[24,56,26],0.6):shade(c,0,0.42));   // tree crowns
+    this.palGH=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[64,112,58],0.5):shade(c,0,0.24)); // light side of tree tops
     this.palGD=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[70,60,50],0.6):shade(c,0,0.45));  // mountain shadow side and outline
     this.palGL=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[226,220,208],0.6):shade(c,255,0.45)); // mountain lit side
     const feat=g.feat;
@@ -2871,6 +2872,14 @@ class MapView{
       while(fs>min&&width(fs)>span) fs=Math.max(min,fs*0.9);
       if(width(fs)>span*1.1){ ctx.restore(); return false; }
       const tf=Math.max(9*d,fs*0.5), sf=Math.max(11*d,fs*0.48), af=Math.max(10*d,fs*0.55), h=(title?tf*1.3:0)+fs+(ally?af*1.35:0)+(stats?sf*2.6:0)+(rel?sf*1.3:0); let y=py-h/2;
+      // trees and peaks are cleared under the text (soft edges), so the lettering reads cleanly
+      if(UI.labelClear!==false&&this.z>=2&&this.g.feat){ const ws=[width(fs)];
+        if(title){ ctx.letterSpacing="0px"; ctx.font=`italic ${tf}px Georgia,serif`; ws.push(ctx.measureText(title).width); }
+        if(ally){ ctx.font=`${af}px Georgia,"Times New Roman",serif`; ctx.letterSpacing=(af*0.08)+"px"; ws.push(ctx.measureText(ally).width); }
+        ctx.letterSpacing="0px";
+        if(stats){ ctx.font=`600 ${sf}px ${STAT_FONT}`; ws.push(ctx.measureText(stats).width); }
+        if(rel){ ctx.font=`italic ${sf}px Georgia,serif`; ws.push(ctx.measureText(rel).width); }
+        this.clearUnder(ctx,px,py,Math.max(...ws)+fs*0.8,h+fs*0.3,Math.max(5*d,fs*0.35)); }
       ctx.fillStyle=inkColor(this.colorOf(c));
       if(title){ ctx.letterSpacing="0px"; ctx.font=`italic ${tf}px Georgia,serif`; ctx.fillText(title,px,y+tf*0.6); y+=tf*1.3; }
       ctx.font=font(fs); ctx.letterSpacing=ls(fs)+"px"; ctx.fillText(name,px+ls(fs)/2,y+fs*0.5); y+=fs;
@@ -2974,32 +2983,50 @@ class MapView{
         ctx.font=`${R_*1.15}px system-ui,"Segoe UI Emoji",sans-serif`; ctx.fillStyle="#fff"; ctx.fillText(WONDERS[w.area].icon,px,py+R_*0.06); }
     }
   }
+  // paint the plain map (no trees or peaks) back over a w×h box centred on (px,py), fading out over `f` pixels
+  clearUnder(ctx,px,py,w,h,f){
+    const sm=this.sm; if(!sm) return; const k=sm.width/this.cv.width, W2=Math.ceil(w+f*2), H2=Math.ceil(h+f*2), x0=px-W2/2, y0=py-H2/2;
+    const t=this.tmpC||(this.tmpC=document.createElement("canvas")); t.width=W2; t.height=H2; const c=t.getContext("2d");
+    c.fillStyle="#000"; c.shadowColor="#000"; c.shadowBlur=f; c.shadowOffsetX=W2*2; // only the blurred shadow lands on the canvas
+    c.beginPath(); c.roundRect?c.roundRect(f-W2*2,f,w,h,Math.min(h/2,f*2)):c.rect(f-W2*2,f,w,h); c.fill();
+    c.shadowColor="transparent"; c.globalCompositeOperation="source-in"; c.imageSmoothingEnabled=true;
+    c.drawImage(sm,x0*k,y0*k,W2*k,H2*k,0,0,W2,H2); ctx.drawImage(t,x0,y0); }
   // little trees and peaks on forests and mountains, thinned out as you zoom out (each glyph has a fixed random rank)
   drawFeatures(ctx){
     const g=this.g; if(!g.feat||UI.featGlyphs===false) return; const P=featGlyphs(g), {W,H}=g, s=this.z*this.dpr, vis=this.vis;
-    const show=k=>Math.min(1,Math.pow((k?1.25:0.85)*this.z/(k?17:11),2)); // share shown, so glyphs stay ~13-20px apart
+    const show=k=>Math.min(1,Math.pow((k?1.25:1)*this.z/(k?17:13),2)); // share shown, so glyphs stay ~13-20px apart
     const pF=show(0), pM=show(1); if(pF<0.05&&pM<0.05) return;
     const x0=this.ox-2, y0=this.oy-2, x1=this.ox+this.cw/this.z+2, y1=this.oy+this.ch/this.z+2;
     const groups=new Map(), grp=(col)=>{ let p=groups.get(col); if(!p){ p=new Path2D(); groups.set(col,p); } return p; };
     const css=c=>`rgb(${c&255},${c>>>8&255},${c>>>16&255})`;
-    const fz=Math.min(1.1*s,14*this.dpr,Math.max(5*this.dpr,0.62*s/Math.sqrt(pF))), mz=Math.min(1.8*s,22*this.dpr,Math.max(9*this.dpr,1.0*s/Math.sqrt(pM)));
+    const fz=Math.min(1.2*s,20*this.dpr,Math.max(7*this.dpr,0.7*s/Math.sqrt(pF))), mz=Math.min(1.8*s,22*this.dpr,Math.max(9*this.dpr,1.0*s/Math.sqrt(pM)));
     for(let k=0;k<P.n;k++){ const x=P.x[k], y=P.y[k]; if(x<x0||x>x1||y<y0||y>y1) continue;
       const kind=P.k[k]; if(P.r[k]>=(kind===2?pM:pF)) continue;
       const i=(y|0)*W+(x|0), o=vis[i]; if(o<-1) continue; const X=(x-this.ox)*s, Y=(y-this.oy)*s;
-      if(kind===1){ const r=fz*0.5*P.sz[k];
-        grp("t"+o).moveTo(X+r,Y); grp("t"+o).arc(X,Y,r,0,Math.PI*2);
-        grp("k"+o).rect(X-r*0.14,Y+r*0.6,r*0.28,r*0.75); }
+      if(kind===1){ const r=fz*0.5*P.sz[k], S=grp("s"+o), T=grp("t"+o), Hl=grp("h"+o), K=grp("k"+o);
+        S.moveTo(X+r*0.95,Y+r*1.15); S.ellipse(X+r*0.15,Y+r*1.15,r*0.8,r*0.24,0,0,Math.PI*2); // shadow on the ground
+        if((P.r[k]*997)%1<0.35){ // pine: two stacked tiers on a short trunk
+          K.rect(X-r*0.1,Y+r*0.75,r*0.2,r*0.45);
+          T.moveTo(X,Y-r*1.25); T.lineTo(X+r*0.5,Y-r*0.1); T.lineTo(X-r*0.5,Y-r*0.1); T.closePath();
+          T.moveTo(X,Y-r*0.55); T.lineTo(X+r*0.7,Y+r*0.85); T.lineTo(X-r*0.7,Y+r*0.85); T.closePath();
+          Hl.moveTo(X,Y-r*1.25); Hl.lineTo(X-r*0.5,Y-r*0.1); Hl.lineTo(X-r*0.1,Y-r*0.25); Hl.closePath(); }
+        else { // leafy tree: trunk and a crown of three lobes, lit from the top left
+          K.rect(X-r*0.13,Y+r*0.3,r*0.26,r*0.9);
+          for(const [dx,dy,rr] of [[-0.42,0.12,0.55],[0.42,0.12,0.55],[0,-0.38,0.62]]){ T.moveTo(X+(dx+rr)*r,Y+dy*r); T.arc(X+dx*r,Y+dy*r,rr*r,0,Math.PI*2); }
+          Hl.moveTo(X-r*0.05,Y-r*0.55); Hl.arc(X-r*0.25,Y-r*0.55,r*0.22,0,Math.PI*2); } }
       else { const w=mz*0.62*P.sz[k], hh=mz*0.78*P.sz[k];
         const L=grp("l"+o), D=grp("d"+o); L.moveTo(X-w,Y+hh*0.4); L.lineTo(X,Y-hh*0.6); L.lineTo(X+w*0.1,Y+hh*0.4); L.closePath();
         D.moveTo(X,Y-hh*0.6); D.lineTo(X+w,Y+hh*0.4); D.lineTo(X+w*0.1,Y+hh*0.4); D.closePath();
         const O=grp("o"+o); O.moveTo(X-w,Y+hh*0.4); O.lineTo(X,Y-hh*0.6); O.lineTo(X+w,Y+hh*0.4); } }
     ctx.save(); ctx.lineJoin="round";
+    ctx.fillStyle="rgba(0,0,0,0.18)"; for(const [key,p] of groups) if(key[0]==="s") ctx.fill(p);
     for(const [key,p] of groups){ const t=key[0], o=+key.slice(1);
       if(t==="k"){ ctx.fillStyle=css(this.palGD[o+4]); ctx.fill(p); } }
     for(const [key,p] of groups){ const t=key[0], o=+key.slice(1);
       if(t==="t"){ ctx.fillStyle=css(this.palGF[o+4]); ctx.fill(p); }
       else if(t==="l"){ ctx.fillStyle=css(this.palGL[o+4]); ctx.fill(p); }
       else if(t==="d"){ ctx.fillStyle=css(this.palGD[o+4]); ctx.fill(p); } }
+    for(const [key,p] of groups) if(key[0]==="h"){ ctx.fillStyle=css(this.palGH[+key.slice(1)+4]); ctx.fill(p); }
     ctx.lineWidth=Math.max(1,0.9*this.dpr);
     for(const [key,p] of groups){ const t=key[0], o=+key.slice(1); if(t==="o"){ ctx.strokeStyle=css(this.palGD[o+4]); ctx.stroke(p); } }
     ctx.restore();
@@ -4115,6 +4142,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Trees and clearer labels","2026-11-12 18:03",["Forests drawn as leafy trees and pines, with shadows","Trees and peaks are cleared under state names, so labels read cleanly"]],
 ["Forests and mountains","2026-11-12 17:18",["New maps have forest patches and mountain ranges","Shown as a darker or lighter shade of the owner's color, with little trees and peaks when zoomed in","For now they only change how the map looks"]],
 ["Clearer bonus table","2026-11-12 17:00",["Science tab: each row of Total bonuses reads as a formula: (1 + civilization + leader + land) × research = total","Rows follow the research areas, with the same icons","Wonder and Shore columns only show when one of them counts"]],
 ["Simpler research levels","2026-11-12 16:43",["Every research level gives the same bonus; no max any more","Each level costs 1.8× the one before (the first costs 35 points)","Per-level bonuses adjusted: Science +6%, Agriculture +5%, Finance +4.7% taxes, Attack and Defense +6.5%, Expansion +3.7%, Pop. density +0.16, Pop. growth +0.11%","Overall research strength stays about the same as before","Saved games convert each area to the level with the nearest bonus"]],
