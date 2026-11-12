@@ -472,8 +472,15 @@ const R = {
   stLossHold: 1, stLandHold: 1,      // hold: the normal battle
   stLossStand: 1.4, stLandStand: 0.5, // stand ground: bloodier for both, but half the land is lost
   // attack mode, chosen per attack: × the attacker's battle losses and × land taken (also × what the survivors can hold)
-  atLossNormal: 1, atLandNormal: 1,
-  atLossAssault: 1.15, atLandAssault: 1.1, // assault: pay in your own soldiers for more land
+  // atLoss × attacker's losses, atDef × defender's losses, atLand × land taken, atRel × the anger it causes (victim, its allies, onlookers)
+  atLossNormal: 1, atDefNormal: 1, atLandNormal: 1, atRelNormal: 1,
+  // raid, kidnap and massacre take no land and need no win: what they get scales with the attacker's share of the battle strength
+  atLossRaid: 0.5, atDefRaid: 0.5, atRelRaid: 0.6,          // raid: a share of gold, grain, wood and iron
+  raidCarry: 30, raidMax: 0.3,                              // each surviving raider carries 30 (all goods counted together), at most 30% of each stock
+  atLossKidnap: 0.5, atDefKidnap: 0.75, atRelKidnap: 1.2,  // kidnap: peasants, only as many as the attacker has room for
+  kidPer: 4, kidMax: 0.15,                                  // 4 peasants per survivor, at most 15% of their peasants
+  atLossMassacre: 0.75, atDefMassacre: 1, atRelMassacre: 2,    // massacre: kills peasants
+  masPer: 5, masMax: 0.2, masFight: 0.1,                    // 5 per survivor, at most 20% of their peasants; every 10 killed cost the attacker a soldier more
   keepPeople: true,               // a beaten state keeps its people and grain: those on the taken land move to what is left (any its land can't hold
                                    // are lost); the winner gets only land, but takes all people and stocks of a state it wipes out
   capturedPeasants: 0.8, lootGrain: 0.5, // only with keepPeople off: share of the people on taken land who join the winner, and of its grain share looted
@@ -524,7 +531,7 @@ const R = {
   aiKeepPeace: 0.8, aiKeepWar: 0.65, aiKeepCap: 0.35, aiRebuild: 0.3, // AI peasant reserve (scientists count as peasants): 80% of pop in peace, 65% at war / 35% of capacity (see aiPeasantFloor); rebuilds 30% of a shortfall per year
   aiArmyPeace: 0.06, aiArmyPeaceMil: 0.12, aiArmyWar: 0.25, aiArmyWarMil: 0.35, aiFootStep: 0.4, // AI army as a share of people: in peace 6% (warlike 12%), at war 25% (35%); war footing moves 40% a year toward 1 (any war) or 0
   aiDensPeace: 14, aiDensWar: 4, aiGrowPeace: 6, aiGrowWar: 18,   // AI research shares: density in peace (fill the land), growth at war (refill losses); the difference comes from science
-  aiAssaultEdge: 1.5, // AI assaults when it can send this many times the troops needed to win, and wants land (nearly full, at war, or a wonder)
+  aiHarassMin: 40, aiHarassStr: 0.6, aiHarassFear: 0.3, aiHarassGapMin: 3, aiHarassGapMax: 7, aiMassacreGrudge: 0.7, aiRaidPoor: 2, // AI harassing its biggest neighbor when it can't beat it, it is 1.5× its size and it fears it (fear over 30%), then waits a random 3–7 years before harassing it again: sends at least 40 soldiers, aiming at 60% of their defense; massacre with a grudge over 70%; raids a beatable target when its gold is under 2 years of wages
   aiFallBack: 0.5, aiLastStand: 0.5, // AI stance: fall back when its defense is under 50% of the strongest neighbor's attack; stand ground once under 50% of its biggest land (or holding a wonder in a war)
   aiAtkRoom: 0.7, aiAtkFull: 0.9, aiAtkRoomEdge: 0.5, // AI not at war: below 70% full it attacks only out of grudge, fear or for a wonder; from 70% to 90% the edge it needs falls from +50% to normal
   aiInteriorArmy: 0.02, aiInteriorCut: 0.2, aiPeaceCut: 0.1, aiPeaceThreat: 1, aiDefCapPeace: 0.3, aiDefCapWar: 0.4,        // AI with only allied neighbors: a 2% token army, dismissing 20% of the surplus a year; research and science pushed; at peace any state sends 10% of its surplus soldiers (over 1.25× its target) home a year; a neighbor it isn't at war with counts in full (lower = less arms race, but weaker defenses); defense top-ups arm at most 30% of people in peace, 40% at war
@@ -1835,7 +1842,7 @@ function aiTurn(g,c){
     if(foes.size) for(let i=targets.length-1;i>=0;i--) if(!isFoe(targets[i].j)) targets.splice(i,1);
     // not at war: the fuller the land, the keener on more (room left: only grudges, fear or a wonder make it attack)
     const full=popOf(c)/Math.max(1,popCap(c)), room=foes.size?0:Math.max(0,Math.min(1,(R.aiAtkFull-full)/Math.max(0.01,R.aiAtkFull-R.aiAtkRoom)));
-    let used=0;
+    let used=0; const bigNb=adj.reduce((b,j)=>b<0||g.countries[j].land>g.countries[b].land?j:b,-1); // the only state it harasses
     for(const tg of targets){
       if(used>=Math.min(2,gens.length)) break;
       if(room>=1){ const q=feel.find(x=>x.j===tg.j); if(!(tg.v>0||q.fN>0.2||tg.o.wb)) continue; } // plenty of room at home: no land grab
@@ -1850,12 +1857,19 @@ function aiTurn(g,c){
         if(!tg.open&&(c.rvCd?.[tg.j]??0)>t) continue; // still licking its wounds from a failed try
         const p=Math.min(R.rvChanceMax,(R.rvChance+R.rvChanceK*tg.v)*(0.5+0.9*(leaderOf(c)?.mil??0.4))+(tg.open?R.rvOpen:0));
         if(R01(g)>=p) continue; }
-      // assault (more land for more of its own losses): a comfortable edge and a real need for land (nearly full, at war, or a wonder there)
-      const mode=!byFeel&&need>0&&canSend>=need*R.aiAssaultEdge&&(full>=R.aiAtkFull||foes.size||Object.keys(tg.o.wb||{}).length)?"assault":"normal", mD=modeMul(mode,"atLand");
+      // harass: its biggest neighbor, if it can't beat it, it is 1.5× its size and it fears it, is raided, kidnapped from (room at home) or,
+      // with a deep grudge, massacred; then it waits a random aiHarassGapMin..Max years before harassing it again
+      const qh=feel.find(x=>x.j===tg.j), canWin=need<=canSend&&need>0;
+      if(!canWin&&tg.j===bigNb&&tg.o.land>=c.land*R.rfFrom&&qh.fN>R.aiHarassFear&&canSend>=R.aiHarassMin&&(c.harN?.[tg.j]??0)<=t){
+        const hm=qh.gN>=R.aiMassacreGrudge?"massacre":full<R.aiAtkFull?"kidnap":"raid";
+        const send=Math.min(canSend,Math.max(R.aiHarassMin,Math.ceil(tg.theirStr*R.aiHarassStr/myStrPer)));
+        c.attacks.push({target:tg.j,gen:gen.id,soldiers:send,mode:hm}); (c.harN||(c.harN={}))[tg.j]=t+R.aiHarassGapMin+Math.floor(R01(g)*(R.aiHarassGapMax-R.aiHarassGapMin+1)); available-=send; used++; continue; }
+      // raid instead of conquest when short of gold and they have more
+      const mode=canWin&&!byFeel&&c.money<wages(c)*R.aiRaidPoor&&tg.o.money>c.money*2?"raid":"normal";
       // land this attack could take (general, army bonus and Expansion, no holding cap), never more than the target has
-      const want=Math.min(tg.o.land,conquest(gen,canSend,1,c,Infinity,mD));
+      const want=Math.min(tg.o.land,conquest(gen,canSend,1,c,Infinity));
       if(need<=canSend && need>0){
-        const base=want/(holdPer*mD), lossF=Math.min(0.9,R.battleLoss*tg.theirStr/(tg.theirStr+myStrPer*base)*modeMul(mode,"atLoss"));
+        const base=want/holdPer, lossF=Math.min(0.9,R.battleLoss*tg.theirStr/(tg.theirStr+myStrPer*base)*modeMul(mode,"atLoss"));
         const send=Math.min(canSend,Math.max(10,Math.ceil(need*1.15),Math.ceil(base/(1-lossF)))); // enough to win and to hold everything it can take
         if(send<10) continue;
         c.attacks.push({target:tg.j,gen:gen.id,soldiers:send,...(mode!=="normal"?{mode}:{}),...(byFeel?{why:tg.why}:{})}); available-=send; used++;
@@ -2036,9 +2050,9 @@ function migrateRelations(g){
 }
 // an attack: the attacker settles its own score with the victim (revenge), the victim holds a grievance and loses its trust,
 // the victim's alliance feels solidarity, and the attacker's other neighbors grow wary
-function relOnAttack(g,A,D,taken,win,adjNow){
+function relOnAttack(g,A,D,taken,win,adjNow,rm=1){ // rm: the attack mode's anger multiplier
   const C=g.countries, adj=adjNow||adjacency(g), T=g.turn, landPct=taken>0?100*taken/Math.max(1,D.land+taken):0; // D.land is already reduced
-  const justified=(A.hitBy?.[D.id]??-1e9)>=T-R.relJustYears, wm=justified?R.relJustified:1; // striking back isn't seen as aggression
+  const justified=(A.hitBy?.[D.id]??-1e9)>=T-R.relJustYears, wm=(justified?R.relJustified:1)*rm; // striking back isn't seen as aggression
   const out={allies:0,near:0,far:0,wm,g0:0,g1:0,sol:0};
   const fa=rfOf(g,A,D.id); out.g0=Math.round(fa?.g||0);
   if(fa){ if(fa.g) fa.g=+(fa.g*(win?1-Math.min(R.rgRevMax,R.rgRevWin+R.rgRevLand*landPct):1-R.rgRevFail)).toFixed(1);
@@ -2191,7 +2205,8 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   let decisive=1; const guarded=troopCount(gTr)>0&&strD>0, stLand=guarded?stanceMul(D,"stLand"):1; // no guards: no stance
   if(!guarded){ win=true; const L=casualties(atkTr,R.raidLoss); applyLosses(A,atkTr,L.out); lossA=L.n; lossTrA=L.out; }
   else {
-    const r=strA/strD, sl=stanceMul(D,"stLoss"), fA=Math.min(1,R.battleLoss*strD/(strA+strD)*(r>1?1:R.loserPenalty)*sl*modeMul(mode,"atLoss")), fD=Math.min(1,R.battleLoss*strA/(strA+strD)*sl); // × the defender's stance
+    // raid, kidnap and massacre withdraw rather than lose: no beaten-attacker penalty for them
+    const r=strA/strD, sl=stanceMul(D,"stLoss"), fA=Math.min(1,R.battleLoss*strD/(strA+strD)*(r>1||NOLAND[mode]?1:R.loserPenalty)*sl*modeMul(mode,"atLoss")), fD=Math.min(1,R.battleLoss*strA/(strA+strD)*sl*modeMul(mode,"atDef")); // × the defender's stance and the attack mode
     const LA=casualties(atkTr,fA), LD=casualties(gTr,fD);
     for(const k in LD.out) LD.out[k]=Math.min(pool[k]||0,Math.round(LD.out[k])); // whole soldiers only
     LD.n=Object.values(LD.out).reduce((s,v)=>s+v,0);
@@ -2199,12 +2214,22 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
     if(r>1){ win=true; decisive=Math.min(1,R.narrowWinShare+(1-R.narrowWinShare)*(r-1)); } // narrow win → share, 100% at twice their strength
   }
   const surv=troopCount(atkTr), landCalc=[speedCap(gen),R.armyLand*Math.sqrt(Math.max(0,surv)),exploreMul(A),decisive,Math.floor(holdUnits(atkTr)*R.occupy*mLand)];
-  if(win) taken=Math.max(1,Math.min(Math.round(conquest(gen,surv,decisive,A,holdUnits(atkTr),mLand)*stLand),D.land));
+  if(win&&!NOLAND[mode]) taken=Math.max(1,Math.min(Math.round(conquest(gen,surv,decisive,A,holdUnits(atkTr),mLand)*stLand),D.land));
+  // raid, kidnap, massacre: no land, no win needed; the take scales with the attacker's share of the strength and its survivors
+  let gain=null;
+  if(NOLAND[mode]&&surv>0){ const eff=guarded?strA/(strA+strD):1;
+    if(mode==="raid"){ const ks=["money","grain","wood","iron"], tot=ks.reduce((t,k)=>t+Math.max(0,D[k]||0),0), f=tot>0?eff*Math.min(R.raidMax,surv*R.raidCarry/tot):0;
+      gain={loot:ks.map(k=>{ const v=Math.floor(Math.max(0,D[k]||0)*f); D[k]-=v; A[k]=(A[k]||0)+v; return v; })}; }
+    else if(mode==="kidnap"){ const n=Math.max(0,Math.min(Math.floor(eff*Math.min(D.peasants*R.kidMax,surv*R.kidPer)),Math.floor(popCap(A)-popOf(A)),D.peasants));
+      D.peasants-=n; A.peasants+=n; gain={kid:n}; }
+    else { const n=Math.max(0,Math.min(D.peasants,Math.floor(eff*Math.min(D.peasants*R.masMax,surv*R.masPer)))); D.peasants-=n;
+      const L=casualties(atkTr,Math.min(1,n*R.masFight/surv)); applyLosses(A,atkTr,L.out); lossA+=L.n; for(const k in L.out) lossTrA[k]=(lossTrA[k]||0)+L.out[k];
+      gain={kill:n,fight:L.n}; } }
   gen.skill=Math.min(100,gen.skill+gen.mind*1.5+(win?2:0)); gen.morale=Math.max(0,gen.morale-(win?R.moraleWin:R.moraleLoss)); gen.battles++;
   gA[3]=Math.round(gen.skill); gA[5]=Math.round(gen.morale);
   const det={tA:sentTr,lA:tArr(lossTrA),tD:defTr,lD:tArr(lossTrD),home:troopCount(guards[A.id]||{}),share:+(a.share||1).toFixed(3),nOn:a.nOn||1,
     gA,gD,sA:a.parts||null,sD:troopCount(gTr)>0?sDp:null,raw:[atkTech(A),defTech(D)],lv:[A.lv.atk||0,A.lv.explore||0,D.lv.def||0],land:[...landCalc,landD0,landA0],
-    who:[A.team??-1,A.civ,A.leader,A.landType,popA0,D.team??-1,D.civ,D.leader,D.landType,popD0],aft:null,front:frontier.length,sea:sea?1:0,st:guarded?[STANCES.indexOf(stanceOf(D)),stanceMul(D,"stLoss"),stLand]:null,md:mode==="normal"?null:[MODES.indexOf(mode),modeMul(mode,"atLoss"),mLand]}; // defender's stance and its multipliers then
+    who:[A.team??-1,A.civ,A.leader,A.landType,popA0,D.team??-1,D.civ,D.leader,D.landType,popD0],aft:null,front:frontier.length,sea:sea?1:0,st:guarded?[STANCES.indexOf(stanceOf(D)),stanceMul(D,"stLoss"),stLand]:null,md:mode==="normal"?null:[MODES.indexOf(mode),modeMul(mode,"atLoss"),mLand,modeMul(mode,"atDef"),modeMul(mode,"atRel")],gain}; // defender's stance and its multipliers then
   if(dg){ const y=defYear[D.id]||(defYear[D.id]={dg,n:0,lost:false,reps:[]}); y.n++; if(win) y.lost=true; y.reps.push(det); } // applied once after all battles
   let movedPeas=0, sciLostR=0, grainR=0, capturedR=0, elimPeas=0, crowdR=0, loot=null;
   if(taken>0&&R.keepPeople){
@@ -2226,7 +2251,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
     transferCells(g,A.id,D.id,taken,frontier);
     D.lostThis+=taken;
   }
-  const rel0=relOf(g,D,A.id), gr0=rfOf(g,D,A.id)?.g||0, rw=relOnAttack(g,A,D,taken,win,adjNow); // revenge settles the attacker's score; the victim, its allies and the attacker's neighbors think worse of it
+  const rel0=relOf(g,D,A.id), gr0=rfOf(g,D,A.id)?.g||0, rw=relOnAttack(g,A,D,taken,win,adjNow,modeMul(mode,"atRel")); // revenge settles the attacker's score; the victim, its allies and the attacker's neighbors think worse of it
   { const gr1=rfOf(g,D,A.id)?.g||0;
     if(!A.ai&&D.ai&&gr1<=-50&&gr0>-50) note(g,A.id,`⚠ ${D.name} wants revenge for your attack (grievance ${Math.round(gr1)}).`);
     if(a.why&&!D.ai) note(g,D.id,a.why==="w"?`⚔ ${A.name} attacked you to stop your wars on its neighbors${win?"":", and was held off"}.`:a.why==="s"?`⚔ ${A.name} attacked you to avenge its ally${win?"":", and was held off"}.`:`⚔ ${A.name} attacked you for revenge${win?"":", and was held off"}.`);
@@ -2252,8 +2277,8 @@ const STANCES=["fall","hold","stand"], STANCE_KEY={fall:"Fall",hold:"Hold",stand
 function stanceOf(c){ return STANCES.includes(c?.stance)?c.stance:"hold"; }
 function stanceMul(c,k){ return R[k+STANCE_KEY[stanceOf(c)]]??1; }
 // attack mode of an order (older orders: normal) and its multiplier for "atLoss" or "atLand"
-const MODES=["normal","assault"], MODE_KEY={normal:"Normal",assault:"Assault"};
-function modeOf(a){ return MODES.includes(a?.mode)?a.mode:"normal"; }
+const MODES=["normal","assault","raid","kidnap","massacre"], MODE_KEY={normal:"Normal",assault:"Assault",raid:"Raid",kidnap:"Kidnap",massacre:"Massacre"}, NOLAND={raid:1,kidnap:1,massacre:1}; // "assault" was removed: kept only so old battle reports still read right
+function modeOf(a){ return MODES.includes(a?.mode)&&a.mode!=="assault"?a.mode:"normal"; } // old assault orders fight as normal
 function modeMul(m,k){ return R[k+MODE_KEY[MODES.includes(m)?m:"normal"]]??1; }
 // Land won in a battle: (general's speed limit + army bonus) × decisiveness,
 // and never more than the surviving soldiers can hold (R.occupy km² each; cavalry holds 2).
@@ -3403,9 +3428,17 @@ function allianceRelTable(t){ const own=!observing()&&me().team===t; const n=G.t
   return `<h3>Alliance relations ${gl("alliances")}</h3><table class="rtip"><tr class="mut"><td></td><td colspan="2">${own?"Your alliance's":"Its"} feelings</td><td colspan="2">Their feelings</td></tr>${rows.map(x=>`<tr class="click" data-alliance="${x.k}"><td><span class="sw" style="background:${G.teams[x.k].color}"></span>${esc(G.teams[x.k].name)}${teamsAtWar(G,t,x.k)?" ⚔️":""}</td>${num(x.out)}${bar(x.out)}${num(x.inn)}${bar(x.inn)}</tr>`).join("")}</table>`; }
 // defense stances for the screens: [id, icon, name, what it does]
 // attack modes for the screens: [id, icon, name, what it does]
-const MODE_UI=[["normal","⚔️","Normal","a normal attack"],["assault","🔥","Assault","push harder: more land, more of your own losses"]];
-function modeEffect(i){ const k=MODE_KEY[MODE_UI[i][0]], l=R["atLoss"+k], d=R["atLand"+k], p=v=>v===1?"normal":v<1?`${Math.round((1-v)*100)}% fewer`:`${Math.round((v-1)*100)}% more`;
-  return `Your losses: ${p(l)}. Land: ${d===1?"normal":d<1?`${Math.round((1-d)*100)}% less`:`${Math.round((d-1)*100)}% more`}.`; }
+// (assault was removed: its row stays only so old battle reports still show it; MODE_PICK is what players can choose)
+const MODE_UI=[["normal","⚔️","Normal","a normal attack"],["assault","🔥","Assault","an old mode: more land, more of your own losses"],
+  ["raid","💰","Raid","steal gold, grain, wood and iron; no land"],["kidnap","⛓️","Kidnap","carry off peasants to your land; no land"],["massacre","💀","Massacre","kill their peasants; no land"]];
+const MODE_PICK=MODE_UI.filter(m=>m[0]!=="assault"), atkModeNow=()=>MODE_PICK.some(m=>m[0]===UI.atkMode)?UI.atkMode:"normal";
+function modeEffect(i){ const id=MODE_UI[i][0], k=MODE_KEY[id], p=v=>v===1?"normal":v<1?`${Math.round((1-v)*100)}% fewer`:`${Math.round((v-1)*100)}% more`, q=v=>v===1?"normal":v<1?`${Math.round((1-v)*100)}% less`:`${Math.round((v-1)*100)}% more`;
+  const parts=[`Your losses: ${p(R["atLoss"+k]??1)}`];
+  if((R["atDef"+k]??1)!==1) parts.push(`theirs: ${p(R["atDef"+k])}`);
+  if(NOLAND[id]) parts.push(id==="raid"?`takes up to ${gP(R.raidMax)} of their goods (${R.raidCarry} per surviving soldier)`:id==="kidnap"?`takes up to ${gP(R.kidMax)} of their peasants (${R.kidPer} per survivor, only as many as you have room for)`:`kills up to ${gP(R.masMax)} of their peasants (${R.masPer} per survivor); peasants fight back`,"no land, no win needed: the more of the battle strength you bring, the more you get");
+  else parts.push(`land: ${q(R["atLand"+k]??1)}`);
+  if((R["atRel"+k]??1)!==1) parts.push(`anger: ${q(R["atRel"+k])}`);
+  return parts.map(x=>x[0].toUpperCase()+x.slice(1)).join(". ")+"."; }
 const STANCE_UI=[["fall","🏃","Fall back","pull back before the fighting gets bloody"],["hold","🛡️","Hold","fight a normal battle"],["stand","🧱","Stand ground","fight to the last for every field"]];
 function stanceEffect(i){ const k=STANCE_KEY[STANCE_UI[i][0]], l=R["stLoss"+k], d=R["stLand"+k], x=v=>v===1?"normal":v<1?`${Math.round((1-v)*100)}% fewer`:`${Math.round((v-1)*100)}% more`;
   return `Both sides' losses: ${x(l)}. Land lost if beaten: ${d===1?"normal":d<1?`${Math.round((1-d)*100)}% less`:`${Math.round((d-1)*100)}% more`}.`; }
@@ -3422,7 +3455,7 @@ function pWar(){
   <div style="margin:8px 0"><span class="mut">Stance ${gl("stance")}</span>${stancePicker(c)}</div>
   ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
   <h3>Orders this year ${gl("attack")}</h3>
-  ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${a.mix?mixShort(a.mix):fmt(a.soldiers)+" soldiers"}</td><td>→ ${esc(G.countries[a.target].name)}${a.mode==="assault"?` <span class="small" title="Assault: ${esc(modeEffect(1))}">🔥 assault</span>`:""}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}
+  ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${a.mix?mixShort(a.mix):fmt(a.soldiers)+" soldiers"}</td><td>→ ${esc(G.countries[a.target].name)}${a.mode&&a.mode!=="normal"&&MODES.includes(a.mode)?` <span class="small" title="${esc(MODE_UI[MODES.indexOf(a.mode)][2]+": "+modeEffect(MODES.indexOf(a.mode)))}">${MODE_UI[MODES.indexOf(a.mode)][1]} ${MODE_UI[MODES.indexOf(a.mode)][2].toLowerCase()}</span>`:""}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}
   <h3>Neighbors ${gl("relations")}</h3>
   ${nb.length?`<table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th class="r" title="Length of your shared border. Narrow borders give the defender a bonus.">Border</th><th></th></tr>
   ${nb.map(j=>{const o=G.countries[j];
@@ -3459,8 +3492,16 @@ function atkSummary(c,o,gen,send){
   return `${x2}<div class="small">Your attack <b>${fmt(mine)}</b> vs their defense <b>${fmt(est)}</b> → ratio ${r===Infinity?"∞":r.toFixed(2)}: <b class="${cls}">${verdict}</b> <span class="mut">(if all their soldiers defend)</span></div>
   <div class="odds" title="Your attack ÷ their defense"><i style="width:${r===Infinity?100:pos(r)}%;background:var(--${cls})"></i><b style="left:${pos(1)}%"></b><b style="left:${pos(2)}%"></b></div>
   <div class="oddsl small mut"><span style="left:${pos(1)}%">even</span><span style="left:${pos(2)}%">2×: full land</span></div>
-  <div class="small">Land if you win decisively${UI.atkMode==="assault"?" (assault)":""}: up to <b>${fmt(conquest(gen,n,1,c,holdUnits(send),modeMul(UI.atkMode,"atLand")))}</b> km² <span class="mut">(speed limit ${speedCap(gen)} + army bonus ${Math.round(R.armyLand*Math.sqrt(n))}; a narrow win takes a quarter of that; at most ${R.occupy} km² per surviving soldier)</span>.</div>`;
+  ${NOLAND[atkModeNow()]?atkTake(c,o,atkModeNow(),mine,est,n):`<div class="small">Land if you win decisively: up to <b>${fmt(conquest(gen,n,1,c,holdUnits(send)))}</b> km² <span class="mut">(speed limit ${speedCap(gen)} + army bonus ${Math.round(R.armyLand*Math.sqrt(n))}; a narrow win takes a quarter of that; at most ${R.occupy} km² per surviving soldier)</span>.</div>`}`;
 }
+// rough take of a raid, kidnap or massacre (if every soldier sent survived): share of the strength × the caps
+function atkTake(c,o,m,mine,est,n){ const eff=est>0?mine/(mine+est):1, sh=`${Math.round(eff*100)}% of the battle strength`;
+  if(m==="raid"){ const ks=[["💰","money"],["🌾","grain"],["🌲","wood"],["⛏️","iron"]], tot=ks.reduce((t,[,k])=>t+Math.max(0,o[k]||0),0), f=tot>0?eff*Math.min(R.raidMax,n*R.raidCarry/tot):0;
+    return `<div class="small">Raid: you bring ${sh}, so you'd carry off about <b>${ks.map(([ic,k])=>`${ic} ${fmt(Math.floor(Math.max(0,o[k]||0)*f))}`).join(" ")}</b> <span class="mut">(fewer if soldiers fall; no land)</span>.</div>`; }
+  if(m==="kidnap"){ const room=Math.max(0,Math.floor(popCap(c)-popOf(c))), k=Math.min(Math.floor(eff*Math.min(o.peasants*R.kidMax,n*R.kidPer)),room);
+    return `<div class="small">Kidnap: you bring ${sh}, so about <b>${fmt(k)}</b> peasants would join you <span class="mut">(room for ${fmt(room)}; fewer if soldiers fall; no land)</span>.</div>`; }
+  const k=Math.floor(eff*Math.min(o.peasants*R.masMax,n*R.masPer));
+  return `<div class="small">Massacre: you bring ${sh}, so about <b>${fmt(k)}</b> of their peasants would die, costing you about ${fmt(Math.round(k*R.masFight))} more soldiers as they fight back <span class="mut">(no land; their allies and neighbors will hate you)</span>.</div>`; }
 function attackForm(c,j,idle){
   const o=G.countries[j];
   if(!idle.length) return `<div class="note">Every general is busy or you have none. Hire one on the Generals tab.</div>`;
@@ -3469,7 +3510,8 @@ function attackForm(c,j,idle){
   const fw=frontWidth(G,c.id,j), sea=seaOnlyFront(G,c.id,j), fb=frontBonusAD(G,c.id,j), n=troopCount(mix);
   return `<div class="gen sel"><b>Attack ${esc(o.name)}</b>
   <div class="row">General <select id="atkGen">${idle.map(g=>`<option value="${g.id}" ${g.id===gsel?"selected":""}>${esc(g.name)} · skill ${g.skill.toFixed(0)} · morale ${g.morale} · spd ${g.speed}</option>`).join("")}</select></div>
-  <div class="row small">Mode ${MODE_UI.map(([id,ic,nm,tip],i)=>`<button class="sm${(UI.atkMode||"normal")===id?" pri":""}" data-atkmode="${id}" aria-pressed="${(UI.atkMode||"normal")===id}" title="${nm}: ${tip}. ${modeEffect(i)}">${ic} ${nm}</button>`).join("")} <span class="mut">${modeEffect(MODES.indexOf(UI.atkMode||"normal"))}</span></div>
+  <div class="row small">Mode ${MODE_PICK.map(([id,ic,nm,tip])=>`<button class="sm${atkModeNow()===id?" pri":""}" data-atkmode="${id}" aria-pressed="${atkModeNow()===id}" title="${nm}: ${tip}. ${modeEffect(MODES.indexOf(id))}">${ic} ${nm}</button>`).join("")}</div>
+  <div class="small mut" style="margin:-2px 0 6px">${modeEffect(MODES.indexOf(atkModeNow()))}</div>
   ${rows.length?`<div class="row small">Quick pick ${ATK_PRESETS.map(([k,l,tip])=>`<button class="sm${UI.atkPreset===k&&!UI.atkEdited?" pri":""}" data-atkpre="${k}" title="${tip}">${l}</button>`).join("")}</div>
   <table class="tight"><tr><th>Troop</th><th class="r">Home</th><th>Send</th><th class="r" title="Stays home and guards">Stays</th></tr>
   ${rows.map(t=>`<tr><td>${t.icon} <b>${t.name}</b><div class="small mut">atk ${(t.atk*atkPower(c)).toFixed(2)} · def ${(t.def*defPower(c)).toFixed(2)}</div></td><td class="r">${fmt(home[t.id])}</td>
@@ -3631,7 +3673,9 @@ function pNews(){
 function battleLine(b){
   const C=G.countries, you=b.att===G.player||b.def===G.player, ref=battleRef(b);
   const who=id=>you||isKnown(id) ? `<span class="sw" style="background:${C[id].color}"></span>${esc(C[id].name)}` : `<span class="sw" style="background:rgb(${FOG})"></span><span class="mut">an unknown state</span>`;
-  const res=b.win?`took <b>${fmt(b.taken)}</b> km²`:`was repelled`;
+  const gn=b.d?.gain, mi=b.d?.md?.[0], lt=a=>[["💰",0],["🌾",1],["🌲",2],["⛏️",3]].filter(([,k])=>a[k]).map(([ic,k])=>`${ic} ${fmt(a[k])}`).join(" ")||"nothing";
+  const res=gn?(gn.loot?`raided: carried off ${lt(gn.loot)}`:gn.kid!=null?`kidnapped <b>${fmt(gn.kid)}</b> peasants`:`massacred <b>${fmt(gn.kill)}</b> peasants`)
+    :b.d?.md&&NOLAND[MODES[mi]]?`${MODE_UI[mi][2].toLowerCase()}: got nothing`:b.win?`took <b>${fmt(b.taken)}</b> km²${mi===1?" (assault)":""}`:`was repelled`;
   return `<li class="${you?'acc':''}">${who(b.att)} → ${who(b.def)}: ${res} (${fmt(b.sent)} soldiers vs ${b.guards===0?"no defenders":fmt(b.guards)+" guards"} · lost ${fmt(b.lossA)} vs ${fmt(b.lossD)}${b.fb>=0.05&&b.guards>0?`, ${b.sea?"sea crossing":"narrow front"}: defenders +${Math.round(b.fb*100)}%`:""})${b.elim?` <b class="bad">${you||isKnown(b.def)?esc(C[b.def].name):"A state"} destroyed!</b>`:""}${ref?` <button class="sm" data-rep="${ref}">Details ›</button>`:""}</li>`;
 }
 // ---------- battle reports ----------
@@ -3731,8 +3775,8 @@ function reportHtml(b,d,ref){
   const stats=`<div class="stats">
     ${stat("Strength",d.sD?vs(fmt(strA),fmt(strD)):fmt(strA),d.sD?`${ratio>=1?"attacker":"defender"} ${(ratio>=1?ratio:1/ratio).toFixed(2)} : 1`:"no defenders")}
     ${stat("Losses",vs(`<span class="bad">${fmt(lossA)}</span>`,`<span class="bad">${fmt(lossD)}</span>`),`${pct(lossA,sent)} vs ${pct(lossD,grd)} of soldiers`)}
-    ${stat("Land taken",`${fmt(b.taken)} km²`,!b.win?"attack repelled":!d.sD?"no defenders: full gain":dec>=1?"decisive win: full gain":`${Math.round(dec*100)}% of the full gain (narrow win)`)}
-    ${aft[14]?stat("Spoils",b.elim?`${fmt(aft[10])} people`:"land only",b.elim?"and all its gold, grain, wood and iron":"the beaten state keeps its people and goods"):stat("Captured",`${fmt(aft[1])} peasants`,`+${fmt(aft[3])} grain looted`)}</div>`;
+    ${(d.md&&NOLAND[MODES[d.md[0]]])?stat("Land taken","none",`a ${MODE_UI[d.md[0]][2].toLowerCase()} takes no land`):stat("Land taken",`${fmt(b.taken)} km²`,!b.win?"attack repelled":!d.sD?"no defenders: full gain":dec>=1?"decisive win: full gain":`${Math.round(dec*100)}% of the full gain (narrow win)`)}
+    ${d.gain?stat("Spoils",d.gain.loot?([d.gain.loot].map(a=>a.reduce((x,y)=>x+y,0))[0]?`${fmt(d.gain.loot.reduce((x,y)=>x+y,0))} goods`:"nothing"):d.gain.kid!=null?`${fmt(d.gain.kid)} peasants`:`${fmt(d.gain.kill)} killed`,d.gain.loot?"gold, grain, wood and iron carried off":d.gain.kid!=null?"carried off to the attacker":`${fmt(d.gain.fight)} attackers fell to peasants`):aft[14]?stat("Spoils",b.elim?`${fmt(aft[10])} people`:"land only",b.elim?"and all its gold, grain, wood and iron":"the beaten state keeps its people and goods"):stat("Captured",`${fmt(aft[1])} peasants`,`+${fmt(aft[3])} grain looted`)}</div>`;
   const bar=d.sD?`<div class="sbar2"><i style="width:${100*strA/(strA+strD)}%;background:${A.color}"></i><i style="width:${100*strD/(strA+strD)}%;background:${D.color}"></i></div>
     <div class="small mut" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:12px"><span>${plain(b.att)} ${pct(strA,strA+strD)}</span><span>Winning at twice the defender's strength takes the full gain</span><span>${plain(b.def)} ${pct(strD,strA+strD)}</span></div>`:"";
   // land and aftermath
@@ -3740,10 +3784,15 @@ function reportHtml(b,d,ref){
   const landCalc=b.win?`<b>Land taken:</b> (general's reach ${fmt(reach)} + army ${fmt(army)} <span class="mut">[${R.armyLand} × √${fmt(surv)} survivors]</span>) × Expansion ${mul(ex)} <span class="mut">[level ${d.lv[1]}, with civilization/leader/land]</span> × ${dec>=1?"full gain":`narrow win ${Math.round(dec*100)}%`} = ${fmt(pot)} km²
       <span class="mut">· the survivors could hold up to ${fmt(hold)} km² (cavalry hold 2 each) · ${plain(b.def)} had ${fmt(landD0)} km²</span> → <b>${fmt(b.taken)} km²</b>`
     :`<b>No land changed hands.</b> <span class="mut">The attack was beaten back.</span>`;
+  const landTxt=(d.md&&NOLAND[MODES[d.md[0]]])?`<b>No land changed hands:</b> <span class="mut">a ${MODE_UI[d.md[0]][2].toLowerCase()} takes no land. What it gets scales with the attacker's share of the battle strength and its surviving soldiers.</span>`:landCalc;
   const chips=[];
-  if(d.md){ const [mi,ml,mdl]=d.md; chips.push(`${MODE_UI[mi][1]} ${plain(b.att)} attacked in ${MODE_UI[mi][2]} mode (its losses ×${+ml.toFixed(2)}${b.win?`, land ×${+mdl.toFixed(2)}`:""})`); }
-  if(d.st){ const [si,sl,sd]=d.st; chips.push(`${STANCE_UI[si][1]} ${plain(b.def)}'s stance: ${STANCE_UI[si][2]}${sl!==1||sd!==1?` (losses ×${+sl.toFixed(2)}${b.win?`, land ×${+sd.toFixed(2)}`:""})`:""}`); }
   const lootTxt=a=>a?[["💰",0],["🌾",1],["🌲",2],["⛏️",3]].filter(([,k])=>a[k]).map(([ic,k])=>`${ic} ${fmt(a[k])}`).join(" "):"";
+  const nl=d.md&&NOLAND[MODES[d.md[0]]], gn=d.gain;
+  if(d.md){ const [mi,ml,mdl,mdd,mdr]=d.md, nm=MODE_UI[mi]; chips.push(`${nm[1]} ${plain(b.att)} attacked in ${nm[2]} mode (its losses ×${+ml.toFixed(2)}${mdd!=null&&mdd!==1?`, defenders' ×${+mdd.toFixed(2)}`:""}${!nl&&b.win?`, land ×${+mdl.toFixed(2)}`:""}${mdr!=null&&mdr!==1?`, anger ×${+mdr.toFixed(2)}`:""})`); }
+  if(gn?.loot) chips.push(`💰 Raiders carried off ${lootTxt(gn.loot)||"nothing"}`);
+  if(gn&&gn.kid!=null) chips.push(`⛓️ ${fmt(gn.kid)} peasants were carried off to ${plain(b.att)}`);
+  if(gn&&gn.kill!=null) chips.push(`💀 ${fmt(gn.kill)} peasants were killed; ${fmt(gn.fight)} attackers fell as they fought back`);
+  if(d.st){ const [si,sl,sd]=d.st; chips.push(`${STANCE_UI[si][1]} ${plain(b.def)}'s stance: ${STANCE_UI[si][2]}${sl!==1||sd!==1?` (losses ×${+sl.toFixed(2)}${b.win?`, land ×${+sd.toFixed(2)}`:""})`:""}`); }
   if(b.taken&&aft[14]){ if(!b.elim||aft[15]) chips.push(`👨‍🌾 ${fmt(aft[0])} peasants lived there and moved to the rest of ${plain(b.def)}${aft[15]?`: ${fmt(aft[15])} people it had no room for were lost`:""}`); }
   else if(b.taken){ chips.push(`👨‍🌾 ${fmt(aft[0])} peasants lived there: ${fmt(aft[1])} joined ${plain(b.att)}`); if(aft[2]) chips.push(`🔬 ${fmt(aft[2])} scientists lost`); if(aft[3]) chips.push(`🌾 ${fmt(aft[3])} grain looted`); }
   if(vis(b.def)) chips.push(`😠 ${plain(b.def)}'s opinion of ${plain(b.att)}: ${aft[4]} → ${aft[5]}`);
@@ -3762,7 +3811,7 @@ function reportHtml(b,d,ref){
     ${stats}${bar}
     <div class="bsides">${aSide}${dSide}</div>
     <h3>Land and aftermath</h3>
-    <div class="bcalc small">${landCalc}</div>
+    <div class="bcalc small">${landTxt}</div>
     ${chips.length?`<div class="bchips">${chips.map(c=>`<span>${c}</span>`).join("")}</div>`:""}
     <div class="rep-foot">
       ${UI.repBack?`<button data-repback="1">‹ Back to year report</button>`:""}
@@ -3788,13 +3837,17 @@ const SETTINGS_META=[
   ["Weather systems (droughts and fertile spells)",[["wsPerStates","One system per this many starting states"],["wsMin","At least this many systems"],["wsMax","At most this many systems"],["wsLifeMin","Shortest life (years)"],["wsLifeMax","Longest life (years)"],["wsQuietMin","Shortest quiet gap before a new one (years)"],["wsQuietMax","Longest quiet gap (years)"],["wsRamp","Share of its life spent building up (and again fading)","%"],["wsRadMin","Smallest radius (state widths)"],["wsRadMax","Largest radius (state widths)"],["wsStrMin","Weakest: harvest change at the centre","%"],["wsStrMax","Strongest: harvest change at the centre","%"],["wsGood","Chance a new system is a fertile spell","%"],["wsDrift","Drift speed (state widths per year)"],["wsTurn","Largest change of direction per year (degrees)"],["wsMerge","Same kinds merge (Great Drought, Golden Harvest)","bool"],["wsMergeDist","Merge when centres are closer than (× radii combined)"],["wsMergeSize","Merged size (× the bigger one)"],["wsMergeStr","Merged strength (× the stronger one)"],["wsMergeLife","Merged: extra years of life"],["wsGreatMax","Two great ones meeting: strongest it can get","%"],["wsGreatLife","Two great ones meeting: extra years of life"],["wsClash","Opposite kinds clash: higher tier wins, equal tiers cancel out","bool"],["wsFloor","Systems build up from and fade down to: share of their lowest strength (0 = from and to nothing)","%"]]],
   ["World market & weather",[["mkMerchSell","Merchants sell at least at (× normal)"],["mkMerchMul","Merchants sell at least at (× market price)"],["mkMerchBuy","Merchants buy wood and iron at (× normal)"],["mkMerchBuyG","Merchants buy grain at (× normal)"],["mkSteep","Merchant sell price rise per world year sold (× 1 = +100%)"],["mkSteepB","Merchant buy price drop per world year bought"],["mkYears","Market price: average over years"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxRegionalOff","Small yearly weather patches: strength with weather systems off"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus offered per year","%"],["aiNeedK","AI: how strongly need moves the price it pays or asks"],["aiMargin","AI: how far its orders sit from what it thinks fair","%"]]],
   ["Research",[["researchCostBase","Level cost: base"],["researchCostExp","Level cost: exponent (cost = base × (level+1)^exponent)"],["sizeExp","Level cost grows with size: exponent (× (pop ÷ world average pop)^exponent, 0 = off)"],["catchUpPer","Catching up: cheaper per level behind the world average","%"],["catchUpMax","Catching up: at most this much cheaper","%"],["leadPer","Leading: dearer per level ahead of the world average","%"],["leadMax","Leading: at most this many times the cost (1 = off)"],["levelKnee","Diminishing returns: levels count in full up to (0 = off)"],["techEdgeMax","Battle: research edge cap (× the other side's; 0 = off)"],["sciPerLevel","Science: research per level","%"],["agriPerLevel","Agriculture: food per level","%"],["finTaxPerLevel","Finance: taxes per level","%"],["finPricePerLevel","Finance: sell price per level (grain, wood, iron)","%"],["densPerLevel","Pop. density: people per km² per level"],["growPerLevel","Pop. growth: birth rate per level","%"],["atkPerLevel","Attack: strength per level","%"],["defPerLevel","Defense: strength per level","%"],["woodPerLevel","Forestry: wood per level","%"],["ironPerLevel","Mining: iron per level","%"],["explorePerLevel","Expansion: land per battle and settling per level","%"],["sciMax","Max research bonus: Science (0 = no cap)","%"],["agriMax","Max research bonus: Agriculture","%"],["finMax","Max research bonus: Finance","%"],["densMax","Max research bonus: Pop. density (share of base capacity)","%"],["growMax","Max research bonus: Pop. growth (share of base birth rate)","%"],["atkMax","Max research bonus: Attack","%"],["defMax","Max research bonus: Defense","%"],["woodMax","Max research bonus: Forestry","%"],["ironMax","Max research bonus: Mining","%"],["exploreMax","Max research bonus: Expansion","%"]]],
-  ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["stLossFall","Defense stance Fall back: × both sides' losses"],["stLandFall","Defense stance Fall back: × land the attacker takes"],["stLossHold","Defense stance Hold: × both sides' losses"],["stLandHold","Defense stance Hold: × land the attacker takes"],["stLossStand","Defense stance Stand ground: × both sides' losses"],["stLandStand","Defense stance Stand ground: × land the attacker takes"],["atLossNormal","Attack mode Normal: × your losses"],["atLandNormal","Attack mode Normal: × land taken"],["atLossAssault","Attack mode Assault: × your losses"],["atLandAssault","Attack mode Assault: × land taken (and land survivors can hold)"],["keepPeople","Beaten states keep their people and grain (as many as their land holds); you take everything only from a state you wipe out","bool"],["capturedPeasants","When off: peasants on conquered land who join you","%"],["lootGrain","When off: grain looted from conquered land","%"]]],
+  ["Battle",[["defenderBonus","Defender bonus","%"],["battleLoss","Base battle losses (share lost at toughness 1)","%"],["loserPenalty","Extra losses for a beaten attacker (×)"],["raidLoss","Attacker losses against no defenders","%"],["battleLuck","Battle luck (±)","%"],["narrowWinShare","Land taken on a narrow win","%"],["narrowFront","Narrow front: full bonus at or below (km)"],["wideFront","Narrow front: no bonus from (km)"],["narrowBonus","Narrow front: defender bonus","%"],["seaBonus","Sea route: defender bonus (attack only across the sea)","%"],["occupy","Land each surviving soldier can hold (km²)"],["armyLand","Army bonus to land taken (× √survivors)"],["stLossFall","Defense stance Fall back: × both sides' losses"],["stLandFall","Defense stance Fall back: × land the attacker takes"],["stLossHold","Defense stance Hold: × both sides' losses"],["stLandHold","Defense stance Hold: × land the attacker takes"],["stLossStand","Defense stance Stand ground: × both sides' losses"],["stLandStand","Defense stance Stand ground: × land the attacker takes"],["keepPeople","Beaten states keep their people and grain (as many as their land holds); you take everything only from a state you wipe out","bool"],["capturedPeasants","When off: peasants on conquered land who join you","%"],["lootGrain","When off: grain looted from conquered land","%"]]],
+  ["Attack modes (× your losses, × the defenders' losses, × land, × the anger it causes)",[["atLossNormal","Normal: × your losses"],["atDefNormal","Normal: × defenders' losses"],["atLandNormal","Normal: × land taken"],["atRelNormal","Normal: × anger"],
+    ["atLossRaid","Raid: × your losses"],["atDefRaid","Raid: × defenders' losses"],["atRelRaid","Raid: × anger"],["raidCarry","Raid: goods each surviving raider carries"],["raidMax","Raid: most of each stock taken","%"],
+    ["atLossKidnap","Kidnap: × your losses"],["atDefKidnap","Kidnap: × defenders' losses"],["atRelKidnap","Kidnap: × anger"],["kidPer","Kidnap: peasants per surviving soldier"],["kidMax","Kidnap: most of their peasants taken","%"],
+    ["atLossMassacre","Massacre: × your losses"],["atDefMassacre","Massacre: × defenders' losses"],["atRelMassacre","Massacre: × anger"],["masPer","Massacre: peasants killed per surviving soldier"],["masMax","Massacre: most of their peasants killed","%"],["masFight","Massacre: extra attackers lost per peasant killed"]]],
   ["Wars",[["aiAidShare","Allied aid: share of its surplus a computer ally gives a year","%"],["aidTrust","Allied aid: trust gained per 1,000 gold of value"],["aidTrustMax","Allied aid: most trust gained from one gift"],["awarHostile","Alliance war starts when an alliance's relation reaches"],["arStep","Alliance relation: moves toward members' feelings per year","%"],["arWar","Alliance relation: per year of a state war between members"],["arBattle","Alliance relation: per battle between members"],["arBattleBig","Alliance relation: per battle taking over 10% of the land"],["warHostile","War starts when either side's feelings reach"],["warMin","War length: shortest (years)"],["warMax","War length: longest (years)"],["warRest","Years without new wars after peace"],["warDeclare","Computer declares war above this score"],["warDeclareHit","Victim's grievance when war is declared on it"]]],
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
   ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
-  ["Computer players",[["aiAssaultEdge","Attack mode: assault when it can send this many times the troops needed (×)"],["aiFallBack","Defense stance: fall back when its defense is under this share of the strongest neighbor's attack","%"],["aiLastStand","Defense stance: stand ground once its land is under this share of its biggest","%"],["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiArmyPeace","Army in peace (share of people)","%"],["aiArmyPeaceMil","Army in peace, warlike (share of people)","%"],["aiArmyWar","Army at war (share of people)","%"],["aiArmyWarMil","Army at war, warlike (share of people)","%"],["aiFootStep","War footing: change per year toward war or peace","%"],["aiKeepPeace","Peasants kept in peace (share of people)","%"],["aiKeepWar","Peasants kept at war (share of people)","%"],["aiDensPeace","Density research share in peace"],["aiDensWar","Density research share at war"],["aiGrowPeace","Growth research share in peace"],["aiGrowWar","Growth research share at war"],["aiInteriorArmy","Only allied neighbors: army (share of people)","%"],["aiInteriorCut","Only allied neighbors: surplus soldiers sent home per year","%"],["aiPeaceCut","At peace: surplus soldiers sent home per year","%"],["aiAtkRoom","Not at war: below this fullness, attacks only out of grudge, fear or for a wonder","%"],["aiAtkFull","Not at war: from this fullness, attacks as usual","%"],["aiAtkRoomEdge","Not at war: extra edge needed at the low end","%"],["aiPeaceThreat","Threat from a neighbor it isn't at war with (× its army)"],["aiDefCapPeace","Defense top-up: at most this share of people armed in peace","%"],["aiDefCapWar","Defense top-up: at most this share of people armed at war","%"],["aiMixTilt","Main army: weight of the stat the army lacks (attack + defense valued together)"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
+  ["Computer players",[["aiHarassMin","Harassing its biggest neighbor (feared, 1.5× its size, too strong to beat): send at least this many soldiers"],["aiHarassStr","Harassing: aim at this share of their defense","%"],["aiHarassFear","Harassing: only states it fears more than this","%"],["aiHarassGapMin","Harassing: then waits at least this many years"],["aiHarassGapMax","Harassing: and at most this many years"],["aiMassacreGrudge","Harassing: massacre instead with a grudge above","%"],["aiRaidPoor","Raid a beatable neighbor instead of conquering when gold is under this many years of wages"],["aiFallBack","Defense stance: fall back when its defense is under this share of the strongest neighbor's attack","%"],["aiLastStand","Defense stance: stand ground once its land is under this share of its biggest","%"],["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiArmyPeace","Army in peace (share of people)","%"],["aiArmyPeaceMil","Army in peace, warlike (share of people)","%"],["aiArmyWar","Army at war (share of people)","%"],["aiArmyWarMil","Army at war, warlike (share of people)","%"],["aiFootStep","War footing: change per year toward war or peace","%"],["aiKeepPeace","Peasants kept in peace (share of people)","%"],["aiKeepWar","Peasants kept at war (share of people)","%"],["aiDensPeace","Density research share in peace"],["aiDensWar","Density research share at war"],["aiGrowPeace","Growth research share in peace"],["aiGrowWar","Growth research share at war"],["aiInteriorArmy","Only allied neighbors: army (share of people)","%"],["aiInteriorCut","Only allied neighbors: surplus soldiers sent home per year","%"],["aiPeaceCut","At peace: surplus soldiers sent home per year","%"],["aiAtkRoom","Not at war: below this fullness, attacks only out of grudge, fear or for a wonder","%"],["aiAtkFull","Not at war: from this fullness, attacks as usual","%"],["aiAtkRoomEdge","Not at war: extra edge needed at the low end","%"],["aiPeaceThreat","Threat from a neighbor it isn't at war with (× its army)"],["aiDefCapPeace","Defense top-up: at most this share of people armed in peace","%"],["aiDefCapWar","Defense top-up: at most this share of people armed at war","%"],["aiMixTilt","Main army: weight of the stat the army lacks (attack + defense valued together)"],["aiGlutFarm","Less farming margin per year of grain in store"],["aiGlutCut","Most woodcutters/miners cut when wood/iron piles up","%"],["aiGlutSci","Extra scientist share allowed with surplus (and with a gold hoard)","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["aiResLean","Wood/iron workers: lean toward the better resource (power)"],["aiPersonValue","Troop choice: a person's worth in money"],["aiTroopYears","Troop choice: years of upkeep counted"],["aiTroopLoss","Troop choice: share of troops lost per year (toughness 1)","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
 ];
 const TABLE_META={
   troops:{title:"Troops",cols:[["name","Name","text"],["icon","Icon","icon"],["atk","Attack"],["def","Defense"],["tough","Toughness"],["food","🌾 cost"],["wood","🌲 cost"],["iron","⛏️ cost"],["gold","💰 cost"],["upFood","🌾 upkeep"],["upGold","💰 upkeep"],["hold","Holds km²"]],
@@ -3937,6 +3990,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Raids, kidnaps and massacres","2026-11-12 12:58",["Attack window: new modes Raid, Kidnap and Massacre","Raid: steal gold, grain, wood and iron with low losses; angers less than a normal attack","Kidnap: carry off peasants to your land, as many as you have room for; angers a bit more","Massacre: kill their peasants; they fight back; angers twice as much","These take no land and need no win: the stronger your force, the more you get","Computer states raid or kidnap from a much bigger neighbor they fear, every few years","Assault mode removed","Settings: new Attack modes group"]],
 ["Assault attacks","2026-11-12 10:57",["Attack window: pick Normal or Assault","Assault: 15% more of your own losses for 10% more land","Computer states assault when they have a clear edge and want land","Orders list and battle reports show assaults","Settings → Battle: losses and land multipliers for each mode"]],
 ["Defense stances","2026-11-12 10:57",["War tab: pick how your guards fight when attacked: Fall back, Hold or Stand ground","Fall back: both sides lose fewer troops","Stand ground: both sides lose more troops, but you lose half as much land","Computer states pick a stance too; battle reports show the defender's stance","Settings → Battle: losses and land multipliers for each stance"]],
 ["Conquest takes land, not people","2026-11-12 10:57",["Winning a battle takes land only: the beaten state keeps its people, grain and other goods","People on the taken land move home; any its smaller land can't hold are lost","Wiping a state out gives you all its people, gold, grain, wood and iron","Settings → Battle: switch back to the old rule (captured peasants and looted grain)"]],
@@ -4095,7 +4149,8 @@ ${gTab(["System","Feeds","Is fed by"],[
 <li>Gold for scientists vs cavalry and generals vs buying goods.</li>
 <li>Wood troops (cheap, die fast, need many people) vs iron troops (costly, survive, save people).</li>
 <li>Sending troops vs keeping guards: soldiers sent away don't defend that year.</li>
-<li>Soldiers vs land in battle: falling back saves troops on both sides, standing ground spends them to keep land, and an assault spends the attacker's to take more.</li>
+<li>Soldiers vs land in battle: falling back saves troops on both sides, standing ground spends them to keep land.</li>
+<li>Land vs goods vs people: a conquest takes land, a raid goods, a kidnap people, a massacre takes nothing but hurts; the cheaper ones anger less, the crueler ones more.</li>
 <li>Growing fast vs staying unthreatening: the biggest state makes enemies.</li></ul>`],
 ["pop","Your state","👥","Population",()=>`
 <p>People are the core resource: every peasant farms or works, pays tax and has children; every soldier is one person taken from them.</p>
@@ -4184,8 +4239,8 @@ ${gTab(["Troop","Attack","Defense","Toughness","Cost (food/wood/iron/gold)","Upk
 <h3>Strength</h3><ul class="log"><li><b>Attack</b> = troops' attack × Attack research × general × civilization, leader and wonder bonuses × luck (±${gP(R.battleLuck)}).</li>
 <li><b>Defense</b> = guards' defense × Defense research × general × bonuses × ${1+R.defenderBonus} (defender bonus) × narrow-front or sea bonus × luck. Guards are split between several attackers by their strength.</li>
 <li>The attacker wins only if stronger. Ties go to the defender.</li></ul>
-<h3>Losses</h3><p>Each side loses up to ${gP(R.battleLoss)} of its troops, more the stronger the enemy, divided by toughness. A beaten attacker loses ${R.loserPenalty}× more. Against no guards the attacker loses only ${gP(R.raidLoss)}. The defender's stance scales both sides' losses (see ${gl("stance")} Defense stance); an assault scales the attacker's (×${R.atLossAssault}, see ${gl("attack")} Attack mode).</p>
-<h3>Land taken</h3><p>The winner takes (general's speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness, times Expansion research. Decisiveness runs from ${gP(R.narrowWinShare)} for a narrow win to 100% at twice the defender's strength (or no defenders). Each survivor can hold ${R.occupy} km² (cavalry 2). An assault takes ×${R.atLandAssault} (and each survivor holds ×${R.atLandAssault}); a defender standing ground loses only ×${R.stLandStand} of it.</p>
+<h3>Losses</h3><p>Each side loses up to ${gP(R.battleLoss)} of its troops, more the stronger the enemy, divided by toughness. A beaten attacker loses ${R.loserPenalty}× more. Against no guards the attacker loses only ${gP(R.raidLoss)}. The defender's stance scales both sides' losses (see ${gl("stance")} Defense stance); the attack mode scales them too (see ${gl("attack")} Attack mode).</p>
+<h3>Land taken</h3><p>The winner takes (general's speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness, times Expansion research. Decisiveness runs from ${gP(R.narrowWinShare)} for a narrow win to 100% at twice the defender's strength (or no defenders). Each survivor can hold ${R.occupy} km² (cavalry 2). A defender standing ground loses only ×${R.stLandStand} of it.</p>
 <h3>Spoils</h3>${R.keepPeople?`<p>A win brings land only. The beaten state keeps its people, scientists, grain, gold, wood and iron: the people on the taken land move to the land it has left. If that land can't hold them all (more people than its capacity), the extra peasants and scientists are lost. Soldiers are never cut this way, so a state whose army fills most of its land can be left with too few peasants and fall on the spot. So a beaten state shrinks but isn't stripped, and a winner has to grow people on its new land.</p>
 <p>Wiping a state out pays: the winner takes all its remaining people (scientists join as peasants) and all its gold, grain, wood and iron. Its soldiers are lost. Taking its last land hands over everyone, since no one has to be squeezed out first.</p>`
 :`<p>The share of land taken brings the same share of the defender's peasants (${gP(R.capturedPeasants)} arrive) and ${gP(R.lootGrain)} of that share of its grain. Gold, wood and iron are never looted. When a state is wiped out, half its peasants join the winner and its stocks vanish.</p>`}
@@ -4199,9 +4254,9 @@ ${STANCE_UI.map(([id,ic,nm])=>{ const k=STANCE_KEY[id]; return `<tr><td>${ic} ${
 <li><b>Hold</b>: the normal battle.</li>
 <li><b>Stand ground</b>: the only stance that protects land. Both sides lose more troops, and a winning attacker takes less land. Good for your last land, a wonder or a narrow pass. Your army melts faster, so you can't stand forever.</li>
 <li>With no guards at home there is nobody to fall back or stand: the stance does nothing.</li>
-<li>Attackers pick a mode too: an assault (×${R.atLossAssault} their losses, ×${R.atLandAssault} land) stacks with your stance. Standing ground is the answer to an assault; falling back gives an assault its best result.</li>
+<li>Attackers pick a mode too (see ${gl("attack")} Attack mode): your stance's loss multiplier also applies to raids, kidnaps and massacres.</li>
 <li>Computer states stand ground once they are down to ${gP(R.aiLastStand)} of their biggest land or hold a wonder in a war, and fall back when their defense is under ${gP(R.aiFallBack)} of their strongest neighbor's attack.</li></ul>
-<p class="mut">The multipliers are in Settings → Battle.</p>`],
+<p class="mut">The stance multipliers are in Settings → Battle.</p>`],
 ["fronts","Military","🗺️","Borders, fronts and sea",()=>`
 <ul class="log"><li>You can only attack states that touch yours. Allies are never targets.</li>
 <li><b>Narrow fronts:</b> on a shared border of ${R.narrowFront} km or less, defenders fight +${gP(R.narrowBonus)} harder; the bonus fades to nothing at ${R.wideFront} km. Lakes and rivers make these chokepoints. The War tab shows each border's length.</li>
@@ -4217,12 +4272,17 @@ ${STANCE_UI.map(([id,ic,nm])=>{ const k=STANCE_KEY[id]; return `<tr><td>${ic} ${
 <li>Striking back at a state that attacked you in the last ${R.relJustYears} years angers it and onlookers only half as much.</li>
 <li>Finish what you start: a beaten remnant saves up, buys an army and strikes back.</li></ul>
 <h3>Attack mode</h3>
-<table><tr><th>Mode</th><th class="r">Your losses</th><th class="r">Land taken</th></tr>
-${MODE_UI.map(([id,ic,nm])=>{ const k=MODE_KEY[id]; return `<tr><td>${ic} ${nm}</td><td class="r">×${R["atLoss"+k]}</td><td class="r">×${R["atLand"+k]}</td></tr>`; }).join("")}</table>
-<ul class="log"><li><b>Assault</b> pays in your own soldiers for more land. The defender loses no more than usual. Your survivors also hold more land each, so the extra losses don't eat the gain.</li>
-<li>It stacks with the defender's stance ${gl("stance")}: an assault on a state that stands ground is costly and still takes less land than usual; an assault on a state that falls back is cheap and takes the most.</li>
-<li>Computer states assault when they can send ${R.aiAssaultEdge}× the troops needed to win and want land: nearly full, at war, or a wonder on the other side.</li></ul>
-<p class="mut">The multipliers are in Settings → Battle.</p>`],
+<table><tr><th>Mode</th><th class="r">Your losses</th><th class="r">Their losses</th><th class="r">Land</th><th class="r">Anger</th></tr>
+${MODE_PICK.map(([id,ic,nm])=>{ const k=MODE_KEY[id]; return `<tr><td>${ic} ${nm}</td><td class="r">×${R["atLoss"+k]}</td><td class="r">×${R["atDef"+k]}</td><td class="r">${NOLAND[id]?"none":"×"+R["atLand"+k]}</td><td class="r">×${R["atRel"+k]}</td></tr>`; }).join("")}</table>
+<p>Anger scales the grievance of the victim, the solidarity of its allies and the wariness of onlookers.</p>
+<h3>Raid, kidnap and massacre</h3>
+<p>These take no land and need no win. What they get scales with your share of the battle strength (your attack ÷ both sides' strength; all of it if nobody guards) and with how many of your soldiers survive. Raiders pull back rather than lose, so a weaker raider takes no beaten-attacker penalty. That makes them the small state's weapon against a giant it can't beat.</p>
+<ul class="log"><li>💰 <b>Raid</b>: carries off a share of their gold, grain, wood and iron: ${R.raidCarry} goods per surviving soldier, at most ${gP(R.raidMax)} of each stock. Low losses on both sides and less anger than a normal attack, since nobody loses land.</li>
+<li>⛓️ <b>Kidnap</b>: carries off ${R.kidPer} peasants per surviving soldier, at most ${gP(R.kidMax)} of theirs, and only as many as you have room for. A bit more anger than a normal attack.</li>
+<li>💀 <b>Massacre</b>: kills ${R.masPer} of their peasants per surviving soldier, at most ${gP(R.masMax)}. Peasants fight back: every ${Math.round(1/R.masFight)} killed cost you one more soldier. It weakens a rival's taxes, farms and army without taking it over, but causes ×${R.atRelMassacre} the anger.</li>
+<li>If a kidnap or massacre leaves a state with too few peasants, it falls and the attacker takes it whole.</li>
+<li>Computer states harass their biggest neighbor if it is at least ${R.rfFrom}× their size, they fear it and can't beat it: kidnap if they have room, raid if not, massacre with a deep grudge. Then they wait a random ${R.aiHarassGapMin}–${R.aiHarassGapMax} years before harassing it again. They also raid a neighbor they could conquer when their own gold runs low.</li></ul>
+<p class="mut">All multipliers and caps are in Settings → Attack modes.</p>`],
 
 ["relations","Diplomacy","💬","Relations",()=>`
 <p>Every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings; hover a relation to see them. The War tab lists your neighbors' feelings; the map tooltip shows every neighbor's relations both ways.</p>
@@ -4233,7 +4293,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 ["Fear",`You are more than ${R.rfFrom}× their size: −${R.rfPer} per extra × (at most −${R.rfMax})`,"Only when you shrink compared with them"],
 ["Trust",`Years of peace on your border: +${R.rtYear} a year (at most +${R.rtMax}); gifts of aid`,`An attack wipes ${gP(R.rtWipe)}`],
 ["Common enemy",`Both of you hold a grudge of ${R.reFoe}+ against the same state: +${R.reEach} each (at most +${R.reMax})`,"When the grudge fades"]])}
-<ul class="log"><li>Feelings toward states that don't border you fade ${gP(R.relFade)} a year.</li><li>You are warned when a state starts to want revenge.</li><li>With <i>Random starting relations</i> on, pairs start between −${R.relNoiseAmp} and +${R.relNoiseAmp}.</li></ul>`],
+<ul class="log"><li>The attack mode scales grievance, solidarity and wariness: a raid ×${R.atRelRaid}, a kidnap ×${R.atRelKidnap}, a massacre ×${R.atRelMassacre} (see ${gl("attack")} Attack mode).</li><li>Feelings toward states that don't border you fade ${gP(R.relFade)} a year.</li><li>You are warned when a state starts to want revenge.</li><li>With <i>Random starting relations</i> on, pairs start between −${R.relNoiseAmp} and +${R.relNoiseAmp}.</li></ul>`],
 ["wars","Diplomacy","⚔️","Wars",()=>`
 <p>Single raids stay incidents. A war starts when:</p>
 <ul class="log"><li>either state's relation toward the other falls to <b>${R.warHostile}</b> (fear of a much bigger neighbor counts), or</li><li>a computer state <b>declares</b> one: out of a grudge, solidarity, fear, for a wonder, or because it is full and has no land left to settle. Declaring costs −${R.warDeclareHit} with the victim and makes its other neighbors wary.</li></ul>
@@ -4265,7 +4325,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li><b>Interior states</b> (only allies around) keep a token army and put their people into research.</li>
 <li>They still attack anyone they can clearly beat, at most two attacks a year, and grow bolder after long quiet years.</li>
 <li>They trade on the market by need, cut jobs whose goods pile up, and help allies at war.</li>
-<li><b>Assault:</b> they assault when they can send ${R.aiAssaultEdge}× the troops needed to win and want land (nearly full, at war, or a wonder there).</li>
+<li><b>Harassing a giant:</b> their biggest neighbor, if at least ${R.rfFrom}× their size, feared and too strong to beat, gets raided, kidnapped from or (with a deep grudge) massacred, then left alone for a random ${R.aiHarassGapMin}–${R.aiHarassGapMax} years.</li>
 <li><b>Defense stance:</b> they stand ground once down to ${gP(R.aiLastStand)} of their biggest land or holding a wonder in a war, fall back when outgunned (defense under ${gP(R.aiFallBack)} of the strongest neighbor's attack), and hold otherwise.</li></ul>`],
 
 ["screen","Interface","🖥️","Header and menu",()=>`
@@ -4609,7 +4669,7 @@ document.addEventListener("click",async ev=>{
     case "orderAttack": { if(inPeace(G)){ flash("Peace time: no attacks yet."); return; }
       const gen=+$("atkGen").value, home=plannedPools(c), mix=takeMix({...home},atkMix(home)), n=troopCount(mix);
       if(n<=0){ flash("Pick some troops to send."); return; }
-      c.attacks.push({target:UI.attackTarget,gen,soldiers:n,mix,...(UI.atkMode==="assault"?{mode:"assault"}:{})}); UI.atkMix=null; if(c.defGen===gen){ const other=c.generals.find(g=>g.id!==gen&&!c.attacks.some(x=>x.gen===g.id)); c.defGen=other?other.id:gen; }
+      c.attacks.push({target:UI.attackTarget,gen,soldiers:n,mix,...(atkModeNow()!=="normal"?{mode:atkModeNow()}:{})}); UI.atkMix=null; if(c.defGen===gen){ const other=c.generals.find(g=>g.id!==gen&&!c.attacks.some(x=>x.gen===g.id)); c.defGen=other?other.id:gen; }
       UI.attackTarget=null; break; }
     case "closeAttack": UI.attackTarget=null; break;
     case "close": UI.sdraft=null; closeModal(); return;

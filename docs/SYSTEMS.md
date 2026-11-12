@@ -194,14 +194,16 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Intent**: Defending is easier: +15%, narrow passes and sea crossings, and ties go to the defender, so attacking needs a clear edge. Narrow wins take little land; crushing wins take a lot. Sending troops away leaves home open the same year, so timing and home guard are real trade-offs. A win brings land only: the beaten state keeps its people and goods up to what its land can hold, so it shrinks without being stripped, and winners must grow their own people (this slows mid-game snowballing). Wiping a state out pays: the winner takes all its people and stocks. *(your direction)*
 - Attack strength = troops' attack × capped tech × M(attack) × wonder × general × luck (±15%).
 - Defense = guards' defense (troops not sent this year, split between attackers by their strength) × capped tech × M(defense) × wonder × general × 1.15 × (1 + front bonus) × luck. Front bonus: +40% on a border ≤ 3 km, fading to 0 at 15 km; +15% for sea-only fronts.
-- Losses: attacker `0.7 × strD/(strA+strD)` (×1.2 if it lost), defender `0.7 × strA/(strA+strD)`, each × the defender's stance loss multiplier (the attacker's also × its attack mode's), capped at 100%, then ÷ toughness. No guards: attacker loses 2% (no stance).
+- Losses: attacker `0.7 × strD/(strA+strD)` (×1.2 if it lost, except raid/kidnap/massacre, which withdraw), defender `0.7 × strA/(strA+strD)`, each × the defender's stance loss multiplier and the attack mode's (`atLoss…` for the attacker, `atDef…` for the defender), capped at 100%, then ÷ toughness. No guards: attacker loses 2% (no stance).
 - Win if strA > strD. Decisiveness 25% at a narrow win, 100% at 2×.
-- Land taken = `min((speedCap + 2√survivors) × exploreMul × decisiveness × m, survivors × holds × m)` × the defender's stance land multiplier, at least 1, where `m` is the attack mode's land multiplier (it scales the hold cap too, so extra losses don't eat the gain).
-- Attack mode (`a.mode` on the order; older orders: normal). Normal `atLossNormal 1` / `atLandNormal 1`. Assault `atLossAssault 1.15` / `atLandAssault 1.1`: more of the attacker's own losses for more land; the defender's losses are unchanged. Stacks with the stance (assault vs stand ground: attacker ×1.61 losses, land ×0.55; vs fall back: ×0.69, land ×1.1). Shown in the battle report (`det.md`). *(your direction: started at 1.4/1.5, cut to 1.1/1.1 as too drastic; losses then set to 1.15, where a forced test (half the states always assault, half never) came out even: 47% vs 53% of world land at year 150, against 60/40 at 1.1 and 43/57 at 1.2)*
+- Land taken = `min((speedCap + 2√survivors) × exploreMul × decisiveness, survivors × holds)` × the defender's stance land multiplier, at least 1. Raid, kidnap and massacre take no land.
+- Attack mode (`a.mode` on the order; older orders and old `assault` orders: normal). Each mode has `atLoss` (attacker's losses), `atDef` (defender's), `atLand` and `atRel` (× every relation hit the attack causes: grievance, solidarity, wariness). Normal: 1 / 1 / 1 / 1.
+- Raid, kidnap, massacre take no land and need no win; the take is `eff` × caps, where `eff` = strA/(strA+strD) (1 with no guards) and caps use the attacker's survivors. Raid (`atLossRaid 0.5`, `atDefRaid 0.5`, `atRelRaid 0.6`): `eff × min(raidMax 30%, survivors × raidCarry 30 ÷ their gold+grain+wood+iron)` of each stock. Kidnap (`0.5`, `0.75`, `1.2`): `eff × min(kidMax 15% of their peasants, survivors × kidPer 4)`, never more than the attacker's free room (`popCap − pop`). Massacre (`0.75`, `1`, `2`): kills `eff × min(masMax 20%, survivors × masPer 5)` peasants; every killed peasant costs the attacker `masFight 0.1` soldiers more. A kidnap or massacre that leaves the target under `minPop` peasants absorbs it (land and all). Battle reports keep `det.gain`. *(your direction: raids anger less than a conquest since no land is lost, kidnaps a little more, massacre in. Tuned so they pay: in tests a raid brings ~2,000 goods (about a year of an average state's taxes, 40 goods per soldier lost), a kidnap ~210–280 people for ~50–60 soldiers lost; a massacre kills ~1.7 of theirs per soldier lost and gains nothing)*
+- Assault (an attacker-losses-for-land mode, ×1.15 / ×1.1) was built and removed: forced tests came out even at 1.15, but computer states used it mostly against half-beaten states standing ground, where it took less land than a normal attack. Its index (1) stays in `MODES` so old reports still read.
 - Defense stance (`c.stance`, one per state for the year; older saves: hold). Fall back `stLossFall 0.6` / `stLandFall 1`: a cheaper fight for both sides, same land. Hold: 1 / 1. Stand ground `stLossStand 1.4` / `stLandStand 0.5`: bloodier for both, half the land. Only applies when there are guards. Hidden from other states; the battle report shows it (`det.st` = [stance, loss ×, land ×]). The player sets it on the War tab. *(your direction: fall back and hold are about troops only; stand ground is the one stance that trades lives for land)*
 - Spoils (`keepPeople` true, the default): the winner gets only land. The people on it move to the beaten state's remaining land; peasants and scientists above its `popCap` are removed in proportion (soldiers never). If the state is wiped out (no land, or under `minPop`), the winner takes all its peasants and scientists (as peasants) and all its gold, grain, wood and iron; its soldiers are lost. No trim when no land is left, so the winner gets everyone. A trim that leaves fewer than `minPop` peasants (soldiers fill most of the capacity) makes the state fall at once, handing over only what is left.
 - With `keepPeople` false (the old rule): the share of land taken moves the same share of peasants (`capturedPeasants` 80% arrive) and `lootGrain` 50% of the same share of grain; a wiped-out state gives half its peasants and its stocks vanish.
-- **Reads**: troops, generals, atk/def/explore research, identity, wonders, map fronts, AI/player orders (incl. attack mode), the defender's stance.
+- **Reads**: troops, generals, atk/def/explore research, identity, wonders, map fronts, AI/player orders (incl. attack mode), the defender's stance, the attacker's free room (kidnap), both sides' stocks (raid).
 - **Writes**: land (→ capacity, production, shore, wonders), population on both sides, research cost (size), relations, general skill/morale, AI memory (`lastWar`, `lostRecent`, `sentShare`, `openTurn`).
 
 ### 3.13 Territory and map
@@ -264,7 +266,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.17 Computer players (AI)
 - **Intent**: Play by the same rules as the player: no free resources (difficulty only scales research and how bold it is). Personalities differ so each world plays differently. The AI should use every lever the player has. *(inferred)*
 - Runs every system above for computer states: work split, market, generals, recruiting, defense, research allocation, attacks. Personality from the leader (`mil`, `guard`), a per-state random lean (`kk`), and difficulty (research ×0.8/1/1.15, earlier war phase, smaller attack edge needed `[1.7, 1.35, 1.2]`).
-- Attack mode: assault when it can send `aiAssaultEdge` 1.5× the troops needed and wants land (at least `aiAtkFull` full, at war, or the target holds a wonder); never for a grudge-only attack. In simulation about 34–44% of battles are assaults (most come from wars). Its send size counts the assault's extra land and losses.
+- Attack modes: harass its biggest neighbor when that one is at least `rfFrom` 1.5× its size, feared (`aiHarassFear` 0.3) and too strong to beat: kidnap if under `aiAtkFull` full, raid otherwise, massacre with a grudge over `aiMassacreGrudge` 0.7; sends at least `aiHarassMin` 40, aiming at `aiHarassStr` 60% of their defense; then waits a random `aiHarassGapMin`–`aiHarassGapMax` (3–7) years (`c.harN`). Raids a beatable neighbor instead of conquering when its gold is under `aiRaidPoor` 2 years of wages and theirs is twice its own.
 - Defense stance: stand ground once land is under `aiLastStand` 50% of its biggest ever (`c.landMax`) or while holding a wonder in a war; fall back when its army's defense is under `aiFallBack` 50% of the strongest neighbor's threat; otherwise hold. In simulation about 22–34% of state-years fall back and 1–3% stand ground. Attack planning ignores the target's stance (it is hidden).
 - Attack decision: estimate the target's guard (with noise), apply relations, wars and exposure, send enough to win by the edge and hold the land, keep a home guard. At most 2 attacks a year; a stalemate breaker makes it bolder after 5–25 idle years.
 - **Every new system needs an AI side.** If the AI ignores a lever the player has, the player gets a free edge and the world drifts away from the player's experience.
@@ -293,7 +295,7 @@ Rows act on columns (● strong, ○ weak).
 | Identity | ● | | ● | | ● | | ● | | ● | ● | | ● (persona) |
 | Troops | ● | | ● | ○ | ● | ○ | | | ● | | | ● |
 | Generals | | | | ○ | | | | | ● | ● | | |
-| Battle | ● | | ○ (wipe-out) | | | | ○ (size) | ● | | ● | ● | ● |
+| Battle | ● (kidnap, massacre) | | ○ (wipe-out, raid) | ○ (raid) | ○ (raid) | | ○ (size) | ● | | ● | ● (× mode anger) | ● |
 | Land | ● (capacity) | | ○ (shore) | | | | | | ● (fronts) | ● (settle) | ○ (fear) | ● |
 | Relations | | | | | | | | | | | | ● |
 | AI | ● | ● | | | | ● | ● | ● | ● | | | |
@@ -313,22 +315,24 @@ Negative (stabilising) loops:
 - Famine kills soldiers first (×1.5), shrinking food use.
 - Empty treasury sends soldiers and scientists home.
 - Defense stance: outgunned states fall back, which slows how fast both armies wear down and so slows conquest; states that lost half their land stand ground, so the last cells cost more lives to take.
+- Harassment: small states raid or kidnap from a feared giant next door, moving goods and people from big to small; it nibbles at leaders but bleeds the harassers' troops (raids lose ~14% of those sent) and angers the giant.
 
 ## 6. Balance anchors
 
-Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11–16 (11/12/13 for quick checks), observer mode). Refreshed with `keepPeople`, defense stances and assault (2026-11-12); the old ranges had drifted with the map changes before them:
+Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11–16 (11/12/13 for quick checks), observer mode). Refreshed with `keepPeople`, defense stances and raid/kidnap/massacre (2026-11-12); the old ranges had drifted with the map changes before them:
 
 | Measure | Expected range |
 |---|---|
 | States alive at year 30 | 59–60 |
-| States alive at year 90 | 37–48 (6 seeds 11–16; without stances and assault: 31–39; old spoils rule: 3–36) |
-| States alive at year 150 | 5–17 (old spoils rule: 1–9) |
-| Biggest state's share of world land at year 150 | 24–42% (old spoils rule: 37–100%) |
-| Games with one state left by year 300 (seeds 11–13) | 1 of 3 (old spoils rule: 3 of 3) |
+| States alive at year 90 | 35–48 (6 seeds 11–16; old spoils rule: 3–36) |
+| States alive at year 150 | 5–20 (old spoils rule: 1–9) |
+| Biggest state's share of world land at year 150 | 14–40% (old spoils rule: 37–100%) |
+| Battles by mode (per game) | normal ~400, raid ~120–150, massacre ~13–15, kidnap ~3 |
+| 1000 states, seeds 11–13, year 150 | 129–157 alive, biggest 2–3%, top 10 hold 17–21%, ~3,000 raids per game (old spoils rule: 38–44 alive, top 10 52–60%) |
+| Games with one state left by year 300 (seeds 11–13) | 1 of 3 before raids (old spoils rule: 3 of 3); not re-run |
 | Average gold at year 30 | 6–7k |
 | Average research levels (sum of areas) at year 150 | 138–185 |
 | Defense stances (share of state-years) | fall back 23–34%, stand ground 1–3% |
-| Assaults (share of battles) | 34–44% |
 | Famine collapses in 150 years | 0 |
 | Grain sold to merchants (share of world food use) | about 3% |
 | States with an empty treasury | well under 0.1% of state-years |
