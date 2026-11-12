@@ -71,7 +71,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.1 Population
 - **Intent**: People are the core currency. Growth rewards peace and room, and capacity is what makes land valuable: a state that stops growing has to expand (settle, conquer) or research density. Overcrowding is meant to hurt (births turn negative). Growth bonuses are kept small because people compound. *(inferred)*
 - Population = peasants + soldiers (scientists are peasants with a job; `c.sci` is a legacy field, always 0).
-- Capacity: `popCap = land × (popPerKm 3 + densPerLevel 0.15·lvl(dens)) × M(capacity) × wonder(dens)`.
+- Capacity: `popCap = land × (popPerKm 3 + densPerLevel 0.16·lvl(dens)) × M(capacity) × wonder(dens)`.
 - Births: `(peasants + armyBirths 0.5 × soldiers) × growthRate × roomFactor(pop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. `roomFactor(x) = 1 − x^birthCurve` (24): births stay near full speed until ~80% full, peak near 87%, stop at capacity; above capacity `1 − x` (a gentle decline) *(your direction: growth should not slow from half full)*. None in a famine year.
 - Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants (with `keepPeople`, the capacity trim can push it there).
 - Losing land in battle (`keepPeople`): peasants above the new capacity are removed at once, so a beaten state sits at about 0.95× capacity instead of overcrowding (a land-only test without the trim left losers at 3.5–5×).
@@ -91,7 +91,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 
 ### 3.3 Food
 - **Intent**: The survival floor and the first constraint. Surplus becomes gold through the market; a store buffers bad years, but spoilage (10%/yr) makes hoarding a deliberate insurance choice, not free. Famine kills soldiers first, so an army bigger than the land can feed falls apart. *(inferred)*
-- `foodPerFarmer = 3 × (1 + agriPerLevel·lvl(agri)) × (1 + shoreBonus) × M(food) × wonder(agri)`; shore bonus = share of land on the shore, max +25%.
+- `foodPerFarmer = 3 × (1 + agriPerLevel 0.05·lvl(agri)) × (1 + shoreBonus) × M(food) × wonder(agri)`; shore bonus = share of land on the shore, max +25%.
 - Harvest = farmers × foodPerFarmer × `c.wx` × `g.clim` (weather).
 - Use: 1 per peasant; troops eat their `upFood` (2; axe 3; cavalry 5).
 - Shortfall: `deficit × famineDeath 0.5` die, soldiers weighted ×1.5. Then the store spoils `foodSpoil` 10%.
@@ -141,17 +141,17 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
   - The world over-produces by default, so prices sit near merchant buy prices unless something (drought, war, AI surplus logic) creates demand.
 
 ### 3.8 Research
-- **Intent**: Long-term investment that competes with the army for people and gold. Caps make the late game converge so a tech lead can't become permanent; catch-up pricing keeps laggards in the game; size-scaled cost stops big empires out-researching by scale alone. *(inferred)*
+- **Intent**: Long-term investment that competes with the army for people and gold. Each level is worth the same and costs `researchGrowth` 1.8× the last, so the late game converges without a hard cap and a tech lead can't become permanent; catch-up pricing keeps laggards in the game; size-scaled cost stops big empires out-researching by scale alone. *(inferred)*
 - 10 areas: sci, agri, fin, dens, grow, atk, def, wood, iron, explore.
-- Points: scientists × (1 + 0.075·lvl(sci)) × M(science) × wonder × `c.eff` (AI difficulty 0.8/1/1.15; humans 1). Split by `c.alloc` (whole % per area) ÷ max(100, sum): a player's shares may total under 100% and the unassigned rest is lost (Science tab warns, tab badge "!"); AI tables sum to 100.
-- Level cost: `5 × (L+1)^2.5 × size × edge`; size = `max(1, pop/1000)^0.5`; edge = −5% per level behind the world average (max −50%), +5% per level ahead (max ×3).
-- Bonus curve: `lvl = L / (1 + L·per/(max·base))`, approaching each area's cap (`sciMax`, `agriMax`, …) and never passing it. In battle, one side's atk/def tech counts at most `techEdgeMax` 3× the other's.
+- Points: scientists × (1 + 0.06·lvl(sci)) × M(science) × wonder × `c.eff` (AI difficulty 0.8/1/1.15; humans 1). Split by `c.alloc` (whole % per area) ÷ max(100, sum): a player's shares may total under 100% and the unassigned rest is lost (Science tab warns, tab badge "!"); AI tables sum to 100.
+- Level cost: `researchCost 35 × researchGrowth 1.8^L × size × edge` (cost of going from L to L+1); size = `max(1, pop/1000)^0.5`; edge = −5% per level behind the world average (max −50%), +5% per level ahead (max ×3).
+- Bonus: linear, `lvl = L`, bonus = `per × L` (no cap; replaced the capped curve `L/(1+L·per/(max·base))` on 2026-11-12, tuned so each area's average bonus over years 30–150 stays within a few points of before). Per level: sci 6%, agri 5%, fin 4.7% tax + 1.5% sell price, dens +0.16/km², grow +0.11 pts birth rate, atk/def 6.5%, wood/iron 6%, explore 3.7%. Old saves (`g.resSteady` missing) convert each area to the nearest steady level with the same bonus. In battle, one side's atk/def tech counts at most `techEdgeMax` 3× the other's.
 - **Reads**: work split (scientists), gold (wages), population (size cost), the world average.
 - **Writes**: nearly every other system's multipliers (food, tax, sell price, capacity, births, atk, def, wood, iron, land gain).
 - Notes:
-  - sci feeds its own points (positive loop), braked by cost exponent, size cost, lead penalty and caps.
-  - Changing a `*PerLevel` also changes how fast the cap is approached.
-  - The AI allocation is a fixed table by phase; it ignores costs and caps.
+  - sci feeds its own points (positive loop), braked by the cost growth (×1.8 a level), size cost and lead penalty.
+  - A `*PerLevel` change scales that area's bonus directly; `researchGrowth` sets how hard the late game brakes (higher = tighter soft ceiling).
+  - The AI allocation is a fixed table by phase; it ignores costs.
 
 ### 3.9 Identity: civilization, leader, land type, wonders
 - **Intent**: Each civilization, leader and land type pushes a play style, and no combination should dominate (bonuses add rather than multiply; values were simulated). Examples from the tables: Mountainous = defense, iron and research but poor food and expansion (turtle, tech); Plain = food, housing and expansion but weak defense (grow and settle fast); Volcanic = attack and research, poor wood; Farmer leader = food; Defender leader = keeps a big home guard. Wonders are prizes worth fighting for. *(comments + inferred)*
@@ -304,7 +304,7 @@ Rows act on columns (● strong, ○ weak).
 
 Positive (snowball) loops, and what brakes them:
 - **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, conquest brings land but no people (only a wipe-out hands over people and stocks), fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
-- **Science → research points.** Brakes: cost exponent 2.5, size cost, lead penalty, caps, scientist wages vs tax.
+- **Science → research points.** Brakes: cost ×1.8 per level, size cost, lead penalty, scientist wages vs tax.
 - **Land → settling budget.** Brake: unowned land runs out.
 - **Grudges → revenge → new grudges.** Brakes: revenge clears grievance, justified strikes count half, floors, cooldowns.
 
@@ -331,7 +331,8 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 | 1000 states, seeds 11–13, year 150 | 129–157 alive, biggest 2–3%, top 10 hold 17–21%, ~3,000 raids per game (old spoils rule: 38–44 alive, top 10 52–60%) |
 | Games with one state left by year 300 (seeds 11–13) | 1 of 3 before raids (old spoils rule: 3 of 3); not re-run |
 | Average gold at year 30 | 6–7k |
-| Average research levels (sum of areas) at year 150 | 138–185 |
+| Average research levels (sum of areas) at year 150 | 103–109 (steady levels, ×1.8 cost; was 138–185 with capped levels) |
+| Average research bonus per area, years 30–150 | within ~3 points of the capped version (e.g. year 150: sci 60%, agri 54%, atk 77%, def 75%) |
 | Defense stances (share of state-years) | fall back 23–34%, stand ground 1–3% |
 | Famine collapses in 150 years | 0 |
 | Grain sold to merchants (share of world food use) | about 3% |
@@ -384,7 +385,7 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 - An eliminated state's gold, wood and iron vanish only with `keepPeople` off; otherwise the winner takes them.
 - `keepPeople`: a beaten state whose soldiers nearly fill its remaining capacity loses its peasants to the trim and falls at once, even with land left; the winner then gets few or no people (only its stocks). Handing over the untrimmed people instead was tested: endgame much faster (states alive at year 150: 4/1/3), so it was dropped.
 - Battle order is random; an earlier battle can make later ones on the same target do nothing.
-- The AI research allocation is a fixed table; it ignores costs, caps and wonders.
+- The AI research allocation is a fixed table; it ignores costs and wonders.
 - AI difficulty scales only research (and AI thresholds), not the economy.
 - The `R` comment on `aiSellFrac` says 30% but the value is 0.5.
 - The `placeWonders` comment says six wonders; ten are placed.
@@ -424,7 +425,7 @@ Intents the code can't answer. When one is decided, write the answer into the sy
 5. **Balance of power**: fear (and so fear wars) is measured by land only; should it use overall power (population, army, research)? Should alliances count as one bloc?
 6. **Difficulty**: should harder levels give computer states economic bonuses, or only smarter and bolder play?
 7. **Market**: should relations block trade later (hostile states can't buy from each other)? Is merchants paying 0.9× normal for grain the intended income level for farming states?
-8. **Research**: should computer states adapt their research to their situation (costs, caps, wonders, threats) instead of a fixed table?
+8. **Research**: should computer states adapt their research to their situation (costs, wonders, threats) instead of a fixed table?
 
 ## 12. Planned: war and peace (designed, not built yet)
 
