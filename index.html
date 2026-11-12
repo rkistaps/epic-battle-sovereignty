@@ -91,6 +91,14 @@ table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(-
 .rtip tr:first-child td{padding:5px 0 2px;font-size:11px;text-align:center} .rtip td:first-child{padding-right:8px;text-align:left}
 .rtip .rtn{text-align:right;min-width:30px;padding-left:10px!important;font-weight:600} .rtip td.rtn+td{padding-left:5px}
 .rtip .rtb{display:inline-block;position:relative;width:54px;height:8px;border-radius:2px;background:#2a2e36;vertical-align:-1px} .rtip .rtb i{position:absolute;top:0;height:8px;border-radius:2px} .rtip .rtb .rt0{left:26.5px;top:-1px;width:1px;height:10px;background:#6b7280;border-radius:0}
+/* right-click menu on a map state */
+.ctxm{position:fixed;z-index:25;min-width:220px;max-width:min(320px,calc(100vw - 16px));padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:1px}
+.ctxm[hidden]{display:none}
+.ctxm .chd{padding:6px 10px 8px;border-bottom:1px solid var(--line);margin-bottom:3px;white-space:normal} .ctxm .chd b{font-size:14px} .ctxm .chd .small{margin-top:3px}
+.ctxm>button{display:flex;align-items:center;gap:9px;text-align:left;background:none;border:0;border-radius:5px;padding:6px 10px;white-space:nowrap}
+.ctxm>button:hover:not(:disabled),.ctxm>button:focus-visible{background:var(--panel2);outline:none} .ctxm>button:disabled{opacity:.5;cursor:default}
+.ctxm .ci{width:18px;text-align:center;flex:none} .ctxm .cs{margin-left:auto;padding-left:14px;font-size:11px;color:var(--mut)}
+.ctxm hr{border:0;border-top:1px solid var(--line);margin:3px 4px}
 #tip{position:fixed;z-index:5;pointer-events:none;background:#000c;border:1px solid var(--line);padding:6px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
 .tabs{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-bottom:10px} /* one row: icon over a short name */
 .tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:5px 0 4px;border-radius:7px;font-size:15px;line-height:1.2;position:relative}
@@ -402,8 +410,8 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   </span>
 </header>
 <main>
-  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div>
-    <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
+  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
+    <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. Right-click (or press and hold) a state for actions. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
   <section class="card" id="side">
@@ -2745,23 +2753,30 @@ class MapView{
     this.ro=new ResizeObserver(()=>this.resize()); this.ro.observe(canvas.parentElement);
     const c=canvas, pos=e=>{ const r=c.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; };
     c.addEventListener("wheel",e=>{ if(!this.g) return; e.preventDefault(); const [x,y]=pos(e); this.zoomAt(x,y,Math.exp(-e.deltaY*(e.deltaMode?0.05:0.0015))); },{passive:false});
-    c.addEventListener("pointerdown",e=>{ if(!this.g) return; c.setPointerCapture(e.pointerId); const m=pos(e);
-      this.ptr.set(e.pointerId,m); if(this.ptr.size===1){ this.down=m; this.moved=false; } this.pinch=null; });
+    c.addEventListener("pointerdown",e=>{ if(!this.g||(e.pointerType==="mouse"&&e.button!==0)) return; c.setPointerCapture(e.pointerId); const m=pos(e);
+      this.ptr.set(e.pointerId,m); if(this.ptr.size===1){ this.down=m; this.moved=false; this.lpDone=false;
+        // touch: press and hold opens the state menu (like a right-click)
+        clearTimeout(this.lp); if(e.pointerType!=="mouse"&&this.o.onMenu){ const cx=e.clientX, cy=e.clientY; this.lp=setTimeout(()=>{ if(this.ptr.size===1&&!this.moved){ this.lpDone=true; this.o.onMenu(this.ownerAt(m),cx,cy); } },550); } }
+      else clearTimeout(this.lp); this.pinch=null; });
+    c.addEventListener("contextmenu",e=>{ if(!this.g||!this.o.onMenu) return; e.preventDefault(); if(this.lpDone) return; this.o.onMenu(this.ownerAt(pos(e)),e.clientX,e.clientY); });
     c.addEventListener("pointermove",e=>{ if(!this.g) return; const m=pos(e);
-      if(!this.ptr.has(e.pointerId)){ this.hoverW=this.wonderNear(m); this.o.onHover?.(this.ownerAt(m),e); return; }
+      if(!this.ptr.has(e.pointerId)){ this.hoverW=this.wonderNear(m); const o=this.ownerAt(m); this.setHover(o); this.o.onHover?.(o,e); return; }
       const prev=this.ptr.get(e.pointerId); this.ptr.set(e.pointerId,m);
       if(this.ptr.size>=2){ // pinch zoom + pan
         const [a,b]=[...this.ptr.values()], d=Math.hypot(a[0]-b[0],a[1]-b[1]), cx=(a[0]+b[0])/2, cy=(a[1]+b[1])/2;
         if(this.pinch){ this.ox-=(cx-this.pinch.cx)/this.z; this.oy-=(cy-this.pinch.cy)/this.z; this.zoomAt(cx,cy,d/Math.max(1,this.pinch.d)); }
         this.pinch={d,cx,cy}; this.moved=true; return; }
-      if(!this.moved && Math.hypot(m[0]-this.down[0],m[1]-this.down[1])>5){ this.moved=true; c.classList.add("drag"); this.o.onHover?.(-9,e); }
+      if(!this.moved && Math.hypot(m[0]-this.down[0],m[1]-this.down[1])>5){ this.moved=true; clearTimeout(this.lp); c.classList.add("drag"); this.setHover(-9); this.o.onHover?.(-9,e); }
       if(this.moved){ this.mode=null; this.ox-=(m[0]-prev[0])/this.z; this.oy-=(m[1]-prev[1])/this.z; this.clamp(); this.schedule(); } });
     const up=e=>{ if(!this.ptr.has(e.pointerId)) return; const m=pos(e), single=this.ptr.size===1;
-      this.ptr.delete(e.pointerId); c.classList.remove("drag");
-      if(single && !this.moved && e.type==="pointerup") this.o.onPick?.(this.ownerAt(m)); };
+      this.ptr.delete(e.pointerId); c.classList.remove("drag"); clearTimeout(this.lp);
+      if(single && !this.moved && !this.lpDone && e.type==="pointerup") this.o.onPick?.(this.ownerAt(m)); };
     c.addEventListener("pointerup",up); c.addEventListener("pointercancel",up);
-    c.addEventListener("pointerleave",e=>{ if(!this.ptr.size) this.o.onHover?.(-9,e); });
+    c.addEventListener("pointerleave",e=>{ if(!this.ptr.size){ this.setHover(-9); this.o.onHover?.(-9,e); } });
   }
+  // hovered state is drawn raised (o.lift(id) says which states may lift); menuId keeps it raised while its menu is open
+  setHover(o){ const h=o>=0&&this.o.lift?.(o)?o:-1; if(h!==this.hov){ this.hov=h; if(this.menuId==null) this.schedule(); } }
+  liftId(){ const id=this.menuId??this.hov; return id!=null&&id>=0&&this.g?.countries[id]?.alive&&this.o.lift?.(id)?id:-1; }
   destroy(){ this.ro.disconnect(); }
   setGame(g){
     const key=g.seed+":"+g.W+"x"+g.H+":"+g.countries.length;
@@ -2830,7 +2845,7 @@ class MapView{
     for(let i=0;i<cells.length;i++){ const f=fl[i];
       // zoomed out: stripes at cell scale (they blend into a tint when cells are under a pixel)
       u[i]= vis[i]===-2 ? WLUT[Math.min(32,Math.round(Math.max(0,wdist[i]-0.5)/WATER_DEPTH*32))] : f&&(((i%W)+((i/W)|0))&3)<2 ? this.palD[vis[i]+4] : feat&&vis[i]>=-1&&feat[i] ? (feat[i]===2?this.palM:this.palF)[vis[i]+4] : pal[vis[i]+4]; }
-    this.base.width=W; this.base.height=H; this.base.getContext("2d").putImageData(img,0,0); this.dirty=false;
+    this.base.width=W; this.base.height=H; this.base.getContext("2d").putImageData(img,0,0); this.dirty=false; this.gen=(this.gen||0)+1;
   }
   // Smooth rendering for zoomed-in views. Each screen pixel blends the 4 nearest cell
   // centres: the id with the most weight wins, so staircases become smooth curves, and
@@ -2841,8 +2856,8 @@ class MapView{
     const pw=Math.max(1,Math.round(this.cw*r)), ph=Math.max(1,Math.round(this.ch*r));
     if(!this.img||this.img.width!==pw||this.img.height!==ph){
       this.img=new ImageData(pw,ph); this.u32=new Uint32Array(this.img.data.buffer);
-      this.sm=document.createElement("canvas"); this.sm.width=pw; this.sm.height=ph; }
-    const u=this.u32, zz=this.z*r, inv=1/zz, sel=this.o.sel(), pl=this.o.player();
+      this.sm=document.createElement("canvas"); this.sm.width=pw; this.sm.height=ph; this.own=new Int16Array(pw*ph); }
+    const u=this.u32, own=this.own, zz=this.z*r, inv=1/zz, sel=this.o.sel(), pl=this.o.player();
     const fl=this.fl, anyFl=this.anyFl, palD=this.palD, wdist=waterDist(g), ow=this.ox*zz, oh=this.oy*zz;
     const feat=g.feat, palF=this.palF, palM=this.palM;
     // forest / mountain fill: the feature with most weight among the 4 nearest cells wins, like owners do
@@ -2857,16 +2872,16 @@ class MapView{
     const mix=(a,b,t)=>{ const s=1-t; return rgba(((a&255)*s+(b&255)*t)|0,((a>>>8&255)*s+(b>>>8&255)*t)|0,((a>>>16&255)*s+(b>>>16&255)*t)|0,255); };
     for(let py=0;py<ph;py++){
       const cy=this.oy+(py+0.5)*inv-0.5, row=py*pw;
-      if(cy<-0.5||cy>H-0.5){ u.fill(BGC,row,row+pw); continue; }
+      if(cy<-0.5||cy>H-0.5){ u.fill(BGC,row,row+pw); own.fill(-9,row,row+pw); continue; }
       const y0=Math.floor(cy), fy=cy-y0, rA=Math.max(0,y0)*W, rB=Math.min(H-1,y0+1)*W;
       for(let px=0;px<pw;px++){
         const cx=this.ox+(px+0.5)*inv-0.5;
-        if(cx<-0.5||cx>W-0.5){ u[row+px]=BGC; continue; }
+        if(cx<-0.5||cx>W-0.5){ u[row+px]=BGC; own[row+px]=-9; continue; }
         const x0=Math.floor(cx), fx=cx-x0, xa=Math.max(0,x0), xb=Math.min(W-1,x0+1);
         const a=vis[rA+xa], b=vis[rA+xb], c=vis[rB+xa], d=vis[rB+xb];
         const iA=rA+xa, iB=rA+xb, iC=rB+xa, iD=rB+xb;
         const fA=anyFl?fl[iA]:0, fB=anyFl?fl[iB]:0, fC=anyFl?fl[iC]:0, fD=anyFl?fl[iD]:0;
-        if(a===b&&a===c&&a===d&&!(fA|fB|fC|fD)){
+        if(a===b&&a===c&&a===d&&!(fA|fB|fC|fD)){ own[row+px]=a;
           u[row+px]= a===-2 ? waterPx((1-fy)*((1-fx)*wdist[iA]+fx*wdist[iB])+fy*((1-fx)*wdist[iC]+fx*wdist[iD]),px+ow,py+oh,zz) : feat&&a>=-1 ? terr(a,iA,iB,iC,iD,(1-fx)*(1-fy),fx*(1-fy),(1-fx)*fy,fx*fy) : pal[a+4];
           continue; }
         const wa=(1-fx)*(1-fy), wb=fx*(1-fy), wc=(1-fx)*fy, wd=fx*fy;
@@ -2874,7 +2889,7 @@ class MapView{
         const sa=wa+(b===a?wb:0)+(c===a?wc:0)+(d===a?wd:0), sb=wb+(a===b?wa:0)+(c===b?wc:0)+(d===b?wd:0);
         const sc=wc+(a===c?wa:0)+(b===c?wb:0)+(d===c?wd:0), sd=wd+(a===d?wa:0)+(b===d?wb:0)+(c===d?wc:0);
         let t=a, w1=sa; if(sb>w1){t=b;w1=sb;} if(sc>w1){t=c;w1=sc;} if(sd>w1){t=d;w1=sd;}
-        let s2=-1, w2=0; if(a!==t&&sa>w2){s2=a;w2=sa;} if(b!==t&&sb>w2){s2=b;w2=sb;} if(c!==t&&sc>w2){s2=c;w2=sc;} if(d!==t&&sd>w2){s2=d;w2=sd;}
+        own[row+px]=t; let s2=-1, w2=0; if(a!==t&&sa>w2){s2=a;w2=sa;} if(b!==t&&sb>w2){s2=b;w2=sb;} if(c!==t&&sc>w2){s2=c;w2=sc;} if(d!==t&&sd>w2){s2=d;w2=sd;}
         let fill= t===-2 ? waterPx((1-fy)*((1-fx)*wdist[iA]+fx*wdist[iB])+fy*((1-fx)*wdist[iC]+fx*wdist[iD]),px+ow,py+oh,zz) : feat&&t>=-1 ? terr(t,iA,iB,iC,iD,wa,wb,wc,wd) : pal[t+4]; const diff=w1-w2;
         if(fA|fB|fC|fD){ // conquered: weight of conquered cells of the winning state decides, so hatch edges are smooth too
           const cw=(a===t&&fA?wa:0)+(b===t&&fB?wb:0)+(c===t&&fC?wc:0)+(d===t&&fD?wd:0);
@@ -2964,24 +2979,11 @@ class MapView{
     const sel=this.o.sel(), pl=this.o.player();
     ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle=BG; ctx.fillRect(0,0,this.cv.width,this.cv.height);
     const X=x=>(x-this.ox)*s, Y=y=>(y-this.oy)*s;
-    if(this.z>=2){ this.drawSmooth(ctx); this.drawFeatures(ctx); }
-    else { // zoomed out: cells are about a pixel or smaller, just scale the one-pixel-per-cell image
-      const x0=Math.max(0,Math.floor(this.ox)), y0=Math.max(0,Math.floor(this.oy));
-      const x1=Math.min(W,Math.ceil(this.ox+this.cw/this.z)), y1=Math.min(H,Math.ceil(this.oy+this.ch/this.z));
-      if(x1<=x0||y1<=y0) return;
-      ctx.imageSmoothingEnabled=this.z<1;
-      ctx.drawImage(this.base,x0,y0,x1-x0,y1-y0,X(x0),Y(y0),(x1-x0)*s,(y1-y0)*s);
-      // outline player & selection so they stand out even when tiny
-      const cells=g.cells, outline=(id,color)=>{ const w=Math.max(2*this.dpr,s/3); ctx.fillStyle=color; ctx.beginPath();
-        for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){ const i=y*W+x; if(cells[i]!==id) continue;
-          if(x===0||cells[i-1]!==id) ctx.rect(X(x),Y(y),w,s);
-          if(x===W-1||cells[i+1]!==id) ctx.rect(X(x+1)-w,Y(y),w,s);
-          if(y===0||cells[i-W]!==id) ctx.rect(X(x),Y(y),s,w);
-          if(y===H-1||cells[i+W]!==id) ctx.rect(X(x),Y(y+1)-w,s,w); }
-        ctx.fill(); };
-      if(pl>=0 && g.countries[pl].alive && this.o.star) outline(pl,"#fff");
-      if(sel!=null && sel!==pl) outline(sel,"#e0b354");
-    }
+    // the map body (land, borders, trees) is kept, so hovering a state only redraws what sits on top
+    const bk=[this.gen,this.ox,this.oy,this.z,this.cv.width,this.cv.height,sel,pl,UI.featGlyphs].join();
+    if(bk===this.bodyKey&&this.body) ctx.drawImage(this.body,0,0);
+    else { this.drawBody(ctx,X,Y,s,sel,pl); const b=this.body||(this.body=document.createElement("canvas")); b.width=this.cv.width; b.height=this.cv.height; b.getContext("2d").drawImage(this.cv,0,0); this.bodyKey=bk; }
+    const lift=this.liftId(), LY=lift>=0?Math.round(5*this.dpr):0; if(lift>=0) this.drawLift(ctx,lift,LY,bk,X,Y,s);
     // sea links (pre-made maps): dashed lines; one that crosses the map edge is drawn off both edges
     if(g.links&&g.links.length){
       ctx.save(); ctx.beginPath(); ctx.rect(X(0),Y(0),W*s,H*s); ctx.clip(); ctx.beginPath();
@@ -3011,7 +3013,7 @@ class MapView{
     g.countries.forEach((c,id)=>{ const b=L.best[id]; if(b<0||!L.cnt[id]||(known&&!known[id])) return;
       const must=id===sel||(id===pl&&this.o.star);
       if(!must && Math.sqrt(L.cnt[id])*this.z < fsC*4) return;
-      const px=X(b%W+0.5), py=Y(((b/W)|0)+0.5);
+      const px=X(b%W+0.5), py=Y(((b/W)|0)+0.5)-(id===lift?LY:0); this.cuDy=id===lift?LY:0; // the raised state's label rises with it
       if(px<-200||py<-50||px>this.cv.width+200||py>this.cv.height+50) return;
       const span=Math.min(Math.sqrt(L.cnt[id]),L.fw[id])*s, room=L.fh[id]*s; // on-screen room at the label spot
       if(style!=="classic"&&span>=80*this.dpr&&this.fancyLabel(ctx,c,px,py,span,style,id===pl&&this.o.star,id===sel,room)) return;
@@ -3024,9 +3026,60 @@ class MapView{
     // wonders
     if(g.wonders){ const R_=Math.max(9,Math.min(16,this.z*1.3))*this.dpr;
       for(const w of g.wonders){ const o=g.cells[w.cell]; if(known&&(o<0||!known[o])) continue;
-        const px=X(w.cell%W+0.5), py=Y(((w.cell/W)|0)+0.5); if(px<-R_||py<-R_||px>this.cv.width+R_||py>this.cv.height+R_) continue;
+        const px=X(w.cell%W+0.5), py=Y(((w.cell/W)|0)+0.5)-(o===lift?LY:0); if(px<-R_||py<-R_||px>this.cv.width+R_||py>this.cv.height+R_) continue;
         ctx.beginPath(); ctx.arc(px,py,R_,0,Math.PI*2); ctx.fillStyle="#14161ae6"; ctx.fill(); ctx.lineWidth=2*this.dpr; ctx.strokeStyle="#e0b354"; ctx.stroke();
         ctx.font=`${R_*1.15}px system-ui,"Segoe UI Emoji",sans-serif`; ctx.fillStyle="#fff"; ctx.fillText(WONDERS[w.area].icon,px,py+R_*0.06); }
+    }
+  }
+  // the raised state: cut out of the map body, drawn a few pixels up with a soft shadow below and a light rim
+  drawLift(ctx,id,LY,bk,X,Y,s){
+    const key=bk+":"+id; let P=this.liftP;
+    if(!P||P.key!==key){ const g=this.g, cv=this.cv; let mk, mw, mh, sx, sy, sw, sh;
+      if(this.z>=2){ const pw=this.img.width, ph=this.img.height, own=this.own; let x0=pw,y0=ph,x1=-1,y1=-1;
+        for(let y=0;y<ph;y++){ const r=y*pw; for(let x=0;x<pw;x++) if(own[r+x]===id){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+        if(x1<0){ this.liftP={key,none:true}; return; }
+        mw=x1-x0+1; mh=y1-y0+1; const im=new ImageData(mw,mh), u=new Uint32Array(im.data.buffer);
+        for(let y=0;y<mh;y++){ const r=(y+y0)*pw+x0; for(let x=0;x<mw;x++) if(own[r+x]===id) u[y*mw+x]=0xff000000; }
+        mk=document.createElement("canvas"); mk.width=mw; mk.height=mh; mk.getContext("2d").putImageData(im,0,0);
+        const k=cv.width/pw; sx=x0*k; sy=y0*k; sw=mw*k; sh=mh*k; }
+      else { const {W,H,cells}=g, vx0=Math.max(0,Math.floor(this.ox)), vy0=Math.max(0,Math.floor(this.oy)), vx1=Math.min(W,Math.ceil(this.ox+this.cw/this.z)), vy1=Math.min(H,Math.ceil(this.oy+this.ch/this.z));
+        let x0=W,y0=H,x1=-1,y1=-1;
+        for(let y=vy0;y<vy1;y++){ const r=y*W; for(let x=vx0;x<vx1;x++) if(cells[r+x]===id){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+        if(x1<0){ this.liftP={key,none:true}; return; }
+        mw=x1-x0+1; mh=y1-y0+1; const im=new ImageData(mw,mh), u=new Uint32Array(im.data.buffer);
+        for(let y=0;y<mh;y++){ const r=(y+y0)*W+x0; for(let x=0;x<mw;x++) if(cells[r+x]===id) u[y*mw+x]=0xff000000; }
+        mk=document.createElement("canvas"); mk.width=mw; mk.height=mh; mk.getContext("2d").putImageData(im,0,0);
+        sx=X(x0); sy=Y(y0); sw=mw*s; sh=mh*s; }
+      const bx=Math.floor(sx), by=Math.floor(sy), bw=Math.ceil(sx+sw)-bx, bh=Math.ceil(sy+sh)-by;
+      const pc=document.createElement("canvas"); pc.width=Math.max(1,bw); pc.height=Math.max(1,bh); const c=pc.getContext("2d");
+      c.imageSmoothingEnabled=this.z>=2||this.z<1; c.drawImage(mk,sx-bx,sy-by,sw,sh);
+      c.globalCompositeOperation="source-in"; c.drawImage(this.body,-bx,-by);
+      if(this.z<2){ c.globalCompositeOperation="source-atop"; c.fillStyle="rgba(255,255,255,0.18)"; c.fillRect(0,0,pc.width,pc.height); } // zoomed out (no lettering cut-outs): also a little brighter
+      P=this.liftP={key,pc,bx,by}; }
+    if(P.none) return; const d=this.dpr;
+    ctx.save();
+    ctx.shadowColor="rgba(0,0,0,0.7)"; ctx.shadowBlur=14*d; ctx.shadowOffsetY=LY+2*d; ctx.drawImage(P.pc,P.bx,P.by-LY);
+    ctx.shadowColor="rgba(255,255,255,0.85)"; ctx.shadowBlur=3*d; ctx.shadowOffsetY=0; ctx.drawImage(P.pc,P.bx,P.by-LY);
+    ctx.restore();
+  }
+  drawBody(ctx,X,Y,s,sel,pl){ const g=this.g, {W,H}=g;
+    if(this.z>=2){ this.drawSmooth(ctx); this.drawFeatures(ctx); }
+    else { // zoomed out: cells are about a pixel or smaller, just scale the one-pixel-per-cell image
+      const x0=Math.max(0,Math.floor(this.ox)), y0=Math.max(0,Math.floor(this.oy));
+      const x1=Math.min(W,Math.ceil(this.ox+this.cw/this.z)), y1=Math.min(H,Math.ceil(this.oy+this.ch/this.z));
+      if(x1<=x0||y1<=y0) return;
+      ctx.imageSmoothingEnabled=this.z<1;
+      ctx.drawImage(this.base,x0,y0,x1-x0,y1-y0,X(x0),Y(y0),(x1-x0)*s,(y1-y0)*s);
+      // outline player & selection so they stand out even when tiny
+      const cells=g.cells, outline=(id,color)=>{ const w=Math.max(2*this.dpr,s/3); ctx.fillStyle=color; ctx.beginPath();
+        for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){ const i=y*W+x; if(cells[i]!==id) continue;
+          if(x===0||cells[i-1]!==id) ctx.rect(X(x),Y(y),w,s);
+          if(x===W-1||cells[i+1]!==id) ctx.rect(X(x+1)-w,Y(y),w,s);
+          if(y===0||cells[i-W]!==id) ctx.rect(X(x),Y(y),s,w);
+          if(y===H-1||cells[i+W]!==id) ctx.rect(X(x),Y(y+1)-w,s,w); }
+        ctx.fill(); };
+      if(pl>=0 && g.countries[pl].alive && this.o.star) outline(pl,"#fff");
+      if(sel!=null && sel!==pl) outline(sel,"#e0b354");
     }
   }
   // paint the plain map (no trees or peaks) back over a w×h box centred on (px,py), fading out over `f` pixels
@@ -3036,7 +3089,7 @@ class MapView{
     c.fillStyle="#000"; c.shadowColor="#000"; c.shadowBlur=f; c.shadowOffsetX=W2*2; // only the blurred shadow lands on the canvas
     c.beginPath(); c.roundRect?c.roundRect(f-W2*2,f,w,h,Math.min(h/2,f*2)):c.rect(f-W2*2,f,w,h); c.fill();
     c.shadowColor="transparent"; c.globalCompositeOperation="source-in"; c.imageSmoothingEnabled=true;
-    c.drawImage(sm,x0*k,y0*k,W2*k,H2*k,0,0,W2,H2); ctx.drawImage(t,x0,y0); }
+    c.drawImage(sm,x0*k,(y0+(this.cuDy||0))*k,W2*k,H2*k,0,0,W2,H2); ctx.drawImage(t,x0,y0); }
   // little trees and peaks on forests and mountains, thinned out as you zoom out (each glyph has a fixed random rank)
   drawFeatures(ctx){
     const g=this.g; if(!g.feat||UI.featGlyphs===false) return; const P=featGlyphs(g), {W,H}=g, s=this.z*this.dpr, vis=this.vis;
@@ -3100,7 +3153,8 @@ const mainView=new MapView($("map"),{
   height:()=>Math.max(320, window.innerHeight-($("mapbox").getBoundingClientRect().top+window.scrollY+$("mapwrap").scrollTop)-72), // fill the window below the map's top edge (ignores scrolling)
   focus:g=>g.fog?g.player:null,
   onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="war") UI.tab="world"; render(); },
-  onHover:(o,ev)=>{ const tip=$("tip"); if(!G||o===-9){ tip.style.display="none"; return; } const c=G.countries[o];
+  lift:o=>!!G&&isKnown(o), onMenu:(o,x,y)=>openCtx(o,x,y),
+  onHover:(o,ev)=>{ const tip=$("tip"); if(!G||o===-9||!$("ctxMenu").hidden){ tip.style.display="none"; return; } const c=G.countries[o];
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
     if(w&&wo>=0&&isKnown(wo)){ tip.innerHTML=`<b>${WONDERS[w.area].icon} ${WONDERS[w.area].name}</b><br>+${wonderPct(w.area)}% ${WONDER_EFFECT[w.area]} for its holder<br><span class="mut">Held by</span> ${esc(G.countries[wo].name)}${wo===G.player?" (you)":""}`;
       placeTip(tip,ev); return; }
@@ -3108,6 +3162,46 @@ const mainView=new MapView($("map"),{
     placeTip(tip,ev); },
 });
 
+// right-click (or press and hold) menu for a state on the map: the main things you can do with it
+function ctxItems(o){ const c=G.countries[o], obs=observing(), self=o===G.player&&!obs, pl=me(), I=[], it=(ic,label,act,opt={})=>I.push({ic,label,act,...opt}), team=G.teams&&c.team!=null;
+  it("🔍","Details","pick");
+  if(self){ it("🏰","Home","tab:economy"); it("⚔️","Army","tab:barracks"); it("🗡️","War: defense and orders","tab:war");
+    if(team) it("🎁","Send aid to an ally…","aid",G.countries.some(x=>aidReach(G,o,x.id))?{}:{off:"No ally in reach"}); }
+  else if(!obs&&pl.alive){ const ally=allied(G,pl.id,o), n=pl.attacks.filter(a=>a.target===o), busy=new Set(pl.attacks.map(a=>a.gen));
+    if(!ally) it("🗡️",n.length?"Plan another attack…":"Plan attack…","attack",!neighbors(G,pl.id).includes(o)?{off:"No shared border"}:inPeace(G)?{off:`Peace until year ${G.peace+1}`}:!pl.generals.some(g=>!busy.has(g.id))?{off:"No free general"}:{});
+    if(n.length) it("✋",n.length>1?"Call off attacks":"Call off attack","calloff",{sub:`${fmt(n.reduce((s,a)=>s+(a.soldiers||0),0))} soldiers`});
+    if(ally) it("🎁","Send aid…","aid",aidReach(G,pl.id,o)?{}:{off:"Not in reach"}); }
+  if(team) it("🤝","View alliance","alliance",{sub:allyTag(G,c.team)});
+  it("📰","Battles in the news","news");
+  it("🎯","Center map here","center");
+  if(!self&&canTakeOver()&&!isHuman(o)){ I.push(null); it("👑","Take over…","take"); }
+  return I; }
+function ctxHead(o){ const c=G.countries[o], obs=observing(), self=o===G.player&&!obs, rel=!obs&&!self?Math.round(relOf(G,c,G.player)):null;
+  const tags=[G.teams&&c.team!=null?allyPrefix(c)+esc(G.teams[c.team].name):"", rel!=null?`<span style="color:${inkOnDark(relColor(rel))}">${relFace(rel)} ${relLabel(rel)} (${rel>0?"+":""}${rel})</span>`:"", !obs&&atWar(G,o,G.player)?"⚔️ at war with you":"", !obs&&!self&&allied(G,o,G.player)?"your ally":""].filter(Boolean);
+  return `<div class="chd"><div><span class="sw" style="background:${c.color}"></span><b>${self?"★ ":""}${esc(c.name)}</b>${self?' <span class="mut">(you)</span>':""}</div>${tags.length?`<div class="small mut">${tags.join(" · ")}</div>`:""}<div class="small mut">${fmt(c.land)} km² · ${fmtK(popOf(c))} people · ${fmtK(c.soldiers)} soldiers</div></div>`; }
+function openCtx(o,x,y){ closeCtx(); if(!G||UI.busy||o<0||!isKnown(o)||!G.countries[o]?.alive) return;
+  $("tip").style.display="none"; const m=$("ctxMenu");
+  m.innerHTML=ctxHead(o)+ctxItems(o).map(i=>i?`<button role="menuitem" data-ctx="${i.act}"${i.off?` disabled title="${esc(i.off)}"`:""}><span class="ci">${i.ic}</span>${esc(i.label)}${i.off||i.sub?`<span class="cs">${esc(i.off||i.sub)}</span>`:""}</button>`:"<hr>").join("");
+  m.dataset.id=o; m.hidden=false; const w=m.offsetWidth, h=m.offsetHeight;
+  m.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+"px"; m.style.top=Math.max(8,y+h>innerHeight-8?y-h:y)+"px";
+  mainView.menuId=o; mainView.schedule(); m.querySelector("button:not(:disabled)")?.focus({preventScroll:true}); }
+function closeCtx(){ const m=$("ctxMenu"); if(!m||m.hidden) return; m.hidden=true; mainView.menuId=null; mainView.schedule(); }
+function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
+  if(a==="pick"){ UI.sel=o; if(UI.tab!=="war"||o===G.player) UI.tab="world"; render(); }
+  else if(a.startsWith("tab:")){ UI.tab=a.slice(4); render(); }
+  else if(a==="attack"){ UI.attackTarget=o; UI.sel=o; UI.atkMix=null; UI.tab="war"; render(); $("atkSum")?.closest(".gen")?.scrollIntoView({block:"nearest"}); }
+  else if(a==="calloff"){ me().attacks=me().attacks.filter(x=>x.target!==o); render(); }
+  else if(a==="aid"){ if(o!==G.player) UI.aidTo=o; allianceModal(me().team); const n=$("aidN"); if(n){ n.scrollIntoView({block:"nearest"}); n.focus(); } }
+  else if(a==="alliance") allianceModal(c.team);
+  else if(a==="news"){ UI.news={f:"all",q:c.name,page:0,al:"all"}; UI.tab="news"; render(); $("panel").scrollTop=0; }
+  else if(a==="center") mainView.centerOn(o,Math.max(mainView.z,mainView.focusZoom()));
+  else if(a==="take"){ UI.sel=o; UI.takeConfirm=o; UI.tab="world"; render(); } }
+$("ctxMenu").addEventListener("click",e=>{ e.stopPropagation(); const b=e.target.closest("button[data-ctx]"); if(!b||b.disabled||UI.busy) return; ctxDo(b.dataset.ctx,+$("ctxMenu").dataset.id); });
+document.addEventListener("pointerdown",e=>{ if(!e.target.closest?.("#ctxMenu")) closeCtx(); },true);
+document.addEventListener("keydown",e=>{ const m=$("ctxMenu"); if(m.hidden) return;
+  if(e.key==="Escape"){ closeCtx(); e.preventDefault(); e.stopPropagation(); return; }
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ const B=[...m.querySelectorAll("button:not(:disabled)")], i=B.indexOf(document.activeElement); B[(i+(e.key==="ArrowDown"?1:B.length-1)+(i<0&&e.key==="ArrowUp"?1:0))%B.length]?.focus(); e.preventDefault(); e.stopPropagation(); } },true);
+$("map").addEventListener("wheel",closeCtx,{passive:true}); window.addEventListener("resize",closeCtx); window.addEventListener("blur",closeCtx);
 
 // ": X united the continent" / ": the X alliance won" (after the war is over)
 function winnerLine(){ if(G.winnerTeam!=null&&G.teams){ const t=G.teams[G.winnerTeam]; return `: <span class="sw" style="background:${t.color}"></span><b>${esc(t.name)}</b> won`; }
@@ -3186,7 +3280,7 @@ function tabBadge(k){
   if(k==="market"&&fresh("market")) return {cls:"dot good",tip:"your orders traded"};
   return null; }
 function render(){
-  UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
+  closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
   renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,generals:pGenerals,war:pWar,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(); boxSections($("panel"));
   mainView.setGame(G); mainView.refresh();
 }
@@ -4188,6 +4282,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Map: state menu and hover","2026-11-12 18:52",["Right-click a state on the map (or press and hold on touch screens) for a menu: details, plan attack, call off attack, send aid, view alliance, its battles in the news, center map, take over","Greyed-out items say why (no shared border, peace time, no free general, ally out of reach)","Hovering a state raises it off the map with a soft shadow"]],
 ["Clearer forests","2026-11-12 18:37",["World map: only dense forest counts, so more open farmland (about 14% forest instead of 22%)","Trees packed closer when zoomed out, so forests read as blocks; also in the start-location preview","Forest and mountain shading a little stronger"]],
 ["Forest and mountain borders defend better","2026-11-12 18:22",["Defenders get up to +30% when the attacked border runs through mountains, up to +15% through forest, by how much of the border it covers","War tab shows the terrain bonus next to each border; attack window and battle reports include it","Computer states count it when choosing whom to attack"]],
 ["Wood from forests, iron from mountains","2026-11-12 18:20",["Forest land gives more wood: +1% per 1% of your land in forest, up to +25%","Mountain land gives more iron: +1% per 1% of your land in mountains, up to +25%","Home tab shows your forest and mountain land","Science tab: the Shore column is now Terrain (shore for food, forest for wood, mountains for iron)"]],
@@ -4566,7 +4661,8 @@ ${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders,
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade).</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
-<li>Click a state to inspect it in the side panel; click again or press Esc to unselect. Hover a state for a tooltip with its relations to every neighbor, both ways.</li>
+<li>Click a state to inspect it in the side panel; click again or press Esc to unselect. Hover a state to raise it off the map, with a tooltip showing its relations to every neighbor, both ways.</li>
+<li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form in the War tab; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
 <li>▨ Striped land was conquered last year. Grey-brown land is unowned.</li>
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
