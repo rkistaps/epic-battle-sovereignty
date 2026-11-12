@@ -1006,6 +1006,7 @@ function newGame(opts){
   let p = opts.observer ? OBSERVER : hot ? -1 : opts.player;
   if(!hot&&(p==null||(p<0&&p!==OBSERVER))) p=Math.floor(rnd()*n);
   g.player=p; if(p===OBSERVER) g.observer=true; else if(!hot){ countries[p].ai=false; pickTraits(countries[p],opts.civ,opts.leader); }
+  g.feat=makeFeatures(W,H,cells,Math.sqrt(landEach),seed);
   recount(g); computeShore(g);
   // land type: random, but Islands/Oceanic only for coastal states (3%+ shore land)
   countries.forEach(c=>{ const coastal=c.shore>=c.land*R.coastalShore, pool=LANDS.filter(l=>coastal||!l.coastal);
@@ -1436,6 +1437,33 @@ function makeGeneral(g,age,speed,mind){
   return {id:g.genId++,name,age,speed,mind,skill:0,morale:100,maxAge:Math.round(rr(g,62,76)),battles:0};
 }
 
+// ---------- terrain features: forests and mountains ----------
+// g.feat: 0 open land, 1 forest, 2 mountains. Fixed for the whole game, whoever owns the land. Uses its own dice
+// (from the seed), so adding it doesn't change the rest of a seed's map. `unit` = typical state width in cells.
+function makeFeatures(W,H,cells,unit,seed){
+  const rnd=mulberry32((seed^0x5f3759df)>>>0), N=W*H, f=new Uint8Array(N);
+  // mountains: thin winding chains where a smooth noise field crosses its middle value, only in some regions
+  const a=valueNoise(W,H,unit*1.8,rnd), d=valueNoise(W,H,unit*0.6,rnd), reg=valueNoise(W,H,unit*4,rnd);
+  // forests: soft blobs a bit under a state wide, with ragged edges
+  const b=valueNoise(W,H,unit*1.3,rnd), e=valueNoise(W,H,unit*0.5,rnd), h=valueNoise(W,H,unit*0.22,rnd);
+  const sm=t=>t<=0?0:t>=1?1:t*t*(3-2*t);
+  const ms=new Float32Array(N), fs=new Float32Array(N), land=[];
+  for(let i=0;i<N;i++){ if(cells[i]===-2) continue; land.push(i);
+    ms[i]=(1-Math.abs(a[i]+0.3*(d[i]-0.5)-0.5)*2)*sm((reg[i]-0.3)/0.25);
+    fs[i]=b[i]+0.45*e[i]+0.2*h[i]; }
+  const cut=(v,share,ok)=>{ const s=[]; for(let k=0;k<land.length;k+=Math.max(1,(land.length/40000)|0)){ const i=land[k]; if(ok(i)) s.push(v[i]); }
+    s.sort((x,y)=>y-x); return s.length?s[Math.min(s.length-1,Math.floor(s.length*share))]:Infinity; };
+  const tm=cut(ms,R.mtnShare??0.08,()=>true);
+  for(const i of land) if(ms[i]>tm&&ms[i]>0) f[i]=2;
+  const tf=cut(fs,(R.forestShare??0.16)/(1-(R.mtnShare??0.08)),i=>f[i]!==2);
+  for(const i of land) if(!f[i]&&fs[i]>tf) f[i]=1;
+  // tidy: drop lone cells, fill pinholes (one pass of a 3x3 majority per kind)
+  const c=f.slice();
+  for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++){ const i=y*W+x; if(cells[i]===-2) continue;
+    const cnt=[0,0,0]; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){ const j=i+dy*W+dx; if(cells[j]!==-2) cnt[c[j]]++; }
+    if(c[i]&&cnt[c[i]]<=2) f[i]=0; else if(!c[i]){ if(cnt[2]>=6) f[i]=2; else if(cnt[1]>=6) f[i]=1; } }
+  return f;
+}
 // ---------- player/AI actions (instant) ----------
 const act = {
   hireTroop(g,c,id,n){ const t=TROOP[id]; if(!t||!troopUnlocked(c,id)) return 0;
@@ -2448,7 +2476,7 @@ const ENGINE=(()=>{
   const tail=`
 self.onmessage=e=>{ const {id,type,data,settings}=e.data; let last=-1;
   genHook=(p,label)=>{ const k=Math.round(p*100); if(k!==last){ last=k; self.postMessage({id,prog:p,label}); } };
-  try{ applySettings(settings); const r=type==="newGame"?newGame(data):endTurn(data); self.postMessage({id,ok:true,r},[r.cells,r.takenAt,r.takenFrom].filter(Boolean).map(a=>a.buffer)); }
+  try{ applySettings(settings); const r=type==="newGame"?newGame(data):endTurn(data); self.postMessage({id,ok:true,r},[r.cells,r.takenAt,r.takenFrom,r.feat].filter(Boolean).map(a=>a.buffer)); }
   catch(err){ self.postMessage({id,ok:false,err:String(err&&err.stack||err)}); } };`;
   let w=null, seq=0; const pend=new Map();
   const fallback=()=>{ if(w){ w.terminate(); w=null; }
@@ -2622,6 +2650,20 @@ function waterPx(dist,wx,wy,zz){
   const m=((yy%14)+14)%14, seg=((X+Math.floor(yy/14)*23)%46+46)%46;
   return m<1.5&&seg<30 ? WCREST[k] : WLUT[k];
 }
+// where the little trees and peaks go: a jittered grid inside each forest / mountain, cached per map
+let FGLY=null;
+function featGlyphs(g){
+  const key=g.seed+":"+g.W+"x"+g.H; if(FGLY&&FGLY.key===key) return FGLY;
+  const {W,H,feat}=g, rnd=mulberry32((g.seed^0x2545f491)>>>0), X=[],Y=[],K=[],Rk=[],S=[];
+  for(const [kind,sp] of [[1,0.85],[2,1.25]]) for(let gy=0;gy<H;gy+=sp) for(let gx=0;gx<W;gx+=sp){
+    const x=gx+(kind===2?((gy/sp|0)&1)*sp/2:0)+(rnd()-0.5)*sp*0.7, y=gy+(rnd()-0.5)*sp*0.6;
+    if(x<0||y<0||x>=W||y>=H||feat[(y|0)*W+(x|0)]!==kind){ continue; }
+    X.push(x); Y.push(y); K.push(kind); Rk.push(rnd()); S.push(0.8+rnd()*0.4); }
+  // draw back to front (top of the map first) so lower glyphs overlap the ones behind them
+  const ord=X.map((_,i)=>i).sort((a,b)=>Y[a]-Y[b]);
+  FGLY={key,n:ord.length,x:Float32Array.from(ord,i=>X[i]),y:Float32Array.from(ord,i=>Y[i]),k:Uint8Array.from(ord,i=>K[i]),r:Float32Array.from(ord,i=>Rk[i]),sz:Float32Array.from(ord,i=>S[i])};
+  return FGLY;
+}
 const LABELS=new WeakMap();
 // per state: where to put its label, plus cell count and how much room the label has there.
 // Labels are wide, so we look for the cell with the biggest A:1 box (width:height) fully inside the state,
@@ -2728,11 +2770,19 @@ class MapView{
     this.fl=fl; this.anyFl=anyFl;
     const shade=(c,to,t)=>rgba(((c&255)*(1-t)+to*t)|0,((c>>>8&255)*(1-t)+to*t)|0,((c>>>16&255)*(1-t)+to*t)|0,255);
     this.palD=pal.map(c=>shade(c,0,0.32));
+    // terrain: forest and mountain versions of every color. "atlas" = shades of the state's own color, "natural" = tinted green / stone
+    const fst=UI.featStyle||"atlas", tint=(c,to,t)=>rgba(((c&255)*(1-t)+to[0]*t)|0,((c>>>8&255)*(1-t)+to[1]*t)|0,((c>>>16&255)*(1-t)+to[2]*t)|0,255);
+    this.palF=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[52,92,48],0.38):shade(c,0,0.14));
+    this.palM=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[150,138,120],0.42):shade(c,255,0.16));
+    this.palGF=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[24,56,26],0.6):shade(c,0,0.42));   // tree crowns
+    this.palGD=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[70,60,50],0.6):shade(c,0,0.45));  // mountain shadow side and outline
+    this.palGL=pal.map((c,k)=>k<4?c:fst==="natural"?tint(c,[226,220,208],0.6):shade(c,255,0.45)); // mountain lit side
+    const feat=g.feat;
     // one pixel per cell, for zoomed-out views
     const img=new ImageData(W,H), u=new Uint32Array(img.data.buffer), wdist=waterDist(g);
     for(let i=0;i<cells.length;i++){ const f=fl[i];
       // zoomed out: stripes at cell scale (they blend into a tint when cells are under a pixel)
-      u[i]= vis[i]===-2 ? WLUT[Math.min(32,Math.round(Math.max(0,wdist[i]-0.5)/WATER_DEPTH*32))] : f&&(((i%W)+((i/W)|0))&3)<2 ? this.palD[vis[i]+4] : pal[vis[i]+4]; }
+      u[i]= vis[i]===-2 ? WLUT[Math.min(32,Math.round(Math.max(0,wdist[i]-0.5)/WATER_DEPTH*32))] : f&&(((i%W)+((i/W)|0))&3)<2 ? this.palD[vis[i]+4] : feat&&vis[i]>=-1&&feat[i] ? (feat[i]===2?this.palM:this.palF)[vis[i]+4] : pal[vis[i]+4]; }
     this.base.width=W; this.base.height=H; this.base.getContext("2d").putImageData(img,0,0); this.dirty=false;
   }
   // Smooth rendering for zoomed-in views. Each screen pixel blends the 4 nearest cell
@@ -2747,6 +2797,11 @@ class MapView{
       this.sm=document.createElement("canvas"); this.sm.width=pw; this.sm.height=ph; }
     const u=this.u32, zz=this.z*r, inv=1/zz, sel=this.o.sel(), pl=this.o.player();
     const fl=this.fl, anyFl=this.anyFl, palD=this.palD, wdist=waterDist(g), ow=this.ox*zz, oh=this.oy*zz;
+    const feat=g.feat, palF=this.palF, palM=this.palM;
+    // forest / mountain fill: the feature with most weight among the 4 nearest cells wins, like owners do
+    const terr=(t,iA,iB,iC,iD,wa,wb,wc,wd)=>{ const A=feat[iA],B=feat[iB],C=feat[iC],D=feat[iD]; if(!(A|B|C|D)) return pal[t+4];
+      const m=(A===2?wa:0)+(B===2?wb:0)+(C===2?wc:0)+(D===2?wd:0), f=(A===1?wa:0)+(B===1?wb:0)+(C===1?wc:0)+(D===1?wd:0);
+      return m>=0.5?palM[t+4]:f>=0.5?palF[t+4]:m+f>=0.5?(m>f?palM:palF)[t+4]:pal[t+4]; };
     const HP=Math.max(6,Math.round(9*r)), HS=Math.max(2,Math.round(3*r)); // hatch period and stripe width (render px)
     const hasPl=pl>=0&&g.countries[pl].alive&&this.o.star, selId=sel!=null&&sel!==pl?sel:-99, plId=hasPl?pl:-99;
     // border half-widths in render pixels, as a "weight difference" threshold (it changes by 2/zz per pixel)
@@ -2765,7 +2820,7 @@ class MapView{
         const iA=rA+xa, iB=rA+xb, iC=rB+xa, iD=rB+xb;
         const fA=anyFl?fl[iA]:0, fB=anyFl?fl[iB]:0, fC=anyFl?fl[iC]:0, fD=anyFl?fl[iD]:0;
         if(a===b&&a===c&&a===d&&!(fA|fB|fC|fD)){
-          u[row+px]= a===-2 ? waterPx((1-fy)*((1-fx)*wdist[iA]+fx*wdist[iB])+fy*((1-fx)*wdist[iC]+fx*wdist[iD]),px+ow,py+oh,zz) : pal[a+4];
+          u[row+px]= a===-2 ? waterPx((1-fy)*((1-fx)*wdist[iA]+fx*wdist[iB])+fy*((1-fx)*wdist[iC]+fx*wdist[iD]),px+ow,py+oh,zz) : feat&&a>=-1 ? terr(a,iA,iB,iC,iD,(1-fx)*(1-fy),fx*(1-fy),(1-fx)*fy,fx*fy) : pal[a+4];
           continue; }
         const wa=(1-fx)*(1-fy), wb=fx*(1-fy), wc=(1-fx)*fy, wd=fx*fy;
         // total weight per distinct id (no allocations: compare in place)
@@ -2773,7 +2828,7 @@ class MapView{
         const sc=wc+(a===c?wa:0)+(b===c?wb:0)+(d===c?wd:0), sd=wd+(a===d?wa:0)+(b===d?wb:0)+(c===d?wc:0);
         let t=a, w1=sa; if(sb>w1){t=b;w1=sb;} if(sc>w1){t=c;w1=sc;} if(sd>w1){t=d;w1=sd;}
         let s2=-1, w2=0; if(a!==t&&sa>w2){s2=a;w2=sa;} if(b!==t&&sb>w2){s2=b;w2=sb;} if(c!==t&&sc>w2){s2=c;w2=sc;} if(d!==t&&sd>w2){s2=d;w2=sd;}
-        let fill= t===-2 ? waterPx((1-fy)*((1-fx)*wdist[iA]+fx*wdist[iB])+fy*((1-fx)*wdist[iC]+fx*wdist[iD]),px+ow,py+oh,zz) : pal[t+4]; const diff=w1-w2;
+        let fill= t===-2 ? waterPx((1-fy)*((1-fx)*wdist[iA]+fx*wdist[iB])+fy*((1-fx)*wdist[iC]+fx*wdist[iD]),px+ow,py+oh,zz) : feat&&t>=-1 ? terr(t,iA,iB,iC,iD,wa,wb,wc,wd) : pal[t+4]; const diff=w1-w2;
         if(fA|fB|fC|fD){ // conquered: weight of conquered cells of the winning state decides, so hatch edges are smooth too
           const cw=(a===t&&fA?wa:0)+(b===t&&fB?wb:0)+(c===t&&fC?wc:0)+(d===t&&fD?wd:0);
           if(cw*2>w1 && (px+py)%HP<HS) fill=palD[t+4]; }
@@ -2854,7 +2909,7 @@ class MapView{
     const sel=this.o.sel(), pl=this.o.player();
     ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle=BG; ctx.fillRect(0,0,this.cv.width,this.cv.height);
     const X=x=>(x-this.ox)*s, Y=y=>(y-this.oy)*s;
-    if(this.z>=2) this.drawSmooth(ctx);
+    if(this.z>=2){ this.drawSmooth(ctx); this.drawFeatures(ctx); }
     else { // zoomed out: cells are about a pixel or smaller, just scale the one-pixel-per-cell image
       const x0=Math.max(0,Math.floor(this.ox)), y0=Math.max(0,Math.floor(this.oy));
       const x1=Math.min(W,Math.ceil(this.ox+this.cw/this.z)), y1=Math.min(H,Math.ceil(this.oy+this.ch/this.z));
@@ -2918,6 +2973,36 @@ class MapView{
         ctx.beginPath(); ctx.arc(px,py,R_,0,Math.PI*2); ctx.fillStyle="#14161ae6"; ctx.fill(); ctx.lineWidth=2*this.dpr; ctx.strokeStyle="#e0b354"; ctx.stroke();
         ctx.font=`${R_*1.15}px system-ui,"Segoe UI Emoji",sans-serif`; ctx.fillStyle="#fff"; ctx.fillText(WONDERS[w.area].icon,px,py+R_*0.06); }
     }
+  }
+  // little trees and peaks on forests and mountains, thinned out as you zoom out (each glyph has a fixed random rank)
+  drawFeatures(ctx){
+    const g=this.g; if(!g.feat||UI.featGlyphs===false) return; const P=featGlyphs(g), {W,H}=g, s=this.z*this.dpr, vis=this.vis;
+    const show=k=>Math.min(1,Math.pow((k?1.25:0.85)*this.z/(k?17:11),2)); // share shown, so glyphs stay ~13-20px apart
+    const pF=show(0), pM=show(1); if(pF<0.05&&pM<0.05) return;
+    const x0=this.ox-2, y0=this.oy-2, x1=this.ox+this.cw/this.z+2, y1=this.oy+this.ch/this.z+2;
+    const groups=new Map(), grp=(col)=>{ let p=groups.get(col); if(!p){ p=new Path2D(); groups.set(col,p); } return p; };
+    const css=c=>`rgb(${c&255},${c>>>8&255},${c>>>16&255})`;
+    const fz=Math.min(1.1*s,14*this.dpr,Math.max(5*this.dpr,0.62*s/Math.sqrt(pF))), mz=Math.min(1.8*s,22*this.dpr,Math.max(9*this.dpr,1.0*s/Math.sqrt(pM)));
+    for(let k=0;k<P.n;k++){ const x=P.x[k], y=P.y[k]; if(x<x0||x>x1||y<y0||y>y1) continue;
+      const kind=P.k[k]; if(P.r[k]>=(kind===2?pM:pF)) continue;
+      const i=(y|0)*W+(x|0), o=vis[i]; if(o<-1) continue; const X=(x-this.ox)*s, Y=(y-this.oy)*s;
+      if(kind===1){ const r=fz*0.5*P.sz[k];
+        grp("t"+o).moveTo(X+r,Y); grp("t"+o).arc(X,Y,r,0,Math.PI*2);
+        grp("k"+o).rect(X-r*0.14,Y+r*0.6,r*0.28,r*0.75); }
+      else { const w=mz*0.62*P.sz[k], hh=mz*0.78*P.sz[k];
+        const L=grp("l"+o), D=grp("d"+o); L.moveTo(X-w,Y+hh*0.4); L.lineTo(X,Y-hh*0.6); L.lineTo(X+w*0.1,Y+hh*0.4); L.closePath();
+        D.moveTo(X,Y-hh*0.6); D.lineTo(X+w,Y+hh*0.4); D.lineTo(X+w*0.1,Y+hh*0.4); D.closePath();
+        const O=grp("o"+o); O.moveTo(X-w,Y+hh*0.4); O.lineTo(X,Y-hh*0.6); O.lineTo(X+w,Y+hh*0.4); } }
+    ctx.save(); ctx.lineJoin="round";
+    for(const [key,p] of groups){ const t=key[0], o=+key.slice(1);
+      if(t==="k"){ ctx.fillStyle=css(this.palGD[o+4]); ctx.fill(p); } }
+    for(const [key,p] of groups){ const t=key[0], o=+key.slice(1);
+      if(t==="t"){ ctx.fillStyle=css(this.palGF[o+4]); ctx.fill(p); }
+      else if(t==="l"){ ctx.fillStyle=css(this.palGL[o+4]); ctx.fill(p); }
+      else if(t==="d"){ ctx.fillStyle=css(this.palGD[o+4]); ctx.fill(p); } }
+    ctx.lineWidth=Math.max(1,0.9*this.dpr);
+    for(const [key,p] of groups){ const t=key[0], o=+key.slice(1); if(t==="o"){ ctx.strokeStyle=css(this.palGD[o+4]); ctx.stroke(p); } }
+    ctx.restore();
   }
   // wonder under the pointer (within ~16px)
   wonderNear([mx,my]){ const g=this.g; if(!g?.wonders) return null; let best=null,bd=16*16;
@@ -4030,6 +4115,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Forests and mountains","2026-11-12 17:18",["New maps have forest patches and mountain ranges","Shown as a darker or lighter shade of the owner's color, with little trees and peaks when zoomed in","For now they only change how the map looks"]],
 ["Clearer bonus table","2026-11-12 17:00",["Science tab: each row of Total bonuses reads as a formula: (1 + civilization + leader + land) × research = total","Rows follow the research areas, with the same icons","Wonder and Shore columns only show when one of them counts"]],
 ["Simpler research levels","2026-11-12 16:43",["Every research level gives the same bonus; no max any more","Each level costs 1.8× the one before (the first costs 35 points)","Per-level bonuses adjusted: Science +6%, Agriculture +5%, Finance +4.7% taxes, Attack and Defense +6.5%, Expansion +3.7%, Pop. density +0.16, Pop. growth +0.11%","Overall research strength stays about the same as before","Saved games convert each area to the level with the nearest bonus"]],
 ["Share and progress together","2026-11-12 15:05",["Science tab: each area's share slider sits on top with its progress bar right under it, the same length","Longer sliders; shorter rows in a narrow panel","Progress bar shows in green how far next year's points will take it","Shares can add up to less than 100%: a warning shows how much research is unassigned and lost, with a Spread it button","Raising a share past 100% takes from the unlocked areas; lowering one no longer moves the others","Header buttons for all areas: ✕ clears unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all"]],
@@ -4315,7 +4401,8 @@ ${STANCE_UI.map(([id,ic,nm])=>{ const k=STANCE_KEY[id]; return `<tr><td>${ic} ${
 <li><b>Narrow fronts:</b> on a shared border of ${R.narrowFront} km or less, defenders fight +${gP(R.narrowBonus)} harder; the bonus fades to nothing at ${R.wideFront} km. Lakes and rivers make these chokepoints. The War tab shows each border's length.</li>
 <li><b>Sea routes</b> (dashed lines on pre-made maps) count as borders. An attack that only crosses the sea gives defenders +${gP(R.seaBonus)} instead of the narrow-front bonus.</li>
 <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering unowned land settles ${R.settleBase} km² plus ${gP(R.settleRate)} of its own size a year, no army needed (times Expansion research).</li>
-<li><b>Coasts:</b> land next to water harvests more (see Food).</li></ul>`],
+<li><b>Coasts:</b> land next to water harvests more (see Food).</li>
+<li><b>Forests and mountains:</b> new maps have forest patches (a darker shade of the owner's color, with little trees) and mountain ranges (a lighter shade, with peaks). They stay put whoever owns the land. For now they only change how the map looks.</li></ul>`],
 ["attack","Military","🗡️","Planning an attack",()=>`
 <ol class="glist"><li>Open the <b>War</b> tab, or click a neighbor on the map and press <b>Plan attack</b>.</li>
 <li>Pick a general, the attack mode and which troops go. The window estimates the defenders and gives a verdict: <i>Undefended</i>, <i>Favorable</i>, <i>Risky</i> or <i>Likely defeat</i>.</li>
