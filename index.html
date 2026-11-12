@@ -1212,7 +1212,9 @@ function carveRivers(m,W,H,target,unit,rnd){
 // move to where each state ended up, so crowded states drift apart, and the next round is more even. Land nobody
 // could reach within its share stays unowned.
 function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10,ROUGH=60){
-  const N=W*H, n=counts.length, SH=2097152; if(N>=SH) rounds=Math.min(rounds,4);
+  const N=W*H, n=counts.length; if(N>=2097152) rounds=Math.min(rounds,4);
+  // heap keys pack (priority, cell) as priority*SH+cell: SH must hold every cell index, and keys must stay exact (< 2^53)
+  let SH=2097152; while(SH<N) SH*=2; const KMAX=Math.floor(2**53/SH)-1;
   const nbs=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const L=lk?.get(i); if(L) for(const j of L) f(j); };
   // land to share: every land cell a state can reach over land or sea routes (also unowned land next to states)
   const share=new Uint8Array(N), Q=new Int32Array(N); let qh=0,qt=0;
@@ -1259,7 +1261,7 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10,ROUGH=60){
           if(i<0){ ok=false; break; } // boxed in
           if(counts[s]) dist[i]=reach(s,i);
           if(++got%4096===0) genProg(P0+PS*got/land,lab);
-          cells[i]=s; counts[s]++; nbs(i,j=>{ if(cells[j]===-1&&share[j]){ const d=reach(s,j); if(d<Infinity) push(h,Math.min(4e9,Math.round(d*8))*SH+j); } }); }
+          cells[i]=s; counts[s]++; nbs(i,j=>{ if(cells[j]===-1&&share[j]){ const d=reach(s,j); if(d<Infinity) push(h,Math.min(KMAX,Math.round(d*8))*SH+j); } }); }
         if(ok&&counts[s]<cap) next.push(s); }
       live=next; }
     // a state that ended short of its share grows faster next round (it claims its land before the neighbors close in)
@@ -1280,7 +1282,7 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10,ROUGH=60){
   const finish=()=>{ cx.fill(0); cy.fill(0); const cnt=new Int32Array(n);
     for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
     for(let s=0;s<n;s++) if(cnt[s]){ cx[s]/=cnt[s]; cy[s]/=cnt[s]; }
-    const key=(s,i)=>Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2)*SH+i;
+    const key=(s,i)=>Math.min(KMAX,Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2))*SH+i;
     for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const by=new Map(); genProg(0.86+0.05*(1-Math.pow(0.85,++fin)),"Evening out borders");
       for(let s=0;s<n;s++) if(counts[s]){ if(counts[s]<mn) mn=counts[s]; if(counts[s]>mx) mx=counts[s]; }
       if(mn>=cap*0.985&&mx<=cap*1.015) break; // everyone within 1.5% of the share
@@ -3880,6 +3882,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Big maps fill fully","2026-11-12 07:42",["Fixed: on very big maps (e.g. the world with 1000 states and more than 100% land per state) the southern part stayed unowned"]],
 ["Map progress bar","2026-11-12 01:00",["A progress bar shows while a new map is made, with what it is doing (placing states, growing states round by round, evening out borders)","The map preview in New game shows the same progress"]],
 ["Rough borders","2026-11-12 01:30",["Borders are rough and ragged again, like the old maps","Starting land stays almost equal"]],
 ["Natural state shapes","2026-11-12 00:40",["States start in varied, natural shapes with wandering borders instead of round blobs","All land a state can reach is shared out, so no big empty regions at the start (like southern Africa)","Starting land stays almost equal"]],
