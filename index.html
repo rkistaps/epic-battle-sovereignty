@@ -3385,8 +3385,8 @@ function pScience(){
   const c=me(); const pts=researchPoints(c); const tot=AREAS.reduce((s,a)=>s+c.alloc[a],0)||1;
   const pc=v=>+(v*100).toFixed(2), eff={sci:`+${pc(R.sciPerLevel)}% research per level`,agri:`+${pc(R.agriPerLevel)}% food per level`,fin:`+${pc(R.finTaxPerLevel)}% taxes, +${pc(R.finPricePerLevel)}% sell prices`,dens:`+${R.densPerLevel} people per km² capacity`,grow:`+${pc(R.growPerLevel)}% birth rate per level`,atk:`+${pc(R.atkPerLevel)}% attack strength per level`,def:`+${pc(R.defPerLevel)}% defense strength per level`,wood:`+${pc(R.woodPerLevel)}% wood production per level`,iron:`+${pc(R.ironPerLevel)}% iron production per level`,explore:`+${pc(R.explorePerLevel)}% land per battle and settling speed`};
   const totLv=AREAS.reduce((s,a)=>s+c.lv[a],0), avgLv=Object.values(worldAvgLv(G)).reduce((s,v)=>s+v,0);
-  return `<div class="row"><span>Total level: <b>${fmt(totLv)}</b> <span class="small mut">· world average ${fmt(Math.round(avgLv))}</span> <span class="small ${totLv>=avgLv?"good":"bad"}">(${totLv>=avgLv?"+":"−"}${fmt(Math.round(Math.abs(totLv-avgLv)))})</span></span></div>
-  <div class="row"><span>Research output: <b>${fmt(pts)}</b> points/yr from ${fmt(workers(c).sci)} scientists <span class="small mut">(set how many in Home → Work)</span>.</span> ${gl("science")}</div>
+  return `<h3>Research ${gl("science")}</h3><div class="row"><span>Total level: <b>${fmt(totLv)}</b> <span class="small mut">· world average ${fmt(Math.round(avgLv))}</span> <span class="small ${totLv>=avgLv?"good":"bad"}">(${totLv>=avgLv?"+":"−"}${fmt(Math.round(Math.abs(totLv-avgLv)))})</span></span></div>
+  <div class="row"><span>Research output: <b>${fmt(pts)}</b> points/yr from ${fmt(workers(c).sci)} scientists <span class="small mut">(set how many in Home → Work)</span>.</span></div>
   <div class="row small"><span class="mut">Presets:</span><button class="sm" data-preset="sci" title="Everything into Science: research grows fastest, but nothing else levels up">Science run</button><button class="sm" data-preset="econ">Economy</button><button class="sm" data-preset="bal">Balanced</button><button class="sm" data-preset="war">War</button></div>
   <table class="tight"><tr><th>Area</th><th class="r">Lvl</th><th>Progress</th><th>Share</th></tr>
   ${AREAS.map(a=>{const cp=costParts(G,c,a), cost=levelCost(c.lv[a],cp.mul); const share=Math.round(100*c.alloc[a]/tot); const eta=pts*c.alloc[a]/tot>0?Math.ceil((cost-c.rp[a])/(pts*c.alloc[a]/tot)):null;
@@ -4000,6 +4000,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Science tab heading","2026-11-12 14:36",["Science tab: research split sits in its own Research box like other sections"]],
 ["War tab neighbors fit","2026-11-12 14:22",["Neighbors table fits the side panel: land, people and border sit under each name"]],
 ["Boxed sections","2026-11-12 14:19",["Each section of a tab sits in its own box with a heading bar"]],
 ["Calmer War tab","2026-11-12 14:09",["War tab: the alliance relations table is gone; one line names only the alliances close to war with yours","Alliance relations table moved to the Allies tab, under the rankings"]],
