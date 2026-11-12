@@ -386,11 +386,14 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   <div class="menu"><button id="bMenu" data-pop="menuPop" aria-haspopup="true" aria-expanded="false">☰ Menu</button>
     <div id="menuPop" class="pop" role="menu" hidden>
       <button role="menuitem" id="bNew">New game</button>
+      <button role="menuitem" id="bExport" title="Download this game as a file, to keep or to play on another device">Save to file</button>
+      <button role="menuitem" id="bImport" title="Open a game saved to a file">Load from file</button>
       <button role="menuitem" id="bRep" title="See last year's report again">Last year's report</button>
       <button role="menuitem" id="bHelp">Rules &amp; guide</button>
       <button role="menuitem" id="bLog" title="What changed in each update">Change log</button>
       <button role="menuitem" id="bSettings" title="Change every rule, troop, civilization, leader and land type">Settings</button>
     </div></div>
+  <input type="file" id="gameFile" accept=".json,application/json" class="hidden">
   <h1>👑 EPIC BATTLE: SOVEREIGNTY</h1>
   <span class="chip">📅 Year <b id="hYear">1</b><span id="hPeace" class="pz" hidden></span> · <span id="hState"></span></span>
   <span class="chip" title="Money">💰 <b id="hMoney"></b></span>
@@ -2641,13 +2644,46 @@ async function loadSave(){
   let g=null;
   try{ g=await DB.get("current"); }catch(e){}
   if(!g){ try{ g=fromLocal(); if(g){ g.cells=Int16Array.from(g.cells); await DB.put("current",g); localStorage.removeItem(OLD_KEY); } }catch(e){} }
-  if(g) for(const k of GRID_KEYS) if(g[k]&&!(g[k] instanceof Int16Array)) g[k]=Int16Array.from(g[k]);
-  if(g){ delete g.origin; // no longer used
-    if(!g.takenAt) g.takenAt=new Int16Array(g.cells.length);
-    if(!g.takenFrom) g.takenFrom=new Int16Array(g.cells.length).fill(-1); }
-  if(g){ migrateResearch(g); migrateRelations(g); }
-  if(g){ if(!g.gid) g.gid=oldGid(g); await loadNews(g); }
+  if(g){ prepSave(g); await loadNews(g); }
   SAVED=saveMeta(g); return g;
+}
+// bring a loaded game up to date (old saves miss newer fields)
+function prepSave(g){
+  for(const k of GRID_KEYS) if(g[k]&&!(g[k] instanceof Int16Array)) g[k]=Int16Array.from(g[k]);
+  delete g.origin; // no longer used
+  if(!g.takenAt) g.takenAt=new Int16Array(g.cells.length);
+  if(!g.takenFrom) g.takenFrom=new Int16Array(g.cells.length).fill(-1);
+  migrateResearch(g); migrateRelations(g); if(!g.gid) g.gid=oldGid(g);
+}
+// ---------- save files: the whole game (map, news archive, rules) in one .json to carry to another device ----------
+const TA={Int8Array,Uint8Array,Int16Array,Uint16Array,Int32Array,Uint32Array,Float32Array,Float64Array};
+const taOut=(k,v)=>ArrayBuffer.isView(v)?{$ta:v.constructor.name,rle:rleEnc(Array.from(v))}:v;
+const taIn=(k,v)=>v&&typeof v==="object"&&v.$ta&&TA[v.$ta]&&typeof v.rle==="string"?TA[v.$ta].from(rleDec(v.rle)):v;
+async function exportGame(){
+  if(!G){ flash("No game to save."); return; }
+  save(); const n=newsFor(G), det={};
+  try{ const [keys,vals]=await DB.getRange("newsd:","newsd:\uffff"); keys.forEach((k,i)=>{ det[+String(k).slice(6)]=vals[i]; }); }catch(e){}
+  for(const c in n.det) det[c]=n.det[c];
+  const o={game:"Epic Battle: Sovereignty",kind:"save",version:1,saved:new Date().toISOString(),settings:SETTINGS||{},g:G,news:{items:n.items,det}};
+  const blob=new Blob([JSON.stringify(o,taOut)],{type:"application/json"}), m=saveMeta(G);
+  const name=(m.name||"game").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-").toLowerCase()||"game";
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`sovereignty-${name}-year-${G.turn}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  flash("Game saved to a file.");
+}
+async function importGame(text){
+  let o; try{ o=JSON.parse(text,taIn); }catch(e){ flash("That file isn't valid JSON."); return; }
+  const g=o&&o.g;
+  if(!o||o.kind!=="save"||!g||!Array.isArray(g.countries)||!g.cells||!g.W){ flash(o&&o.kind==="settings"?"That's a settings file: load it in Settings.":"No saved game found in that file."); return; }
+  try{ prepSave(g); }catch(e){ flash("That save file is damaged."); return; }
+  if(o.settings&&typeof o.settings==="object") saveSettings(o.settings); // the game's own rules
+  NEWS=newsFresh(g.gid); NEWS_STORED=null; // written to storage in full on the next save
+  for(const r of o.news?.items||[]) NEWS.items.push(r);
+  for(const c in o.news?.det||{}) NEWS.det[c]=o.news.det[c];
+  for(const r of NEWS.items) NEWS.dirty.add(Math.floor(r[0]/NEWS_CH));
+  G=g; setAuto(false); UI.sel=null; UI.attackTarget=null; UI.lastPrev=null; UI.fromWelcome=false;
+  save(); closeModal(); render(); flash(`Loaded: ${saveMeta(G).name}, year ${G.turn}.`);
+  if(G.hot&&!G.over) hotHandover();
 }
 
 // ---------- fog of war: which states the player can see ----------
@@ -4293,6 +4329,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Save and load files","2026-11-12 20:14",["Menu → Save to file downloads your game as a .json file","Menu → Load from file opens it, also on another computer","Load from file on the first window too","The file keeps the map, news archive and your Settings"]],
 ["Science sliders","2026-11-12 19:15",["A research slider stops at the most it can reach instead of sliding past and jumping back","Progress bars, shares and years to the next level update while you drag"]],
 ["Guide: terrain in battles","2026-11-12 19:01",["Battles guide lists the forest and mountain border bonus in the defense formula"]],
 ["Map: state menu and hover","2026-11-12 18:52",["Right-click a state on the map (or press and hold on touch screens) for a menu: details, plan attack, call off attack, send aid, view alliance, its battles in the news, center map, take over","Greyed-out items say why (no shared border, peace time, no free general, ally out of reach)","Hovering a state raises it off the map with a soft shadow"]],
@@ -4663,7 +4700,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li><b>Defense stance:</b> they stand ground once down to ${gP(R.aiLastStand)} of their biggest land or holding a wonder in a war, fall back when outgunned (defense under ${gP(R.aiFallBack)} of the strongest neighbor's attack), and hold otherwise.</li></ul>`],
 
 ["screen","Interface","🖥️","Header and menu",()=>`
-<ul class="log"><li><b>☰ Menu:</b> New game, Last year's report, Rules &amp; guide, Change log, Settings.</li>
+<ul class="log"><li><b>☰ Menu:</b> New game, Save to file, Load from file, Last year's report, Rules &amp; guide, Change log, Settings.</li>
 <li><b>Year</b> and a peace pill with the years of peace left.</li>
 <li>Your <b>gold, grain, wood, iron</b>. Click land 🗺️ or population 👥 to find yourself in the rankings.</li>
 <li><b>▶ Auto</b> ends turns by itself; ▾ sets seconds per turn and whether to stop when you are attacked. It pauses while a window is open or you're typing.</li>
@@ -4701,6 +4738,7 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
 <h3>Saves</h3><p>The game saves itself in this browser every year. When you open the page again you can continue where you left off.</p>
+<p><b>Save to file</b> (Menu) downloads the whole game as one .json file: the map, every state, the news archive and the rules from Settings. <b>Load from file</b> (Menu, or the first window) opens it, also on another computer or browser, and you play on from that year. Loading replaces the game saved in this browser and its Settings, so save that one to a file first if you want to keep it.</p>
 <h3>Keys</h3>${gTab(["Key","Does"],[["1–9","Switch tabs"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
 <p>Menu → Change log lists what changed in each update.</p>`],
 
@@ -4839,9 +4877,9 @@ function setupModal(){
 function welcomeModal(){ const s=SAVED&&!SAVED.over?SAVED:null;
   modal(`<div class="brand">👑 EPIC BATTLE: SOVEREIGNTY</div>${s?`<h2>Welcome back</h2>
   <div class="save"><b>${esc(s.name)}</b><span>Year ${s.turn} · saved in this browser</span></div>
-  <div class="acts"><button class="pri" data-a="continue">Continue</button><button class="out" data-a="welcomeNew">New game</button></div>`
+  <div class="acts"><button class="pri" data-a="continue">Continue</button><button class="out" data-a="welcomeNew">New game</button><button class="out" data-a="loadFile">Load from file</button></div>`
   :`<h2>Welcome</h2><p class="lead">The Sovereign is dead. Every state on the continent wants the throne. Only one will take it.</p>
-  <div class="acts"><button class="pri" data-a="welcomeNew">New game</button></div>`}`,"welcome");
+  <div class="acts"><button class="pri" data-a="welcomeNew">New game</button><button class="out" data-a="loadFile">Load from file</button></div>`}`,"welcome");
   $("modal").querySelector(".acts .pri")?.focus({focusVisible:false}); }
 // the "Your game" panel: a live summary of the choices on the left
 function setupSummary(){ const s=UI.setup, f=(L,id)=>L.find(x=>x.id===id)?.name, rnd=w=>"Random "+w;
@@ -5027,6 +5065,7 @@ document.addEventListener("click",async ev=>{
     case "newGame": UI.setup=null; UI.fromWelcome=false; setupModal(); return;
     case "welcomeNew": UI.setup=null; UI.fromWelcome=true; setupModal(); return;
     case "welcome": welcomeModal(); return;
+    case "loadFile": $("gameFile").click(); return;
     case "continue": { const g=await loadSave(); if(!g){ flash("Saved game not found."); return; } G=g; setAuto(false); closeModal(); UI.sel=null; render(); if(G.hot&&!G.over) hotHandover(); return; }
     case "hotBegin": hotBegin(); return;
     case "hotLeave": closeModal(); hotRemove(G.player); return;
@@ -5265,12 +5304,15 @@ function lastPrev(){ return G ? (G.hot ? G.hot.prev?.[G.player] : UI.lastPrev) :
 function closePops(){ document.querySelectorAll(".pop").forEach(p=>{ p.hidden=true; }); document.querySelectorAll("[data-pop]").forEach(b=>b.setAttribute("aria-expanded","false")); }
 document.addEventListener("click",e=>{
   const b=e.target.closest?.("[data-pop]");
-  if(b){ const p=$(b.dataset.pop), open=p.hidden; closePops(); if(open){ if(b.id==="bMenu") $("bRep").disabled=!lastPrev(); p.hidden=false; b.setAttribute("aria-expanded","true"); } return; }
+  if(b){ const p=$(b.dataset.pop), open=p.hidden; closePops(); if(open){ if(b.id==="bMenu"){ $("bRep").disabled=!lastPrev(); $("bExport").disabled=!G; } p.hidden=false; b.setAttribute("aria-expanded","true"); } return; }
   if(e.target.closest?.(".pop>button")||!e.target.closest?.(".pop")) closePops();
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.querySelector(".pop:not([hidden])")){ closePops(); e.stopPropagation(); } },true);
 $("bRep").addEventListener("click",()=>{ const p=lastPrev(); if(p&&!UI.busy) turnReport(p); });
 $("bHelp").addEventListener("click",()=>{ if(!UI.busy) helpModal(); });
+$("bExport").addEventListener("click",()=>{ if(!UI.busy) exportGame(); });
+$("bImport").addEventListener("click",()=>{ if(!UI.busy) $("gameFile").click(); });
+$("gameFile").addEventListener("change",e=>{ const f=e.target.files?.[0]; e.target.value=""; if(f&&!UI.busy) f.text().then(importGame); });
 $("bLog").addEventListener("click",()=>{ if(!UI.busy) changelogModal(); });
 $("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; settingsModal("general"); });
 $("bNew").addEventListener("click",()=>{ if(UI.busy) return; UI.setup=null; UI.fromWelcome=false; setupModal(); });
