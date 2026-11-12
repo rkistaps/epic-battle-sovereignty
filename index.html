@@ -3023,16 +3023,13 @@ class MapView{
       const kind=P.k[k]; if(P.r[k]>=(kind===2?pM:pF)) continue;
       const i=(y|0)*W+(x|0), o=vis[i]; if(o<-1) continue; const X=(x-this.ox)*s, Y=(y-this.oy)*s;
       if(kind===1){ const r=fz*0.5*P.sz[k], S=grp("s"+o), T=grp("t"+o), Hl=grp("h"+o), K=grp("k"+o);
-        S.moveTo(X+r*0.95,Y+r*1.15); S.ellipse(X+r*0.15,Y+r*1.15,r*0.8,r*0.24,0,0,Math.PI*2); // shadow on the ground
-        if((P.r[k]*997)%1<0.35){ // pine: two stacked tiers on a short trunk
-          K.rect(X-r*0.1,Y+r*0.75,r*0.2,r*0.45);
-          T.moveTo(X,Y-r*1.25); T.lineTo(X+r*0.5,Y-r*0.1); T.lineTo(X-r*0.5,Y-r*0.1); T.closePath();
-          T.moveTo(X,Y-r*0.55); T.lineTo(X+r*0.7,Y+r*0.85); T.lineTo(X-r*0.7,Y+r*0.85); T.closePath();
-          Hl.moveTo(X,Y-r*1.25); Hl.lineTo(X-r*0.5,Y-r*0.1); Hl.lineTo(X-r*0.1,Y-r*0.25); Hl.closePath(); }
-        else { // leafy tree: trunk and a crown of three lobes, lit from the top left
-          K.rect(X-r*0.13,Y+r*0.3,r*0.26,r*0.9);
-          for(const [dx,dy,rr] of [[-0.42,0.12,0.55],[0.42,0.12,0.55],[0,-0.38,0.62]]){ T.moveTo(X+(dx+rr)*r,Y+dy*r); T.arc(X+dx*r,Y+dy*r,rr*r,0,Math.PI*2); }
-          Hl.moveTo(X-r*0.05,Y-r*0.55); Hl.arc(X-r*0.25,Y-r*0.55,r*0.22,0,Math.PI*2); } }
+        // spruce: three stacked tiers on a short trunk, lit from the left; sizes vary from small to tall
+        const q=0.6+0.8*((P.r[k]*7919)%1), h=2.5*r*q, w=0.78*r*q, base=Y+r;
+        S.moveTo(X+w*1.1,base); S.ellipse(X+w*0.25,base,w*0.85,w*0.22,0,0,Math.PI*2); // shadow on the ground
+        K.rect(X-w*0.11,base-h*0.16,w*0.22,h*0.16);
+        for(let t=0;t<3;t++){ const top=base-h+t*h*0.24, bot=top+h*0.34+t*h*0.04, hw=w*(0.42+0.29*t), dr=h*0.04;
+          T.moveTo(X,top); T.lineTo(X+hw,bot); T.quadraticCurveTo(X,bot-dr,X-hw,bot); T.closePath();
+          Hl.moveTo(X,top); Hl.lineTo(X-hw,bot); Hl.quadraticCurveTo(X-hw*0.5,bot-dr*0.8,X-w*0.04,bot-dr); Hl.closePath(); } }
       else { const w=mz*0.62*P.sz[k], hh=mz*0.78*P.sz[k];
         const L=grp("l"+o), D=grp("d"+o); L.moveTo(X-w,Y+hh*0.4); L.lineTo(X,Y-hh*0.6); L.lineTo(X+w*0.1,Y+hh*0.4); L.closePath();
         D.moveTo(X,Y-hh*0.6); D.lineTo(X+w,Y+hh*0.4); D.lineTo(X+w*0.1,Y+hh*0.4); D.closePath();
@@ -4161,6 +4158,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Spruce forests","2026-11-12 18:14",["Forests drawn as spruces of different sizes"]],
 ["Terrain sliders","2026-11-12 18:11",["New game: Forests and Mountains sliders for generated maps (together up to 100% of the land)","Lighter forest and mountain shading"]],
 ["Real terrain on the World map","2026-11-12 18:09",["World map forests and mountains sit where they are on Earth: the Alps, Andes, Himalayas, Rockies, the Amazon, Congo and Siberian taiga"]],
 ["Trees and clearer labels","2026-11-12 18:03",["Forests drawn as leafy trees and pines, with shadows","Trees and peaks are cleared under state names, so labels read cleanly"]],
@@ -4451,7 +4449,7 @@ ${STANCE_UI.map(([id,ic,nm])=>{ const k=STANCE_KEY[id]; return `<tr><td>${ic} ${
 <li><b>Sea routes</b> (dashed lines on pre-made maps) count as borders. An attack that only crosses the sea gives defenders +${gP(R.seaBonus)} instead of the narrow-front bonus.</li>
 <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering unowned land settles ${R.settleBase} km² plus ${gP(R.settleRate)} of its own size a year, no army needed (times Expansion research).</li>
 <li><b>Coasts:</b> land next to water harvests more (see Food).</li>
-<li><b>Forests and mountains:</b> new maps have forest patches (a darker shade of the owner's color, with little trees) and mountain ranges (a lighter shade, with peaks). They stay put whoever owns the land. On the World map they sit where real forests and mountains are; on generated maps you choose how much of the land each covers when you set up the game (together up to 100%). For now they only change how the map looks.</li></ul>`],
+<li><b>Forests and mountains:</b> new maps have forest patches (a darker shade of the owner's color, with little spruces) and mountain ranges (a lighter shade, with peaks). They stay put whoever owns the land. On the World map they sit where real forests and mountains are; on generated maps you choose how much of the land each covers when you set up the game (together up to 100%). For now they only change how the map looks.</li></ul>`],
 ["attack","Military","🗡️","Planning an attack",()=>`
 <ol class="glist"><li>Open the <b>War</b> tab, or click a neighbor on the map and press <b>Plan attack</b>.</li>
 <li>Pick a general, the attack mode and which troops go. The window estimates the defenders and gives a verdict: <i>Undefended</i>, <i>Favorable</i>, <i>Risky</i> or <i>Likely defeat</i>.</li>
