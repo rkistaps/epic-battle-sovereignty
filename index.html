@@ -97,6 +97,8 @@ table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(-
 .tabs button.on .tbdg.warn{background:#1a1a1a;color:var(--acc)}
 h3{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut)}
 h3:first-child{margin-top:0}
+.psec{border:1px solid var(--line);border-radius:8px;padding:10px 10px 12px;margin-top:12px;background:rgba(255,255,255,.022)} .psec:first-child{margin-top:0}
+.psec>h3:first-child{margin:-10px -10px 10px;padding:8px 10px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:8px 8px 0 0;color:var(--txt)}
 table{border-collapse:collapse;width:100%}
 td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
 th{color:var(--mut);font-weight:500;font-size:12px}
@@ -3023,10 +3025,12 @@ function tabBadge(k){
   return null; }
 function render(){
   UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
-  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,generals:pGenerals,war:pWar,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f();
+  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,generals:pGenerals,war:pWar,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(); boxSections($("panel"));
   mainView.setGame(G); mainView.refresh();
 }
 
+// each top-level heading in a tab starts a boxed section, so the parts of a tab stand apart
+function boxSections(el){ let box=null; for(const n of [...el.childNodes]){ if(n.nodeName==="H3"){ box=document.createElement("div"); box.className="psec"; el.insertBefore(box,n); } if(box) box.appendChild(n); } }
 function bordersUnowned(g,id){ const {W,cells}=g, N=cells.length;
   for(const i of ownedCells(g)[id]){ if(cells[i]!==id) continue; const x=i%W;
     if((x>0&&cells[i-1]===-1)||(x<W-1&&cells[i+1]===-1)||(i>=W&&cells[i-W]===-1)||(i+W<N&&cells[i+W]===-1)||linkedTo(g,i,-1)) return true; }
@@ -3995,6 +3999,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Boxed sections","2026-11-12 14:19",["Each section of a tab sits in its own box with a heading bar"]],
 ["Calmer War tab","2026-11-12 14:09",["War tab: the alliance relations table is gone; one line names only the alliances close to war with yours","Alliance relations table moved to the Allies tab, under the rankings"]],
 ["Fix: peaceful states with room","2026-11-12 14:03",["Computer states with plenty of room no longer attack for land without a grudge, fear or a wonder to win (as the guide says)"]],
 ["Raids, kidnaps and massacres","2026-11-12 12:58",["Attack window: new modes Raid, Kidnap and Massacre","Raid: steal gold, grain, wood and iron with low losses; angers less than a normal attack","Kidnap: carry off peasants to your land, as many as you have room for; angers a bit more","Massacre: kill their peasants; they fight back; angers twice as much","These take no land and need no win: the stronger your force, the more you get","Computer states raid or kidnap from a much bigger neighbor they fear, every few years","Assault mode removed","Settings: new Attack modes group"]],
