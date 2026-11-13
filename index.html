@@ -162,6 +162,19 @@ td.r,th.r{text-align:right}
 .genbar{height:10px;border-radius:5px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin:12px 0 6px}
 .genbar i{display:block;height:100%;background:var(--acc);border-radius:5px;transition:width .25s ease}
 .genbar.mini{height:6px;margin:6px 0 0;max-width:260px}
+/* the year window: a sun circles the year dial while the gold arc fills with the engine's progress */
+.modal.turnwin{width:auto;min-width:260px;max-width:320px}
+.tload{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 18px 4px;animation:tlIn .25s ease .12s both}
+.tload svg{width:150px;height:150px;overflow:visible}
+.tl-track{fill:none;stroke:var(--panel2);stroke-width:7} .tl-tick{stroke:var(--line);stroke-width:2;stroke-linecap:round}
+.tl-arc{fill:none;stroke:var(--acc);stroke-width:7;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .3s ease;transform:rotate(-90deg);transform-origin:60px 60px}
+.tload.ind .tl-arc{stroke-dasharray:22 78;animation:tlSpin 1.4s linear infinite;transition:none}
+.tl-orbit{transform-origin:60px 60px;animation:tlSpin 2.6s linear infinite} .tl-sun{font-size:15px}
+.tl-yr{fill:var(--txt);font-size:26px;font-weight:700} .tl-lab{fill:var(--mut);font-size:9.5px;letter-spacing:1.5px}
+.tl-step{min-height:1.4em;color:var(--mut);font-size:13px;text-align:center}
+.tlmini{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid var(--panel2);border-top-color:var(--acc);vertical-align:-1px;margin-right:6px;animation:tlSpin .9s linear infinite}
+@keyframes tlSpin{to{transform:rotate(270deg)}} @keyframes tlIn{from{opacity:0;transform:scale(.96)}}
+@media(prefers-reduced-motion:reduce){.tl-orbit,.tlmini,.tload.ind .tl-arc{animation-duration:6s}}
 /* rules & guide: menu and search on the left, one topic on the right */
 .glink{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:2px 0 0!important;box-sizing:border-box;margin-left:6px;border-radius:50%!important;border:1px solid var(--line)!important;background:none!important;color:var(--mut);font-size:10.5px;font-weight:700;line-height:1;vertical-align:2px;cursor:pointer;text-transform:none;letter-spacing:0;flex:none}
 .glink:hover,.glink:focus-visible{color:var(--acc);border-color:var(--acc)!important}
@@ -2404,7 +2417,10 @@ function endTurn(g){
   g.avgLv=worldAvgLv(g); g.avgPop=worldAvgPop(g); // research costs compare against the averages at the start of the year
   C.forEach(c=>{ if(c.civ) c.mod=computeMods(civOf(c),leaderOf(c),landOf(c)); }); // settings may have changed
   g.revolts=[]; C.forEach(c=>{ c.gConq=c.gRet=c.gSet=0; c.land0y=c.land; }); // land won this year (loyalty)
-  C.forEach(c=>{ if(c.alive&&c.ai) aiTurn(g,c); if(!c.ai) c.eff=1; c.lostThis=0; });
+  // progress for the year window (worker only; cheap: reports only when the whole percent changes)
+  const step=(a,b,lab,i)=>genProg(a+(b-a)*(i==null?0:i/C.length),lab);
+  C.forEach((c,i)=>{ if(!(i&63)) step(0.02,0.45,"Rulers make their plans",i); if(c.alive&&c.ai) aiTurn(g,c); if(!c.ai) c.eff=1; c.lostThis=0; });
+  step(0.45,0,"Armies march");
   // battles
   const adjNow=adjacency(g);
   const guards={}, defGenOf={};
@@ -2434,6 +2450,7 @@ function endTurn(g){
     for(const d of y.reps) if(d.gD){ d.gD[3]=Math.round(dg.skill); d.gD[5]=Math.round(dg.morale); } }
   C.forEach(c=>c.attacks=[]);
   // economy
+  step(0.6,0,"Settlers move and borders settle");
   settle(g);
   loyaltyYear(g); // loyalty moves; revolts break states apart
   computeShore(g); // borders moved; shore farmland may have changed hands
@@ -2441,13 +2458,16 @@ function endTurn(g){
   for(const e of g.wonderEvents){ const W_=WONDERS[e.area].name;
     if(e.to>=0) note(g,e.to,`🏛 You captured the ${W_}! Your ${WONDER_EFFECT[e.area]} is +${wonderPct(e.area)}%.`);
     if(e.from>=0) note(g,e.from,e.to>=0?`🏛 You lost the ${W_} to ${C[e.to].name}.`:`🏛 You lost the ${W_}: its land is now unowned.`); }
-  C.forEach(c=>{ if(c.alive) economy(g,c); });
+  C.forEach((c,i)=>{ if(!(i&63)) step(0.7,0.85,"Harvest, taxes and research",i); if(c.alive) economy(g,c); });
   // market
+  step(0.87,0,"Markets trade");
   mkYear(g); mkWeather(g); // next year's prices and weather
+  step(0.92,0,"Envoys travel");
   relYear(g); // peace, forgiveness and size threat
   warYear(g); // wars end and start
   allianceYear(g); // alliance relations, alliance wars
   C.forEach(c=>{ c.lostRecent.shift(); c.lostRecent.push(c.lostThis); c.history.push(c.alive?c.land:0); });
+  step(0.98,0,"Chroniclers write it down");
   g.allBattles.push({turn:g.turn,list:g.battles.map(({d,...b})=>b)}); // full reports live in the news archive
   if(g.allBattles.length>40) g.allBattles.shift();
   g.turn++;
@@ -4607,6 +4627,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Year dial while a turn runs","2026-11-13 18:40",["While a year runs, a dial shows it: a sun circles the year number and a gold ring fills as the year goes on","A line under it says what is happening: rulers plan, armies march, harvest, markets, envoys","Auto-run shows a small spinner next to \"Year …\""]],
 ["Up to 4000 states","2026-11-13 18:37",["New game takes up to 4000 states (was 1000); the slider goes on to 1280, 1600, 2000, 2500, 3200 and 4000","Big maps take longer to make: about a minute at 4000 states"]],
 ["Invented state names","2026-11-13 18:32",["States beyond the name list get full invented names with a title, like \"Kingdom of Korvalia\" or \"Korvalian Empire\"","Settings → State names: edit the starts, middles, ends and titles used to invent names, with examples","Invented share: give part of the states an invented name even when the list has enough","Over two million possible names"]],
 ["Round map guide button","2026-11-13 18:25",["The ? button next to the map views is a small circle again, not a stretched oval","Every ? guide button shows its ? centered"]],
@@ -5044,7 +5065,8 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
 ["news","Interface","📰","News and reports",()=>`
-<ul class="log"><li>After each year the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
+<ul class="log"><li>While a year runs, a dial shows it passing: the sun circles the year, the gold ring fills, and a line says what the world is doing (plans, battles, harvest, markets, envoys). During auto-run a small spinner sits in the corner instead.</li>
+<li>After each year the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
 <li>The <b>News</b> tab keeps every report, page by page (← Newer / Older). <b>Details ›</b> opens a full battle report.</li>
 <li>War news reaches you when a war starts or ends next to you or in your alliance.</li></ul>`],
 ["modes","Interface","🎮","Game modes",()=>`
@@ -5264,6 +5286,14 @@ function pstHtml(i){ const s=UI.setup; if(!s.choose||!s.preview) return '<span c
   const k=picksOf(s)[i]; if(k!=null) return `<b>${esc(s.preview.countries[k].name)}</b><button type="button" data-pclr="${i}" title="Clear" aria-label="Clear pick">×</button>`;
   return nextPick(s)===i?'<span class="acc">Click the map</span>':'<span class="mut">Random</span>'; }
 function setPstText(){ const s=UI.setup; s.players.forEach((_,i)=>{ const el=$("pst"+i); if(el) el.innerHTML=pstHtml(i); }); }
+// the year window: dial with the year, a sun orbiting, an arc filled by the engine's progress (turnShow)
+function turnLoader(y){ const ticks=Array.from({length:12},(_,i)=>{ const a=i/12*2*Math.PI, x=Math.sin(a), z=-Math.cos(a); return `<line class="tl-tick" x1="${60+x*40}" y1="${60+z*40}" x2="${60+x*44}" y2="${60+z*44}"/>`; }).join("");
+  return `<div class="tload${ENGINE.inWorker?"":" ind"}" role="status" aria-live="polite"><svg viewBox="0 0 120 120" aria-hidden="true">
+    <circle class="tl-track" cx="60" cy="60" r="52"/>${ticks}<circle class="tl-arc" id="tlArc" cx="60" cy="60" r="52" pathLength="100"/>
+    <g class="tl-orbit"><text class="tl-sun" x="60" y="13" text-anchor="middle">☀️</text></g>
+    <text class="tl-lab" x="60" y="50" text-anchor="middle">YEAR</text><text class="tl-yr" x="60" y="78" text-anchor="middle">${y}</text></svg>
+    <div class="tl-step" id="tlStep">${ENGINE.inWorker?"The year begins…":"The world is moving…"}</div></div>`; }
+function turnShow(p,label){ const a=$("tlArc"), l=$("tlStep"); if(a) a.style.strokeDashoffset=100-Math.round(p*100); if(l&&label) l.textContent=label+"…"; }
 // map generation progress bar (filled by genShow while the worker reports; mini = the small one in the New game preview)
 const genBar=(p,mini)=>`<div class="genbar${mini?" mini":""}"><i id="${mini?"":"genBarI"}" style="width:${Math.round((p||0)*100)}%"></i></div>${mini?"":`<div class="small mut" id="genLab">Starting…</div>`}`;
 function genShow(p,label){ const b=$("genBarI"), l=$("genLab"); if(b) b.style.width=Math.round(p*100)+"%"; if(l) l.textContent=`${label} · ${Math.round(p*100)}%`; }
@@ -5517,9 +5547,9 @@ async function endTurnNow(){
   const prev=snapshot(me()), prevs={};
   // auto-sell after the snapshot, so the report shows the sale (hot-seat: for every human)
   for(const c of G.hot?G.hot.ids.map(id=>G.countries[id]):[me()]){ if(G.hot) prevs[c.id]=snapshot(c); if(c.autoSell&&c.alive&&!observing()){ const n=surplusGrain(c); if(n>0) applyCmd(G,c.id,{t:"postOrder",a:["grain","sell",n,G.price,1]}); } }
-  if(AUTO.on) showToast(`<span class="mut">Year ${G.turn}…</span>`);
-  else modal(`<h2>Year ${G.turn}…</h2><p class="mut">The world is moving${ENGINE.inWorker?" (processing in the background)":""}.</p>`);
-  try{ G=await ENGINE.call("endTurn",G); }
+  if(AUTO.on) showToast(`<span class="tlmini" aria-hidden="true"></span><span class="mut">Year ${G.turn}…</span>`);
+  else modal(turnLoader(G.turn),"turnwin");
+  try{ G=await ENGINE.call("endTurn",G,turnShow); }
   catch(e){ console.error(e); UI.busy=false; setAuto(false); closeModal(); render(); flash("Turn failed: "+e.message); return; }
   if(G.hot){ UI.busy=false; UI.attackTarget=null; hotNewYear(prevs); return; }
   UI.busy=false; UI.attackTarget=null; UI.lastPrev=prev; AUTO.left=AUTO.sec*1000; render(); archiveTurn(); save();
