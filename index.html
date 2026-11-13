@@ -33,7 +33,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:12px;padding:12p
 #split{display:none}
 @media(min-width:981px){ /* map and side panel scroll separately; drag #split to resize */
   body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  header{flex:none}
+  header,#topnav{flex:none}
   main{flex:1 1 auto;min-height:0;grid-template-columns:minmax(320px,1fr) 12px minmax(300px,var(--side,440px));gap:0;align-items:stretch}
   main>section{overflow:auto;min-height:0} #side{scrollbar-gutter:stable} /* room for the scrollbar is always kept, so switching tabs doesn't shift the layout */
   #split{display:block;cursor:col-resize;touch-action:none;position:relative}
@@ -101,7 +101,15 @@ table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(-
 .ctxm .ci{width:18px;text-align:center;flex:none} .ctxm .cs{margin-left:auto;padding-left:14px;font-size:11px;color:var(--mut)}
 .ctxm hr{border:0;border-top:1px solid var(--line);margin:3px 4px}
 #tip{position:fixed;z-index:5;pointer-events:none;background:#000c;border:1px solid var(--line);padding:6px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
-.tabs{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-bottom:10px} /* one row: icon over a short name */
+#topnav{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px 0} /* main menu: one button per page, number key on the right */
+#topnav button{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:8px;position:relative}
+#topnav .ic{font-size:16px} #topnav>.glink{align-self:center} #topnav .key{font-size:10px;color:var(--mut)}
+#topnav button.on{background:var(--acc);border-color:var(--acc);color:#1a1a1a;font-weight:600} #topnav button.on .key{color:#1a1a1a}
+#topnav button.on .tbdg.warn{background:#1a1a1a;color:var(--acc)}
+@media(max-width:640px){#topnav{gap:4px;padding:8px 8px 0} #topnav button{padding:5px 8px;gap:5px} #topnav .key{display:none}}
+.tabs{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-bottom:10px} /* second menu: one row of boxes, icon over a short name */
+.tabs[hidden]{display:none}
+.tabs .kk{position:absolute;top:2px;right:5px;font-size:9px;color:var(--mut);text-transform:uppercase} .tabs button.on .kk{color:#1a1a1a}
 .tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;padding:5px 0 4px;border-radius:7px;font-size:15px;line-height:1.2;position:relative}
 .tabs button .tl{font-size:10px;color:var(--mut);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabs button.on{background:var(--acc);border-color:var(--acc)} .tabs button.on .tl{color:#1a1a1a;font-weight:600}
@@ -380,6 +388,7 @@ tr.click{cursor:pointer} tr.click:hover{background:var(--panel2)}
 tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{background:rgba(224,179,84,.2)} tr.sel>td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
 .hfind{background:none;border:0;padding:0;font:inherit;color:var(--mut);cursor:pointer} .hfind:hover{color:var(--txt)} .hfind:hover b{text-decoration:underline}
 .small{font-size:12px}
+.homename{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:6px} .homename>b{font-size:16px}
 </style>
 </head>
 <body>
@@ -414,13 +423,14 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
     <button id="end" class="pri">End turn ▶</button>
   </span>
 </header>
+<nav id="topnav" aria-label="Main menu"></nav>
 <main>
   <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="loy" id="loyBtn" title="Color states by loyalty: red = revolt possible, green = loyal">Loyalty</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
     <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. Right-click (or press and hold) a state for actions. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
   <section class="card" id="side">
-    <div class="tabs" id="tabs"></div>
+    <div class="tabs" id="tabs" hidden></div>
     <div id="panel"></div>
   </section>
 </main>
@@ -3373,7 +3383,7 @@ const mainView=new MapView($("map"),{
   sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView, war:()=>!!UI.warView, loy:()=>!!UI.loyView,
   height:()=>Math.max(320, window.innerHeight-($("mapbox").getBoundingClientRect().top+window.scrollY+$("mapwrap").scrollTop)-72), // fill the window below the map's top edge (ignores scrolling)
   focus:g=>g.fog?g.player:null,
-  onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="war") UI.tab="world"; render(); },
+  onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="war"||subOf("war")!=="nbrs") UI.tab="world"; render(); },
   lift:o=>!!G&&isKnown(o), onMenu:(o,x,y)=>openCtx(o,x,y),
   onHover:(o,ev)=>{ const tip=$("tip"); if(!G||o===-9||!$("ctxMenu").hidden){ tip.style.display="none"; return; } const c=G.countries[o];
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
@@ -3386,7 +3396,7 @@ const mainView=new MapView($("map"),{
 // right-click (or press and hold) menu for a state on the map: the main things you can do with it
 function ctxItems(o){ const c=G.countries[o], obs=observing(), self=o===G.player&&!obs, pl=me(), I=[], it=(ic,label,act,opt={})=>I.push({ic,label,act,...opt}), team=G.teams&&c.team!=null;
   it("🔍","Details","pick");
-  if(self){ it("🏰","Home","tab:economy"); it("⚔️","Army","tab:barracks"); it("🗡️","War: defense and orders","tab:war");
+  if(self){ it("🏰","Home","tab:economy"); it("⚔️","Army","tab:barracks"); it("🗡️","War: defense and orders","tab:war:wars");
     if(team) it("🎁","Send aid to an ally…","aid",G.countries.some(x=>aidReach(G,o,x.id))?{}:{off:"No ally in reach"}); }
   else if(!obs&&pl.alive){ const ally=allied(G,pl.id,o), n=pl.attacks.filter(a=>a.target===o), busy=new Set(pl.attacks.map(a=>a.gen));
     if(!ally) it("🗡️",n.length?"Plan another attack…":"Plan attack…","attack",!neighbors(G,pl.id).includes(o)?{off:"No shared border"}:inPeace(G)?{off:`Peace until year ${G.peace+1}`}:!pl.generals.some(g=>!busy.has(g.id))?{off:"No free general"}:{});
@@ -3408,9 +3418,9 @@ function openCtx(o,x,y){ closeCtx(); if(!G||UI.busy||o<0||!isKnown(o)||!G.countr
   mainView.menuId=o; mainView.schedule(); m.querySelector("button:not(:disabled)")?.focus({preventScroll:true}); }
 function closeCtx(){ const m=$("ctxMenu"); if(!m||m.hidden) return; m.hidden=true; mainView.menuId=null; mainView.schedule(); }
 function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
-  if(a==="pick"){ UI.sel=o; if(UI.tab!=="war"||o===G.player) UI.tab="world"; render(); }
-  else if(a.startsWith("tab:")){ UI.tab=a.slice(4); render(); }
-  else if(a==="attack"){ UI.attackTarget=o; UI.sel=o; UI.atkMix=null; UI.tab="war"; render(); $("atkSum")?.closest(".gen")?.scrollIntoView({block:"nearest"}); }
+  if(a==="pick"){ UI.sel=o; if(UI.tab!=="war"||subOf("war")!=="nbrs"||o===G.player) UI.tab="world"; render(); }
+  else if(a.startsWith("tab:")){ const [,t,sub]=a.split(":"); goTab(t,sub); render(); }
+  else if(a==="attack"){ UI.attackTarget=o; UI.sel=o; UI.atkMix=null; goTab("war","nbrs"); render(); $("atkSum")?.closest(".gen")?.scrollIntoView({block:"nearest"}); }
   else if(a==="calloff"){ cmd("callOff",o); render(); }
   else if(a==="aid"){ if(o!==G.player) UI.aidTo=o; allianceModal(me().team); const n=$("aidN"); if(n){ n.scrollIntoView({block:"nearest"}); n.focus(); } }
   else if(a==="alliance") allianceModal(c.team);
@@ -3476,15 +3486,28 @@ function renderHeader(){
 }
 
 // ---------- tabs ----------
-// [key, short name, icon, full name]; grouped: economy, military, the world
-const TABS=[["economy","Home","🏰","Home: your state"],["market","Market","⚖️","Market"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: train & dismiss troops"],["generals","Generals","🎖️","Generals"],["war","War","🗡️","War: attack a neighbor"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
+// main menu above the map: [key, short name, icon, full name]
+const TABS=[["economy","Home","🏰","Home: your state"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["war","War","🗡️","War: generals, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
+// second menu at the top of the side panel, for pages split in parts (keys Q W E …)
+const SUBS={market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
+  war:[["generals","Generals","🎖️","Your generals and hiring"],["wars","Wars","🔥","Wars, defense and this year's orders"],["nbrs","Neighbors","🧭","Neighbors: plan an attack"]],
+  world:[["rank","Rankings","🏆","Rankings"],["recent","Recent wars","🗡️","Recent wars"]]};
+const SUBKEYS="qwertyuiop";
+const subOf=k=>{ const S=SUBS[k]; if(!S) return null; const s=UI.sub?.[k]; return S.some(x=>x[0]===s)?s:S[0][0]; };
+function goTab(t,sub){ UI.tab=t; if(sub) (UI.sub||(UI.sub={}))[t]=sub; }
 const PUBLIC_TABS=["world","alliances","news"]; // what an observer (or a fallen player) can look at
 function renderTabs(){
+  if(UI.tab==="generals") goTab("war","generals"); // older saves and links
   if(UI.tab==="alliances"&&!G.teams) UI.tab="world";
   if(observing()&&!PUBLIC_TABS.includes(UI.tab)) UI.tab="world"; // an observer has no economy, army or science of its own
-  const T=visibleTabs(), el=$("tabs"); seeTab(UI.tab); el.style.gridTemplateColumns=`repeat(${T.length},1fr)`;
-  el.innerHTML=T.map(([k,l,ic,full],i)=>{ const b=tabBadge(k), tip=full+(i<9?` · key ${i+1}`:"")+(b?.tip?` · ${b.tip}`:"");
-    return `<button data-tab="${k}" class="${UI.tab===k?'on':''}" title="${esc(tip)}" aria-label="${esc(tip)}">${ic}<span class="tl">${l}</span>${b?`<span class="tbdg ${b.cls||""}">${b.n??""}</span>`:""}</button>`; }).join(""); }
+  const T=visibleTabs(), bdg=b=>b?`<span class="tbdg ${b.cls||""}">${b.n??""}</span>`:""; seeTab(UI.tab);
+  $("topnav").innerHTML=T.map(([k,l,ic,full],i)=>{ const b=tabBadge(k), tip=full+(i<9?` · key ${i+1}`:"")+(b?.tip?` · ${b.tip}`:"");
+    return `<button data-tab="${k}" class="${UI.tab===k?'on':''}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="ic">${ic}</span>${l}${i<9?`<span class="key">${i+1}</span>`:""}${bdg(b)}</button>`; }).join("")+gl("tabs");
+  const S=watching()&&!PUBLIC_TABS.includes(UI.tab)?null:SUBS[UI.tab], el=$("tabs"), cur=subOf(UI.tab); el.hidden=!S;
+  if(!S){ el.innerHTML=""; return; }
+  el.style.gridTemplateColumns=`repeat(${S.length},1fr)`;
+  el.innerHTML=S.map(([k,l,ic,full],i)=>{ const b=subBadge(UI.tab,k), tip=full+` · key ${SUBKEYS[i].toUpperCase()}`+(b?.tip?` · ${b.tip}`:"");
+    return `<button data-tab="${UI.tab}" data-sub="${k}" class="${cur===k?'on':''}" title="${esc(tip)}" aria-label="${esc(tip)}">${ic}<span class="tl">${l}</span><span class="kk">${SUBKEYS[i]}</span>${bdg(b)}</button>`; }).join(""); }
 const visibleTabs=()=>TABS.filter(([k])=>(!observing()||PUBLIC_TABS.includes(k))&&(k!=="alliances"||G.teams));
 // badges: what changed since you last opened a tab ("stamps"), plus standing warnings
 var TSEEN={}, TSEEN_GID=null; // var: loadNews may touch these before this line runs
@@ -3493,7 +3516,7 @@ function tabStamps(){ const c=me(), N=newsFor(G), mine=id=>id===G.player||(G.tea
   return {war:c.defTurn??null, market:c.mkFill??null, science:c.lvTurn??null, news:n}; }
 function seeTab(k){ if(!G) return; const N=newsFor(G); if(TSEEN_GID!==N){ for(const x in TSEEN) delete TSEEN[x]; TSEEN_GID=N; TSEEN.newsLen=N.items.length; } // new game or reloaded archive: start clean
   if(observing()) return; const st=tabStamps(); if(k==="news") TSEEN.newsLen=newsFor(G).items.length; else if(k in st) TSEEN[k]=st[k]; }
-function tabBadge(k){
+function badgeFor(k){
   if(!G||observing()||!me().alive) return null; const c=me(), st=tabStamps(), fresh=x=>st[x]!=null&&st[x]!==TSEEN[x];
   if(k==="news"&&st.news>0) return {n:st.news>99?"99+":st.news,tip:`${st.news} new battle${st.news===1?"":"s"} involving you or your allies`};
   if(k==="war"&&fresh("war")&&c.defTurn>=G.turn-1) return {cls:"dot",tip:"you were attacked"};
@@ -3505,9 +3528,12 @@ function tabBadge(k){
     if(fresh("science")) return {cls:"dot good",tip:"a research level was reached"}; }
   if(k==="market"&&fresh("market")) return {cls:"dot good",tip:"your orders traded"};
   return null; }
+const tabBadge=k=>k==="war"?badgeFor("war")||badgeFor("generals"):badgeFor(k);
+const SUB_BADGE={war:{generals:"generals",wars:"war"},market:{trade:"market"}}; // which badge each part of a page shows
+const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
-  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,generals:pGenerals,war:pWar,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(); boxSections($("panel"));
+  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
   mainView.setGame(G); mainView.refresh();
 }
 
@@ -3544,10 +3570,10 @@ function giveAway(){
 function watchNote(){
   const c=me(), alive=G.countries.filter(x=>x.alive).length;
   if(observing()) return `<div class="note">👁 <b>Observer mode.</b> ${G.worldOver?`The war is over${winnerLine()}.`:`Every state is run by the computer. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to watch, or click a state on the map and press <b>Take over</b> to rule it.`}</div>
-  <div class="row"><button class="sm" data-tab="world">See rankings</button><button class="sm" data-a="newGame">New game</button></div>`;
+  <div class="row"><button class="sm" data-tab="world" data-sub="rank">See rankings</button><button class="sm" data-a="newGame">New game</button></div>`;
   return `<div class="note">☠ <b>${esc(c.name)}</b> fell in year ${c.diedTurn}${c.killer!=null?` to ${esc(G.countries[c.killer].name)}`:""}.
     ${G.worldOver?`The war is over${winnerLine()}.`:G.hot?`${fmt(alive)} states remain. Click a computer state on the map and press <b>Take over</b> to rule it, or press <b>${hotLast()?"End year":"Done"}</b> to watch.`:`You're watching the rest of the world. ${fmt(alive)} states remain. Use <b>Next year</b> or <b>Auto</b> to keep going, or click a state on the map and press <b>Take over</b> to rule it.`}</div>
-  <div class="row"><button class="sm" data-tab="world">See rankings</button>${G.hot?`<button class="sm" data-a="hotLeave">Leave the game</button>`:`<button class="sm" data-a="newGame">New game</button>`}</div>`;
+  <div class="row"><button class="sm" data-tab="world" data-sub="rank">See rankings</button>${G.hot?`<button class="sm" data-a="hotLeave">Leave the game</button>`:`<button class="sm" data-a="newGame">New game</button>`}</div>`;
 }
 // civilization + leader: names and the bonuses that actually apply
 function traitName(c){ const cv=civOf(c), ld=leaderOf(c), ln=landOf(c); return cv&&ld?`${cv.name} · ${ld.name} leader${ln?` · ${ln.name}`:""}`:""; }
@@ -3593,9 +3619,8 @@ function loyCard(c){
   const card=(l,val,sub)=>`<div class="stat"><span class="mut">${l}</span><b>${val}</b><span style="color:var(--mut)">${sub}</span></div>`, n1=x=>+(+x).toFixed(1);
   const last=y?[["recovery",+y.rec],["land won",-y.conq],["settling",-y.set],["famine",-(y.fam||0)],["empty treasury",-(y.broke||0)],["revolt",+(y.revolt||0)]].filter(x=>Math.abs(x[1])>=0.05).map(([l,x])=>`<span class="${x>0?"good":"bad"}">${x>0?"+":"−"}${n1(Math.abs(x))}</span> ${l}`).join(" · ")+(y.cut?` · held at the ceiling`:""):"";
   const fest=c.festT===G.turn&&c.festN?` · <span class="good">+${c.festN}</span> festivals this year`:"";
-  return `<h3>Loyalty ${gl("loyalty")}</h3>
-  <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-    ${card("Loyalty",`<span class="${cls}">${Math.round(v)}</span> <span class="small mut">/ ${ceil}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${Math.round(v)}%;background:${loyColor(v)}"></i></span>${st}`)}
+  return `<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:10px">
+    ${card(`Loyalty ${gl("loyalty")}`,`<span class="${cls}">${Math.round(v)}</span> <span class="small mut">/ ${ceil}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${Math.round(v)}%;background:${loyColor(v)}"></i></span>${st}`)}
     ${card("Next year",`+${n1(rec)}`,`if you win no land${rec<R.loyRec?` (slower: you're ${(c.land/landRef(G)).toFixed(1)}× the starting size)`:""}`)}
     ${card("Revolt",p?`<span class="bad">${Math.round(p*100)}%</span>`:"—",p?"chance next year":c.land<R.rebParent*landRef(G)?`not while under ${fmt(Math.ceil(R.rebParent*landRef(G)))} km²`:`only below ${R.loyRevolt}`)}</div>
   ${last||fest?`<div class="small mut">Last year: ${last||"no change"}${fest}</div>`:""}
@@ -3612,14 +3637,17 @@ function pEconomy(){
     return `<span class="wlab">${l}</span><input type="range" min="0" max="${fm?100:WORK_MAX}" value="${v}" data-work="${k}"${lk?" disabled":""}>
       <span class="wkval"><input type="text" inputmode="numeric" maxlength="3" value="${v}" data-workpct="${k}" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-wlock="${k}" title="${lk?"Locked: changing other jobs won't change this one. Click to unlock":"Lock this share so changing other jobs leaves it alone"}">${lk?"🔒":"🔓"}</button></span>
       <small class="wout" id="wo-${k}">${jobOut(c,k)}</small>`; };
+  const team=G.teams&&c.team!=null?G.teams[c.team]:null;
   return `
-  ${traitName(c)?`<div class="gen"><b>🏛 ${esc(traitName(c))}</b><div style="margin-top:4px">${traitChips(c.mod)}</div></div>`:""}
+  <div class="gen"><div class="homename"><b>★ <span class="sw" style="background:${c.color}"></span>${esc(c.name)}</b>${team?`<button class="hfind small" data-alliance="${c.team}" title="Open your alliance">🤝 <span class="sw" style="background:${team.color}"></span>${esc(team.name)} <span class="mut">(${fmt(G.countries.filter(o=>o.alive&&o.team===c.team).length)} states)</span></button>`:""}</div>
+  ${traitName(c)?`<b>🏛 ${esc(traitName(c))}</b><div style="margin-top:4px">${traitChips(c.mod)}</div>`:""}</div>
   <h3>Population ${gl("pop")}</h3>
   <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     ${card("People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
     ${card("Growth",(()=>{ const n=birthsOf(c); return `${n>=0?"+":""}${fmt(n)}<span class="small" style="color:var(--mut)">/yr</span>`; })(),yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
     ${card("Peasants",fmt(c.peasants),`${fmt(c.soldiers)} soldiers`)}</div>
   ${loyOn(G)?loyCard(c):""}
+  ${stockBox(c,"Resources")}
   <h3>Work ${gl("work")}</h3>
   <div class="wgrid">${job("farm","👨‍🌾 Farmers")}${job("wood","🌲 Woodcutters")}${job("iron","⛏️ Miners")}${job("sci","🔬 Scientists")}</div>
   <div class="small mut">Shares of your ${fmt(c.peasants)} peasants. Each job takes at most ${WORK_MAX}% and at least ${100-WORK_TOTAL}% keep farming. Lock 🔒 a job to keep its share while you move the others.</div>
@@ -3629,7 +3657,7 @@ function pEconomy(){
   ${c.forest?`<div class="small">🌲 Forest: <b>${fmt(c.forest)}</b> km² of ${fmt(c.land)} → <b class="good">+${Math.round(forestBonus(c)*100)}%</b> wood${forestBonus(c)>=R.forestMax?" (max)":""}.</div>`:""}
   ${c.mtn?`<div class="small">⛰️ Mountains: <b>${fmt(c.mtn)}</b> km² of ${fmt(c.land)} → <b class="good">+${Math.round(mtnBonus(c)*100)}%</b> iron${mtnBonus(c)>=R.mtnMax?" (max)":""}.</div>`:""}
   ${c.shore?`<div class="small">🌊 Shore farmland: <b>${fmt(c.shore)}</b> km² of ${fmt(c.land)} → <b class="good">+${Math.round(shoreBonus(c)*100)}%</b> harvest${shoreBonus(c)>=R.shoreMax?" (max)":""}.</div>`:""}
-  <div class="small mut" style="margin-top:6px">Everyone eats 1 grain/yr, soldiers their troop's upkeep. Trade in the <button class="sm" data-tab="market">Market</button>, train soldiers in the <button class="sm" data-tab="barracks">Barracks</button>.</div>`;
+  <div class="small mut" style="margin-top:6px">Everyone eats 1 grain/yr, soldiers their troop's upkeep. Trade in the <button class="sm" data-tab="market">Market</button>, train soldiers in the <button class="sm" data-tab="barracks">Army</button>.</div>`;
 }
 function workNote(c){ const wk=workers(c), pr=production(c); return `🔬 ${fmt(wk.sci)} scientists (+${fmt(researchPoints(c))} research, −${fmt(wk.sci*R.sciWage)} money/yr) · 👨‍🌾 ${fmt(wk.farm)} farmers (+${fmt(foodProduction(c))} grain/yr) · 🌲 ${fmt(wk.wood)} woodcutters (+${fmt(pr.wood)} wood/yr) · ⛏️ ${fmt(wk.iron)} miners (+${fmt(pr.iron)} iron/yr)`; }
 function foodNote(c){
@@ -3713,11 +3741,19 @@ function mktMine(c){ const L=[]; for(const r of MK_RES){ const B=mkBook(G,r); fo
       <span class="small mut">${done?`${fmt(done)} filled · `:"nothing filled · "}${buy?`${fmt(o.q*o.p)} gold held`:`${fmt(o.q)} held`} · ${mkLeft(o)}</span></div>
       <button class="sm" data-a="mkCancel" data-id="${o.id}" title="Take it back: what it still holds returns">Cancel</button>`; }).join("")}</div>
     <div class="small mut">Gold and goods in your orders are held until they fill, run out of time or you cancel them.</div>`; }
-function pMarket(){
-  const c=me(), pr=production(c), food=foodUse(c), prod=foodProduction(c), sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)), r=mkR(), side=mkSide(), buy=side==="buy", m=mkOf(G)[r];
+// grain, money, wood and iron in store, change per year and market price (Home and Market → Stock)
+function stockBox(c,title){ const pr=production(c), sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v));
   const card=(l,v,sub,extra="")=>`<div class="stat"><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span>${extra}</div>`;
   const per=v=>`<span class="${v<0?"bad":v>0?"good":""}">${sg(v)}/yr</span>`;
   const px=x=>`${mktSpark(x)}<span class="small" style="color:var(--mut)">Price ${px2(mkPrice(G,x))} ${mktTrend(x)} ${mktFeel(x)}</span>`;
+  return `<h3>${title} ${gl("market")}</h3>
+  <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    ${card("🌾 Grain",fmt(c.grain),per(foodProduction(c)-foodUse(c)),px("grain"))}
+    ${card("💰 Money",fmt(c.money),per(taxIncome(c)-wages(c)),`<span class="small" style="color:var(--mut)">before trading</span>`)}
+    ${card("🌲 Wood",fmt(c.wood||0),per(pr.wood),px("wood"))}
+    ${card("⛏️ Iron",fmt(c.iron||0),per(pr.iron),px("iron"))}</div>`; }
+function pMarket(sub){
+  const c=me(), pr=production(c), food=foodUse(c), prod=foodProduction(c), sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)), r=mkR(), side=mkSide(), buy=side==="buy", m=mkOf(G)[r];
   const surplus=surplusGrain(c), have=mktStock(c,r), B=mkBook(G,r);
     // a suggested price inside the gap: just above the best buy order (buying) or just below the cheapest seller (selling)
   const ba=B.a[0]?.p??mkMA(m), bb=B.b[0]?.p??mkMB(m), mid=Math.min(ba-0.01,Math.max(bb+0.01,m.price));
@@ -3725,13 +3761,13 @@ function pMarket(){
   const maxBuy=mkQuote(G,c,r,"buy",1e9).n, maxN=buy?maxBuy:have;
   const seg=(attr,v,on,label)=>`<button data-${attr}="${v}" class="${on?"on":""}" aria-pressed="${on}">${label}</button>`;
   const qp=[[buy?"Best buy order":"Cheapest seller",buy?B.b[0]?.p:B.a[0]?.p],["Market price",m.price],[buy?"Cheapest seller":"Best buy order",buy?B.a[0]?.p:B.b[0]?.p]].filter(x=>x[1]!=null);
-  return `<h3>Stock ${gl("market")}</h3>
-  <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-    ${card("🌾 Grain",fmt(c.grain),per(prod-food),px("grain"))}
-    ${card("💰 Money",fmt(c.money),per(taxIncome(c)-wages(c)),`<span class="small" style="color:var(--mut)">before trading</span>`)}
-    ${card("🌲 Wood",fmt(c.wood||0),per(pr.wood),px("wood"))}
-    ${card("⛏️ Iron",fmt(c.iron||0),per(pr.iron),px("iron"))}</div>
-  <h3>Trade</h3>
+  if(sub==="stock") return `${stockBox(c,"Stock")}
+  <h3>World market ${gl("market")}</h3>
+  ${mktChart()}
+  ${mktWhy()}
+  ${(()=>{ const w=worldWx(G); return w==null?"":`<div class="small" style="margin:4px 0">🌦 World harvest last year: <b class="${Math.abs(w-1)<0.03?"":w>1?"good":"bad"}">${Math.abs(w-1)<0.005?"normal":`${Math.round(Math.abs(w-1)*100)}% ${w>1?"above":"below"} normal`}</b> <span class="mut">(weather; turn on the Weather map to see where)</span></div>`; })()}
+  <div class="small mut">States trade with each other through the order book: post an order at your price and wait, or trade now with the best orders posted. Outside merchants always buy and sell, but at poor prices that get worse the more they trade in a year; when states run short, merchants sell dearer every year until demand dies down. The market price is the average of the last ${R.mkYears} years' trades. Finance research raises what you get when selling (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%).</div>`;
+  return `<h3>Trade ${gl("market")}</h3>
   <div class="mseg" role="group" aria-label="Resource">${MK_RES.map(x=>seg("mkres",x,x===r,`${MKT[x][0]} ${MKT[x][1]}`)).join("")}</div>
   <div class="mrow">
     <div class="mseg" role="group" aria-label="Buy or sell">${seg("mkside","buy",buy,"Buy")}${seg("mkside","sell",!buy,"Sell")}</div>
@@ -3753,12 +3789,7 @@ function pMarket(){
   <h3>Order book · ${MKT[r][1]} ${gl("market")}</h3>
   ${mktBook(c,r)}
   <h3>Your orders</h3>
-  ${mktMine(c)}
-  <h3>World market</h3>
-  ${mktChart()}
-  ${mktWhy()}
-  ${(()=>{ const w=worldWx(G); return w==null?"":`<div class="small" style="margin:4px 0">🌦 World harvest last year: <b class="${Math.abs(w-1)<0.03?"":w>1?"good":"bad"}">${Math.abs(w-1)<0.005?"normal":`${Math.round(Math.abs(w-1)*100)}% ${w>1?"above":"below"} normal`}</b> <span class="mut">(weather; turn on the Weather map to see where)</span></div>`; })()}
-  <div class="small mut">States trade with each other through the order book: post an order at your price and wait, or trade now with the best orders posted. Outside merchants always buy and sell, but at poor prices that get worse the more they trade in a year; when states run short, merchants sell dearer every year until demand dies down. The market price is the average of the last ${R.mkYears} years' trades. Finance research raises what you get when selling (+${+(R.finPricePerLevel*100).toFixed(2)}% per level; you have +${+(R.finPricePerLevel*lvl(c,"fin")*100).toFixed(1)}%).</div>`;
+  ${mktMine(c)}`;
 }
 // a copy of state c after training n of troop id (paid, peasants become soldiers); free=true skips the cost
 function afterTrain(c,id,n,free){ const t=TROOP[id], x={...c,troops:{...troopsOf(c)}};
@@ -3793,7 +3824,9 @@ function pBarracks(){
   ${c.soldiers?`<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     ${card("Soldiers",fmt(c.soldiers),away?`${fmt(away)} away on attack`:"all at home")}
     ${card("Attack",fmtPow(armyAtk(c)),`research lvl ${c.lv.atk}`,"Attack strength of your whole army")}
-    ${card("Home defense",fmtPow(armyDef(c,home)),away?`lvl ${c.lv.def} · full army ${fmtPow(armyDef(c))}`:`research lvl ${c.lv.def}`,"Defense of the soldiers guarding at home this year")}</div>`
+    ${card("Home defense",fmtPow(armyDef(c,home)),away?`lvl ${c.lv.def} · full army ${fmtPow(armyDef(c))}`:`research lvl ${c.lv.def}`,"Defense of the soldiers guarding at home this year")}</div>
+  <table class="tight" style="margin-top:8px"><tr><th>Troop</th><th class="r">Soldiers</th><th class="r" title="Not sent on an attack this year">At home</th><th class="r" title="With all your bonuses">Attack</th><th class="r" title="With all your bonuses">Defense</th><th class="r">Upkeep/yr</th></tr>
+  ${TROOPS.filter(t=>tr[t.id]>0).map(t=>`<tr><td style="white-space:nowrap">${t.icon} ${t.name}</td><td class="r"><b>${fmt(tr[t.id])}</b></td><td class="r">${fmt(home[t.id]||0)}</td><td class="r">${fmtPow(t.atk*atkPower(c)*tr[t.id])}</td><td class="r">${fmtPow(t.def*defPower(c)*tr[t.id])}</td><td class="r mut" style="white-space:nowrap">${fmt(t.upFood*tr[t.id])} 🌾${t.upGold?` ${fmt(t.upGold*tr[t.id])} 💰`:""}</td></tr>`).join("")}</table>`
   :`<div class="note warn">No soldiers. Your borders are unguarded: any attack wins and takes as much land as it can.</div>`}
   <h3>Supplies ${gl("food")}</h3>
   <div id="supply">${supplyTable(c)}</div>
@@ -3993,24 +4026,26 @@ function stanceEffect(i){ const k=STANCE_KEY[STANCE_UI[i][0]], l=R["stLoss"+k], 
 function stancePicker(c){ const cur=STANCES.indexOf(stanceOf(c));
   return `<div class="stance" role="group" aria-label="Defense stance">${STANCE_UI.map(([id,ic,nm,tip],i)=>`<button class="sm ${i===cur?"on":""}" data-stance="${id}" aria-pressed="${i===cur}" title="${nm}: ${tip}. ${stanceEffect(i)}">${ic} ${nm}</button>`).join("")}</div>
   <div class="small mut">${STANCE_UI[cur][2]}: ${STANCE_UI[cur][3]}. ${stanceEffect(cur)} Your neighbors don't see your stance.</div>`; }
-function pWar(){
+function pWar(sub){
+  if(sub==="generals") return pGenerals();
   const c=me(); const nb=neighbors(G,c.id); const com=committed(c); const guards=c.soldiers-com;
   const busy=new Set(c.attacks.map(a=>a.gen));
   const dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
   const idle=c.generals.filter(g=>!busy.has(g.id));
-  return `${inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:""}${warsPanel(c)}<h3>Defense ${gl("battle")}</h3>
-  <div class="kv"><span class="mut">Border guards</span><b>${fmt(guards)} <span class="small mut">(defense ${fmtPow(armyDef(c,plannedPools(c)))})</span></b><span class="mut">Defending general</span><b>${dg?esc(dg.name)+` (skill ${dg.skill.toFixed(0)})`:'<span class="bad">none</span>'}</b></div>
-  <div style="margin:8px 0"><span class="mut">Stance ${gl("stance")}</span>${stancePicker(c)}</div>
-  ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
-  ${loyOn(G)?`<div class="small" style="margin:4px 0">❤️ Loyalty <b style="color:${loyColor(loyOf(c))}">${Math.round(loyOf(c))}</b>: every 1% of your land you win in battle costs ${R.loyConq} loyalty. Raids, kidnaps and massacres take no land. ${gl("loyalty")}</div>`:""}
-  <h3>Orders this year ${gl("attack")}</h3>
-  ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${a.mix?mixShort(a.mix):fmt(a.soldiers)+" soldiers"}</td><td>→ ${esc(G.countries[a.target].name)}${a.mode&&a.mode!=="normal"&&MODES.includes(a.mode)?` <span class="small" title="${esc(MODE_UI[MODES.indexOf(a.mode)][2]+": "+modeEffect(MODES.indexOf(a.mode)))}">${MODE_UI[MODES.indexOf(a.mode)][1]} ${MODE_UI[MODES.indexOf(a.mode)][2].toLowerCase()}</span>`:""}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}
-  <h3>Neighbors ${gl("relations")}</h3>
+  const peace=inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:"";
+  if(sub==="nbrs") return `${peace}<h3>Neighbors ${gl("relations")}</h3>
   ${nb.length?`<table class="nbtab"><tr><th>State</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th></th></tr>
   ${nb.map(j=>{const o=G.countries[j];
    return `<tr class="click ${UI.sel===j?'sel':''}" data-pick="${j}"><td><div style="white-space:nowrap"><span class="sw" style="background:${o.color}"></span>${esc(o.name)}${atWar(G,c.id,j)?' <span title="At war with you">⚔️</span>':''}</div><div class="small mut">${fmt(o.land)} km² · ${fmtK(popOf(o))} people · <span title="Length of your shared border. Narrow borders give the defender a bonus.">border ${frontCell(c.id,j)}</span></div></td><td class="r">${fmt(o.soldiers)}</td><td class="r">${relCell(relOf(G,o,c.id),relTip(G,o,c.id),1)}</td><td class="r"><button class="sm" data-target="${j}">Attack…</button></td></tr>`}).join("")}</table>`:`<div class="mut">No neighbors.</div>`}
   ${UI.attackTarget!=null && nb.includes(UI.attackTarget) ? (inPeace(G)?`<div class="note">Peace time: no attacks until year ${G.peace+1}.</div>`:attackForm(c,UI.attackTarget,idle)):""}
   <div class="small mut" style="margin-top:8px">Battles resolve at year end, all at once. Soldiers you send don't guard your own borders that year. If several armies attack the same state, its guards are split between them by attack strength, so joint attacks fight at their combined odds (each still wins or loses on its own). Win and you take land: (your general's speed limit + an army bonus that grows with your surviving soldiers) × how decisive the win was, from 25% for a narrow win to 100% at twice their strength. Relations = how they feel about you (−100 hostile … +100 friendly). Computer states attack those they dislike first.</div>`;
+  return `${peace}${warsPanel(c)}<h3>Defense ${gl("battle")}</h3>
+  <div class="kv"><span class="mut">Border guards</span><b>${fmt(guards)} <span class="small mut">(defense ${fmtPow(armyDef(c,plannedPools(c)))})</span></b><span class="mut">Defending general</span><b>${dg?esc(dg.name)+` (skill ${dg.skill.toFixed(0)})`:'<span class="bad">none</span>'}</b></div>
+  <div style="margin:8px 0"><span class="mut">Stance ${gl("stance")}</span>${stancePicker(c)}</div>
+  ${guards<=0?`<div class="note warn">No guards! Any attack wins automatically and takes as much land as the attacker's general and army can.</div>`:""}
+  ${loyOn(G)?`<div class="small" style="margin:4px 0">❤️ Loyalty <b style="color:${loyColor(loyOf(c))}">${Math.round(loyOf(c))}</b>: every 1% of your land you win in battle costs ${R.loyConq} loyalty. Raids, kidnaps and massacres take no land. ${gl("loyalty")}</div>`:""}
+  <h3>Orders this year ${gl("attack")}</h3>
+  ${c.attacks.length?`<table>${c.attacks.map((a,i)=>{const g=c.generals.find(x=>x.id===a.gen);return `<tr><td>${esc(g?.name||"?")}</td><td class="r">${a.mix?mixShort(a.mix):fmt(a.soldiers)+" soldiers"}</td><td>→ ${esc(G.countries[a.target].name)}${a.mode&&a.mode!=="normal"&&MODES.includes(a.mode)?` <span class="small" title="${esc(MODE_UI[MODES.indexOf(a.mode)][2]+": "+modeEffect(MODES.indexOf(a.mode)))}">${MODE_UI[MODES.indexOf(a.mode)][1]} ${MODE_UI[MODES.indexOf(a.mode)][2].toLowerCase()}</span>`:""}</td><td><button class="sm" data-cancel="${i}">Cancel</button></td></tr>`}).join("")}</table>`:`<div class="mut small">No attacks planned.</div>`}`;
 }
 // a relation value with its label, colored: red when hostile, green when friendly
 function relTip(g,c,j){ const p=relParts(g,c,j); return p.length?p.map(([n,v])=>`${n} ${v>0?"+":""}${v}`).join(" · "):"No strong feelings"; }
@@ -4054,7 +4089,7 @@ function atkTake(c,o,m,mine,est,n){ const eff=est>0?mine/(mine+est):1, sh=`${Mat
   return `<div class="small">Massacre: you bring ${sh}, so about <b>${fmt(k)}</b> of their peasants would die, costing you about ${fmt(Math.round(k*R.masFight))} more soldiers as they fight back <span class="mut">(no land; their allies and neighbors will hate you)</span>.</div>`; }
 function attackForm(c,j,idle){
   const o=G.countries[j];
-  if(!idle.length) return `<div class="note">Every general is busy or you have none. Hire one on the Generals tab.</div>`;
+  if(!idle.length) return `<div class="note">Every general is busy or you have none. Hire one under <button class="sm" data-tab="war" data-sub="generals">War → Generals</button>.</div>`;
   const gsel=UI.atkGen && idle.some(g=>g.id===UI.atkGen)?UI.atkGen:idle.slice().sort((a,b)=>genFactor(b)-genFactor(a))[0].id; UI.atkGen=gsel;
   const gen=idle.find(g=>g.id===gsel), home=plannedPools(c), mix=atkMix(home), rows=TROOPS.filter(t=>home[t.id]>0);
   const fw=frontWidth(G,c.id,j), sea=seaOnlyFront(G,c.id,j), fb=frontBonusAD(G,c.id,j), td=terrainDefAD(G,c.id,j), n=troopCount(mix);
@@ -4084,7 +4119,7 @@ function refreshAtk(){
   $("atkSum").innerHTML=atkSummary(c,o,gen,mix);
 }
 
-function pWorld(){
+function pWorld(sub){
   if(!["land","pop","atk","def","sci"].includes(UI.wsort?.k)) UI.wsort=null;
   const S=UI.wsort||{k:"land",dir:-1}, sciTot=c=>AREAS.reduce((s,a)=>s+c.lv[a],0);
   const val={land:c=>c.land,pop:c=>c.alive?popOf(c):-1,atk:c=>c.alive?armyAtk(c):-1,def:c=>c.alive?armyDef(c):-1,sci:c=>c.alive?sciTot(c):-1}[S.k];
@@ -4096,6 +4131,9 @@ function pWorld(){
   const C=all.slice(0,LIMIT); for(const id of [G.player,UI.sel]) if(id!=null&&isKnown(id)&&!C.some(c=>c.id===id)) C.push(G.countries[id]);
   const sel=UI.sel!=null?G.countries[UI.sel]:null;
   const recent=G.allBattles.slice(-6).reverse().map(b=>({...b,list:b.list.filter(seenBattle).map(newsRefFor(G.allBattles.at(-6)?.turn??0))}));
+  if(sub==="recent") return `${sel?inspect(sel):""}
+  <h3>Recent wars ${gl("wars")}</h3>
+  ${recent.length?recent.map(b=>`<div class="small"><b>Year ${b.turn}</b>${b.list.length?"":" <span class='mut'>peace</span>"}<ul class="log" style="margin:2px 0 6px;padding-left:18px">${b.list.map(battleLine).join("")}</ul></div>`).join(""):`<div class="mut small">No turns played yet.</div>`}`;
   return `${sel?inspect(sel):""}
   ${wonderList()}
   <h3>Rankings ${gl("power")}</h3>
@@ -4103,9 +4141,7 @@ function pWorld(){
   <div class="small mut">${all.length>LIMIT?`Showing the top ${LIMIT} of ${fmt(all.length)} states. `:""}Alive ${fmt(nAlive)} / ${fmt(G.countries.length)} states.</div>
   <div class="row small"><label title="The # column shows each state's place by land, whatever you sort by"><input type="checkbox" id="wLandRank" ${UI.wLandRank?"checked":""}> # by land</label>${G.teams?`<label title="Color each state by its alliance"><input type="checkbox" id="wAllyCol" ${UI.wAllyCol?"checked":""}> Alliance colors</label>`:""}</div>
   <table class="rank atab"><tr><th class="pl" title="Place">#</th><th>State</th>${th("land","Land")}${th("pop","Pop")}${th("atk","Attack","Army attack power: every troop's attack × research, civilization, leader, land and wonder bonuses")}${th("def","Defense","Army defense power: every troop's defense × research, civilization, leader, land and wonder bonuses")}${th("sci","Science","Total science levels across all areas (hover a number for each area)")}</tr>
-  ${C.map(c=>`<tr class="click${UI.sel===c.id?' sel':''}${c.id===G.player?' me':''}" data-pick="${c.id}"><td class="pl">${c.alive?(UI.wLandRank?landRank.get(c.id):all.indexOf(c)+1):"—"}</td><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt fl">${c.id===G.player?`<span style="margin-right:4px">★</span>`:""}${allyPrefix(c)}<span class="sw" style="background:${swatch(c)}"></span><span class="nmn">${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</span></div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r${c.alive?"":" mut"}">${researchCell(c)}</td></tr>`).join("")}</table>
-  <h3>Recent wars ${gl("wars")}</h3>
-  ${recent.length?recent.map(b=>`<div class="small"><b>Year ${b.turn}</b>${b.list.length?"":" <span class='mut'>peace</span>"}<ul class="log" style="margin:2px 0 6px;padding-left:18px">${b.list.map(battleLine).join("")}</ul></div>`).join(""):`<div class="mut small">No turns played yet.</div>`}`;
+  ${C.map(c=>`<tr class="click${UI.sel===c.id?' sel':''}${c.id===G.player?' me':''}" data-pick="${c.id}"><td class="pl">${c.alive?(UI.wLandRank?landRank.get(c.id):all.indexOf(c)+1):"—"}</td><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt fl">${c.id===G.player?`<span style="margin-right:4px">★</span>`:""}${allyPrefix(c)}<span class="sw" style="background:${swatch(c)}"></span><span class="nmn">${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</span></div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r${c.alive?"":" mut"}">${researchCell(c)}</td></tr>`).join("")}</table>`;
 }
 // alliance tag before a state's name in tables, e.g. "GC "
 function allyPrefix(c){ return G.teams&&c.team!=null?`<b class="small" style="color:${inkOnDark(G.teams[c.team].color)}">${esc(allyTag(G,c.team))}</b> `:""; }
@@ -4543,6 +4579,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Two-level menu","2026-11-13 18:15",["Main menu moved above the map and side panel: Home, Science, Army, Market, War, World, Allies, News (keys 1–8)","Market, War and World split into parts, picked in a second menu at the top of the side panel (keys Q, W, E)","Market: Stock (your goods and the world market) and Trade (trade, order book, your orders)","War: Generals, Wars (wars, defense, this year's orders) and Neighbors","World: Rankings and Recent wars","Generals moved into War","Home shows your state's name and alliance, loyalty inside the Population box and a Resources box","Army lists your soldiers per troop type with attack, defense and upkeep"]],
 ["Rankings: color next to the name","2026-11-12 21:41",["World rankings show the alliance tag first, then the state's color square right next to its name","Long names get cut with … but the tag and color square stay"]],
 ["Map keeps its zoom after revolts","2026-11-12 21:37",["The map no longer jumps back to your state or zooms out when a revolt creates rebel states"]],
 ["Revolts: 1 to 9 rebel states","2026-11-12 21:05",["A revolt now makes 1 to 9 rebel states: 1–3 in most revolts, each more is rarer, and about 1 in 30 the state falls apart","Each rebel state takes about 10% of the land; pieces come out about the same size","Troops go with the rebels in the same share as the land (was 1.5×)","Rebels start with 2/3 of your research levels","Your core land (the land you have held longest) never breaks away","Chances for each number are in Settings → Loyalty and rebels"]],
@@ -4683,10 +4720,10 @@ const GUIDE=[
 <p>A safe opening that works with most civilizations:</p>
 <ol class="glist"><li><b>Home tab:</b> put 10–20% of peasants into science. Keep enough farmers that <i>Year ahead</i> shows a food surplus.</li>
 <li><b>Science tab:</b> start with Science (it speeds up all research), then Agriculture and Finance. The presets (Science run, Economy, Balanced, War) are a quick start.</li>
-<li><b>Generals tab:</b> hire a young general with good Mind early. He learns every year and becomes your best asset. Set one general as defender.</li>
+<li><b>War → Generals:</b> hire a young general with good Mind early. He learns every year and becomes your best asset. Set one general as defender.</li>
 <li><b>Army tab:</b> keep some guards from the start. An empty border invites attacks: a state with no guards loses as much land as the attacker can take.</li>
 <li><b>Market:</b> sell surplus grain (or tick <i>Auto-sell surplus every year</i>) to pay scientists.</li>
-<li>Around years 30–45, research Attack/Defense, buy an army, and look for a weak neighbor in the War tab.</li></ol>
+<li>Around years 30–45, research Attack/Defense, buy an army, and look for a weak neighbor under War → Neighbors.</li></ol>
 <p>Don't be the biggest state or the weakest neighbor early on. Both get attacked.</p>`],
 ["year","Getting started","🔁","The year in order",()=>`
 <p>When the year ends, things happen in this order. It decides what sees this year's values and what sees last year's.</p>
@@ -4771,7 +4808,7 @@ ${gTab(["Job","Makes per worker per year","Notes"],[["Farmer",`${R.foodPerFarmer
 <li>These follow the land: conquer a forest and its wood bonus is yours; lose it and the bonus goes too. Your Home tab shows how much forest and mountain land you hold, and the Science tab's Terrain column shows the bonus.</li>
 <li>Normal prices: wood ${R.woodPrice}, iron ${R.ironPrice} gold. Merchants pay half of that, so selling a big surplus earns little: better to make less and move hands to research.</li></ul>`],
 ["market","Your state","⚖️","World market",()=>`
-<p>Grain, wood and iron each have an <b>order book</b>: a list of what states want to sell (asks) and buy (bids), and at what price. Open it in the Market tab.</p>
+<p>Grain, wood and iron each have an <b>order book</b>: a list of what states want to sell (asks) and buy (bids), and at what price. Open it under Market → Trade.</p>
 <h3>Trading</h3>
 <ul class="log"><li><b>Trade now:</b> buy from the cheapest sellers or sell to the highest buyers right away. The preview shows the average price before you confirm.</li>
 <li><b>Post an order:</b> pick your own price and how long it stands: 1, 5, 10 or 50 years, or no end. Its gold (for a buy) or goods (for a sale) are held until it fills, runs out of time or you cancel it. Grain held for sale still spoils.</li>
@@ -4809,7 +4846,7 @@ ${gTab(["Area","Each level gives"],AREAS.map(a=>[`${WONDERS[a]?.icon||""} ${AREA
 ${gTab(["Wonder","Area","Bonus"],AREAS.filter(a=>WONDERS[a]).map(a=>[`${WONDERS[a].icon} ${WONDERS[a].name}`,AREA_NAMES[a],"+"+gP(WONDERS[a].bonus)]))}`],
 
 ["troops","Military","⚔️","Troops",()=>`
-<p>Six troop types, all available from the start, trained in the Army tab. Every soldier is one person taken from your peasants (at least 50 peasants always stay). Dismissing sends them back as peasants, with no refund.</p>
+<p>Six troop types, all available from the start, trained in the Army tab, which also lists your soldiers per troop type with their attack, defense and upkeep. Every soldier is one person taken from your peasants (at least 50 peasants always stay). Dismissing sends them back as peasants, with no refund.</p>
 ${gTab(["Troop","Attack","Defense","Toughness","Cost (food/wood/iron/gold)","Upkeep (food/gold)"],TROOPS.map(t=>[`${t.icon} ${t.name}`,t.atk,t.def,t.tough,`${t.food} / ${t.wood} / ${t.iron} / ${t.gold}`,`${t.upFood} / ${t.upGold}`]))}
 <ul class="log"><li><b>Toughness</b> divides battle losses: tough troops lose fewer people per battle.</li>
 <li><b>Wood troops</b> (Spearman, Archers, Axeman) are cheap and fragile: good for states with plenty of people and fast growth.</li>
@@ -4837,7 +4874,7 @@ ${gTab(["Troop","Attack","Defense","Toughness","Cost (food/wood/iron/gold)","Upk
 <p class="mut">Settings → Battle → "Beaten states keep their people and grain" switches between the two rules.</p>
 <p>Press <b>Details</b> on any battle in the News tab or year report to see both sides' troops, losses and how each strength adds up.</p>`],
 ["stance","Military","🧱","Defense stance",()=>`
-<p>Each year you pick how your guards fight when someone attacks you (War tab, under Defense). It applies to every battle on your land that year. Neighbors don't see it, and computer states pick theirs too. A battle report shows the defender's stance.</p>
+<p>Each year you pick how your guards fight when someone attacks you (War → Wars, under Defense). It applies to every battle on your land that year. Neighbors don't see it, and computer states pick theirs too. A battle report shows the defender's stance.</p>
 <table><tr><th>Stance</th><th class="r">Both sides' losses</th><th class="r">Land the attacker takes</th></tr>
 ${STANCE_UI.map(([id,ic,nm])=>{ const k=STANCE_KEY[id]; return `<tr><td>${ic} ${nm}</td><td class="r">×${R["stLoss"+k]}</td><td class="r">×${R["stLand"+k]}</td></tr>`; }).join("")}</table>
 <ul class="log"><li><b>Fall back</b>: a cheaper fight. Both sides lose the same share fewer troops, so it changes how fast armies wear down, not who wins the exchange. Good when time is on your side: a smaller army, allies coming, or rebuilding.</li>
@@ -4877,7 +4914,7 @@ ${MODE_PICK.map(([id,ic,nm])=>{ const k=MODE_KEY[id]; return `<tr><td>${ic} ${nm
 <p class="mut">All multipliers and caps are in Settings → Attack modes.</p>`],
 
 ["relations","Diplomacy","💬","Relations",()=>`
-<p>Every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings; hover a relation to see them. The War tab lists your neighbors' feelings; the map tooltip shows every neighbor's relations both ways.</p>
+<p>Every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings; hover a relation to see them. War → Neighbors lists your neighbors' feelings; the map tooltip shows every neighbor's relations both ways.</p>
 ${gTab(["Feeling","Comes from","Fades"],[
 ["Grievance",`You attacked them: −${R.rgHit}, plus −${R.rgHitLand} per 1% of their land taken (−${R.rgHitFail} if they held you off)`,`${gP(R.rgFade)} a year; a winning strike back clears most of it`],
 ["Solidarity",`You attacked their ally: −${R.rsHit} (at most −${R.rsMax})`,`${gP(R.rsFade)} a year`],
@@ -4895,13 +4932,13 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li>You can't declare war yourself; your attacks can start one through the victim's anger, and computer states can declare on you.</li>
 <li>Rebel states are at war with the state they broke away from from day one.</li>
 <li>No wars during the game's peace years (the header shows how many are left).</li></ul>
-<p><b>Where to see wars:</b> the War tab's Wars section, ⚔️ marks in the neighbors list and map tooltip, the <b>Wars</b> map view (your enemies red, states at war orange, at peace grey), and the news.</p>`],
+<p><b>Where to see wars:</b> the Wars section under War → Wars, ⚔️ marks in the neighbors list and map tooltip, the <b>Wars</b> map view (your enemies red, states at war orange, at peace grey), and the news.</p>`],
 ["alliances","Diplomacy","🤝","Alliances",()=>`
 <p>Alliances are fixed teams chosen in New game (by number of alliances or states per alliance, in a region or scattered). Allies never attack each other and win together. Attacking a state also angers its allies (solidarity).</p>
 <p>The one exception is the <b>Rebel Alliance</b> (with Rebellions on): it appears with the first revolt, even in games without alliances, and every rebel state joins it. It works like any other alliance and can win the game.</p>
 <h3>Alliance relations and wars</h3><ul class="log"><li>Alliances have relations with each other, starting at 0. Each year they move ${gP(R.arStep)} toward how members feel about the other alliance's members, and drop by ${R.arWar} a year for every state war between members and ${R.arBattle} per battle (${R.arBattleBig} for a big one).</li>
 <li>When one alliance's relation toward another falls to <b>${R.awarHostile}</b>, the two go to war: every member is at war with every member of the other, for ${R.warMin}–${R.warMax} years. Then the relation resets to 0.</li>
-<li><b>Where to see them:</b> the Allies tab lists your alliance's relations with every other alliance, both ways, worst first (⚔️ = at war). The War tab names only the alliances already at ${Math.round(R.awarHostile/2)} or worse, the ones close to war. Each alliance's window has the full table with bars.</li></ul>
+<li><b>Where to see them:</b> the Allies tab lists your alliance's relations with every other alliance, both ways, worst first (⚔️ = at war). War → Wars names only the alliances already at ${Math.round(R.awarHostile/2)} or worse, the ones close to war. Each alliance's window has the full table with bars.</li></ul>
 <h3>Alliance window</h3><p>Click an alliance (Allies tab, War tab, or the alliance line of a selected state) to see its members, land, population, army, research, wars and relations with the other alliances, and to show it on the map.</p>
 <h3>Aid</h3><ul class="log"><li>From your own alliance's window, send an ally grain, wood, iron or gold. It arrives at once and raises their trust in you (+${R.aidTrust} per 1,000 gold of value, at most +${R.aidTrustMax} a gift).</li>
 <li>Aid travels over allied land only: to an ally that borders you, or one you reach through a chain of bordering allies (sea links count). Aid never crosses the world.</li>
@@ -4958,14 +4995,17 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li>❤️ Your <b>loyalty</b> (with Rebellions on): green loyal, amber restless, red unrest or revolt possible. Click it for the Home tab.</li>
 <li><b>▶ Auto</b> ends turns by itself; ▾ sets seconds per turn and whether to stop when you are attacked. It pauses while a window is open or you're typing.</li>
 <li><b>End turn ▶</b> runs the year.</li></ul>
+<p>Under the header is the main menu: Home, Science, Army, Market, War, World, Allies and News (see Menus).</p>
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
-["tabs","Interface","🗂️","Tabs",()=>`
-${gTab(["Key","Tab","What's there"],[["1","🏰 Home","Population, work sliders, money, stores, year ahead"],["2","⚖️ Market","Order books for grain, wood and iron; trade now, post orders, your orders, auto-sell"],["3","🔬 Science","Research split, levels, costs, presets"],["4","⚔️ Army","Your army, supplies, train and dismiss troops"],["5","🎖️ Generals","Hire, dismiss, rest; choose the defender"],["6","🗡️ War","Wars, alliances close to war, neighbors, defense, orders this year"],["7","🌍 World","Rankings of every state, recent wars"],["8","🤝 Allies","Alliances ranked, their relations with yours; click one to open it"],["9","📰 News","Every report and battle, newest first"]])}
-<p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade).</p>`],
+["tabs","Interface","🗂️","Menus",()=>`
+<p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Market, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
+${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; resources (stock, change per year, prices); work sliders; year ahead"],["2","🔬 Science","—","Research split, levels, costs, presets; total bonuses"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Wars · E Neighbors","Generals: hire, dismiss, rest, pick the defender. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Recent wars","Rankings of every state and wonders; the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
+<p>Allies shows only in games with alliances; News then takes key 7.</p>
+<p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
 <li>Click a state to inspect it in the side panel; click again or press Esc to unselect. Hover a state to raise it off the map, with a tooltip showing its relations to every neighbor, both ways.</li>
-<li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form in the War tab; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
+<li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
 <li>▨ Striped land was conquered last year (or broke away in a revolt). Grey-brown land is unowned. Dark grey states are rebels.</li>
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
@@ -4992,7 +5032,7 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
 <h3>Saves</h3><p>The game saves itself in this browser every year. When you open the page again you can continue where you left off.</p>
 <p><b>Save to file</b> (Menu) downloads the whole game as one .json file: the map, every state, the news archive and the rules from Settings. <b>Load from file</b> (Menu, or the first window) opens it, also on another computer or browser, and you play on from that year. Loading replaces the game saved in this browser and its Settings, so save that one to a file first if you want to keep it.</p>
-<h3>Keys</h3>${gTab(["Key","Does"],[["1–9","Switch tabs"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
+<h3>Keys</h3>${gTab(["Key","Does"],[["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
 <p>Menu → Change log lists what changed in each update.</p>`],
 
 ["strategy","Strategy","💡","Strategy tips",()=>`
@@ -5238,7 +5278,7 @@ document.addEventListener("click",async ev=>{
   if(d.repmap!=null){ const id=+d.repmap; UI.repBack=null; closeModal(); UI.sel=id; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
-  if(d.tab){ UI.tab=d.tab; UI.untrainAsk=null; render(); return; }
+  if(d.tab){ goTab(d.tab,d.sub); UI.untrainAsk=null; render(); return; }
   if(d.max){ const el=$("trn-"+d.max); if(el){ el.value=d.n; el.focus(); trainPreview(d.max); } return; }
   if(d.untrainno){ UI.untrainAsk=null; render(); return; }
   if(d.untrainok){ const a=UI.untrainAsk; UI.untrainAsk=null; if(a&&a.id===d.untrainok) cmd("fireTroop",a.id,a.n); render(); return; }
@@ -5259,7 +5299,7 @@ document.addEventListener("click",async ev=>{
   if(d.takeover!=null){ takeOver(+d.takeover); return; }
   if(d.giveask!=null){ UI.giveConfirm=d.giveask==="1"; render(); return; }
   if(d.giveaway!=null){ giveAway(); return; }
-  if(d.target!=null){ UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkMix=null; UI.tab="war"; render(); return; }
+  if(d.target!=null){ UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkMix=null; goTab("war","nbrs"); render(); return; }
   if(d.atkpre){ UI.atkPreset=d.atkpre; UI.atkMix=null; if(d.atkpre!=="none") try{ localStorage.setItem("eb.atkPreset",d.atkpre); }catch{} render(); return; }
   if(d.atkset){ if(UI.atkMix){ UI.atkMix[d.atkset]=+d.n; UI.atkEdited=true; } const el=document.querySelector(`[data-atkmix="${d.atkset}"]`); if(el) el.value=d.n; refreshAtk(); return; }
   if(d.cancel!=null){ cmd("cancelAttack",+d.cancel); render(); return; }
@@ -5268,7 +5308,7 @@ document.addEventListener("click",async ev=>{
   if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=cmd("festival",n); UI.festN=undefined;
     flash(got?`Festivals held: loyalty +${got} for ${fmt(got*festCost(G,c))} gold.`:"Not enough gold, or no room for more loyalty this year."); render(); return; }
   if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
-  if(d.find){ if(!G||observing()) return; UI.tab="world"; UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
+  if(d.find){ if(!G||observing()) return; goTab("world","rank"); UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
   if(d.mfill){ const box=$("mkAmt"); if(box){ box.value=d.n; paintMkt(); box.focus(); } return; }
   if(d.mkp){ const box=$("mkP"); if(box){ box.value=d.mkp; paintMkt(); box.focus(); } return; }
   if(d.mkres){ UI.mkR=d.mkres; UI.mkAmt=UI.mkP=undefined; render(); return; }
@@ -5507,8 +5547,10 @@ function hotToSolo(){
 document.addEventListener("keydown",e=>{
   if($("ov").classList.contains("hidden")){ // no dialog open: Escape clears the map selection
     if(e.key==="Escape"&&UI.sel!=null&&!UI.busy&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){ UI.sel=null; render(); }
-    // number keys 1-9 switch tabs
-    if(G&&!UI.busy&&/^[1-9]$/.test(e.key)&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)&&!e.target.isContentEditable){ const t=visibleTabs()[+e.key-1]; if(t){ UI.tab=t[0]; UI.untrainAsk=null; render(); } }
+    // number keys 1-9 switch pages, Q W E … the parts of a page
+    if(G&&!UI.busy&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)&&!e.target.isContentEditable){
+      if(/^[1-9]$/.test(e.key)){ const t=visibleTabs()[+e.key-1]; if(t){ UI.tab=t[0]; UI.untrainAsk=null; render(); } }
+      else if(e.key.length===1){ const i=SUBKEYS.indexOf(e.key.toLowerCase()), x=$("tabs").hidden?null:SUBS[UI.tab]?.[i]; if(x){ goTab(UI.tab,x[0]); UI.untrainAsk=null; render(); } } }
     return;
   }
   if(UI.busy) return;
