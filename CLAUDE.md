@@ -10,11 +10,12 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
 
 - `<style>`: all CSS. Colors are CSS variables on `:root`.
 - `<script id="engine">`: the rules engine. **It must stay DOM-free.** At startup its text is turned into a Blob and run as a Web Worker (see "engine" in the UI script), so map generation and turn resolution happen off the main thread. It also runs in-page as a fallback.
-  - Sections, marked with `// ---------- name ----------`: civilizations & leaders, troop types, pre-made maps, alliances, balance of power, wonders, terrain, player/AI actions, AI, relations, turn resolution, settings.
+  - Sections, marked with `// ---------- name ----------`: civilizations & leaders, troop types, pre-made maps, alliances, balance of power, wonders, terrain, player/AI actions, commands, AI, relations, turn resolution, settings.
   - Entry points: `newGame(opts)` and `endTurn(data)`.
   - Tunable rules live in `R` and can be edited in the in-game Settings window.
 - `<script>` (UI): rendering, tabs, modals, map view (canvas zoom/pan), fog of war, saves, news archive, auto-run.
   - The UI talks to the engine via `ENGINE.call("newGame"|"endTurn", data)`.
+  - Every change a human makes to their own state goes through `cmd(type, ...args)` → `applyCmd(G, G.player, {t, a})` (engine `CMD` table), which checks it and applies it. Never edit `G` for a human directly from the UI; add a command instead. The work and research plan is edited on a copy with `planEdit(fn)` and sent as one `plan` command.
   - Global game state: `G`. UI state: `UI`.
 
 ## Game systems
