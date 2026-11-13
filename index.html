@@ -245,7 +245,8 @@ td.r,th.r{text-align:right}
 .pill.post{color:var(--info);border-color:#2e4a6b;background:#1a2330}
 @media (prefers-reduced-motion:reduce){.flip,.flip .inner,.pf.leg::after,.flip.charge .back{animation:none!important;transition:none!important}}
 .note{background:#2b2618;border:1px solid #5a4a22;border-radius:8px;padding:8px;margin:8px 0;font-size:13px}
-.warn{background:#341d1a;border-color:#6d2f27}
+.warn{background:#341d1a;border-color:#6d2f27} .note.ok{background:#1b2a20;border-color:#2f5a40}
+.sbox{display:flex;align-items:center;gap:8px;min-height:44px;box-sizing:border-box} .sbox .grow{flex:1} /* same height red or green: the table below never moves */
 #end{font-size:15px;padding:8px 18px}
 .auto{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap}
 #bAuto{min-width:84px}
@@ -4298,11 +4299,15 @@ function setAllocShare(c,a,pct){
 function sciLive(c,a,el){ if(UI.allocBase?.a!==a) UI.allocBase={a,alloc:{...c.alloc}}; const b={...c,alloc:{...UI.allocBase.alloc}};
   const n=allocNorm(b), cap=100-AREAS.filter(x=>x!==a&&b.allocLock?.[x]).reduce((s,x)=>s+n[x],0); if(+el.value>cap) el.value=cap;
   setAllocShare(b,a,el.value); cmd("plan",{alloc:b.alloc}); const pts=researchPoints(c), sumA=AREAS.reduce((s,x)=>s+Math.max(0,c.alloc[x]||0),0), tot=Math.max(100,sumA), free=Math.max(0,Math.round(100-sumA));
-  const fw=$("sciFree"); if(fw){ fw.style.display=free>0?"flex":"none"; fw.querySelector("b").textContent=free+"%"; fw.querySelector(".grow>span").textContent=fmt(Math.round(pts*free/100)); }
+  const fw=$("sciFree"); if(fw) fw.outerHTML=sciBox(c,pts,free);
   AREAS.forEach(x=>{ const sl=document.querySelector(`input[data-alloc="${x}"]`), td=sl?.closest("td"); if(!td) return; const sh=Math.round(100*c.alloc[x]/tot);
     if(sl!==el) sl.value=sh; const box=td.querySelector("[data-allocpct]"); if(box) box.value=sh;
     const cost=levelCost(c.lv[x],costParts(G,c,x).mul), yr=pts*c.alloc[x]/tot, eta=yr>0?Math.ceil((cost-c.rp[x])/yr):null;
     const t=$("rnx-"+x); if(t) t.outerHTML=nextLvHtml(c,x,cost,yr,eta); }); }
+// the research status box, always shown so the table never moves: red with Spread it while some share is unassigned, green when all is
+function sciBox(c,pts,free){ const sci=workers(c).sci, src=`<span class="small mut" title="Set how many scientists in Home → Work">from ${fmt(sci)} scientist${sci===1?"":"s"}</span>`;
+  return free>0?`<div class="note warn sbox" id="sciFree"><span class="grow">⚠️ <b>${free}%</b> of your research is unassigned: <b>${fmt(Math.round(pts*free/100))}</b> of ${fmt(pts)} points a year are lost.</span>${AREAS.some(x=>!c.allocLock?.[x])?`<button class="sm" data-a="sciFill" title="Spread the unassigned share over the unlocked areas, by their shares">Spread it</button>`:""}</div>`
+    :`<div class="note ok sbox" id="sciFree"><span class="grow">✓ All research assigned: <b>${fmt(pts)}</b> points a year ${src}</span></div>`; }
 // when an area's next level comes at its share (under its name; the points are in the tooltip)
 function nextLvHtml(c,a,cost,yr,eta,tip){ const t=`${fmt(c.rp[a])}/${fmt(cost)} points${yr>0?` · +${fmt(yr)} next year`:""}${tip?` · ${tip}`:""}`;
   return `<span class="rnx" id="rnx-${a}" title="${esc(t)}">${!(yr>0)?"no progress":eta<=1?`<span class="up">level up next year 🎉</span>`:`next level in <b>${eta} yrs</b>`}</span>`; }
@@ -4350,8 +4355,8 @@ function pScience(sub){
   const lk=x=>!!c.allocLock?.[x], anyLk=AREAS.some(lk), allLk=AREAS.every(lk);
   const totLv=AREAS.reduce((s,a)=>s+c.lv[a],0), avgLv=Object.values(worldAvgLv(G)).reduce((s,v)=>s+v,0);
   return `<h3>Research ${gl("science")}</h3>
-  <div class="row"><span><b>${fmt(pts)}</b> points/yr <span class="small mut" title="Set how many scientists in Home → Work">from ${fmt(workers(c).sci)} scientists</span></span><span class="grow"></span><span class="small">Level <b>${fmt(totLv)}</b> <span class="mut">· world ${fmt(Math.round(avgLv))}</span> <span class="${totLv>=avgLv?"good":"bad"}">(${totLv>=avgLv?"+":"−"}${fmt(Math.round(Math.abs(totLv-avgLv)))})</span></span></div>
-  <div class="note warn" id="sciFree" style="display:${free>0?"flex":"none"};align-items:center;gap:8px;flex-wrap:wrap"><span class="grow">⚠️ <b>${free}%</b> of your research is unassigned: <span>${fmt(Math.round(pts*free/100))}</span> points a year are lost.</span>${AREAS.some(x=>!lk(x))?`<button class="sm" data-a="sciFill" title="Spread the unassigned share over the unlocked areas, by their shares">Spread it</button>`:""}</div>
+  <div class="row"><span class="grow"></span><span class="small">Level <b>${fmt(totLv)}</b> <span class="mut">· world ${fmt(Math.round(avgLv))}</span> <span class="${totLv>=avgLv?"good":"bad"}">(${totLv>=avgLv?"+":"−"}${fmt(Math.round(Math.abs(totLv-avgLv)))})</span></span></div>
+  ${sciBox(c,pts,free)}
   <div class="row small"><span class="mut">Presets:</span><button class="sm" data-preset="sci" title="Everything into Science: research grows fastest, but nothing else levels up">Science run</button><button class="sm" data-preset="econ">Economy</button><button class="sm" data-preset="bal">Balanced</button><button class="sm" data-preset="war">War</button></div>
   <table class="tight rtable"><colgroup><col class="rc1"><col class="rc2"><col></colgroup><tr><th>Area</th><th class="r">Lvl</th><th><div class="rsplit"><span title="Share of your research points; when the next level comes is under each area's name">Share</span><span class="rctl"><span style="width:46px"></span><span class="aslot"><button class="sm" data-a="sciClrAll" title="Set every unlocked area to 0% (locked ones stay)"${AREAS.some(x=>!lk(x)&&c.alloc[x]>0)?"":" disabled"}>✕</button></span><span class="aslot"><button class="sm" data-a="sciNextAll" title="Reach the next level next year in as many areas as the points allow (cheapest first), and lock them; other areas shrink only if needed to fit">⏩</button></span><button class="sm lockbtn${allLk?" on":""}" data-a="sciLockAll" title="${allLk?"Unlock all areas":"Lock all areas"}">${allLk?"🔒":"🔓"}</button></span></div></th></tr>
   ${AREAS.map(a=>{const cp=costParts(G,c,a), cost=levelCost(c.lv[a],cp.mul); const share=Math.round(100*c.alloc[a]/tot); const yr=pts*c.alloc[a]/tot, eta=yr>0?Math.ceil((cost-c.rp[a])/yr):null;
@@ -4360,7 +4365,7 @@ function pScience(sub){
     const costTip=`Next level costs ${fmt(cost)} points. Size ×${cp.size.toFixed(2)} (bigger states pay more) · world average level ${(c.lv[a]-cp.d).toFixed(1)}: ${cp.d<0?"behind, so cheaper":cp.d>0?"ahead, so dearer":"even"} ×${cp.edge.toFixed(2)}`;
     const nx=eta===1?`<span class="good" title="Reaches level ${c.lv[a]+1} next year at this share">✓</span>`:need>100?"":`<button class="sm" data-nextlv="${a}" data-need="${need}" title="Set ${AREA_NAMES[a]} to ${need}%, the least that reaches level ${c.lv[a]+1} next year, and lock it">⏩</button>`;
     return `<tr class="rrow"><td style="white-space:nowrap">${WONDERS[a]?.icon||""} <b>${AREA_NAMES[a]}</b>${info(AREA_NAMES[a],`${eff[a]}. ${cap}`)}<div class="small ${c.lv[a]?"":"mut"}">+${Math.round(resBonus(c,a)*100)}% ${what[a]}${nextLvHtml(c,a,cost,yr,eta,costTip)}</div>${c.wb?.[a]?`<div class="small good" title="${WONDERS[a].name}: +${wonderPct(a)}% ${WONDER_EFFECT[a]}">${WONDERS[a].icon} +${wonderPct(a)}% wonder</div>`:""}</td><td class="r"><span class="lvbox">${c.lv[a]}</span></td>
-    <td style="width:100%"><div class="rsplit">${(lk=>`<input type="range" min="0" max="100" value="${share}" data-alloc="${a}"${lk?" disabled":""}><span class="rctl"><input type="text" inputmode="numeric" maxlength="3" value="${share}" data-allocpct="${a}" style="width:34px;text-align:right" title="Type an exact share"${lk?" disabled":""}>%<span class="aslot">${share>0?`<button class="sm" data-clr="${a}" title="Set ${AREA_NAMES[a]} to 0% and unlock it; its share becomes unassigned">✕</button>`:""}</span><span class="aslot">${nx}</span><button class="sm lockbtn${lk?" on":""}" data-lock="${a}" title="${lk?"Locked: other areas can't change this share. Click to unlock":"Lock this share so changing other areas leaves it alone"}">${lk?"🔒":"🔓"}</button></span>`)(!!c.allocLock?.[a])}
+    <td style="width:100%"><div class="rsplit">${(lk=>`<input type="range" min="0" max="100" value="${share}" data-alloc="${a}"${lk?" disabled":""}><span class="rctl"><input type="text" inputmode="numeric" maxlength="3" value="${share}" data-allocpct="${a}" style="width:40px;text-align:right" title="Type an exact share"${lk?" disabled":""}>%<span class="aslot">${share>0?`<button class="sm" data-clr="${a}" title="Set ${AREA_NAMES[a]} to 0% and unlock it; its share becomes unassigned">✕</button>`:""}</span><span class="aslot">${nx}</span><button class="sm lockbtn${lk?" on":""}" data-lock="${a}" title="${lk?"Locked: other areas can't change this share. Click to unlock":"Lock this share so changing other areas leaves it alone"}">${lk?"🔒":"🔓"}</button></span>`)(!!c.allocLock?.[a])}
     </div></td></tr>`}).join("")}
   </table>
   <div class="small mut" style="margin-top:6px">Drag a slider or type a %. Shares can add up to less than 100%, but the unassigned rest is lost; going over 100% takes from the unlocked areas. 🔒 keeps a share fixed. ⏩ sets the least share that reaches the next level next year and locks it; ✕ sets an area to 0%. The buttons in the header do the same for every area: ✕ clears all unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all. Under each area: when its next level comes at this share (hover it for the points). Hover ⓘ for what each level gives.</div>`;
@@ -5260,6 +5265,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Research box always there","2026-11-13 23:20",["Research: the box above the table is always shown, so the table no longer jumps","Green when all research is assigned (points a year and from how many scientists), red with Spread it when some is lost"]],
 ["Generals in order","2026-11-13 23:04",["Your generals are listed by tier (Legendary first) and then by skill"]],
 ["Resource cards in even rows","2026-11-13 23:01",["Home → Resources: the four cards sit 2 by 2, or 4 in a row on a wide side panel (no more 3 and 1)","Research sliders are longer when the side panel is wide"]],
 ["Research rows stay still","2026-11-13 22:53",["Research: when the next level comes has its own line under each area, so the table never jumps when it changes","\"level up next year 🎉\" is shorter and fits narrow panels"]],
