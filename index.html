@@ -66,7 +66,7 @@ table.btab.mchain td:nth-child(2),table.btab.mchain th:nth-child(2){background:n
 .mapbox canvas.drag{cursor:grabbing}
 .mapctl{position:absolute;top:8px;right:8px;display:flex;gap:4px}
 .mapctl button{background:#000b;min-width:30px}
-.mapctl .glink{min-width:0;width:20px;height:20px;margin-left:6px;align-self:center;background:#000b!important}
+.mapctl .glink{min-width:0;padding:3px 0 0!important;width:20px;height:20px;margin-left:6px;align-self:center;background:#000b!important}
 .mapctl button.on{border-color:var(--acc);color:var(--acc)}
 .mapseg{display:flex} .mapseg button{border-radius:0;margin-left:-1px} .mapseg button:not(.hidden){border-radius:0}
 .mapseg button.on{position:relative;z-index:1;background:#2b2618} .mapseg button:hover,.mapseg button:focus-visible{position:relative;z-index:2}
@@ -163,7 +163,7 @@ td.r,th.r{text-align:right}
 .genbar i{display:block;height:100%;background:var(--acc);border-radius:5px;transition:width .25s ease}
 .genbar.mini{height:6px;margin:6px 0 0;max-width:260px}
 /* rules & guide: menu and search on the left, one topic on the right */
-.glink{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0!important;margin-left:6px;border-radius:50%!important;border:1px solid var(--line)!important;background:none!important;color:var(--mut);font-size:10.5px;font-weight:700;line-height:1;vertical-align:2px;cursor:pointer;text-transform:none;letter-spacing:0;flex:none}
+.glink{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:2px 0 0!important;box-sizing:border-box;margin-left:6px;border-radius:50%!important;border:1px solid var(--line)!important;background:none!important;color:var(--mut);font-size:10.5px;font-weight:700;line-height:1;vertical-align:2px;cursor:pointer;text-transform:none;letter-spacing:0;flex:none}
 .glink:hover,.glink:focus-visible{color:var(--acc);border-color:var(--acc)!important}
 .modal.guide{max-width:1180px;height:90vh;padding:0}
 .modal.guide>.gwrap{display:grid;grid-template-columns:250px 1fr;overflow:hidden;padding:0}
@@ -4578,7 +4578,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Round map guide button","2026-11-13 18:25",["The ? button next to the map views is a small circle again, not a stretched oval"]],
+["Round map guide button","2026-11-13 18:25",["The ? button next to the map views is a small circle again, not a stretched oval","Every ? guide button shows its ? centered"]],
 ["Wonders page","2026-11-13 18:23",["Wonders have their own part of the World page (World → Wonders, key W) in games with wonders","Recent wars moves to key E there"]],
 ["Two-level menu","2026-11-13 18:15",["Main menu moved above the map and side panel: Home, Science, Army, Market, War, World, Allies, News (keys 1–8)","Market, War and World split into parts, picked in a second menu at the top of the side panel (keys Q, W, E)","Market: Stock (your goods and the world market) and Trade (trade, order book, your orders)","War: Generals, Wars (wars, defense, this year's orders) and Neighbors","World: Rankings and Recent wars","Generals moved into War","Home shows your state's name and alliance, and a Resources box after Population","Army lists your soldiers per troop type with attack, defense and upkeep"]],
 ["Loyalty in the Population box","2026-11-13 17:21",["Home tab: Loyalty, next year's recovery, revolt chance and festivals now sit in the Population box"]],
