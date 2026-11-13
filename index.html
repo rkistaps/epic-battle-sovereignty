@@ -142,10 +142,10 @@ td.r,th.r{text-align:right}
 .pf.leg{box-shadow:0 0 0 1px #0008,0 0 14px #e0b35455}
 .pf.leg::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,#fff3 50%,transparent 65%);background-size:250% 100%;animation:pfshine 4s ease-in-out infinite;pointer-events:none}
 @keyframes pfshine{0%,60%{background-position:120% 0}100%{background-position:-120% 0}}
-.gcards{display:flex;flex-direction:column;gap:10px;margin:8px 0}
-.gcard{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.gtop{display:flex;gap:10px;min-width:0} .gtop .pf{width:84px}
-.gid{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,175px),1fr));gap:10px;margin:8px 0}
+.gcard{--rc:var(--r-common);height:100%;background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.gtop{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center} .gtop .pf{width:min(130px,100%)}
+.gid{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;width:100%}
 .gname{font:600 17px/1.15 var(--f-name)} .gcard .rar{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--rc);font-weight:600}
 .gcard .rank{font-size:12px;color:var(--mut)}
 .pill{display:inline-block;font-size:12px;border-radius:10px;padding:1px 8px;border:1px solid}
@@ -153,12 +153,18 @@ td.r,th.r{text-align:right}
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:3px 8px;align-items:center;font-size:12px}
 .bar{height:7px;background:#0f1114;border-radius:4px;overflow:hidden;border:1px solid var(--line)} .bar i{display:block;height:100%;border-radius:4px}
 .bar i.good{background:var(--good)} .bar i.warnc{background:#e0a05a} .bar i.bad{background:var(--bad)} b.warnc{color:#e0a05a}
-.gstats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;text-align:center}
+.gstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;text-align:center}
 .gstats div{background:#0f1114;border-radius:6px;padding:3px 2px;display:flex;flex-direction:column} .gstats b{font-variant-numeric:tabular-nums} .gstats span{font-size:11px;color:var(--mut)}
 .gtraits{display:flex;flex-wrap:wrap;gap:4px}
+.gcard .gtraits,.cand .gtraits{justify-content:center}
+.gcard .gtraits .gtr,.cand .gtraits .gtr{white-space:normal;text-align:center}
 .gtr{font-size:12px;border-radius:6px;padding:1px 7px;border:1px solid var(--line);background:#1b1e24;cursor:help;white-space:nowrap}
 .gtr.g,.gtr.t{border-color:#2f5a40;color:#8fdcae} .gtr.f{border-color:#6b3a33;color:#f0a094} .gtr.r{border-color:#5a4a8a;color:#c9b2f5} .gtr.e{border-color:#6b5a2e;color:var(--acc)} .gtr.h{border-style:dashed;color:var(--mut)}
-.gbtns{display:flex;gap:6px;flex-wrap:wrap}
+.gtip{position:fixed;z-index:200;max-width:270px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--good);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.4;color:var(--txt);box-shadow:0 6px 18px #000a;pointer-events:none}
+.gtip.f{border-top-color:var(--bad)} .gtip.r{border-top-color:#9a7fe0} .gtip.e{border-top-color:var(--acc)} .gtip.h{border-top-color:var(--mut)}
+.gtip .gth{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:3px} .gtip .gth b{font-size:13px} .gtip .gth span{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.gtr:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.gbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:auto}
 /* War → Tavern: a header with the innkeeper's line, a notice board of tier cards, and the table where candidates are dealt (in the tab, no window) */
 .tavern{container-type:inline-size;display:flex;flex-direction:column;gap:12px}
 .tvhead{display:flex;align-items:center;gap:10px}
@@ -189,8 +195,8 @@ td.r,th.r{text-align:right}
 .lnk{background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;text-underline-offset:2px;font-size:12px}
 .tvempty{display:flex;align-items:center;gap:10px;color:var(--mut);font:italic 13px var(--f-name);padding:8px 4px}
 .tvempty svg{width:40px;height:40px;flex:none;opacity:.6;color:var(--mut)}
-.deal{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-@container (min-width:620px){ .deal{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px} }
+.deal{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr));gap:8px}
+@container (min-width:620px){ .deal{grid-template-columns:repeat(auto-fit,minmax(0,210px));justify-content:center;gap:12px} }
 .flip{position:relative;perspective:900px;min-width:0;display:grid}
 .flip.dealt{animation:deal .5s cubic-bezier(.2,.8,.2,1) backwards} .flip.dealt:nth-child(2){animation-delay:.1s} .flip.dealt:nth-child(3){animation-delay:.2s} .flip.dealt:nth-child(4){animation-delay:.3s}
 @keyframes deal{from{transform:translate(30px,-30px) rotate(10deg);opacity:0}}
@@ -204,18 +210,18 @@ td.r,th.r{text-align:right}
 .flip.open.leg .front{box-shadow:0 0 18px -2px var(--r-leg)}
 .flip.leave{transition:opacity .5s,transform .5s;opacity:0;transform:translateY(14px)}
 .flip.taken .front{box-shadow:0 0 0 2px var(--acc),0 0 22px -2px var(--acc)}
-.cand{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--rc);border-radius:8px;padding:8px;display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-rows:auto auto 1fr auto;gap:4px 10px;height:100%}
-.cand .pf{grid-row:span 3;align-self:start;border-radius:6px}
-.cand .cn{display:flex;flex-direction:column;min-width:0}
-.cand .ctier{display:flex;align-items:center;gap:4px;font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--rc);font-weight:700}
-.cand .ctier svg{width:13px;height:13px}
-.cand .cn b{font:600 16px/1.15 var(--f-name);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cand .cn span.age{font-size:12px;color:var(--mut)}
-.cst{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
+.cand{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:8px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;height:100%;min-width:0}
+.cand .pf{width:min(118px,100%);border-radius:6px}
+.cand .cn{display:flex;flex-direction:column;align-items:center;min-width:0;width:100%}
+.cand .ctier{display:flex;align-items:center;gap:4px;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--rc);font-weight:700}
+.cand .ctier svg{width:12px;height:12px;flex:none}
+.cand .cn b{font:600 15px/1.15 var(--f-name)}
+.cand .cn span.age{font-size:11.5px;color:var(--mut)}
+.cst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;width:100%}
 .cst span{background:#0f1114;border-radius:5px;padding:2px 0;text-align:center;font-size:10px;color:var(--mut);line-height:1.2}
 .cst span b{display:block;font-size:13px;color:var(--txt);font-variant-numeric:tabular-nums}
-.cand .gtraits{min-height:20px;align-items:center;align-self:start}
-.cand .act{grid-column:1/-1;display:flex;align-items:center;gap:8px;align-self:end}
+.cand .gtraits{min-height:20px}
+.cand .act{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:auto;width:100%}
 .cand .act span{font-size:11.5px;color:var(--r-leg)}
 .flip .act .pri{visibility:hidden} .deal.ready .act .pri{visibility:visible}
 .tvjoined{display:flex;align-items:center;gap:10px;background:#1a2a21;border:1px solid #2f5a40;color:#8fdcae;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px}
@@ -4419,9 +4425,20 @@ function traitText(id,gen){ const t=GTR[id]; if(!t) return "";
     oldguard:`Earned in his ${R.trOldGuardN}th battle. His morale never drops below ${R.trOldGuardFloor}.`,
     nemesis:`Earned by losing ${R.trNemesisLoss} times to one state. +${gPc(R.trNemesis)} strength against it${gen?.nem!=null&&G?.countries[gen.nem]?`: ${G.countries[gen.nem].name}`:""}.`})[id]||""; }
 const KIND_NAME={g:"Good",t:"Troop",r:"Rare",f:"Flaw",e:"Earned"};
-function trChip(id,gen,hidden){ if(hidden) return `<span class="gtr h" title="A hidden trait. It already works; it shows itself after his first battle.">❔ Hidden trait</span>`;
+function trChip(id,gen,hidden){ if(hidden) return `<span class="gtr h" tabindex="0" data-tk="Hidden" data-tn="❔ Hidden trait" data-td="A trait he has but nobody knows yet. It already works; it shows itself after his first battle.">❔ Hidden trait</span>`;
   const t=GTR[id]; if(!t) return ""; const nm=id==="nemesis"&&gen?.nem!=null&&G?.countries[gen.nem]?`Nemesis: ${G.countries[gen.nem].name}`:t.name;
-  return `<span class="gtr ${t.kind}" title="${esc(KIND_NAME[t.kind]+": "+traitText(id,gen))}">${t.icon} ${esc(nm)}</span>`; }
+  return `<span class="gtr ${t.kind}" tabindex="0" data-tk="${KIND_NAME[t.kind]}" data-tn="${esc(t.icon+" "+nm)}" data-td="${esc(traitText(id,gen))}">${t.icon} ${esc(nm)}</span>`; }
+// trait popup: hover (or focus, or tap on touch screens) a trait chip anywhere to read what it does
+function gtipShow(el){ let t=$("gtip"); if(!t){ t=document.createElement("div"); t.id="gtip"; t.setAttribute("role","tooltip"); document.body.appendChild(t); }
+  const k=el.dataset.tk; t.className="gtip "+(el.classList[1]||""); t.innerHTML=`<div class="gth"><b>${esc(el.dataset.tn)}</b><span>${esc(k)}</span></div><div>${esc(el.dataset.td)}</div>`; t.hidden=false;
+  const r=el.getBoundingClientRect(), w=t.offsetWidth, h=t.offsetHeight; let x=Math.min(innerWidth-w-8,Math.max(8,r.left+r.width/2-w/2)), y=r.top-h-8; if(y<8) y=r.bottom+8;
+  t.style.left=x+"px"; t.style.top=y+"px"; }
+const gtipHide=()=>{ const t=$("gtip"); if(t) t.hidden=true; };
+document.addEventListener("mouseover",e=>{ const c=e.target.closest?.(".gtr[data-td]"); if(c) gtipShow(c); else if(!e.target.closest?.("#gtip")) gtipHide(); });
+document.addEventListener("focusin",e=>{ const c=e.target.closest?.(".gtr[data-td]"); if(c) gtipShow(c); });
+document.addEventListener("focusout",e=>{ if(e.target.closest?.(".gtr[data-td]")) gtipHide(); });
+document.addEventListener("pointerdown",e=>{ const c=e.target.closest?.(".gtr[data-td]"); if(c&&e.pointerType!=="mouse") gtipShow(c); else if(!c) gtipHide(); },true);
+document.addEventListener("scroll",gtipHide,true);
 const genTraits=(x,showHidden)=>(x.traits||[]).length?(x.traits||[]).map(k=>trChip(k,x,!showHidden&&x.hid?.includes(k))).join(""):`<span class="small mut">No traits</span>`;
 // ---------- War → Generals: one card per general ----------
 function genStatus(c,gen){
@@ -5126,6 +5143,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Upright general cards, trait popups","2026-11-13 21:16",["General cards stand upright: portrait on top, then name, stats, traits and buttons","Tavern candidates sit side by side, three across even in the side panel; your generals two across","Hover a trait (or tap it on a touch screen) for a popup with what it does"]],
 ["New Tavern screen","2026-11-13 21:10",["The Tavern has a name and an innkeeper whose line changes with what happens","Tiers are notices on a notice board: crest, price, calls left as tally marks, Legendary chance on one line","Candidates are dealt onto the table in the Tavern tab and turn over there; no more pop-up window","Candidate cards are compact and fit the side panel without scrollbars; three across on a wide panel","Tier icons are drawn, so they show on every system"]],
 ["Tavern, general cards and traits","2026-11-13 20:50",["New War → Tavern: call a tier (Captain, Veteran, Academy graduate) and three candidates come forward; hire one","Candidates' Mind, Speed, Age, starting skill and traits are rolled inside the tier's range; the price never depends on the roll","Each tier can be called 10 times a year; every extra call that year costs 1.5× more","Legendary officers can't be called: any candidate may turn out Legendary","Cards turn over one by one; a Legendary shakes and glows gold first","The Age, Speed and Mind sliders are gone","War → Generals shows a card for each general: a drawn face (greys with age, scars from lost battles), tier, rank, skill, morale, won–lost and traits","20 traits: luck (Lucky, Lucky Bastard, Jinxed, Reckless), borders (Mountain Fox, Siege Breaker), one for each troop type, and Cautious, Coward, Butcher, Beloved, Greedy, Drunkard","Some traits start hidden and show after the general's first battle; Old Guard, Nemesis and Lucky Bastard can be earned","Battle reports show both generals' faces and traits, a row for each trait that changed the battle, and how luck was rolled","Computer states hire in the Tavern too and count traits in their odds","Settings: new General tiers tab and trait numbers under General rules"]],
 ["X ends the turn","2026-11-13 20:20",["Press X to end the turn (when no window is open and you are not typing)"]],
