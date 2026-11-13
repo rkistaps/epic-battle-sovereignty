@@ -75,8 +75,9 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Intent**: People are the core currency. Growth rewards peace and room, and capacity is what makes land valuable: a state that stops growing has to expand (settle, conquer) or research density. Overcrowding is meant to hurt (births turn negative). Growth bonuses are kept small because people compound. *(inferred)*
 - Population = peasants + soldiers (scientists are peasants with a job; `c.sci` is a legacy field, always 0).
 - Capacity: `popCap = land × (popPerKm 3 + densPerLevel 0.16·lvl(dens)) × M(capacity) × wonder(dens)`.
-- Births: `(peasants + armyBirths 0.5 × soldiers) × growthRate × roomFactor(pop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. `roomFactor(x) = 1 − x^birthCurve` (24): births stay near full speed until ~80% full, peak near 87%, stop at capacity; above capacity `1 − x` (a gentle decline) *(your direction: growth should not slow from half full)*. None in a famine year.
-- Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants (with `keepPeople`, the capacity trim can push it there).
+- What fills capacity: `roomPop(c)` = peasants + scientists + soldiers (`c.sci` is legacy and always 0: scientists are peasants on the research job). Setting `peasantRoom` (default off) drops soldiers, so only peasants fill capacity. `roomPop` is used by births, the battle trim, kidnap room, the AI's fullness checks (density research, land hunger, harass mode, `aiAtkRoom`/`aiAtkFull`) and the Home tab's Population card. Total population (`popOf`) still counts everyone for research size cost, festivals, rankings and collapse.
+- Births: `(peasants + armyBirths 0.5 × soldiers) × growthRate × roomFactor(roomPop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. `roomFactor(x) = 1 − x^birthCurve` (24): births stay near full speed until ~80% full, peak near 87%, stop at capacity; above capacity `1 − x` (a gentle decline) *(your direction: growth should not slow from half full)*. None in a famine year.
+- Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants (with `keepPeople`, the capacity trim can push it there; not from soldiers with `peasantRoom` on).
 - Losing land in battle (`keepPeople`): peasants above the new capacity are removed at once, so a beaten state sits at about 0.95× capacity instead of overcrowding (a land-only test without the trim left losers at 3.5–5×).
 - **Reads**: land (battle, settle), dens/grow research, identity, famine, battle losses, the capacity trim of a beaten state and takeovers of wiped-out states, revolts (people leave with the land).
 - **Writes**: taxes, food use, every job, research cost (size factor), AI decisions.
@@ -326,7 +327,7 @@ Rows act on columns (● strong, ○ weak).
 ## 5. Feedback loops
 
 Positive (snowball) loops, and what brakes them:
-- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity, size-scaled research cost, conquest brings land but no people (only a wipe-out hands over people and stocks), fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
+- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity (soldiers count toward it unless `peasantRoom` is on, so armies also brake growth), size-scaled research cost, conquest brings land but no people (only a wipe-out hands over people and stocks), fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
 - **Science → research points.** Brakes: cost ×1.8 per level, size cost, lead penalty, scientist wages vs tax.
 - **Land → settling budget.** Brake: unowned land runs out.
 - **Conquest → land → more conquest** is also braked by loyalty (Rebellions on): each conquest costs loyalty, recovery slows with size and the ceiling falls with world share; a revolt hands land, people and troops to rebel states at war with the parent. Revolt → +30 loyalty → conquest resumes, so big states can cycle (revolt, retake at full cost, revolt).
@@ -365,6 +366,7 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 | Turn time on a 1000-state map | about 200–250 ms |
 | 1000 states, Rebellions on vs off (seeds 11 world, 12–13 random; 150 years) | 51–92 revolts per game (211 in all: by rebel states 1/2/3/4/5/6/7/8/9 = 63/40/28/38/13/11/10/5/3), almost all after year 60; 30–35% of the land lost per revolt; year 150: 217–312 alive (off: 138–242), biggest 1.8–2.1% (off: 2.2–2.7%), top 10 hold 15% (off: 19–20%); turns about 10% slower |
 | Rebellions (60 states, seeds 11–16) | 0–8 revolts in 150 years (4/2/8/0/3/7), 0–21 rebel states; rebel states alive at the 30-year checkpoints: 0–4. Forced revolts (seeds 11–13, 96 revolts): rebel states per revolt 1–3 in ~70%, 9 in ~2%; about 30% of the land lost on average |
+| `peasantRoom` on vs off (1000 states, seeds 11–13, Rebellions on, 150 years; 2026-11-13) | alive at year 90: 870–882 (off 789–800); year 150: 390–394 (off 233–264), biggest 1.4–1.7% (off 1.8–2.2%), top 10 hold 12–13% (off 15–17%); peasants at 91–98% of capacity from year 60 (off 58–78%), everyone 125–164% (off 88–98%); army share ~31% either way; gold year 150 +35–40% (114–124k vs 80–89k); research about the same. Conquest slows because armies no longer crowd out peasants and the trim stops wiping out heavily armed losers |
 | Starting land (any map up to 300 states) | every state within ±2% of the median |
 | Creating a 1000-state world map | about 14 s |
 
@@ -412,7 +414,7 @@ Compare against the previous version with `git show HEAD:index.html > old.html`.
 - `workers()` floors each job, so rounding always adds farmers.
 - Elimination thresholds differ: battle checks peasants < 20, famine collapse checks population < 20.
 - An eliminated state's gold, wood and iron vanish only with `keepPeople` off; otherwise the winner takes them.
-- `keepPeople`: a beaten state whose soldiers nearly fill its remaining capacity loses its peasants to the trim and falls at once, even with land left; the winner then gets few or no people (only its stocks). Handing over the untrimmed people instead was tested: endgame much faster (states alive at year 150: 4/1/3), so it was dropped.
+- `keepPeople` (with `peasantRoom` off): a beaten state whose soldiers nearly fill its remaining capacity loses its peasants to the trim and falls at once, even with land left; the winner then gets few or no people (only its stocks). Handing over the untrimmed people instead was tested: endgame much faster (states alive at year 150: 4/1/3), so it was dropped.
 - Battle order is random; an earlier battle can make later ones on the same target do nothing.
 - The AI research allocation is a fixed table; it ignores costs and wonders.
 - AI difficulty scales only research (and AI thresholds), not the economy.

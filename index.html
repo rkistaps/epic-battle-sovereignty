@@ -510,6 +510,7 @@ const R = {
   sciWage: 3.5,                    // wage per scientist per year (scientists are peasants set to research in Work)
   foodSpoil: 0.1,                  // share of stored grain that spoils each year
   famineDeath: 0.5,                // share of a food shortfall that dies of famine
+  peasantRoom: false,             // only peasants take up population space (soldiers don't count toward capacity); off = everyone counts
   popPerKm: 3, birthRate: 0.03, armyBirths: 0.5, birthCurve: 24, minPop: 20, // base capacity per km², base birth rate, soldiers count half toward births, birthCurve: how long births stay strong as a state fills (1 = classic, peak at half full; 24 = strong until ~80% full, peak near 87%), a state below minPop collapses
   priceMean: 1.1,                 // grain: normal price
   // world market: an order book per resource, with outside merchants behind it
@@ -720,11 +721,12 @@ function growthRate(c){ return (R.birthRate+R.growPerLevel*lvl(c,"grow"))*M(c,"b
 // births this year: peasants and (at a share) soldiers have children, slowing as the state fills up; newborns are peasants
 // how much of the birth rate is left at this fullness: 1 − fullness^birthCurve (1 = classic, peaks at half full; 24 = full speed until ~80%, peak near 87%); overcrowded: shrinks gently
 function roomFactor(x){ return x<=1?1-Math.pow(Math.max(0,x),Math.max(1,R.birthCurve)):1-x; }
-function birthsOf(c,peasants=c.peasants,pop=popOf(c)){ return Math.round((peasants+R.armyBirths*c.soldiers)*growthRate(c)*roomFactor(pop/popCap(c))); }
+function birthsOf(c,peasants=c.peasants,pop=roomPop(c)){ return Math.round((peasants+R.armyBirths*c.soldiers)*growthRate(c)*roomFactor(pop/popCap(c))); }
 // food per year: farmers × rate × Agriculture (+4.5%/level) × shore farmland × civilization/leader/land food bonus
 function foodPerFarmer(c){ return R.foodPerFarmer*(1+R.agriPerLevel*lvl(c,"agri"))*(1+shoreBonus(c))*M(c,"food")*wonderMul(c,"agri"); }
 function foodProduction(c){ return Math.round(workers(c).farm*foodPerFarmer(c)); }
 function popOf(c){ return c.peasants+c.sci+c.soldiers; }
+function roomPop(c){ return c.peasants+c.sci+(R.peasantRoom?0:c.soldiers); } // the people that fill capacity (setting peasantRoom: soldiers don't)
 function foodUse(c){ let f=c.peasants+c.sci; const tr=c.troops||{spear:c.soldiers}; for(const k in tr) f+=tr[k]*(TROOP[k]?.upFood??1); return Math.round(f); }
 // peasants at work: woodcutters and miners by the work split; everyone else farms
 function workers(c){ const w=c.work||{}, f=k=>Math.floor(c.peasants*(w[k]||0)/100), wood=f("wood"), iron=f("iron"), sci=f("sci"); return {wood,iron,sci,farm:c.peasants-wood-iron-sci}; }
@@ -2010,7 +2012,7 @@ function aiTurn(g,c){
   { const dD=R.aiDensPeace+(R.aiDensWar-R.aiDensPeace)*foot-c.alloc.dens, dG=R.aiGrowPeace+(R.aiGrowWar-R.aiGrowPeace)*foot-c.alloc.grow; // peace: fill the land; war: refill losses
     c.alloc.dens+=dD; c.alloc.grow+=dG; c.alloc.sci=Math.max(0,c.alloc.sci-dD-dG); }
   if(interior) c.alloc={...zeroAreas(),sci:35,dens:30,agri:10,fin:10,grow:5,wood:5,iron:5}; // nothing to fight: grow the only way left (density), and research
-  if(popOf(c)>popCap(c)*0.9){ c.alloc.dens+=10; c.alloc.sci=Math.max(0,c.alloc.sci-10); }
+  if(roomPop(c)>popCap(c)*0.9){ c.alloc.dens+=10; c.alloc.sci=Math.max(0,c.alloc.sci-10); }
   // attacks
   // stalemate breaker: the longer without a fight (or the fewer states left), the bolder
   const idleYrs=t-Math.max(c.lastWar||0,g.peace||0), aliveN=g.countries.filter(x=>x.alive).length;
@@ -2054,7 +2056,7 @@ function aiTurn(g,c){
     const isFoe=foeTest(g,c.id), foes={size:inWar(g,c.id)?1:0}; // at war (alone or with its alliance): only enemies are targets
     if(foes.size) for(let i=targets.length-1;i>=0;i--) if(!isFoe(targets[i].j)) targets.splice(i,1);
     // not at war: the fuller the land, the keener on more (room left: only grudges, fear or a wonder make it attack)
-    const full=popOf(c)/Math.max(1,popCap(c)), room=foes.size?0:Math.max(0,Math.min(1,(R.aiAtkFull-full)/Math.max(0.01,R.aiAtkFull-R.aiAtkRoom)));
+    const full=roomPop(c)/Math.max(1,popCap(c)), room=foes.size?0:Math.max(0,Math.min(1,(R.aiAtkFull-full)/Math.max(0.01,R.aiAtkFull-R.aiAtkRoom)));
     let used=0; const bigNb=adj.reduce((b,j)=>b<0||g.countries[j].land>g.countries[b].land?j:b,-1); // the only state it harasses
     for(const tg of targets){
       if(used>=Math.min(2,gens.length)) break;
@@ -2210,7 +2212,7 @@ function aiAid(g,c){ if(c.team==null||inWar(g,c.id)||(neighbors(g,c.id).length&&
 const arelOf=(g,a,b)=>g.arel?.[a+">"+b]||0;
 // a computer state's case for declaring war on neighbor j (motive × feasibility − cost); feas = its sendable attack ÷ the edge it needs
 function warScore(g,c,j,q,feas){ const o=g.countries[j];
-  const hunger=popOf(c)>=0.85*popCap(c)&&(c.settleT??-99)<g.turn-2?0.6:0; // full and nothing left to settle: conquest is the only way to grow
+  const hunger=roomPop(c)>=0.85*popCap(c)&&(c.settleT??-99)<g.turn-2?0.6:0; // full and nothing left to settle: conquest is the only way to grow
   const motive=(q.gN+0.5*q.sN+q.fN+hunger+(o.wb?0.3*Object.keys(o.wb).length:0))*(0.7+0.6*(leaderOf(c)?.mil??0.4));
   return motive*Math.min(1.5,feas)-0.8*q.tN; }
 
@@ -2549,7 +2551,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   if(NOLAND[mode]&&surv>0){ const eff=guarded?strA/(strA+strD):1;
     if(mode==="raid"){ const ks=["money","grain","wood","iron"], tot=ks.reduce((t,k)=>t+Math.max(0,D[k]||0),0), f=tot>0?eff*Math.min(R.raidMax,surv*R.raidCarry/tot):0;
       gain={loot:ks.map(k=>{ const v=Math.floor(Math.max(0,D[k]||0)*f); D[k]-=v; A[k]=(A[k]||0)+v; return v; })}; }
-    else if(mode==="kidnap"){ const n=Math.max(0,Math.min(Math.floor(eff*Math.min(D.peasants*R.kidMax,surv*R.kidPer)),Math.floor(popCap(A)-popOf(A)),D.peasants));
+    else if(mode==="kidnap"){ const n=Math.max(0,Math.min(Math.floor(eff*Math.min(D.peasants*R.kidMax,surv*R.kidPer)),Math.floor(popCap(A)-roomPop(A)),D.peasants));
       D.peasants-=n; A.peasants+=n; gain={kid:n}; }
     else { const n=Math.max(0,Math.min(D.peasants,Math.floor(eff*Math.min(D.peasants*R.masMax,surv*R.masPer)))); D.peasants-=n;
       const L=casualties(atkTr,Math.min(1,n*R.masFight/surv)); applyLosses(A,atkTr,L.out); lossA+=L.n; for(const k in L.out) lossTrA[k]=(lossTrA[k]||0)+L.out[k];
@@ -2567,7 +2569,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
     D.lostThis+=taken;
     // people on the taken land move to what is left; those it can't hold are lost (with no land left nobody is cut:
     // the winner takes them all below). A trim that leaves too few peasants makes the state fall with what is left
-    const ex=popOf(D)-popCap(D), ps=D.peasants+D.sci;
+    const ex=roomPop(D)-popCap(D), ps=D.peasants+D.sci;
     if(D.land>0&&ex>0&&ps>0){ const k=Math.min(1,ex/ps), cp=Math.round(D.peasants*k), cs=Math.round(D.sci*k); D.peasants-=cp; D.sci-=cs; crowdR=cp+cs; }
   } else if(taken>0){
     taken=Math.min(taken,D.land);
@@ -2744,7 +2746,7 @@ function applySettings(o){
   ATTACK_ORDER.splice(0,ATTACK_ORDER.length,...TROOPS.slice().sort((a,b)=>(b.atk/b.def)-(a.atk/a.def)||b.atk-a.atk).map(t=>t.id));
 }
 
-if(typeof module!=="undefined") module.exports={worldAvgLv,costParts,newGame,endTurn,researchPoints,applySettings,DEFAULTS,SETTING_TABLES,foodProduction,migrateResearch,AREAS,foodUse,workers,production,affordable,TROOPS,TROOP,troopsOf,armyAtk,armyDef,troopCount,CIVS,LEADERS,LANDS,TRAITS,M,atkPower,defPower,setTraits,pickTraits,lvl,WONDERS,wondersOf,frontWidth,frontBonus,shoreBonus,forestBonus,mtnBonus,computeShore,act,aiTurn,neighbors,adjacency,popOf,popCap,levelCost,genPrice,taxIncome,wages,sellPrice,buyPrice,genFactor,speedCap,AREAS,AREA_NAMES,R};
+if(typeof module!=="undefined") module.exports={worldAvgLv,costParts,newGame,endTurn,researchPoints,applySettings,DEFAULTS,SETTING_TABLES,foodProduction,migrateResearch,AREAS,foodUse,workers,production,affordable,TROOPS,TROOP,troopsOf,armyAtk,armyDef,troopCount,CIVS,LEADERS,LANDS,TRAITS,M,atkPower,defPower,setTraits,pickTraits,lvl,WONDERS,wondersOf,frontWidth,frontBonus,shoreBonus,forestBonus,mtnBonus,computeShore,act,aiTurn,neighbors,adjacency,popOf,popCap,roomPop,levelCost,genPrice,taxIncome,wages,sellPrice,buyPrice,genFactor,speedCap,AREAS,AREA_NAMES,R};
 
 </script>
 <script>
@@ -3666,7 +3668,7 @@ function traitChips(mod){
   return parts.map(([k,v])=>`<span class="chip2 ${v>0?"good":"bad"}">${TRAITS[k]} ${v>0?"+":""}${v}%</span>`).join(" ")||'<span class="mut">no bonuses</span>';
 }
 // years until the population reaches 95% of capacity at today's birth rate (null = not growing)
-function yearsToFull(c){ const cap=popCap(c), rest=popOf(c)-c.peasants; let P=c.peasants;
+function yearsToFull(c){ const cap=popCap(c), rest=roomPop(c)-c.peasants; let P=c.peasants;
   for(let y=0;y<500;y++){ const p=P+rest; if(p>=cap*0.95) return y; const b=birthsOf(c,P,p); if(b<=0) return null; P+=b; } return null; }
 const farmShare=c=>100-WORK_KEYS.reduce((s,k)=>s+(c.work[k]||0),0);
 // what each job produces now (shown under its name, updated while dragging)
@@ -3714,7 +3716,7 @@ function loyCard(c){
 }
 function pEconomy(){
   const c=me();
-  const cap=popCap(c), pop=popOf(c), full=Math.min(100,Math.round(100*pop/cap)), yf=yearsToFull(c);
+  const cap=popCap(c), pop=roomPop(c), full=Math.min(100,Math.round(100*pop/cap)), yf=yearsToFull(c);
   const card=(l,v,sub)=>`<div class="stat"><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span></div>`;
   const job=(k,l)=>{ const fm=k==="farm", v=fm?farmShare(c):c.work[k]||0, lk=!!c.workLock?.[k];
     return `<span class="wlab">${l}</span><input type="range" min="0" max="${fm?100:WORK_MAX}" value="${v}" data-work="${k}"${lk?" disabled":""}>
@@ -3726,7 +3728,7 @@ function pEconomy(){
   ${traitName(c)?`<b>🏛 ${esc(traitName(c))}</b><div style="margin-top:4px">${traitChips(c.mod)}</div>`:""}</div>
   <h3>Population ${gl("pop")}</h3>
   <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-    ${card("People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
+    ${card(R.peasantRoom?"Peasants":"People",`${fmt(pop)} <span class="small mut">/ ${fmt(cap)}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${full}%"></i></span>${full}% of capacity`)}
     ${card("Growth",(()=>{ const n=birthsOf(c); return `${n>=0?"+":""}${fmt(n)}<span class="small" style="color:var(--mut)">/yr</span>`; })(),yf===0?"full":yf!=null?`95% full in ~${fmt(yf)} yr${yf===1?"":"s"}`:"not growing")}
     ${card("Peasants",fmt(c.peasants),`${fmt(c.soldiers)} soldiers`)}</div>
   ${loyOn(G)?loyCard(c):""}
@@ -4166,7 +4168,7 @@ function atkSummary(c,o,gen,send){
 function atkTake(c,o,m,mine,est,n){ const eff=est>0?mine/(mine+est):1, sh=`${Math.round(eff*100)}% of the battle strength`;
   if(m==="raid"){ const ks=[["💰","money"],["🌾","grain"],["🌲","wood"],["⛏️","iron"]], tot=ks.reduce((t,[,k])=>t+Math.max(0,o[k]||0),0), f=tot>0?eff*Math.min(R.raidMax,n*R.raidCarry/tot):0;
     return `<div class="small">Raid: you bring ${sh}, so you'd carry off about <b>${ks.map(([ic,k])=>`${ic} ${fmt(Math.floor(Math.max(0,o[k]||0)*f))}`).join(" ")}</b> <span class="mut">(fewer if soldiers fall; no land)</span>.</div>`; }
-  if(m==="kidnap"){ const room=Math.max(0,Math.floor(popCap(c)-popOf(c))), k=Math.min(Math.floor(eff*Math.min(o.peasants*R.kidMax,n*R.kidPer)),room);
+  if(m==="kidnap"){ const room=Math.max(0,Math.floor(popCap(c)-roomPop(c))), k=Math.min(Math.floor(eff*Math.min(o.peasants*R.kidMax,n*R.kidPer)),room);
     return `<div class="small">Kidnap: you bring ${sh}, so about <b>${fmt(k)}</b> peasants would join you <span class="mut">(room for ${fmt(room)}; fewer if soldiers fall; no land)</span>.</div>`; }
   const k=Math.floor(eff*Math.min(o.peasants*R.masMax,n*R.masPer));
   return `<div class="small">Massacre: you bring ${sh}, so about <b>${fmt(k)}</b> of their peasants would die, costing you about ${fmt(Math.round(k*R.masFight))} more soldiers as they fight back <span class="mut">(no land; their allies and neighbors will hate you)</span>.</div>`; }
@@ -4501,7 +4503,7 @@ const LABEL_STYLES=[["atlas","Old atlas lettering + stats"],["classic","Classic 
 const SETTINGS_META=[
   ["Map",[["mapLabels","State names on the map (zoom in to see the style; small states keep classic text)","select"]]],
   ["Start",[["startPeasants","Starting peasants"],["startGrain","Starting grain"],["startMoney","Starting money"],["startWood","Starting wood"],["startIron","Starting iron"]]],
-  ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["birthCurve","How long births stay strong as a state fills (1 = slow from half full; 24 = strong until ~80% full)"],["armyBirths","Soldiers count toward births as this share of a peasant","%"],["minPop","A state below this population collapses"]]],
+  ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["birthCurve","How long births stay strong as a state fills (1 = slow from half full; 24 = strong until ~80% full)"],["peasantRoom","Only peasants take up population space (soldiers don't count toward capacity)","bool"],["armyBirths","Soldiers count toward births as this share of a peasant","%"],["minPop","A state below this population collapses"]]],
   ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Normal wood price"],["ironPrice","Normal iron price"],["priceMean","Normal grain price"]]],
   ["Weather systems (droughts and fertile spells)",[["wsPerStates","One system per this many starting states"],["wsMin","At least this many systems"],["wsMax","At most this many systems"],["wsLifeMin","Shortest life (years)"],["wsLifeMax","Longest life (years)"],["wsQuietMin","Shortest quiet gap before a new one (years)"],["wsQuietMax","Longest quiet gap (years)"],["wsRamp","Share of its life spent building up (and again fading)","%"],["wsRadMin","Smallest radius (state widths)"],["wsRadMax","Largest radius (state widths)"],["wsStrMin","Weakest: harvest change at the centre","%"],["wsStrMax","Strongest: harvest change at the centre","%"],["wsGood","Chance a new system is a fertile spell","%"],["wsDrift","Drift speed (state widths per year)"],["wsTurn","Largest change of direction per year (degrees)"],["wsMerge","Same kinds merge (Great Drought, Golden Harvest)","bool"],["wsMergeDist","Merge when centres are closer than (× radii combined)"],["wsMergeSize","Merged size (× the bigger one)"],["wsMergeStr","Merged strength (× the stronger one)"],["wsMergeLife","Merged: extra years of life"],["wsGreatMax","Two great ones meeting: strongest it can get","%"],["wsGreatLife","Two great ones meeting: extra years of life"],["wsClash","Opposite kinds clash: higher tier wins, equal tiers cancel out","bool"],["wsFloor","Systems build up from and fade down to: share of their lowest strength (0 = from and to nothing)","%"]]],
   ["World market & weather",[["mkMerchSell","Merchants sell at least at (× normal)"],["mkMerchMul","Merchants sell at least at (× market price)"],["mkMerchBuy","Merchants buy wood and iron at (× normal)"],["mkMerchBuyG","Merchants buy grain at (× normal)"],["mkSteep","Merchant sell price rise per world year sold (× 1 = +100%)"],["mkSteepB","Merchant buy price drop per world year bought"],["mkYears","Market price: average over years"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxRegionalOff","Small yearly weather patches: strength with weather systems off"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus offered per year","%"],["aiNeedK","AI: how strongly need moves the price it pays or asks"],["aiMargin","AI: how far its orders sit from what it thinks fair","%"]]],
@@ -4670,6 +4672,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Setting: only peasants take up room","2026-11-13 23:29",["New setting (Settings → Food & population): soldiers don't count toward population capacity, only peasants do","With it on, an army no longer slows births, beaten states with big armies aren't wiped out by overcrowding, and kidnaps have more room","Off by default: everyone takes up room, as before"]],
 ["Map fills in while you drag","2026-11-13 19:40",["Trees, mountains and borders now fill in while you drag the map, not only after you let go","Small or zoomed-out maps redraw fully on every frame while you drag"]],
 ["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
 ["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","With Choose your state on, Start plays the preview map even when you didn't click a state, instead of making a second one","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
@@ -4855,7 +4858,7 @@ ${gTab(["System","Feeds","Is fed by"],[
 ["Loyalty","Taxes (unrest), revolts that split a state into rebel states","Conquest and settling lower it, quiet years and festivals (gold) raise it, size lowers its ceiling"],
 ["Weather","Harvest shocks, market prices","The map; drifts by itself"]])}
 <h3>What snowballs, and what stops it</h3>
-<ul class="log"><li><b>Land → people → taxes, food and troops → more land.</b> Brakes: births stop at capacity; ${R.keepPeople?"conquest brings land but no people, so a winner must grow its own (only wiping a state out hands over its people and stocks), and a beaten state keeps what its land can hold;":`captured peasants only partly arrive (${gP(R.capturedPeasants)});`} land per battle is capped by the general's speed and by what survivors can hold; big states pay more for research; neighbors fear a state from ${R.rfFrom}× their size and fear leads to war; with Rebellions on, every conquest costs loyalty, big states recover it slowly under a lower ceiling, and too little loyalty splits newly won land off as rebel states.</li>
+<ul class="log"><li><b>Land → people → taxes, food and troops → more land.</b> Brakes: births stop at capacity${R.peasantRoom?" (only peasants count, so an army doesn't hold growth back)":" (soldiers count too, so a big army slows growth)"}; ${R.keepPeople?"conquest brings land but no people, so a winner must grow its own (only wiping a state out hands over its people and stocks), and a beaten state keeps what its land can hold;":`captured peasants only partly arrive (${gP(R.capturedPeasants)});`} land per battle is capped by the general's speed and by what survivors can hold; big states pay more for research; neighbors fear a state from ${R.rfFrom}× their size and fear leads to war; with Rebellions on, every conquest costs loyalty, big states recover it slowly under a lower ceiling, and too little loyalty splits newly won land off as rebel states.</li>
 <li><b>Science → more research points.</b> Brakes: each level costs ${R.researchGrowth}× the last, being ahead of the world costs up to ×${R.leadMax}, and each scientist costs ${R.sciWage} gold, about six peasants' tax.</li>
 <li><b>Grudges → revenge → new grudges.</b> Brakes: a winning strike back clears most of a grudge, striking back counts half, and wars end after ${R.warMin}–${R.warMax} years with grievances forgotten.</li>
 <li><b>Settling unowned land.</b> Brake: the land runs out.</li></ul>
@@ -4878,9 +4881,10 @@ ${gTab(["System","Feeds","Is fed by"],[
 ["pop","Your state","👥","Population",()=>`
 <p>People are the core resource: every peasant farms or works, pays tax and has children; every soldier is one person taken from them.</p>
 <h3>Capacity</h3><p>Your land holds <b>land × density</b> people: ${R.popPerKm} per km² at the start, +${R.densPerLevel} per km² for each Pop. density level, times your civilization's, leader's and land's capacity bonus (and the Tower of Babel). Conquest and settling add land, so they add room.</p>
+<p>${R.peasantRoom?"<b>Only peasants take up room</b> (scientists are peasants too). Soldiers don't count toward capacity, so an army doesn't slow your births: your peasants can fill the land while your army sits on top.":"Everyone takes up room: peasants, scientists and soldiers. Every soldier fills a place a peasant could have been born into, so a big army slows your births. (Settings can make only peasants count.)"}</p>
 <h3>Births</h3><p>Births come from peasants (soldiers count ${gP(R.armyBirths)} as much). The base rate is ${(R.birthRate*100).toFixed(1)}% a year, raised by Pop. growth research and bonuses. Births stay strong until you are about <b>80% full</b>, peak near 87% and stop at capacity. Over capacity people slowly die off.</p>
 <ul class="log"><li>No births in a famine year.</li><li>A state below ${R.minPop} people collapses and its land becomes unowned. In battle a state with under 20 peasants left is conquered.</li></ul>
-<p>The Home tab's Population card shows people, capacity and how full you are.</p>`],
+<p>The Home tab's Population card shows ${R.peasantRoom?"peasants":"people"}, capacity and how full you are.</p>`],
 ["work","Your state","⚒️","Work and jobs",()=>`
 <p>The Home tab's <b>Work</b> sliders decide what your peasants do. Every scientist or woodcutter is one farmer less, so no job is free.</p>
 ${gTab(["Job","Makes per worker per year","Notes"],[["Farmer",`${R.foodPerFarmer} grain`,"Everyone not in another job. At least 10% always farm."],["Woodcutter",`${R.woodPerWorker} wood`,"Trains wood troops; sells on the market."],["Miner",`${R.ironPerWorker} iron`,"Trains iron troops; sells on the market."],["Scientist","1 research point",`Costs ${R.sciWage} gold a year in wages.`]])}
@@ -4970,7 +4974,7 @@ ${gTab(["Troop","Attack","Defense","Toughness","Cost (food/wood/iron/gold)","Upk
 <li>The attacker wins only if stronger. Ties go to the defender.</li></ul>
 <h3>Losses</h3><p>Each side loses up to ${gP(R.battleLoss)} of its troops, more the stronger the enemy, divided by toughness. A beaten attacker loses ${R.loserPenalty}× more. Against no guards the attacker loses only ${gP(R.raidLoss)}. The defender's stance scales both sides' losses (see ${gl("stance")} Defense stance); the attack mode scales them too (see ${gl("attack")} Attack mode).</p>
 <h3>Land taken</h3><p>The winner takes (general's speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness, times Expansion research. Decisiveness runs from ${gP(R.narrowWinShare)} for a narrow win to 100% at twice the defender's strength (or no defenders). Each survivor can hold ${R.occupy} km² (cavalry 2). A defender standing ground loses only ×${R.stLandStand} of it.</p>
-<h3>Spoils</h3>${R.keepPeople?`<p>A win brings land only. The beaten state keeps its people, scientists, grain, gold, wood and iron: the people on the taken land move to the land it has left. If that land can't hold them all (more people than its capacity), the extra peasants and scientists are lost. Soldiers are never cut this way, so a state whose army fills most of its land can be left with too few peasants and fall on the spot. So a beaten state shrinks but isn't stripped, and a winner has to grow people on its new land.</p>
+<h3>Spoils</h3>${R.keepPeople?`<p>A win brings land only. The beaten state keeps its people, scientists, grain, gold, wood and iron: the people on the taken land move to the land it has left. If that land can't hold them all (more people than its capacity), the extra peasants and scientists are lost. Soldiers are never cut this way${R.peasantRoom?" (and they don't take up room, so only peasants above capacity are lost)":", so a state whose army fills most of its land can be left with too few peasants and fall on the spot"}. So a beaten state shrinks but isn't stripped, and a winner has to grow people on its new land.</p>
 <p>Wiping a state out pays: the winner takes all its remaining people (scientists join as peasants) and all its gold, grain, wood and iron. Its soldiers are lost. Taking its last land hands over everyone, since no one has to be squeezed out first.</p>`
 :`<p>The share of land taken brings the same share of the defender's peasants (${gP(R.capturedPeasants)} arrive) and ${gP(R.lootGrain)} of that share of its grain. Gold, wood and iron are never looted. When a state is wiped out, half its peasants join the winner and its stocks vanish.</p>`}
 <p class="mut">Settings → Battle → "Beaten states keep their people and grain" switches between the two rules.</p>
@@ -5009,7 +5013,7 @@ ${MODE_PICK.map(([id,ic,nm])=>{ const k=MODE_KEY[id]; return `<tr><td>${ic} ${nm
 <h3>Raid, kidnap and massacre</h3>
 <p>These take no land and need no win. What they get scales with your share of the battle strength (your attack ÷ both sides' strength; all of it if nobody guards) and with how many of your soldiers survive. Raiders pull back rather than lose, so a weaker raider takes no beaten-attacker penalty. That makes them the small state's weapon against a giant it can't beat.</p>
 <ul class="log"><li>💰 <b>Raid</b>: carries off a share of their gold, grain, wood and iron: ${R.raidCarry} goods per surviving soldier, at most ${gP(R.raidMax)} of each stock. Low losses on both sides and less anger than a normal attack, since nobody loses land.</li>
-<li>⛓️ <b>Kidnap</b>: carries off ${R.kidPer} peasants per surviving soldier, at most ${gP(R.kidMax)} of theirs, and only as many as you have room for. A bit more anger than a normal attack.</li>
+<li>⛓️ <b>Kidnap</b>: carries off ${R.kidPer} peasants per surviving soldier, at most ${gP(R.kidMax)} of theirs, and only as many as you have room for (capacity minus your ${R.peasantRoom?"peasants":"people"}). A bit more anger than a normal attack.</li>
 <li>💀 <b>Massacre</b>: kills ${R.masPer} of their peasants per surviving soldier, at most ${gP(R.masMax)}. Peasants fight back: every ${Math.round(1/R.masFight)} killed cost you one more soldier. It weakens a rival's taxes, farms and army without taking it over, but causes ×${R.atRelMassacre} the anger.</li>
 <li>If a kidnap or massacre leaves a state with too few peasants, it falls and the attacker takes it whole.</li>
 <li>Computer states harass their biggest neighbor if it is at least ${R.rfFrom}× their size, they fear it and can't beat it: kidnap if they have room, raid if not, massacre with a deep grudge. Then they wait a random ${R.aiHarassGapMin}–${R.aiHarassGapMax} years before harassing it again. They also raid a neighbor they could conquer when their own gold runs low.</li></ul>
