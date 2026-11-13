@@ -167,17 +167,9 @@ td.r,th.r{text-align:right}
 .gbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:auto}
 /* War → Tavern: a header with the innkeeper's line, a notice board of tier cards, and the table where candidates are dealt (in the tab, no window) */
 .tavern{container-type:inline-size;display:flex;flex-direction:column;gap:12px}
-.tvhead{display:flex;align-items:center;gap:10px}
-.tvhead .mark{flex:none;width:36px;height:36px;border-radius:8px;border:1px solid #5e5236;background:#2a2620;display:grid;place-items:center}
-.tvhead .mark svg{width:22px;height:22px}
-.tvhead .ttl{display:flex;flex-direction:column;min-width:0;flex:1}
-.tvhead .ttl b{font:600 16px var(--f-name);color:var(--acc)}
-.tvsay{font:italic 13px/1.35 var(--f-name);color:var(--mut);text-wrap:balance}
-.tvboard{background:#191c21;border:1px solid #2c3038;border-radius:8px;padding:10px}
-.tvboard .bh{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 8px;gap:8px}
-.tvboard .bh b{font:600 14px var(--f-name)} .tvboard .bh span{font-size:12px;color:var(--mut)}
+.psec>h3.tvh{display:flex;align-items:center;gap:8px;flex-wrap:wrap} .tvh .grow{flex:1} .tvh .rt{font-size:12px;text-transform:none;letter-spacing:0;color:var(--mut);font-weight:400}
 .bills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.bill{position:relative;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0;cursor:pointer;font:inherit}
+.bill{position:relative;background:#191c21;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0;cursor:pointer;font:inherit}
 .bill:hover:not(:disabled){border-color:var(--acc)} .bill:disabled{cursor:default;opacity:.62}
 .bill .crest{width:40px;height:40px;color:var(--acc)}
 .bill .wanted{font-weight:700;font-size:9.5px;line-height:1.1;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
@@ -190,11 +182,9 @@ td.r,th.r{text-align:right}
 .bill .leg{margin-top:auto;padding-top:3px;font-size:10.5px;color:var(--acc);font-weight:600}
 .bnote{margin:8px 2px 0;font:italic 12px var(--f-name);color:var(--mut);text-align:center}
 @container (min-width:620px){ .bill{padding:12px 10px 10px} .bill .crest{width:50px;height:50px} .bill .tn{font-size:18px} .bill .rng{display:block} .bills{gap:12px} }
-.tvtable .th{display:flex;align-items:center;gap:8px;margin:0 2px 8px;flex-wrap:wrap}
-.tvtable .th b{font:600 14px var(--f-name)} .tvtable .th .grow{flex:1}
-.lnk{background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;text-underline-offset:2px;font-size:12px}
-.tvempty{display:flex;align-items:center;gap:10px;color:var(--mut);font:italic 13px var(--f-name);padding:8px 4px}
-.tvempty svg{width:40px;height:40px;flex:none;opacity:.6;color:var(--mut)}
+.lnk{background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;text-underline-offset:2px;font-size:12px;text-transform:none;letter-spacing:0;font-weight:400}
+.tvempty{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:13px;padding:2px}
+.tvempty svg{width:34px;height:34px;flex:none;opacity:.6;color:var(--mut)}
 .deal{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr));gap:8px}
 @container (min-width:620px){ .deal{grid-template-columns:repeat(auto-fit,minmax(0,210px));justify-content:center;gap:12px} }
 .flip{position:relative;perspective:900px;min-width:0;display:grid}
@@ -210,7 +200,7 @@ td.r,th.r{text-align:right}
 .flip.open.leg .front{box-shadow:0 0 18px -2px var(--r-leg)}
 .flip.leave{transition:opacity .5s,transform .5s;opacity:0;transform:translateY(14px)}
 .flip.taken .front{box-shadow:0 0 0 2px var(--acc),0 0 22px -2px var(--acc)}
-.cand{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:8px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;height:100%;min-width:0}
+.cand{--rc:var(--r-common);background:#191c21;border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:8px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;height:100%;min-width:0}
 .cand .pf{width:min(118px,100%);border-radius:6px}
 .cand .cn{display:flex;flex-direction:column;align-items:center;min-width:0;width:100%}
 .cand .ctier{display:flex;align-items:center;gap:4px;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--rc);font-weight:700}
@@ -226,7 +216,7 @@ td.r,th.r{text-align:right}
 .flip .act .pri{visibility:hidden} .deal.ready .act .pri{visibility:visible}
 .tvjoined{display:flex;align-items:center;gap:10px;background:#1a2a21;border:1px solid #2f5a40;color:#8fdcae;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px}
 .tvjoined .pf{width:38px}
-.tvfoot{font-size:12px;color:var(--mut)}
+.tvfoot{margin-top:8px;font-size:12px;color:var(--mut)}
 .gtier svg{width:12px;height:12px;vertical-align:-1px}
 .bgen .pf{width:46px}
 @media (prefers-reduced-motion:reduce){.flip,.flip .inner,.pf.leg::after,.flip.charge .back{animation:none!important;transition:none!important}}
@@ -4464,7 +4454,7 @@ function genCard(c,x,cand){
 function pGenerals(){
   const c=me(), v=tavOf(G,c);
   return `<h3>Your generals ${gl("generals")}</h3>
-  ${v.pend?`<div class="note">🍺 ${v.pend.list.length} candidates are waiting at the Tavern table. <button class="sm" data-tavshow="1">Go to the Tavern</button></div>`:""}
+  ${v.pend?`<div class="note">🍺 ${v.pend.list.length} candidates are waiting in the Tavern. <button class="sm" data-tavshow="1">Go to the Tavern</button></div>`:""}
   ${c.generals.length?`<div class="gcards">${c.generals.map(x=>genCard(c,x)).join("")}</div>`:`<div class="note">You have no generals. You can't attack without one, and your border guards fight at about a third of their strength with nobody in command.</div>`}
   <div class="row"><button class="pri" data-tab="war" data-sub="tavern">🍺 Hire in the Tavern</button><span class="small mut">Skill grows every year (faster with higher Mind) and faster in battle. Morale drops after battles and recovers ${R.moraleRecovery} a year, so avoid attacking below 70.</span></div>`; }
 // ---------- War → Tavern: a notice board of tiers, then candidates dealt onto the table in the tab ----------
@@ -4476,18 +4466,13 @@ const CREST={
   leg:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9l3.6 7.6 8.2 1-6 5.6 1.6 8.2L24 27.4l-7.4 4 1.6-8.2-6-5.6 8.2-1z" fill="currentColor"/>${[...Array(7)].map((_,i)=>{ const a=(200+i*20)*Math.PI/180, x=+(24+Math.cos(a)*17).toFixed(1), y=+(26-Math.sin(a)*17).toFixed(1); return `<ellipse cx="${x}" cy="${y}" rx="3.4" ry="1.5" fill="currentColor" transform="rotate(${-(200+i*20)+90} ${x} ${y})"/><ellipse cx="${48-x}" cy="${y}" rx="3.4" ry="1.5" fill="currentColor" transform="rotate(${(200+i*20)-90} ${48-x} ${y})"/>`; }).join("")}</svg>`};
 const tierCrest=id=>CREST[id]||CREST.cap;
 const COIN=`<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#c9962e" stroke="#7a5a12"/><circle cx="8" cy="8" r="4.4" fill="none" stroke="#7a5a12" stroke-width=".9"/></svg>`;
-const MUG=`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="12" height="14" rx="2" fill="none" stroke="#e0b354" stroke-width="1.8"/><path d="M16 9h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H16" fill="none" stroke="#e0b354" stroke-width="1.8"/><path d="M4 6c1-2.5 3-3 4.5-2s3.5-1.5 5.5 0 2 2 2 2" fill="none" stroke="#e0b354" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 function tally(left,tot){ let out=""; for(let k=0;k<Math.ceil(tot/5);k++){ let s=""; const n=Math.min(5,tot-k*5);
     for(let i=0;i<Math.min(4,n);i++) s+=`<path d="M${3+i*5} 2v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="${k*5+i<left?.85:.2}"/>`;
     if(n===5) s+=`<path d="M1 12L22 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="${k*5+4<left?.85:.2}"/>`;
     out+=`<svg viewBox="0 0 24 16" aria-hidden="true">${s}</svg>`; } return out; }
 const CARD_BACK=()=>{ let p=""; for(let y=0;y<8;y++)for(let x=0;x<14;x++) p+=`<path d="M${x*16+(y%2)*8} ${y*16+4}l4 4 -4 4 -4 -4Z" fill="#353a44"/>`;
   return `<svg viewBox="0 0 220 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="220" height="120" fill="#22252c"/>${p}<rect x="5" y="5" width="210" height="110" rx="6" fill="none" stroke="#6b5a2e" stroke-width="1.2"/><path d="M110 30l16 6v16c0 12-7 19-16 23-9-4-16-11-16-23V36Z" fill="#2a2620" stroke="#e0b354" stroke-width="1.4"/><path d="M110 41l2.6 5 5.6.8-4 3.8 1 5.6-5.2-2.6-5.2 2.6 1-5.6-4-3.8 5.6-.8Z" fill="#e0b354"/></svg>`; };
-const TAVERN_NAMES=["The Broken Lance","The Rusty Helm","The Gilded Tankard","The Old Banner","The Sleeping Lion","The Iron Kettle","The Three Swords","The Crooked Crown","The Last Ration","The Black Drum"];
 const TAV_WANTED={cap:"Captains wanted",vet:"Veterans wanted",acad:"From the Academy"};
-const TAV_SAY={cap:"Old soldiers put down their mugs and come over.",vet:"Scarred veterans pull up chairs. Each has a story.",acad:"Young officers from the Academy, boots still shining.",
-  leg:"The room goes quiet. Someone famous is among them.",idle:"The innkeeper wipes a mug. \"Looking for officers? Pin up a notice.\"",wait:"They are waiting for your answer at the back table.",
-  away:"They finish their drinks and leave. The gold for the call is spent.",year:"A new year. The prices on the board are back to normal."};
 function candCard(c,x,i){ const t=x.tier||tierOf(x), T=GTIER(t), r=RAR_OF[t];
   return `<div class="cand" style="--rc:var(--r-${r})">${genFrame(x,c.color)}
     <div class="cn"><span class="ctier">${tierCrest(t)} ${esc(T?.name||"")}</span><b>${esc(x.name)}</b><span class="age" title="Retires at about ${x.maxAge}">Age ${x.age} · serves ~${Math.max(1,x.maxAge-x.age)} yrs</span></div>
@@ -4496,27 +4481,26 @@ function candCard(c,x,i){ const t=x.tier||tierOf(x), T=GTIER(t), r=RAR_OF[t];
     <div class="act"><button class="pri sm" data-tavhire="${i}">Hire ${esc(x.name.split(" ")[0])}</button>${t==="leg"?`<span>✨ Legendary</span>`:""}</div></div>`; }
 function pTavern(){
   const c=me(), v=tavOf(G,c), pend=v.pend, fresh=UI.tavFresh===G.turn+":"+(v.n[pend?.tier]||0), jn=UI.tavJoined?.t===G.turn?UI.tavJoined:null;
-  const say=UI.tavSay?.t===G.turn?UI.tavSay.s:pend?TAV_SAY.wait:TAV_SAY.idle, calls=Math.round(R.genCalls);
+  const calls=Math.round(R.genCalls);
   const bill=t=>{ const left=tavLeft(G,c,t.id), pr=tavPrice(G,c,t.id), can=!pend&&left>0&&c.money>=pr, rs=(a,b)=>a===b?a:a+"–"+b;
-    return `<button class="bill" data-tavcall="${t.id}" ${can?"":"disabled"} title="${left?`Call for ${fmt(pr)} gold: ${Math.round(R.genCards)} candidates come to your table${!pend&&c.money<pr?" (not enough gold)":""}`:"No calls left this year"}">${tierCrest(t.id)}<span class="wanted">${TAV_WANTED[t.id]||esc(t.name)}</span><span class="tn">${esc(t.name)}</span>
+    return `<button class="bill" data-tavcall="${t.id}" ${can?"":"disabled"} title="${left?`Call for ${fmt(pr)} gold: ${Math.round(R.genCards)} candidates come forward${!pend&&c.money<pr?" (not enough gold)":""}`:"No calls left this year"}">${tierCrest(t.id)}<span class="wanted">${TAV_WANTED[t.id]||esc(t.name)}</span><span class="tn">${esc(t.name)}</span>
       <span class="rng">Mind ${rs(t.mind0,t.mind1)} · Skill ${rs(t.skill0,t.skill1)}<br>Age ${rs(t.age0,t.age1)} · Traits ${rs(t.tr0,t.tr1)}<br>Flaw ${gPc(t.flaw)} a slot${t.rare?` · rare ${gPc(t.rare)}`:""}</span>
       <span class="price">${COIN}${left?fmt(pr):"—"}</span><span class="tally" title="${left} of ${calls} calls left this year">${tally(left,calls)}</span><span class="leg" title="Each candidate's chance to be Legendary instead">✨ ${+(t.leg*100).toFixed(1)}% Legendary</span></button>`; };
   return `<div class="tavern">
-   <div class="tvhead"><div class="mark">${MUG}</div><div class="ttl"><b>${esc(TAVERN_NAMES[c.id%TAVERN_NAMES.length])}</b><div class="tvsay" id="tavSay">${esc(say)}</div></div>${gl("tavern")}</div>
-   <div class="tvboard"><div class="bh"><b>Notice board</b><span>Year ${G.turn} · ${fmt(c.money)} gold</span></div>
+   <div class="psec"><h3 class="tvh">Notice board ${gl("tavern")}<span class="grow"></span><span class="rt">${fmt(c.money)} gold</span></h3>
     <div class="bills">${GEN_TIERS.filter(t=>t.id!=="leg").map(bill).join("")}</div>
-    ${pend?`<div class="bnote">Answer the officers at the table before pinning another notice.</div>`:""}</div>
-   <div class="tvtable"><div class="th"><b>${pend?`${esc(GTIER(pend.tier)?.name||"")} candidates`:"At the back table"}</b><span class="grow"></span>${pend?`<button class="lnk" data-tavskip="1">Show all</button><button class="lnk" data-tavaway="1">Send them away</button>`:""}</div>
+    ${pend?`<div class="bnote">Answer the candidates below before pinning another notice.</div>`:""}
+    <div class="tvfoot">A notice brings ${Math.round(R.genCards)} candidates; hire one and the rest leave. Each tier can be called ${calls} times a year, and every extra call that year costs ${R.genRise}× the one before.</div></div>
+   <div class="psec"><h3 class="tvh">Candidates ${gl("traits")}<span class="grow"></span>${pend?`<button class="lnk" data-tavskip="1">Show all</button><button class="lnk" data-tavaway="1">Send them away</button>`:""}</h3>
     ${jn?`<div class="tvjoined">${genFrame(jn.gen,c.color)}<span><b>${esc(jn.gen.name)}</b> joins your generals.</span><button class="sm" data-tab="war" data-sub="generals">See Generals</button></div>`:""}
     ${pend?`<div class="deal${fresh?"":" ready"}" id="tavDraw">${pend.list.map((x,i)=>`<div class="flip ${RAR_OF[x.tier]}${fresh?" dealt":" open"}"><div class="inner"><div class="face back">${CARD_BACK()}</div><div class="face front">${candCard(c,x,i)}</div></div></div>`).join("")}</div>`
-      :jn?"":`<div class="tvempty">${CREST.cap}<span>The table is empty. Pin a notice on the board and officers will come over.</span></div>`}</div>
-   <div class="tvfoot">A call brings ${Math.round(R.genCards)} candidates; hire one and the rest leave. Each tier can be called ${calls} times a year, and every extra call that year costs ${R.genRise}× the one before. Undecided candidates leave at the end of the year; the gold is spent either way. Traits ${gl("traits")}</div>
+      :jn?"":`<div class="tvempty">${CREST.cap}<span>No candidates. Pin a notice on the board and ${Math.round(R.genCards)} officers come forward. Undecided candidates leave at the end of the year; the gold is spent either way.</span></div>`}</div>
   </div>`; }
 // turn the dealt cards over one by one; a Legendary shakes and glows first
 let TAV_T=[];
 function tavReveal(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const fl=[...document.querySelectorAll("#tavDraw .flip")]; let t=650;
   if(!fl.length||matchMedia("(prefers-reduced-motion: reduce)").matches) return tavDone();
-  fl.forEach((f,i)=>{ if(f.classList.contains("leg")){ TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.add("charge"); UI.tavSay={t:G.turn,s:TAV_SAY.leg}; const s=$("tavSay"); if(s) s.textContent=TAV_SAY.leg; },t)); t+=1300; }
+  fl.forEach((f,i)=>{ if(f.classList.contains("leg")){ TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.add("charge"); },t)); t+=1300; }
     TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.remove("charge"); x?.classList.add("open"); },t)); t+=600; });
   TAV_T.push(setTimeout(tavDone,t+150)); }
 function tavDone(){ TAV_T.forEach(clearTimeout); TAV_T=[]; UI.tavFresh=null; const d=$("tavDraw"); if(!d) return;
@@ -5145,6 +5129,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Tavern in regular boxes","2026-11-13 21:42",["The Tavern tab is two regular boxes like every other page: Notice board and Candidates","The tavern name and the innkeeper's line are gone","Notice cards and candidate cards are a shade darker so they stand out on the box"]],
 ["Upright general cards, trait popups","2026-11-13 21:16",["General cards stand upright: portrait on top, then name, stats, traits and buttons","Tavern candidates sit side by side, three across even in the side panel; your generals two across","Hover a trait (or tap it on a touch screen) for a popup with what it does"]],
 ["New Tavern screen","2026-11-13 21:10",["The Tavern has a name and an innkeeper whose line changes with what happens","Tiers are notices on a notice board: crest, price, calls left as tally marks, Legendary chance on one line","Candidates are dealt onto the table in the Tavern tab and turn over there; no more pop-up window","Candidate cards are compact and fit the side panel without scrollbars; three across on a wide panel","Tier icons are drawn, so they show on every system"]],
 ["Simpler research rows","2026-11-13 20:57",["Research: progress bars are gone; under each area it says when the next level comes (\"next level in 5 yrs\", \"next level next year\")","Each area takes one line: level, slider and share line up","Points so far and the next level's cost are in the tooltip"]],
@@ -5452,7 +5437,7 @@ ${gTab(["Troop","Attack","Defense","Toughness","Cost (food/wood/iron/gold)","Upk
 <li><b>Rank</b> follows his battles: Major, then Colonel at 5, General at 15 and Marshal at 30. It is for show.</li></ul>
 <h3>Morale</h3><ul class="log"><li>Resting generals regain ${R.moraleRecovery} a year; the defender loses ${R.moraleDefend} a year instead.</li><li>Attacking costs ${R.moraleWin} on a win and ${R.moraleLoss} on a loss.</li><li>A defender who holds the border gains ${R.moraleHeld}; one whose border is broken loses ${R.moraleBroken}.</li><li><b>Rest</b> takes a defender off the border to recover. Rotate defenders; the computer does.</li></ul>`],
 ["tavern","Military","🍺","Tavern",()=>`
-<p>War → Tavern is where you hire generals. Pick a tier and call: you pay its price at once and ${Math.round(R.genCards)} candidates come forward, each with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. The tiers are notices on the Tavern's notice board; the candidates' cards are dealt onto the table below and turn over one by one. Hire one; the others leave. You can also send them all away or decide later in the year: undecided candidates leave at the end of the year, and the gold is spent either way.</p>
+<p>War → Tavern is where you hire generals. Pick a tier and call: you pay its price at once and ${Math.round(R.genCards)} candidates come forward, each with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. The tiers are notices on the Notice board; the candidates' cards are dealt into the Candidates box below and turn over one by one. Hire one; the others leave. You can also send them all away or decide later in the year: undecided candidates leave at the end of the year, and the gold is spent either way.</p>
 ${gTab(["Tier","Price","Mind","Speed","Age","Skill","Traits","Flaw a slot","Legendary"],GEN_TIERS.filter(t=>t.id!=="leg").map(t=>[`<span class="gtier">${tierCrest(t.id)}</span> ${t.name}`,fmt(t.price),`${t.mind0}–${t.mind1}`,`${t.speed0}–${t.speed1}`,`${t.age0}–${t.age1}`,`${t.skill0}–${t.skill1}`,`${t.tr0}–${t.tr1}`,gP(t.flaw),(t.leg*100).toFixed(1)+"%"]))}
 <ul class="log"><li><b>Price never depends on the roll:</b> a great candidate costs the same as a poor one, so a lucky call is pure gain.</li>
 <li><b>Calls:</b> each tier can be called ${Math.round(R.genCalls)} times a year. Every extra call in the same year costs ${R.genRise}× the one before (${GEN_TIERS.filter(t=>t.id==="acad").map(t=>`Academy: ${[0,1,2,3].map(k=>fmt(Math.round(t.price*Math.pow(R.genRise,k)/10)*10)).join(", ")}…`)}); prices reset every year.</li>
@@ -5937,12 +5922,12 @@ document.addEventListener("click",async ev=>{
   if(d.defgen){ cmd("defGen",+d.defgen); render(); return; }
   if(d.dismiss){ cmd("dismissGeneral",+d.dismiss); render(); return; }
   if(d.tavcall){ if(!cmd("tavCall",d.tavcall)){ flash("Not enough gold, or no calls left for that tier this year."); render(); return; }
-    const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; UI.tavSay={t:G.turn,s:TAV_SAY[d.tavcall]||TAV_SAY.wait}; save(); render(); tavReveal(); return; }
+    const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; save(); render(); tavReveal(); return; }
   if(d.tavshow){ goTab("war","tavern"); render(); return; }
   if(d.tavskip){ tavDone(); return; }
-  if(d.tavaway){ TAV_T.forEach(clearTimeout); UI.tavFresh=null; cmd("tavAway"); UI.tavSay={t:G.turn,s:TAV_SAY.away}; save(); render(); return; }
+  if(d.tavaway){ TAV_T.forEach(clearTimeout); UI.tavFresh=null; cmd("tavAway"); save(); render(); return; }
   if(d.tavhire!=null){ const i=+d.tavhire; document.querySelectorAll("#tavDraw .flip").forEach((f,k)=>f.classList.add(k===i?"taken":"leave")); UI.busyHire=true;
-    setTimeout(()=>{ UI.busyHire=false; const x=cmd("tavHire",i); if(x){ UI.tavJoined={t:G.turn,gen:x}; UI.tavSay={t:G.turn,s:`${x.name.split(" ")[0]} shakes your hand. The others finish their drinks and leave.`}; save(); } render(); },550); return; }
+    setTimeout(()=>{ UI.busyHire=false; const x=cmd("tavHire",i); if(x){ UI.tavJoined={t:G.turn,gen:x}; save(); } render(); },550); return; }
   if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=cmd("festival",n); UI.festN=undefined;
     flash(got?`Festivals held: loyalty +${got} for ${fmt(got*festCost(G,c))} gold.`:"Not enough gold, or no room for more loyalty this year."); render(); return; }
   if(d.find){ if(!G||observing()) return; goTab("world","rank"); UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
