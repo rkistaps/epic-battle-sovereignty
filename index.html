@@ -280,10 +280,10 @@ const R = {
   popPerKm: 3, birthRate: 0.03, minPop: 20, // base capacity per km², base birth rate, a state below minPop collapses
   grainBuy: 1.6, priceMin: 0.7, priceMax: 1.6, priceMean: 1.1, priceDrift: 0.15, // grain market
   // research: cost per level = researchCostBase × (level+1)^researchCostExp; effect per level
-  researchCostBase: 5, researchCostExp: 2.5,
+  researchCostBase: 18, researchCostExp: 2,
   levelKnee: 25,                   // diminishing returns: levels count in full up to 25, beyond that with the square root
   techEdgeMax: 3,                  // in battle, one side's attack/defense research counts at most 3× the other side's
-  sciPerLevel: 0.1, agriPerLevel: 0.06, finTaxPerLevel: 0.07, finPricePerLevel: 0.02, densPerLevel: 0.5, growPerLevel: 0.006,
+  sciPerLevel: 0.15, agriPerLevel: 0.06, finTaxPerLevel: 0.07, finPricePerLevel: 0.02, densPerLevel: 0.5, growPerLevel: 0.006,
   atkPerLevel: 0.08, defPerLevel: 0.08, woodPerLevel: 0.08, ironPerLevel: 0.08, explorePerLevel: 0.05,
   // battle
   defenderBonus: 0.15, battleLoss: 0.7, loserPenalty: 1.2, raidLoss: 0.02, battleLuck: 0.15, narrowWinShare: 0.25,
@@ -312,6 +312,7 @@ const R = {
   idleStart: 5, idleFull: 25,                     // AI stalemate breaker: bolder after 5 years without fighting, boldest at 25
   aiDefense: 0.3,                                 // AI keeps an army of at least 30% of its strongest neighbor's strength (more if recently attacked)
   aiSciMax: 0.25,                                 // AI keeps scientists under 25% of its people (room for an army)
+  aiSciFocus: 0.3,                                // …except research-minded leaders (Research bonus ≥ 1.2): up to 30%, and more points into Science
   aiKeepPop: 0.72, aiKeepCap: 0.35, aiRebuild: 0.3, // AI peasant reserve (scientists count as peasants): 72% of pop / 35% of capacity (see aiPeasantFloor); rebuilds 30% of a shortfall per year
   // how strongly each civilization/leader bonus applies here (tuned so no type dominates)
   // defense and population compound strongly in this game, so their bonuses apply at 40% (simulated so no type dominates)
@@ -1083,6 +1084,7 @@ function aiBuyAndHire(g,c,t,k){
   if(t.iron*k>c.iron) act.buyRes(g,c,"iron",Math.ceil(t.iron*k-c.iron));
   return act.hireTroop(g,c,t.id,k);
 }
+const sciLead=c=>(leaderOf(c)?.science??1)>=1.2; // Scientist and Loyal leaders
 function aiTurn(g,c){
   const d=g.difficulty, t=g.turn, adj=neighbors(g,c.id);
   const eff = [0.8,1,1.15][d];
@@ -1104,7 +1106,8 @@ function aiTurn(g,c){
   { const P=Math.max(1,c.peasants), perFarmer=Math.max(0.1,foodPerFarmer(c));
     const want=foodUse(c)*(c.grain<foodUse(c)*0.5?1.35:1.15), farmShare=Math.min(0.9,Math.max(0.1,want/perFarmer/P));
     const netNoSci=projectedNet(g,c)+workers(c).sci*R.sciWage, payable=Math.max(0,netNoSci*0.9+Math.max(0,c.money-1000)*0.15)/R.sciWage;
-    let sciShare=Math.min(t<milStart?0.25:t<60?0.22:0.18, R.aiSciMax, payable/P, 0.9-farmShare); if(panic) sciShare*=0.5;
+    const sl=sciLead(c), sciShareFor=t<milStart?0.25:t<60?0.22:0.18;
+    let sciShare=Math.min(sl?sciShareFor*R.aiSciFocus/0.25:sciShareFor, sl?Math.max(R.aiSciMax,R.aiSciFocus):R.aiSciMax, payable/P, 0.9-farmShare); if(panic) sciShare*=0.5;
     sciShare=Math.max(0,sciShare);
     const spare=Math.max(0,1-farmShare-sciShare), ironShare=early?0.3:0.55;
     c.work={wood:Math.floor(spare*(1-ironShare)*100), iron:Math.floor(spare*ironShare*100), sci:Math.floor(sciShare*100)}; }
@@ -1150,6 +1153,7 @@ function aiTurn(g,c){
   if(t<milStart) c.alloc={...zeroAreas(),sci:30,agri:20,fin:15,dens:10,grow:5,wood:10,iron:10};
   else if(t<60) c.alloc={...zeroAreas(),sci:16,agri:12,fin:8,dens:8,grow:12,atk:mil?16:10,def:guard?16:12,wood:6,iron:8,explore:4};
   else c.alloc={...zeroAreas(),sci:10,agri:10,fin:6,dens:8,grow:14,atk:mil?22:16,def:guard?20:15,wood:5,iron:8,explore:4};
+  if(sciLead(c)&&R.aiSciFocus>R.aiSciMax) c.alloc.sci+=15; // research-minded leaders invest more in Science
   if(popOf(c)>popCap(c)*0.9){ c.alloc.dens+=10; c.alloc.sci-=10; }
   // attacks
   // stalemate breaker: the longer without a fight (or the fewer states left), the bolder
@@ -2426,7 +2430,7 @@ const SETTINGS_META=[
   ["Generals",[["genCostBase","Hiring cost: base"],["genCostMind","Hiring cost growth per Mind point (×)"],["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year"]]],
   ["Land, shore & settling",[["shoreYield","Shore farmland: food bonus per share of shore land (×)"],["shoreMax","Shore farmland: maximum bonus","%"],["settleBase","Settling: km² per year"],["settleRate","Settling: share of own land per year","%"],["coastalShore","Coastal state (Islands/Oceanic allowed): shore land needed","%"]]],
   ["Civilization, leader & land bonus strength (1 = full, 0 = off)",[...TRAIT_COLS.map(([k,l])=>["traitWeight."+k,l]),["traitWeight.foodBirths","Food bonus also raises births"]]],
-  ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiKeepPop","Peasant reserve: share of population","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
+  ["Computer players",[["aiDefense","Keep an army of at least this share of the strongest neighbor's","%"],["aiSciMax","Scientists at most this share of people","%"],["aiSciFocus","…for research-minded leaders (Research ≥ 1.2)","%"],["aiKeepPop","Peasant reserve: share of population","%"],["aiKeepCap","Peasant reserve: share of capacity","%"],["aiRebuild","Rebuild this share of a peasant shortfall per year","%"],["idleStart","Stalemate breaker: bolder after (years without fighting)"],["idleFull","Stalemate breaker: boldest after (years)"]]],
   ["Coalition (balance of power)",[["coalition","Coalitions on","bool"],["coalitionShare","A leader is a runaway above this × an average share"],["coalitionMin","…but at least this share of all land","%"],["coalitionMax","…and at most this share of all land","%"],["coalJoint","Joint-attack optimism per extra member"],["coalJointMax","Joint-attack optimism cap (×)"],["coalMargin","Lower attack margin against the leader","%"],["coalArm","Extra army share for members","%"]]],
 ];
 const TABLE_META={
@@ -2589,7 +2593,7 @@ function helpModal(){
   <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last, and levels above ${R.levelKnee} have diminishing returns (they count with the square root).</li></ul>
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Economy tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Attackers fight with attack, guards with defense; attacks send your most offensive troops first. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
-  <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
+  <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do and Scientist and Loyal leaders put more people into research, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
   <h3>War</h3><ul class="log">
   <li>You can only attack neighbors, and only with a general. Soldiers you send don't defend that year.</li>
   <li>Strength = soldiers × Attack/Defense research × general (skill and morale) × your civilization's and leader's attack (when attacking) or defense (when defending) bonus. A research lead counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy. Defenders get +15%. A state with no guards loses as much land as the attacker's general and army can take.</li>
