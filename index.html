@@ -143,10 +143,10 @@ td.r,th.r{text-align:right}
 .pf.leg{box-shadow:0 0 0 1px #0008,0 0 14px #e0b35455}
 .pf.leg::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,#fff3 50%,transparent 65%);background-size:250% 100%;animation:pfshine 4s ease-in-out infinite;pointer-events:none}
 @keyframes pfshine{0%,60%{background-position:120% 0}100%{background-position:-120% 0}}
-.gcards{display:flex;flex-direction:column;gap:10px;margin:8px 0}
-.gcard{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.gtop{display:flex;gap:10px;min-width:0} .gtop .pf{width:84px}
-.gid{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,175px),1fr));gap:10px;margin:8px 0}
+.gcard{--rc:var(--r-common);height:100%;background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.gtop{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center} .gtop .pf{width:min(130px,100%)}
+.gid{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;width:100%}
 .gname{font:600 17px/1.15 var(--f-name)} .gcard .rar{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--rc);font-weight:600}
 .gcard .rank{font-size:12px;color:var(--mut)}
 .pill{display:inline-block;font-size:12px;border-radius:10px;padding:1px 8px;border:1px solid}
@@ -154,37 +154,96 @@ td.r,th.r{text-align:right}
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:3px 8px;align-items:center;font-size:12px}
 .bar{height:7px;background:#0f1114;border-radius:4px;overflow:hidden;border:1px solid var(--line)} .bar i{display:block;height:100%;border-radius:4px}
 .bar i.good{background:var(--good)} .bar i.warnc{background:#e0a05a} .bar i.bad{background:var(--bad)} b.warnc{color:#e0a05a}
-.gstats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;text-align:center}
+.gstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;text-align:center}
 .gstats div{background:#0f1114;border-radius:6px;padding:3px 2px;display:flex;flex-direction:column} .gstats b{font-variant-numeric:tabular-nums} .gstats span{font-size:11px;color:var(--mut)}
 .gtraits{display:flex;flex-wrap:wrap;gap:4px}
+.gcard .gtraits,.cand .gtraits{justify-content:center}
+.gcard .gtraits .gtr,.cand .gtraits .gtr{white-space:normal;text-align:center}
 .gtr{font-size:12px;border-radius:6px;padding:1px 7px;border:1px solid var(--line);background:#1b1e24;cursor:help;white-space:nowrap}
 .gtr.g,.gtr.t{border-color:#2f5a40;color:#8fdcae} .gtr.f{border-color:#6b3a33;color:#f0a094} .gtr.r{border-color:#5a4a8a;color:#c9b2f5} .gtr.e{border-color:#6b5a2e;color:var(--acc)} .gtr.h{border-style:dashed;color:var(--mut)}
-.gbtns{display:flex;gap:6px;flex-wrap:wrap}
-.tiers{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-.tier{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--rc);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
-.tier .tn{display:flex;align-items:center;gap:7px} .tier .tn b{font:600 15px var(--f-name)} .tier .ic{font-size:18px}
-.tdl{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;color:var(--mut)} .tdl b{color:var(--txt);font-variant-numeric:tabular-nums}
-.legline{font-size:12px;color:var(--r-leg)}
-.modal.tavern{max-width:1040px}
-.tdraw{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;padding:8px 2px}
-.flip{position:relative;perspective:900px;min-width:0;animation:deal .55s cubic-bezier(.2,.8,.2,1) backwards}
-.flip:nth-child(2){animation-delay:.12s} .flip:nth-child(3){animation-delay:.24s} .flip:nth-child(4){animation-delay:.36s}
-@keyframes deal{from{transform:translateY(-40px) rotate(-8deg) scale(.85);opacity:0}}
-.flip .inner{position:relative;display:grid;transition:transform .7s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
+.gtip{position:fixed;z-index:200;max-width:270px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--good);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.4;color:var(--txt);box-shadow:0 6px 18px #000a;pointer-events:none}
+.gtip.f{border-top-color:var(--bad)} .gtip.r{border-top-color:#9a7fe0} .gtip.e{border-top-color:var(--acc)} .gtip.h{border-top-color:var(--mut)}
+.gtip .gth{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:3px} .gtip .gth b{font-size:13px} .gtip .gth span{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.gtr:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.gbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:auto}
+/* Generals → Tavern: a Notice board box of tier cards and a Candidates box where candidates are dealt (in the tab, no window) */
+.tavern{container-type:inline-size;display:flex;flex-direction:column;gap:12px}
+.psec>h3.tvh{display:flex;align-items:center;gap:8px;flex-wrap:wrap} .tvh .grow{flex:1} .tvh .rt{font-size:12px;text-transform:none;letter-spacing:0;color:var(--mut);font-weight:400}
+.bills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bill{position:relative;background:#191c21;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0;cursor:pointer;font:inherit}
+.bill:hover:not(:disabled){border-color:var(--acc)} .bill:disabled{cursor:default;opacity:.62}
+.bill .crest{width:40px;height:40px;color:var(--acc)}
+.bill .wanted{font-weight:700;font-size:9.5px;line-height:1.1;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.bill .tn{font:700 15px/1.1 var(--f-name)}
+.bill .rng{font-size:11px;line-height:1.3;color:var(--mut);display:none}
+.bill .price{display:flex;align-items:center;gap:4px;font:700 14px var(--f-name);margin-top:2px}
+.bill .price svg{width:15px;height:15px}
+.bill .tally{display:flex;gap:5px;justify-content:center}
+.bill .tally svg{height:13px;width:auto}
+.bill .leg{margin-top:auto;padding-top:3px;font-size:10.5px;color:var(--acc);font-weight:600}
+.bnote{margin:8px 2px 0;font:italic 12px var(--f-name);color:var(--mut);text-align:center}
+@container (min-width:620px){ .bill{padding:12px 10px 10px} .bill .crest{width:50px;height:50px} .bill .tn{font-size:18px} .bill .rng{display:block} .bills{gap:12px} }
+.lnk{background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;text-underline-offset:2px;font-size:12px;text-transform:none;letter-spacing:0;font-weight:400}
+.tvempty{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:13px;padding:2px}
+.tvempty svg{width:34px;height:34px;flex:none;opacity:.6;color:var(--mut)}
+.deal{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr));gap:8px}
+@container (min-width:620px){ .deal{grid-template-columns:repeat(auto-fit,minmax(0,210px));justify-content:center;gap:12px} }
+.flip{position:relative;perspective:900px;min-width:0;display:grid}
+.flip.dealt{animation:deal .5s cubic-bezier(.2,.8,.2,1) backwards} .flip.dealt:nth-child(2){animation-delay:.1s} .flip.dealt:nth-child(3){animation-delay:.2s} .flip.dealt:nth-child(4){animation-delay:.3s}
+@keyframes deal{from{transform:translate(30px,-30px) rotate(10deg);opacity:0}}
+.flip .inner{position:relative;display:grid;transition:transform .65s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
 .flip.open .inner{transform:rotateY(180deg)}
-.flip .face{grid-area:1/1;position:relative;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:10px;overflow:hidden;min-width:0}
-.flip .back{background:var(--panel2);border:1px solid var(--line)} .flip .back svg{position:absolute;inset:0;width:100%;height:100%}
+.flip .face{grid-area:1/1;position:relative;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:8px;overflow:hidden;min-width:0}
+.flip .back{background:#22252c;border:1px solid #6b5a2e} .flip .back svg{position:absolute;inset:0;width:100%;height:100%}
 .flip .front{transform:rotateY(180deg)}
-.flip.open .front{animation:glow 1.4s ease-out 1} .flip.open.leg .front,.flip.open.gift .front{box-shadow:0 0 22px -4px var(--rc)}
-@keyframes glow{0%{box-shadow:0 0 0 0 var(--rc)}35%{box-shadow:0 0 40px 6px var(--rc)}100%{box-shadow:0 0 18px -4px var(--rc)}}
-.flip .rays{position:absolute;inset:-18%;border-radius:50%;background:repeating-conic-gradient(from 0deg,#e0b35400 0deg 9deg,#e0b35455 9deg 18deg);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);mask:radial-gradient(circle,#000 30%,transparent 70%);opacity:0;transition:opacity .4s;pointer-events:none;animation:spin 9s linear infinite}
-.flip.leg.charge .rays,.flip.leg.open .rays{opacity:1}
-@keyframes spin{to{transform:rotate(360deg)}}
-.flip.charge .back{animation:shake .09s linear infinite;box-shadow:0 0 30px 4px var(--r-leg);border-color:var(--r-leg)}
+.flip.charge .back{animation:shake .09s linear infinite;box-shadow:0 0 24px 3px var(--r-leg)}
 @keyframes shake{0%{transform:translate(1px,0) rotate(.6deg)}50%{transform:translate(-1px,1px) rotate(-.6deg)}100%{transform:translate(1px,-1px) rotate(.3deg)}}
-.flip .hire{visibility:hidden} .tdraw.ready .hire{visibility:visible}
+.flip.open.leg .front{box-shadow:0 0 18px -2px var(--r-leg)}
+.flip.leave{transition:opacity .5s,transform .5s;opacity:0;transform:translateY(14px)}
+.flip.taken .front{box-shadow:0 0 0 2px var(--acc),0 0 22px -2px var(--acc)}
+.cand{--rc:var(--r-common);background:#191c21;border:1px solid var(--line);border-top:3px solid var(--rc);border-radius:8px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;height:100%;min-width:0}
+.cand .pf{width:min(118px,100%);border-radius:6px}
+.cand .cn{display:flex;flex-direction:column;align-items:center;min-width:0;width:100%}
+.cand .ctier{display:flex;align-items:center;gap:4px;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--rc);font-weight:700}
+.cand .ctier svg{width:12px;height:12px;flex:none}
+.cand .cn b{font:600 15px/1.15 var(--f-name)}
+.cand .cn span.age{font-size:11.5px;color:var(--mut)}
+.cst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;width:100%}
+.cst span{background:#0f1114;border-radius:5px;padding:2px 0;text-align:center;font-size:10px;color:var(--mut);line-height:1.2}
+.cst span b{display:block;font-size:13px;color:var(--txt);font-variant-numeric:tabular-nums}
+.cand .gtraits{min-height:20px}
+.cand .act{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:auto;width:100%}
+.cand .act span{font-size:11.5px;color:var(--r-leg)}
+.flip .act .pri{visibility:hidden} .deal.ready .act .pri{visibility:visible}
+.tvjoined{display:flex;align-items:center;gap:10px;background:#1a2a21;border:1px solid #2f5a40;color:#8fdcae;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px}
+.tvjoined .pf{width:38px}
+.tvfoot{margin-top:8px;font-size:12px;color:var(--mut)}
+.gtier svg{width:12px;height:12px;vertical-align:-1px}
 .bgen .pf{width:46px}
-@media (prefers-reduced-motion:reduce){.flip,.flip .inner,.pf.leg::after,.flip .rays,.flip.charge .back{animation:none!important;transition:none!important}}
+/* Generals → Staff: seats, picker, totals */
+.seats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@container (min-width:620px){ .seats{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px} }
+.seat{--sc:var(--line);background:#191c21;border:1px solid var(--line);border-top:3px solid var(--sc);border-radius:8px;padding:8px 7px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;min-width:0}
+.seat.on{--sc:var(--info)} .seat.sel{box-shadow:0 0 0 2px var(--acc)}
+.seat .ph{display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.6px;text-transform:uppercase;font-weight:700;color:var(--acc)} .seat .ph svg{width:16px;height:16px;flex:none}
+.seat .what{font-size:11.5px;line-height:1.3;color:var(--mut);min-height:30px}
+.seat .pick{padding:0;border:0;background:none;border-radius:6px;cursor:pointer;width:min(96px,100%)} .seat .pick .pf{width:100%} .seat .pick:hover .pf,.seat .pick:focus-visible .pf{box-shadow:0 0 0 2px var(--acc)}
+.pf.empty{border:2px dashed var(--line);background:#0f1114}
+.seat .nm{font:600 14px/1.15 var(--f-name)} .seat .nm.mut{font:italic 13px var(--f-name);color:var(--mut)}
+.seat .eff{font-size:11.5px;line-height:1.3;background:#0f1114;border-radius:5px;padding:4px 5px;width:100%;color:#8fdcae} .seat .eff.none{color:var(--mut)}
+.seat .fit{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:auto}
+.pol{display:flex;gap:4px;width:100%} .pol button{flex:1} .pol button.on{border-color:var(--acc);color:var(--acc);background:#2a2620}
+.sprow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:#191c21;border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-top:6px}
+.sprow:first-of-type{margin-top:0} .sprow .pf{width:48px} .sprow.cur{border-color:var(--info)}
+.sprow .spn{display:flex;flex-direction:column;gap:2px;min-width:0} .sprow .spn b{font:600 14px var(--f-name)} .sprow .meta{font-size:11.5px;color:var(--mut)}
+.sprow .pe{font-size:12px;color:#8fdcae} .sprow .pe.low{color:var(--txt)} .sprow .warnl{font-size:11.5px;color:#e0a05a}
+.kfit{font-size:10px;border-radius:8px;padding:0 6px;border:1px solid #2f5a40;color:#8fdcae;margin-left:5px;vertical-align:1px;font-family:inherit;font-weight:600}
+.stot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@container (min-width:620px){ .stot{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.stot div{background:#191c21;border:1px solid var(--line);border-radius:7px;padding:6px 8px;display:flex;flex-direction:column}
+.stot span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px} .stot b{font-size:16px;font-variant-numeric:tabular-nums} .stot b.z{color:var(--mut);font-weight:500} .stot em{font-style:normal;font-size:11.5px;color:var(--mut)}
+.pill.post{color:var(--info);border-color:#2e4a6b;background:#1a2330}
+@media (prefers-reduced-motion:reduce){.flip,.flip .inner,.pf.leg::after,.flip.charge .back{animation:none!important;transition:none!important}}
 .note{background:#2b2618;border:1px solid #5a4a22;border-radius:8px;padding:8px;margin:8px 0;font-size:13px}
 .warn{background:#341d1a;border-color:#6d2f27}
 #end{font-size:15px;padding:8px 18px}
@@ -643,7 +702,14 @@ const R = {
   // generals
   speedBase: 10, speedPerPoint: 2.5, genNoGeneral: 0.3, genTrainRate: 0.5, moraleRecovery: 10,
   genCalls: 10, genRise: 1.5, genCards: 3,  // Tavern: each tier can be called 10 times a year; every extra call that year costs ×1.5; a call brings 3 candidates (tiers: the General tiers table)
-  genHide: 0.3, genTroopShare: 0.4,         // share of rolled traits that start hidden; share of good trait slots that roll a troop trait
+  genHide: 0.3, genTroopShare: 0.4,
+  genMax: 10,                               // at most 10 generals at once (field, defender and staff posts together)
+  // staff posts: a posted general can't attack or defend; each post gives a yearly effect, worked out at the end of the year
+  postQm: 0.01, postQmFit: 2.5, postQmMax: 0.15,      // Quartermaster: army eats 1% less grain per Mind (Iron Quartermaster ×2.5), at most 15%
+  postDrill: 0.5, postDrillTroop: 0.05,              // Drillmaster: field generals +0.5 skill a year per Mind; his troop traits: that troop +5% in every battle
+  postChief: 2, postChiefFit: 1.5,                   // Chief of Staff: field generals +2 morale a year per Mind (Beloved ×1.5)
+  postEase: 0.3, postSqTax: 0.015, postSqLoy: 0.2,   // Governor: Ease loyalty +0.3 a year per Mind; Squeeze taxes +1.5% and loyalty −0.2 a year per Mind
+  postGovRevolt: 0.5, postDrunk: 0.5,                // a Butcher governor halves the revolt chance (and Ease); a Drunkard at a post gives half in half his years         // share of rolled traits that start hidden; share of good trait slots that roll a troop trait
   // general traits (battle traits work in battles he commands; costs and temper every year)
   trLuckyDice: 2, trLuckyBDice: 3, trJinxDice: 2, trReckless: 0.3, // Lucky: best of 2 luck rolls; Lucky Bastard: best of 3; Jinxed: worst of 2; Reckless: luck ±30%
   trLuckyEarnWins: 3, trLuckyEarnRoll: 1.1, // earned Lucky Bastard: 3 battles won on a luck roll of ×1.10 or better
@@ -792,7 +858,7 @@ function birthsOf(c,peasants=c.peasants,pop=popOf(c)){ return Math.round((peasan
 function foodPerFarmer(c){ return R.foodPerFarmer*(1+R.agriPerLevel*lvl(c,"agri"))*(1+shoreBonus(c))*M(c,"food")*wonderMul(c,"agri"); }
 function foodProduction(c){ return Math.round(workers(c).farm*foodPerFarmer(c)); }
 function popOf(c){ return c.peasants+c.sci+c.soldiers; }
-function foodUse(c){ let f=c.peasants+c.sci; const tr=c.troops||{spear:c.soldiers}; for(const k in tr) f+=tr[k]*(TROOP[k]?.upFood??1); return Math.round(f); }
+function foodUse(c){ let f=0; const tr=c.troops||{spear:c.soldiers}; for(const k in tr) f+=tr[k]*(TROOP[k]?.upFood??1); return Math.round(c.peasants+c.sci+f*(1-(postNow(c,"qm").food||0))); } // a Quartermaster cuts what the army eats
 // peasants at work: woodcutters and miners by the work split; everyone else farms
 function workers(c){ const w=c.work||{}, f=k=>Math.floor(c.peasants*(w[k]||0)/100), wood=f("wood"), iron=f("iron"), sci=f("sci"); return {wood,iron,sci,farm:c.peasants-wood-iron-sci}; }
 function researchPoints(c){ return workers(c).sci*(1+R.sciPerLevel*lvl(c,"sci"))*M(c,"science")*wonderMul(c,"sci"); }
@@ -845,7 +911,7 @@ function casualties(tr,f,mods){ // mods: {troop: × its losses} from general tra
   return {out,n};
 }
 function applyLosses(c,pool,loss){ const tr=troopsOf(c); for(const k in loss){ pool[k]=Math.max(0,(pool[k]||0)-loss[k]); tr[k]=Math.max(0,(tr[k]||0)-loss[k]); } c.soldiers=troopCount(tr); }
-function taxIncome(c){ return Math.round(c.peasants*R.taxPerPeasant*(1+R.finTaxPerLevel*lvl(c,"fin"))*wonderMul(c,"fin")*(c.loy!=null&&c.loy<R.loyUnrest?1-R.loyUnrestTax:1)); } // unrest: lower taxes
+function taxIncome(c){ return Math.round(c.peasants*R.taxPerPeasant*(1+R.finTaxPerLevel*lvl(c,"fin"))*wonderMul(c,"fin")*(c.loy!=null&&c.loy<R.loyUnrest?1-R.loyUnrestTax:1)*(1+(postNow(c,"gov").tax||0))); } // unrest: lower taxes; a Governor squeezing raises them
 function exploreMul(c){ return M(c,"explore")*(1+R.explorePerLevel*lvl(c,"explore"))*wonderMul(c,"explore"); }
 function wages(c){ let w=workers(c).sci*R.sciWage; const tr=troopsOf(c); for(const k in tr) w+=tr[k]*(TROOP[k]?.upGold??0); return Math.round(w+genWages(c)); } // scientists + cavalry gold upkeep + Greedy generals
 function genWages(c){ let w=0; for(const gen of c.generals||[]) if(hasTr(gen,"greedy")) w+=tierPrice(gen)*R.trGreedyWage; return Math.round(w); }
@@ -868,6 +934,27 @@ function troopTraitMul(gen,tr,stat){ let m=1; const rows=[], tot=troopSum(tr,sta
 // an enemy Pike Square: this army's cavalry fights weaker
 function pikeMul(tr,stat){ const tot=troopSum(tr,stat); return tot>0?1-R.trPikeCav*(tr.cav||0)*(TROOP.cav?.[stat]||0)/tot:1; }
 function tierPrice(gen){ return GTIER(tierOf(gen))?.price||0; }
+// ---------- staff posts ----------
+// A general can hold one post instead of fighting (gen.post). Every post is a yearly flow worked out at the end of the year
+// for whoever holds it then, so swapping someone in for a moment gains nothing; no post makes buying cheaper.
+const POSTS=[{id:"qm",name:"Quartermaster"},{id:"drill",name:"Drillmaster"},{id:"chief",name:"Chief of Staff"},{id:"gov",name:"Governor"}];
+const POST_IDS=POSTS.map(p=>p.id);
+const postHolder=(c,id)=>c?.generals?.find(x=>x.post===id)||null;
+const fieldGens=c=>(c.generals||[]).filter(x=>!x.post);
+// what a general gives at a post (whether he holds it or not); pol: the Governor's policy
+function postEff(c,gen,id,pol){ if(!gen) return null; const m=gen.mind*(hasTr(gen,"drunk")&&gen.hang?R.postDrunk:1), o={};
+  if(id==="qm") o.food=Math.min(R.postQmMax,R.postQm*m*(hasTr(gen,"quarter")?R.postQmFit:1));
+  else if(id==="drill"){ o.skill=+(R.postDrill*m).toFixed(2); o.troops=Object.keys(TROOP_TRAIT).filter(k=>hasTr(gen,k)).map(k=>TROOP_TRAIT[k]); }
+  else if(id==="chief") o.morale=+(R.postChief*m*(hasTr(gen,"beloved")?R.postChiefFit:1)).toFixed(1);
+  else if(id==="gov"){ if((pol||c?.govPol)==="squeeze"){ o.tax=R.postSqTax*m*(hasTr(gen,"greedy")?0.5:1); o.loy=-R.postSqLoy*m*(hasTr(gen,"beloved")?0.5:1); }
+    else { o.tax=0; o.loy=R.postEase*m*(hasTr(gen,"beloved")?2:1)*(hasTr(gen,"butcher")?0.5:1); }
+    o.revolt=hasTr(gen,"butcher")?R.postGovRevolt:1; }
+  return o; }
+const postNow=(c,id)=>postEff(c,postHolder(c,id),id)||{};
+// the Drillmaster's troop traits: those troops +5% in every battle of his state (for their share of the army)
+function drillMul(c,tr,stat){ const d=postNow(c,"drill"); let m=1; const rows=[], tot=troopSum(tr,stat); if(!d.troops?.length||tot<=0) return {m,rows};
+  for(const tp of d.troops){ const sh=(tr[tp]||0)*(TROOP[tp]?.[stat]||0)/tot; if(sh>0){ const v=1+R.postDrillTroop*sh; m*=v; rows.push(["drillP",+v.toFixed(4),+sh.toFixed(3),tp]); } }
+  return {m,rows}; }
 
 // ---------- pre-made maps ----------
 // Earth's land (Natural Earth 1:50m, public domain): 0.5° cells, longitude from lon0 eastward
@@ -1634,7 +1721,7 @@ function neighbors(g,id){ return [...adjacency(g)[id]].filter(j=>g.countries[j].
 // genCards candidates with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. Hire one; the rest leave.
 // Legendary can't be called: each candidate has the tier's `leg` chance to be one. Price never depends on the roll.
 const GEN_TIERS=[
-  {id:"cap",name:"Captain",icon:"🪖",price:600,mind0:1,mind1:2,speed0:20,speed1:60,age0:30,age1:50,skill0:0,skill1:10,tr0:0,tr1:1,flaw:0.6,rare:0,leg:0.005},
+  {id:"cap",name:"Captain",icon:"🗡️",price:600,mind0:1,mind1:2,speed0:20,speed1:60,age0:30,age1:50,skill0:0,skill1:10,tr0:0,tr1:1,flaw:0.6,rare:0,leg:0.005},
   {id:"vet",name:"Veteran",icon:"⚔️",price:3000,mind0:2,mind1:3,speed0:40,speed1:80,age0:28,age1:45,skill0:5,skill1:15,tr0:1,tr1:1,flaw:0.35,rare:0,leg:0.02},
   {id:"acad",name:"Academy graduate",icon:"🎓",price:20000,mind0:3,mind1:5,speed0:60,speed1:100,age0:20,age1:30,skill0:0,skill1:10,tr0:1,tr1:2,flaw:0.15,rare:0.08,leg:0.06},
   {id:"leg",name:"Legendary",icon:"✨",price:40000,mind0:5,mind1:6,speed0:85,speed1:100,age0:22,age1:35,skill0:10,skill1:25,tr0:2,tr1:3,flaw:0,rare:0,leg:0}, // luck only; its first trait is always rare
@@ -1643,10 +1730,10 @@ const GTIER=id=>GEN_TIERS.find(t=>t.id===id);
 // kind: g good, t troop (good), r rare, f flaw, e earned
 const GEN_TRAITS=[["lucky","🍀","Lucky","g"],["luckyB","🍀","Lucky Bastard","r"],["jinx","🐈‍⬛","Jinxed","f"],["reckless","🎲","Reckless","f"],["fox","⛰️","Mountain Fox","g"],["siege","🏰","Siege Breaker","r"],
   ["drill","🔱","Phalanx","t"],["bows","🏹","Master of Bows","t"],["berserk","🪓","Berserker Chief","t"],["pike","🔰","Pike Square","t"],["blade","🗡️","Blademaster","t"],["horse","🐎","Horse Lord","t"],
-  ["cautious","🛡️","Cautious","g"],["coward","🏳️","Coward","f"],["butcher","🩸","Butcher","f"],["beloved","❤️","Beloved","g"],["greedy","💰","Greedy","f"],["drunk","🍺","Drunkard","f"],
+  ["cautious","🛡️","Cautious","g"],["coward","🏳️","Coward","f"],["butcher","🩸","Butcher","f"],["beloved","❤️","Beloved","g"],["greedy","💰","Greedy","f"],["drunk","🍺","Drunkard","f"],["quarter","🌾","Iron Quartermaster","g"],
   ["oldguard","🎖️","Old Guard","e"],["nemesis","🎯","Nemesis","e"]].map(([id,icon,name,kind])=>({id,icon,name,kind}));
 const GTR=Object.fromEntries(GEN_TRAITS.map(t=>[t.id,t]));
-const TRAIT_POOL={good:["lucky","fox","cautious","beloved"],troop:["drill","bows","berserk","pike","blade","horse"],rare:["luckyB","siege"],flaw:["jinx","reckless","greedy","coward","butcher","drunk"]};
+const TRAIT_POOL={good:["lucky","fox","cautious","beloved","quarter"],troop:["drill","bows","berserk","pike","blade","horse"],rare:["luckyB","siege"],flaw:["jinx","reckless","greedy","coward","butcher","drunk"]};
 const TRAIT_EXCL=[["lucky","luckyB","jinx"],["cautious","reckless","coward"],["beloved","butcher"]]; // can't have both
 const TROOP_TRAIT={drill:"spear",bows:"archer",berserk:"axe",pike:"pike",blade:"sword",horse:"cav"};
 const hasTr=(gen,id)=>!!gen?.traits?.includes(id);
@@ -1737,10 +1824,15 @@ const act = {
   sell(g,c,n){ return act.sellRes(g,c,"grain",n); },
   buy(g,c,n){ return act.buyRes(g,c,"grain",n); },
   // Tavern: call a tier (pays, brings candidates), hire one of them, or send them away
-  tavCall(g,c,id){ const t=GTIER(id), v=tavOf(g,c); if(!t||t.id==="leg"||v.pend||tavLeft(g,c,id)<=0) return null; const p=tavPrice(g,c,id); if(c.money<p) return null;
+  tavCall(g,c,id){ const t=GTIER(id), v=tavOf(g,c); if(!t||t.id==="leg"||v.pend||tavLeft(g,c,id)<=0||c.generals.length>=R.genMax) return null; const p=tavPrice(g,c,id); if(c.money<p) return null;
     c.money-=p; v.n[id]=(v.n[id]||0)+1; v.pend={tier:id,list:Array.from({length:Math.max(1,Math.round(R.genCards))},()=>genCandidate(g,id))}; return v.pend; },
-  tavHire(g,c,i){ const v=tavOf(g,c), gen=v.pend?.list[i]; if(!gen) return null; v.pend=null; gen.id=g.genId++; gen.since=g.turn; gen.lw=0; c.generals.push(gen); if(c.defGen==null) c.defGen=gen.id; return gen; },
+  tavHire(g,c,i){ const v=tavOf(g,c), gen=v.pend?.list[i]; if(!gen||c.generals.length>=R.genMax) return null; v.pend=null; gen.id=g.genId++; gen.since=g.turn; gen.lw=0; c.generals.push(gen); if(c.defGen==null) c.defGen=gen.id; return gen; },
   tavAway(g,c){ tavOf(g,c).pend=null; return true; },
+  // staff posts: put a general on a post (id null: take him off). He stops defending; an attack order he leads is cancelled.
+  post(g,c,genId,id){ const gen=c.generals.find(x=>x.id===genId); if(!gen) return false;
+    if(id==null){ gen.post=null; return true; } if(!POST_IDS.includes(id)) return false;
+    const old=postHolder(c,id); if(old&&old!==gen) old.post=null; gen.post=id;
+    if(c.defGen===gen.id) c.defGen=fieldGens(c).find(x=>!c.attacks.some(a=>a.gen===x.id))?.id??null; c.attacks=c.attacks.filter(a=>a.gen!==gen.id); return true; },
   festival(g,c,n){ if(!loyOn(g)||!c.alive) return 0; const p=festCost(g,c); n=Math.max(0,Math.min(Math.floor(n),festRoom(g,c),Math.floor(c.money/p))); if(!n) return 0;
     c.money-=n*p; c.loy=+(loyOf(c)+n).toFixed(1); if(c.festT!==g.turn){ c.festT=g.turn; c.festN=0; } c.festN+=n; return n; },
   dismissGeneral(g,c,id){ c.generals=c.generals.filter(x=>x.id!==id); c.attacks=c.attacks.filter(a=>a.gen!==id); if(c.defGen===id) c.defGen=null; },
@@ -1766,20 +1858,22 @@ const CMD={
   tavCall:(g,c,id)=>act.tavCall(g,c,String(id)),
   tavHire:(g,c,i)=>act.tavHire(g,c,nat(i)),
   tavAway:(g,c)=>act.tavAway(g,c),
+  post:(g,c,genId,id)=>act.post(g,c,+genId,id==null||id===""?null:String(id)),
+  govPol:(g,c,p)=>p==="ease"||p==="squeeze"?(c.govPol=p,true):false,
   dismissGeneral:(g,c,id)=>act.dismissGeneral(g,c,+id),
   festival:(g,c,n)=>act.festival(g,c,nat(n)),
   // o: {target, gen, mix:{troop id: n}, mode}; takes only troops still at home; one attack per general
   attack(g,c,o){ if(!o||inPeace(g)) return null; const to=+o.target, gen=+o.gen;
-    if(!g.countries[to]||to===c.id||!ownGen(c,gen)||c.attacks.some(a=>a.gen===gen)) return null;
+    if(!g.countries[to]||to===c.id||!ownGen(c,gen)||c.generals.find(x=>x.id===gen).post||c.attacks.some(a=>a.gen===gen)) return null;
     const want={}; for(const k in o.mix||{}) if(isTroop(k)) want[k]=nat(o.mix[k]);
     const mix=takeMix(plannedPools(c),want), n=troopCount(mix); if(n<=0) return null;
     const mode=MODES.includes(o.mode)&&o.mode!=="normal"&&o.mode!=="assault"?o.mode:null, a={target:to,gen,soldiers:n,mix,...(mode?{mode}:{})};
     c.attacks.push(a);
-    if(c.defGen===gen){ const other=c.generals.find(x=>x.id!==gen&&!c.attacks.some(y=>y.gen===x.id)); c.defGen=other?other.id:gen; } // its general was home guard
+    if(c.defGen===gen){ const other=c.generals.find(x=>x.id!==gen&&!x.post&&!c.attacks.some(y=>y.gen===x.id)); c.defGen=other?other.id:gen; } // its general was home guard
     return a; },
   cancelAttack(g,c,i){ i=nat(i); if(i>=c.attacks.length) return false; c.attacks.splice(i,1); return true; },
   callOff(g,c,to){ c.attacks=c.attacks.filter(a=>a.target!==+to); return true; },
-  defGen(g,c,id){ id=id==null||+id<0?null:+id; if(id!=null&&!ownGen(c,id)) return false; c.defGen=id; return true; },
+  defGen(g,c,id){ id=id==null||+id<0?null:+id; if(id!=null&&(!ownGen(c,id)||c.generals.find(x=>x.id===id).post)) return false; c.defGen=id; return true; },
   stance(g,c,s){ if(!STANCES.includes(s)) return false; c.stance=s; return true; },
   autoSell(g,c,on){ c.autoSell=!!on; return true; },
   // the year's plan, any part of it: p = {work, workLock, alloc, allocLock}
@@ -2074,6 +2168,19 @@ function aiGenValue(c,x){ let v=(0.4+Math.min(100,x.skill+x.mind*8)*0.008)*Math.
 function aiTavern(g,c,t){ const cush=wages(c)+500;
   const id=["acad","vet"].find(k=>tavLeft(g,c,k)>0&&c.money>tavPrice(g,c,k)*1.25+cush)||(!c.generals.length&&tavLeft(g,c,"cap")>0&&c.money>tavPrice(g,c,"cap")*1.25+cush?"cap":null);
   if(!id||!act.tavCall(g,c,id)) return; const L=tavOf(g,c).pend.list; let b=0; L.forEach((x,i)=>{ if(aiGenValue(c,x)>aiGenValue(c,L[b])) b=i; }); act.tavHire(g,c,b); }
+// computer: the best generals stay in the field (two attackers and a defender); the rest take staff posts, each the one that
+// gives most there. Governor first when loyalty is low (Ease), Quartermaster when food is short; Squeeze when loyal but short of gold.
+function aiStaff(g,c){
+  const keep=3, gs=c.generals.slice().sort((a,b)=>genEdge(b)*(hasTr(b,"coward")?0.8:1)-genEdge(a)*(hasTr(a,"coward")?0.8:1));
+  const spare=gs.slice(keep); for(const x of gs.slice(0,keep)) x.post=null;
+  if(!spare.length){ return; }
+  const loy=loyOf(c), lo=loyOn(g)&&loy<60, short=foodProduction(c)<foodUse(c);
+  c.govPol=loyOn(g)&&loy>72&&c.money<wages(c)*6+3000?"squeeze":"ease";
+  const order=[...(lo?["gov"]:[]),...(short?["qm"]:[]),"chief","drill","qm","gov"].filter((x,k,a)=>a.indexOf(x)===k);
+  const val=(x,id)=>{ const e=postEff(c,x,id); return id==="qm"?e.food*100:id==="drill"?e.skill+e.troops.length:id==="chief"?e.morale/4:Math.abs(e.loy)*5+(e.tax||0)*100; };
+  const free=spare.slice(); for(const x of free) x.post=null;
+  for(const id of order){ if(!free.length) break; let b=0; free.forEach((x,k)=>{ if(val(x,id)>val(free[b],id)) b=k; }); const x=free.splice(b,1)[0]; x.post=id; if(c.defGen===x.id) c.defGen=null; }
+}
 function aiTurn(g,c){
   const d=g.difficulty, t=g.turn, adj=neighbors(g,c.id);
   const eff = [0.8,1,1.15][d];
@@ -2125,8 +2232,9 @@ function aiTurn(g,c){
   aiMarket(g,c);
   if(loyOn(g)&&loyOf(c)<R.aiFestLoy){ const n=Math.min(festRoom(g,c),Math.floor(Math.max(0,c.money-wages(c)*3-500)/festCost(g,c))); if(n>0) act.festival(g,c,n); } // low loyalty: hold festivals with spare gold
   // generals
-  const wantGen = t<(c.persona==="mil"?8:24)-d*2 ? 0 : Math.min(4,1+Math.floor(t/22));
+  const wantGen = t<(c.persona==="mil"?8:24)-d*2 ? 0 : Math.min(6,R.genMax,1+Math.floor(t/22)); // up to 4 for the field, the rest for staff posts
   if(c.generals.length<wantGen) aiTavern(g,c,t);
+  aiStaff(g,c);
   // army target
   const pop=popOf(c);
   const mil0=c.persona==="mil", foot=c.footing??0;
@@ -2188,7 +2296,7 @@ function aiTurn(g,c){
   const guard0=Math.max(c.soldiers*(0.35-0.15*bg), Math.min(c.soldiers*(0.7-0.2*bg), threat*(0.5-0.2*bg)/defPower(c)));
   const guardVs=j=>Math.round(Math.max(guard0,Math.min(c.soldiers*R.rxGuardMax,(expo-(expoBy[j]??0))*R.rxGuard/defPower(c)))); // keep enough home to meet the other angry neighbors together
   const minGuard=guardVs(-1);
-  const gens=c.generals.filter(x=>x.morale>=70).sort((a,b)=>b.skill-a.skill);
+  const gens=c.generals.filter(x=>x.morale>=70&&!x.post).sort((a,b)=>b.skill-a.skill);
   if(t>=milStart && gens.length && adj.length && !inPeace(g)){
     const sendable=Math.max(1,available-minGuard), sendMix=takeTroops({...troopsOf(c)},sendable,ATTACK_ORDER);
     const myUnit=atkPower(c)*troopSum(sendMix,"atk")/Math.max(1,troopCount(sendMix)); // attack per soldier sent
@@ -2256,7 +2364,7 @@ function aiTurn(g,c){
   const busy=new Set(c.attacks.map(a=>a.gen));
   // defender: the fittest idle general (skill × morale), so worn-out defenders rotate out to rest; nobody if even he'd do worse than no general
   const dv=x=>genEdge(x)*(hasTr(x,"coward")?1-R.trCowardDef:1)*(hasTr(x,"cautious")||hasTr(x,"bows")||hasTr(x,"pike")?1.05:1); // a Coward makes a poor defender
-  const idle=c.generals.filter(x=>!busy.has(x.id)).sort((a,b)=>dv(b)-dv(a));
+  const idle=c.generals.filter(x=>!busy.has(x.id)&&!x.post).sort((a,b)=>dv(b)-dv(a));
   const calm=(c.defTurn??-99)<t-R.aiRestCalm; // not attacked lately: a worn general rests to get back in shape for attacking
   c.defGen=idle.length&&genFactor(idle[0])>R.genNoGeneral&&!(calm&&idle[0].morale<R.aiRestMorale)?idle[0].id:null;
   // research multiplier for difficulty stored on country
@@ -2488,7 +2596,7 @@ function landRef(g){ if(!g.land0){ const A=g.countries.filter(c=>c.history?.leng
 function worldLand(g){ if(!g.wLand){ let n=0; for(const v of g.cells) if(v!==-2) n++; g.wLand=Math.max(1,n); } return g.wLand; } // all land, owned or not
 function loyCeil(g,c){ return Math.max(0,Math.round(100-R.loyCeilMax*Math.pow(Math.max(0,c.land)/worldLand(g),R.loyCeilExp))); }
 function loyRecOf(g,c){ return Math.max(R.loyRecMin,(inWar(g,c.id)?R.loyRecWar:R.loyRec)*Math.sqrt(Math.min(1,landRef(g)/Math.max(1,c.land)))); }
-function revoltChance(g,c){ return loyOn(g)&&c.alive&&c.land>=R.rebParent*landRef(g)&&loyOf(c)<R.loyRevolt?Math.min(1,(R.loyRevolt-loyOf(c))*R.loyRevoltPer):0; }
+function revoltChance(g,c){ return loyOn(g)&&c.alive&&c.land>=R.rebParent*landRef(g)&&loyOf(c)<R.loyRevolt?Math.min(1,(R.loyRevolt-loyOf(c))*R.loyRevoltPer*(postNow(c,"gov").revolt??1)):0; } // a Butcher governor's iron fist halves it
 function festCost(g,c){ return Math.max(1,Math.round(R.festCost*popOf(c)/100*Math.sqrt(Math.max(1,c.land/landRef(g))))); } // gold per loyalty point
 function festRoom(g,c){ return Math.max(0,Math.floor(Math.min(R.festMax-(c.festT===g.turn?c.festN||0:0),loyCeil(g,c)-loyOf(c)))); }
 // a cell changes hands to A in battle: land it lost lately counts as taken back (not from its own rebels: that counts in full)
@@ -2498,10 +2606,10 @@ function loyaltyYear(g){
   if(!loyOn(g)) return;
   const C=g.countries;
   for(const c of C){ if(!c.alive) continue;
-    const base=Math.max(1,c.land0y??c.land), was=loyOf(c), rec=loyRecOf(g,c), ceil=loyCeil(g,c);
-    const lc=R.loyConq*100*((c.gConq||0)+R.loyRetake*(c.gRet||0))/base, ls=R.loyConq*R.loySettle*100*(c.gSet||0)/base, v=was+rec-lc-ls;
+    const base=Math.max(1,c.land0y??c.land), was=loyOf(c), rec=loyRecOf(g,c), ceil=loyCeil(g,c), gov=postNow(c,"gov").loy||0; // a Governor: + on Ease, − on Squeeze
+    const lc=R.loyConq*100*((c.gConq||0)+R.loyRetake*(c.gRet||0))/base, ls=R.loyConq*R.loySettle*100*(c.gSet||0)/base, v=was+rec+gov-lc-ls;
     c.loy=+Math.max(0,Math.min(ceil,v)).toFixed(1);
-    c.loyY={was:+was.toFixed(1),rec:+rec.toFixed(1),conq:+lc.toFixed(1),set:+ls.toFixed(1),ceil,cut:v>ceil?1:0}; }
+    c.loyY={was:+was.toFixed(1),rec:+rec.toFixed(1),conq:+lc.toFixed(1),set:+ls.toFixed(1),ceil,cut:v>ceil?1:0,gov:+gov.toFixed(1)}; }
   if(inPeace(g)) return;
   for(const c of C.slice()){ const p=revoltChance(g,c); if(p>0&&R01(g)<p) revolt(g,c); }
 }
@@ -2601,13 +2709,13 @@ function endTurn(g){
   const guards={}, defGenOf={};
   C.forEach(c=>{ if(!c.alive)return;
     if(inPeace(g)) c.attacks=[];
-    c.attacks=c.attacks.filter(a=>C[a.target].alive && c.generals.some(x=>x.id===a.gen) && adjNow[c.id].has(a.target) && !allied(g,c.id,a.target));
+    c.attacks=c.attacks.filter(a=>C[a.target].alive && c.generals.some(x=>x.id===a.gen&&!x.post) && adjNow[c.id].has(a.target) && !allied(g,c.id,a.target)); // generals at a staff post don't fight
     const pool={...troopsOf(c)}; let tot=0;
     c.attacks.forEach(a=>{ a.troops=a.mix?takeMix(pool,a.mix):takeTroops(pool,Math.max(0,Math.min(a.soldiers,c.soldiers-tot)),ATTACK_ORDER); a.soldiers=troopCount(a.troops); tot+=a.soldiers; });
     c.attacks=c.attacks.filter(a=>a.soldiers>0); c.sentShare=c.soldiers>0?tot/c.soldiers:0;
     guards[c.id]=pool; // troops left home defend
     const busy=new Set(c.attacks.map(a=>a.gen));
-    let dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
+    let dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id)&&!x.post);
     defGenOf[c.id]=dg||null;
   });
   const all=[]; C.forEach(c=>c.alive&&c.attacks.forEach(a=>all.push({att:c.id,...a})));
@@ -2660,7 +2768,7 @@ function endTurn(g){
   else if(!g.teams&&alive.length===1){ g.over="win"; }
   if(done){ g.worldOver=true; g.winner=alive.length===1?alive[0].id:null; g.winnerTeam=winTeam; }
   // re-validate each human's defending general
-  C.forEach(c=>{ if(!c.ai&&c.defGen!=null&&!c.generals.some(x=>x.id===c.defGen)) c.defGen=c.generals[0]?.id??null; });
+  C.forEach(c=>{ if(!c.ai&&c.defGen!=null&&!c.generals.some(x=>x.id===c.defGen&&!x.post)) c.defGen=fieldGens(c)[0]?.id??null; });
   return g;
 }
 
@@ -2675,6 +2783,7 @@ function attackStrength(g,a,defGenOf){
   const dg=defGenOf?.[D.id]||null, tt=troopTraitMul(gen,atkTr,"atk"), trA=tt.rows.slice(); let tm=tt.m;
   if(hasTr(dg,"pike")){ const v=pikeMul(atkTr,"atk"); if(v<1){ tm*=v; trA.push(["pikeE",+v.toFixed(4)]); } }
   if(hasTr(gen,"butcher")){ tm*=1+R.trButcherAtk; trA.push(["butcher",1+R.trButcherAtk]); }
+  { const dm=drillMul(A,atkTr,"atk"); tm*=dm.m; trA.push(...dm.rows); } // the Drillmaster's troops
   if(hasTr(gen,"nemesis")&&gen.nem===D.id){ tm*=1+R.trNemesis; trA.push(["nemesis",1+R.trNemesis]); }
   const p=[troopSum(atkTr,"atk"),clashTech(A,D)[0],M(A,"attack"),wonderMul(A,"atk"),genFactor(gen),luckRoll(g,gen),tm]; // research edge capped; traits last, so older reports keep their order
   a.parts=p; a.trA=trA; return p.reduce((x,y)=>x*y,1);
@@ -2705,6 +2814,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   let tbE=tdf.b; if(tbE>0&&hasTr(gen,"fox")){ const v=(1+tbE*(1-R.trFox))/(1+tbE); tbE*=1-R.trFox; dm*=v; trD.push(["foxA",+v.toFixed(4)]); }
   if(tbE>0&&hasTr(dg,"fox")){ const v=(1+tbE*(1+R.trFox))/(1+tbE); dm*=v; trD.push(["foxD",+v.toFixed(4)]); }
   if(hasTr(dg,"nemesis")&&dg.nem===A.id){ dm*=1+R.trNemesis; trD.push(["nemesis",1+R.trNemesis]); }
+  { const d2=drillMul(D,gTr,"def"); dm*=d2.m; trD.push(...d2.rows); } // the defender's Drillmaster
   const sDp=[troopSum(gTr,"def"),clashTech(A,D)[1],M(D,"defense"),wonderMul(D,"def"),genFactor(dg),1+R.defenderBonus,1+fb,luckRoll(g,dg),1+tdf.b,dm];
   const strA0=strA/(a.parts?.[5]||1), strD0=sDp.reduce((x,y)=>x*y,1)/sDp[7]; // how strong each side looks, before luck
   if(hasTr(dg,"coward")&&strA0>strD0){ sDp[9]*=1-R.trCowardDef; trD.push(["coward",1-R.trCowardDef]); }
@@ -2905,10 +3015,13 @@ function economy(g,c){
     let cost; while(c.rp[a]>=(cost=levelCost(c.lv[a],costParts(g,c,a).mul))){ c.rp[a]-=cost; c.lv[a]++; c.lvTurn=g.turn; L(`🔬 ${AREA_NAMES[a]} reached level ${c.lv[a]}.`); }
   }
   // generals
+  const dS=postNow(c,"drill").skill||0, cM=postNow(c,"chief").morale||0; // staff: the Drillmaster teaches and the Chief of Staff rests the generals in the field
   for(const gen of c.generals.slice()){
+    if(!gen.post){ gen.skill=Math.min(100,gen.skill+dS); gen.morale=Math.min(100,gen.morale+cM); }
     const dr=hasTr(gen,"drunk"); // Drunkard: half the training, morale swings; Beloved: recovers faster
     gen.age++; gen.skill=Math.min(100,gen.skill+gen.mind*R.genTrainRate*(1-gen.skill/110)*(dr?R.trDrunkTrain:1)); gen.morale=c.defGen===gen.id?Math.max(0,gen.morale-R.moraleDefend):Math.min(100,gen.morale+(hasTr(gen,"beloved")?R.trBelovedRec:R.moraleRecovery));
-    if(dr) gen.morale=Math.round(Math.max(0,Math.min(100,gen.morale+rr(g,-R.trDrunkSwing,R.trDrunkSwing)))); oldGuardFloor(gen);
+    if(dr) gen.morale=Math.round(Math.max(0,Math.min(100,gen.morale+rr(g,-R.trDrunkSwing,R.trDrunkSwing)))); oldGuardFloor(gen); gen.morale=Math.round(gen.morale);
+    if(dr&&gen.post) gen.hang=R01(g)<0.5; else delete gen.hang; // a Drunkard at a post: next year may be a bad one
     if(gen.age>=gen.maxAge){ c.generals=c.generals.filter(x=>x!==gen); if(c.defGen===gen.id)c.defGen=null; L(`General ${gen.name} retired at age ${gen.age}.`); }
   }
   if(popOf(c)<R.minPop && c.alive){ eliminate(g,c,null); }
@@ -3765,11 +3878,12 @@ function renderHeader(){
 
 // ---------- tabs ----------
 // main menu above the map: [key, short name, icon, full name]
-const TABS=[["economy","Home","🏰","Home: your state"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["war","War","🗡️","War: generals, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
+const TABS=[["economy","Home","🏰","Home: your state"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["generals","Generals","🎖️","Generals: your generals, staff posts and the Tavern"],["war","War","🗡️","War: wars, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
 // second menu at the top of the side panel, for pages split in parts (keys Q W E …)
 const SUBS={science:[["research","Research","🔬","Research: split your points"],["bonus","Bonuses","✨","Total bonuses: where every bonus comes from"]],
   market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
-  war:[["generals","Generals","🎖️","Your generals"],["tavern","Tavern","🍺","Tavern: hire generals"],["wars","Wars","🔥","Wars, defense and this year's orders"],["nbrs","Neighbors","🧭","Neighbors: plan an attack"]],
+  generals:[["list","Generals","🎖️","Your generals"],["staff","Staff","🏛️","Staff posts"],["tavern","Tavern","🍺","Tavern: hire generals"]],
+  war:[["wars","Wars","🔥","Wars, defense and this year's orders"],["nbrs","Neighbors","🧭","Neighbors: plan an attack"]],
   world:[["rank","Rankings","🏆","Rankings"],["wonders","Wonders","🗼","Wonders: who holds each one"],["recent","Recent wars","🗡️","Recent wars"]]};
 const SUBKEYS="qwertyuiop";
 const subsOf=k=>SUBS[k]?.filter(x=>x[0]!=="wonders"||G?.wonders); // Wonders only in games with wonders
@@ -3777,7 +3891,7 @@ const subOf=k=>{ const S=subsOf(k); if(!S) return null; const s=UI.sub?.[k]; ret
 function goTab(t,sub){ UI.tab=t; if(sub) (UI.sub||(UI.sub={}))[t]=sub; }
 const PUBLIC_TABS=["world","alliances","news"]; // what an observer (or a fallen player) can look at
 function renderTabs(){
-  if(UI.tab==="generals") goTab("war","generals"); // older saves and links
+  if(UI.tab==="war"&&(UI.sub?.war==="generals"||UI.sub?.war==="tavern")){ goTab("generals",UI.sub.war==="generals"?"list":"tavern"); UI.sub.war="wars"; } // generals moved to their own page
   if(UI.tab==="alliances"&&!G.teams) UI.tab="world";
   if(observing()&&!PUBLIC_TABS.includes(UI.tab)) UI.tab="world"; // an observer has no economy, army or science of its own
   const T=visibleTabs(), bdg=b=>b?`<span class="tbdg ${b.cls||""}">${b.n??""}</span>`:""; seeTab(UI.tab);
@@ -3808,12 +3922,12 @@ function badgeFor(k){
     if(fresh("science")) return {cls:"dot good",tip:"a research level was reached"}; }
   if(k==="market"&&fresh("market")) return {cls:"dot good",tip:"your orders traded"};
   return null; }
-const tabBadge=k=>k==="war"?badgeFor("war")||badgeFor("generals"):badgeFor(k);
-const SUB_BADGE={science:{research:"science"},war:{generals:"generals",wars:"war"},market:{trade:"market"}}; // which badge each part of a page shows
+const tabBadge=k=>badgeFor(k);
+const SUB_BADGE={science:{research:"science"},war:{wars:"war"},generals:{list:"generals"},market:{trade:"market"}}; // which badge each part of a page shows
 const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
-  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
+  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,generals:pGenPage,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
   mainView.setGame(G); mainView.refresh();
 }
 
@@ -4378,25 +4492,38 @@ function traitText(id,gen){ const t=GTR[id]; if(!t) return "";
     beloved:`Each win gives +${R.trBelovedLoy} loyalty at home (at most +${R.trBelovedMax} a year). His morale recovers ${R.trBelovedRec} a year instead of ${R.moraleRecovery}.`,
     greedy:`Asks a yearly wage of ${gPc(R.trGreedyWage)} of his tier's price${gen?` (${fmt(Math.round(tierPrice(gen)*R.trGreedyWage))} gold)`:""}.`,
     drunk:`Each year his morale moves by up to ±${R.trDrunkSwing}, and yearly training gives ×${R.trDrunkTrain} the skill.`,
+    quarter:`Only at the Quartermaster post: its effect ×${R.postQmFit}, so the army eats up to ${gPc(R.postQmMax)} less grain. Nothing in the field.`,
     oldguard:`Earned in his ${R.trOldGuardN}th battle. His morale never drops below ${R.trOldGuardFloor}.`,
     nemesis:`Earned by losing ${R.trNemesisLoss} times to one state. +${gPc(R.trNemesis)} strength against it${gen?.nem!=null&&G?.countries[gen.nem]?`: ${G.countries[gen.nem].name}`:""}.`})[id]||""; }
 const KIND_NAME={g:"Good",t:"Troop",r:"Rare",f:"Flaw",e:"Earned"};
-function trChip(id,gen,hidden){ if(hidden) return `<span class="gtr h" title="A hidden trait. It already works; it shows itself after his first battle.">❔ Hidden trait</span>`;
+function trChip(id,gen,hidden){ if(hidden) return `<span class="gtr h" tabindex="0" data-tk="Hidden" data-tn="❔ Hidden trait" data-td="A trait he has but nobody knows yet. It already works; it shows itself after his first battle.">❔ Hidden trait</span>`;
   const t=GTR[id]; if(!t) return ""; const nm=id==="nemesis"&&gen?.nem!=null&&G?.countries[gen.nem]?`Nemesis: ${G.countries[gen.nem].name}`:t.name;
-  return `<span class="gtr ${t.kind}" title="${esc(KIND_NAME[t.kind]+": "+traitText(id,gen))}">${t.icon} ${esc(nm)}</span>`; }
+  return `<span class="gtr ${t.kind}" tabindex="0" data-tk="${KIND_NAME[t.kind]}" data-tn="${esc(t.icon+" "+nm)}" data-td="${esc(traitText(id,gen))}">${t.icon} ${esc(nm)}</span>`; }
+// trait popup: hover (or focus, or tap on touch screens) a trait chip anywhere to read what it does
+function gtipShow(el){ let t=$("gtip"); if(!t){ t=document.createElement("div"); t.id="gtip"; t.setAttribute("role","tooltip"); document.body.appendChild(t); }
+  const k=el.dataset.tk; t.className="gtip "+(el.classList[1]||""); t.innerHTML=`<div class="gth"><b>${esc(el.dataset.tn)}</b><span>${esc(k)}</span></div><div>${esc(el.dataset.td)}</div>`; t.hidden=false;
+  const r=el.getBoundingClientRect(), w=t.offsetWidth, h=t.offsetHeight; let x=Math.min(innerWidth-w-8,Math.max(8,r.left+r.width/2-w/2)), y=r.top-h-8; if(y<8) y=r.bottom+8;
+  t.style.left=x+"px"; t.style.top=y+"px"; }
+const gtipHide=()=>{ const t=$("gtip"); if(t) t.hidden=true; };
+document.addEventListener("mouseover",e=>{ const c=e.target.closest?.(".gtr[data-td]"); if(c) gtipShow(c); else if(!e.target.closest?.("#gtip")) gtipHide(); });
+document.addEventListener("focusin",e=>{ const c=e.target.closest?.(".gtr[data-td]"); if(c) gtipShow(c); });
+document.addEventListener("focusout",e=>{ if(e.target.closest?.(".gtr[data-td]")) gtipHide(); });
+document.addEventListener("pointerdown",e=>{ const c=e.target.closest?.(".gtr[data-td]"); if(c&&e.pointerType!=="mouse") gtipShow(c); else if(!c) gtipHide(); },true);
+document.addEventListener("scroll",gtipHide,true);
 const genTraits=(x,showHidden)=>(x.traits||[]).length?(x.traits||[]).map(k=>trChip(k,x,!showHidden&&x.hid?.includes(k))).join(""):`<span class="small mut">No traits</span>`;
-// ---------- War → Generals: one card per general ----------
-function genStatus(c,gen){
+// ---------- Generals → Generals: one card per general ----------
+function genStatus(c,gen){ if(gen.post) return `<span class="pill post" title="${esc(postLine(c,gen,gen.post))}">At post: ${POSTS.find(p=>p.id===gen.post)?.name}</span>`;
   const a=c.attacks.find(x=>x.gen===gen.id); if(a) return `<span class="pill atk">Attacking ${esc(G.countries[a.target].name)}</span>`;
   if(c.defGen===gen.id) return `<span class="pill def" title="Holding the border costs ${R.moraleDefend} morale a year">Defending (−${R.moraleDefend} morale/yr)</span>`;
   return `<span class="pill idle" title="Resting generals regain ${hasTr(gen,"beloved")?R.trBelovedRec:R.moraleRecovery} morale a year">Idle (training, +${hasTr(gen,"beloved")?R.trBelovedRec:R.moraleRecovery} morale/yr)</span>`; }
 function genCard(c,x,cand){
   const t=x.tier||tierOf(x), T=GTIER(t), r=RAR_OF[t], mc=x.morale<50?"bad":x.morale<70?"warnc":"good", rk=genRank(x), mo=Math.round(x.morale);
   const btns=cand!=null?`<button class="pri hire" data-tavhire="${cand}">Hire ${esc(x.name.split(" ")[0])}</button>`
+    :x.post?`<button class="sm" data-unpost="${x.id}" title="Back to the field: he can attack and defend again">Leave post</button><button class="sm" data-dismiss="${x.id}" title="He leaves for good">Dismiss</button>`
     :`${c.defGen===x.id?`<button class="sm" data-defgen="-1" title="Take him off the border to rest. Your guards fight without a general meanwhile.">Rest</button>`:c.attacks.some(a=>a.gen===x.id)?"":`<button class="sm" data-defgen="${x.id}">Set as defender</button>`}<button class="sm" data-dismiss="${x.id}" title="He leaves for good">Dismiss</button>`;
   return `<article class="gcard${cand!=null?" face front":""}" style="--rc:var(--r-${r})">
    <div class="gtop">${genFrame(x,c.color)}
-    <div class="gid"><span class="rar">${T?.icon||""} ${esc(T?.name||"")}</span><span class="gname">${esc(x.name)}</span>
+    <div class="gid"><span class="rar gtier">${tierCrest(t)} ${esc(T?.name||"")}</span><span class="gname">${esc(x.name)}</span>
      <span class="rank">${"★".repeat(rk+1)} ${RANK_NAMES[rk]} · age ${x.age} (retires ~${x.maxAge})</span>
      <span>${cand!=null?`<span class="pill idle">Candidate</span>`:genStatus(c,x)}</span></div></div>
    <div class="bars"><span class="mut">Skill</span><div class="bar"><i style="width:${x.skill}%;background:var(--acc)"></i></div><b>${Math.round(x.skill)}</b>
@@ -4407,36 +4534,107 @@ function genCard(c,x,cand){
 function pGenerals(){
   const c=me(), v=tavOf(G,c);
   return `<h3>Your generals ${gl("generals")}</h3>
-  ${v.pend?`<div class="note">🍺 ${v.pend.list.length} candidates are waiting in the Tavern. <button class="sm" data-tavshow="1">Show them</button></div>`:""}
+  ${v.pend?`<div class="note">🍺 ${v.pend.list.length} candidates are waiting in the Tavern. <button class="sm" data-tavshow="1">Go to the Tavern</button></div>`:""}
   ${c.generals.length?`<div class="gcards">${c.generals.map(x=>genCard(c,x)).join("")}</div>`:`<div class="note">You have no generals. You can't attack without one, and your border guards fight at about a third of their strength with nobody in command.</div>`}
-  <div class="row"><button class="pri" data-tab="war" data-sub="tavern">🍺 Hire in the Tavern</button><span class="small mut">Skill grows every year (faster with higher Mind) and faster in battle. Morale drops after battles and recovers ${R.moraleRecovery} a year, so avoid attacking below 70.</span></div>`; }
-// ---------- War → Tavern: call a tier, then pick one of the candidates ----------
+  <div class="row"><button class="pri" data-tab="generals" data-sub="tavern">🍺 Hire in the Tavern</button><span class="small mut">Skill grows every year (faster with higher Mind) and faster in battle. Morale drops after battles and recovers ${R.moraleRecovery} a year, so avoid attacking below 70.</span></div>`; }
+// ---------- Generals → Staff: four post seats, a picker that opens in the tab, and the year's totals ----------
+const POST_ICON={
+  qm:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7c0-2 2-3 5-3s5 1 5 3l2 11c0 2-3 3-7 3s-7-1-7-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 7h8" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M10 13l2-2 2 2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+  drill:`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M19 5l-6 6M19 5h-3M19 5v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+  chief:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="1.4"/><path d="M6 11l2 2 3-4 3 3 3-2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+  gov:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3 20h18M4 17.5h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`};
+const SEAT_SIL=`<svg viewBox="0 0 100 120" aria-hidden="true"><rect width="100" height="120" fill="#0f1114"/><circle cx="50" cy="48" r="20" fill="#252931" stroke="#353a44" stroke-width="2" stroke-dasharray="4 3"/><path d="M14 120C16 96 32 84 50 84C68 84 84 96 86 120" fill="#252931" stroke="#353a44" stroke-width="2" stroke-dasharray="4 3"/><text x="50" y="55" text-anchor="middle" font-size="22" fill="#9aa1ad" font-family="system-ui">+</text></svg>`;
+const TROOP_PL={spear:"Spearmen",archer:"Archers",axe:"Axemen",pike:"Pikemen",sword:"Swordsmen",cav:"Cavalry"};
+const POST_FIT={qm:["quarter"],drill:["drill","bows","berserk","pike","blade","horse"],chief:["beloved"],gov:["beloved","greedy","butcher"]};
+const postWhat=id=>({qm:`Army eats less grain: ${gPc(R.postQm)} per Mind (at most ${gPc(R.postQmMax)}).`,drill:`Field generals learn faster: +${R.postDrill} skill a year per Mind.`,
+  chief:`Field generals recover faster: +${R.postChief} morale a year per Mind.`,gov:`Runs the land: ease the people or squeeze them for taxes.`})[id];
+// one line on what a general gives (or would give) at a post
+function postLine(c,gen,id,pol){ const e=postEff(c,gen,id,pol), dr=hasTr(gen,"drunk")?" (Drunkard: half in bad years)":"";
+  if(id==="qm") return `Army eats ${+(e.food*100).toFixed(1)}% less grain${dr}`;
+  if(id==="drill") return `Field generals +${e.skill} skill a year${e.troops.length?`; ${e.troops.map(t=>TROOP_PL[t]).join(", ")} +${gPc(R.postDrillTroop)} in battle`:""}${dr}`;
+  if(id==="chief") return `Field generals +${e.morale} morale a year${dr}`;
+  return e.tax?`Taxes +${+(e.tax*100).toFixed(1)}%, loyalty ${+e.loy.toFixed(1)} a year${dr}`:`Loyalty +${+e.loy.toFixed(1)} a year${e.revolt<1?" (iron fist: revolts less likely)":""}${dr}`; }
+function pStaff(){
+  const c=me(), open=POST_IDS.includes(UI.staffOpen)?UI.staffOpen:null, pol=c.govPol==="squeeze"?"squeeze":"ease";
+  const seat=p=>{ const h=postHolder(c,p.id);
+    return `<div class="seat ${h?"on":""} ${open===p.id?"sel":""}"><div class="ph">${POST_ICON[p.id]} ${p.name}</div><div class="what">${postWhat(p.id)}</div>
+      <button class="pick" data-staffopen="${p.id}" aria-label="${h?"Change":"Choose"} the ${p.name}">${h?genFrame(h,c.color):`<div class="pf empty">${SEAT_SIL}</div>`}</button>
+      ${h?`<b class="nm">${esc(h.name)}</b>`:`<span class="nm mut">Nobody</span>`}
+      <div class="eff ${h?"":"none"}">${h?esc(postLine(c,h,p.id)):"No effect this year"}</div>
+      ${p.id==="gov"?`<div class="pol" role="group" aria-label="Governor's policy"><button class="sm${pol==="ease"?" on":""}" data-govpol="ease" title="Ease: loyalty +${R.postEase} a year per Mind">Ease</button><button class="sm${pol==="squeeze"?" on":""}" data-govpol="squeeze" title="Squeeze: taxes +${gPc(R.postSqTax)} and loyalty −${R.postSqLoy} a year per Mind. Below ${R.loyUnrest} loyalty taxes drop ${gPc(R.loyUnrestTax)}, so squeezing too hard backfires.">Squeeze</button></div>`:""}
+      <div class="fit">${POST_FIT[p.id].slice(0,p.id==="drill"?2:3).map(k=>trChip(k)).join("")}${p.id==="drill"?`<span class="small mut">or any troop trait</span>`:""}</div></div>`; };
+  const picker=()=>{ if(!open) return ""; const p=POSTS.find(x=>x.id===open), h=postHolder(c,open), fit=POST_FIT[open];
+    const score=x=>{ const e=postEff(c,x,open); return open==="qm"?e.food*100:open==="drill"?e.skill+e.troops.length:open==="chief"?e.morale:Math.abs(e.loy)*5+(e.tax||0)*100; };
+    const list=c.generals.filter(x=>x!==h).map(x=>({x,fits:x.traits?.some(k=>fit.includes(k)&&!x.hid?.includes(k))})).sort((a,b)=>(b.fits-a.fits)||(score(b.x)-score(a.x)));
+    const row=({x,fits})=>{ const atk=c.attacks.find(a=>a.gen===x.id), note=atk?`<span class="warnl">His attack on ${esc(G.countries[atk.target].name)} is called off</span>`:x.post?`<span class="warnl">Leaves the ${POSTS.find(q=>q.id===x.post).name} post</span>`:c.defGen===x.id?`<span class="warnl">Stops defending the border</span>`:"";
+      return `<div class="sprow">${genFrame(x,c.color)}<div class="spn"><b>${esc(x.name)}${fits?`<span class="kfit">fits</span>`:""}</b><span class="meta">Mind ${x.mind} · age ${x.age} · skill ${Math.round(x.skill)}</span><span class="pe ${fits?"":"low"}">${esc(postLine(c,x,open))}</span>${note}<div class="gtraits">${genTraits(x)}</div></div><button class="pri sm" data-put="${x.id}" data-post="${open}">Post here</button></div>`; };
+    return `<div class="psec"><h3 class="tvh">Choose a ${p.name}<span class="grow"></span><button class="lnk" data-staffopen="">Close</button></h3>
+      ${h?`<div class="sprow cur">${genFrame(h,c.color)}<div class="spn"><b>${esc(h.name)}</b><span class="meta">At this post now</span><span class="pe">${esc(postLine(c,h,open))}</span></div><button class="sm" data-unpost="${h.id}">Take him off</button></div>`:""}
+      ${list.length?list.map(row).join(""):`<div class="small mut">No other generals. Hire one in the <button class="sm" data-tab="generals" data-sub="tavern">Tavern</button>.</div>`}
+      <div class="small mut" style="margin-top:6px">Shown with what each would give at this post, best first. It counts at the end of the year.</div></div>`; };
+  const q=postNow(c,"qm"), d=postNow(c,"drill"), ch=postNow(c,"chief"), gv=postNow(c,"gov"), nf=fieldGens(c).length, has=id=>!!postHolder(c,id);
+  const box=(l,on,v,sub)=>`<div><span>${l}</span><b class="${on?"":"z"}">${on?v:"—"}</b><em>${sub}</em></div>`;
+  return `<div class="tavern">
+   <div class="psec"><h3 class="tvh">Staff posts ${gl("staff")}<span class="grow"></span><span class="rt">${POST_IDS.filter(has).length} of ${POST_IDS.length} filled · ${c.generals.length} of ${R.genMax} generals</span></h3>
+    <div class="seats">${POSTS.map(seat).join("")}</div>
+    <div class="tvfoot">A general at a post can't attack or defend that year. Every post counts at the end of the year for whoever holds it then. Effects grow with Mind; a fitting trait makes them stronger.</div></div>
+   ${picker()}
+   <div class="psec"><h3 class="tvh">This year from your staff</h3><div class="stot">
+    ${box("Army grain",has("qm"),`−${+(q.food*100).toFixed(1)}%`,has("qm")?"eaten a year":"no Quartermaster")}
+    ${box("Field skill",has("drill"),`+${d.skill}`,has("drill")?`a year, ${nf} general${nf===1?"":"s"}`:"no Drillmaster")}
+    ${box("Field morale",has("chief"),`+${ch.morale}`,has("chief")?"a year, on top of rest":"no Chief of Staff")}
+    ${box(gv.tax?"Taxes · loyalty":"Loyalty",has("gov"),gv.tax?`+${+(gv.tax*100).toFixed(1)}% · ${+gv.loy.toFixed(1)}`:`+${+(gv.loy||0).toFixed(1)}`,has("gov")?(loyOn(G)?"a year":"a year (Rebellions are off: loyalty does nothing)"):"no Governor")}</div></div>
+  </div>`; }
+function pGenPage(sub){ return sub==="staff"?pStaff():sub==="tavern"?pTavern():pGenerals(); }
+// ---------- Generals → Tavern: a notice board of tiers, then candidates dealt onto the table in the tab ----------
+// drawn tier crests (no emoji: they look the same on every system), a coin, chalk tally marks for calls left
+const CREST={
+  cap:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 30h32l-3 4H11z" fill="currentColor"/><path d="M12 30c0-10 5-17 12-17s12 7 12 17z" fill="currentColor"/><path d="M15 26h18" stroke="#000" stroke-width="1.6" opacity=".35"/><circle cx="24" cy="12" r="2" fill="currentColor"/></svg>`,
+  vet:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><g stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M11 11l24 24"/><path d="M37 11L13 35"/></g><g stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M31 37l6-6"/><path d="M11 31l6 6"/></g><circle cx="38" cy="38" r="2.4" fill="currentColor"/><circle cx="10" cy="38" r="2.4" fill="currentColor"/></svg>`,
+  acad:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 15c7-2 13-1 18 3 5-4 11-5 18-3v20c-7-2-13-1-18 3-5-4-11-5-18-3z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M24 18v20" stroke="currentColor" stroke-width="2"/><path d="M33 6l-6 16 2 1 6-15z" fill="currentColor"/></svg>`,
+  leg:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9l3.6 7.6 8.2 1-6 5.6 1.6 8.2L24 27.4l-7.4 4 1.6-8.2-6-5.6 8.2-1z" fill="currentColor"/>${[...Array(7)].map((_,i)=>{ const a=(200+i*20)*Math.PI/180, x=+(24+Math.cos(a)*17).toFixed(1), y=+(26-Math.sin(a)*17).toFixed(1); return `<ellipse cx="${x}" cy="${y}" rx="3.4" ry="1.5" fill="currentColor" transform="rotate(${-(200+i*20)+90} ${x} ${y})"/><ellipse cx="${48-x}" cy="${y}" rx="3.4" ry="1.5" fill="currentColor" transform="rotate(${(200+i*20)-90} ${48-x} ${y})"/>`; }).join("")}</svg>`};
+const tierCrest=id=>CREST[id]||CREST.cap;
+const COIN=`<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#c9962e" stroke="#7a5a12"/><circle cx="8" cy="8" r="4.4" fill="none" stroke="#7a5a12" stroke-width=".9"/></svg>`;
+function tally(left,tot){ let out=""; for(let k=0;k<Math.ceil(tot/5);k++){ let s=""; const n=Math.min(5,tot-k*5);
+    for(let i=0;i<Math.min(4,n);i++) s+=`<path d="M${3+i*5} 2v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="${k*5+i<left?.85:.2}"/>`;
+    if(n===5) s+=`<path d="M1 12L22 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="${k*5+4<left?.85:.2}"/>`;
+    out+=`<svg viewBox="0 0 24 16" aria-hidden="true">${s}</svg>`; } return out; }
+const CARD_BACK=()=>{ let p=""; for(let y=0;y<8;y++)for(let x=0;x<14;x++) p+=`<path d="M${x*16+(y%2)*8} ${y*16+4}l4 4 -4 4 -4 -4Z" fill="#353a44"/>`;
+  return `<svg viewBox="0 0 220 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="220" height="120" fill="#22252c"/>${p}<rect x="5" y="5" width="210" height="110" rx="6" fill="none" stroke="#6b5a2e" stroke-width="1.2"/><path d="M110 30l16 6v16c0 12-7 19-16 23-9-4-16-11-16-23V36Z" fill="#2a2620" stroke="#e0b354" stroke-width="1.4"/><path d="M110 41l2.6 5 5.6.8-4 3.8 1 5.6-5.2-2.6-5.2 2.6 1-5.6-4-3.8 5.6-.8Z" fill="#e0b354"/></svg>`; };
+const TAV_WANTED={cap:"Captains wanted",vet:"Veterans wanted",acad:"From the Academy"};
+function candCard(c,x,i){ const t=x.tier||tierOf(x), T=GTIER(t), r=RAR_OF[t];
+  return `<div class="cand" style="--rc:var(--r-${r})">${genFrame(x,c.color)}
+    <div class="cn"><span class="ctier">${tierCrest(t)} ${esc(T?.name||"")}</span><b>${esc(x.name)}</b><span class="age" title="Retires at about ${x.maxAge}">Age ${x.age} · serves ~${Math.max(1,x.maxAge-x.age)} yrs</span></div>
+    <div class="cst"><span><b>${Math.round(x.skill)}</b>Skill</span><span><b>${x.mind}</b>Mind</span><span><b title="Caps the land a win can take: ${speedCap(x)} km²">${genSpeed(x)}</b>Speed</span><span><b title="Skill × morale: what he multiplies his army's strength by">×${genFactor(x).toFixed(2)}</b>Battle</span></div>
+    <div class="gtraits">${genTraits(x)}</div>
+    <div class="act"><button class="pri sm" data-tavhire="${i}">Hire ${esc(x.name.split(" ")[0])}</button>${t==="leg"?`<span>✨ Legendary</span>`:""}</div></div>`; }
 function pTavern(){
-  const c=me(), v=tavOf(G,c), pend=v.pend;
-  const tier=t=>{ const left=tavLeft(G,c,t.id), pr=tavPrice(G,c,t.id), can=!pend&&left>0&&c.money>=pr, nx=left>1?Math.round(pr*R.genRise/10)*10:0, rs=(a,b)=>a===b?a:a+"–"+b;
-    return `<div class="tier" style="--rc:var(--r-${RAR_OF[t.id]})"><div class="tn"><span class="ic">${t.icon}</span><b>${esc(t.name)}</b><span class="grow"></span><span class="legline" title="Each candidate's chance to be Legendary instead">✨ ${+(t.leg*100).toFixed(1)}%</span></div>
-      <div class="tdl"><span>Mind <b>${rs(t.mind0,t.mind1)}</b></span><span>Speed <b>${rs(t.speed0,t.speed1)}</b></span><span>Age <b>${rs(t.age0,t.age1)}</b></span><span>Skill <b>${rs(t.skill0,t.skill1)}</b></span><span>Traits <b>${rs(t.tr0,t.tr1)}</b></span><span>Flaw <b>${gPc(t.flaw)}</b>/slot${t.rare?` · rare <b>${gPc(t.rare)}</b>`:""}</span></div>
-      <div class="row"><button class="pri sm" data-tavcall="${t.id}" ${can?"":"disabled"}>${left?`Call · ${fmt(pr)}`:"No calls left"}</button><span class="small mut">${left?`${left} of ${Math.round(R.genCalls)} left${nx?` · next ${fmt(nx)}`:""}`:"until next year"}</span></div></div>`; };
-  return `<h3>Tavern ${gl("tavern")}</h3>
-  <div class="small mut">A call brings ${Math.round(R.genCards)} candidates with stats rolled inside the tier's range; hire one and the others leave. Each tier can be called ${Math.round(R.genCalls)} times a year, and every extra call that year costs ${R.genRise}× the one before. Legendary officers can't be called: any candidate may be one. Traits: ${gl("traits")}</div>
-  ${pend?`<div class="note">🍺 ${pend.list.length} ${esc(GTIER(pend.tier)?.name||"")} candidates are waiting for your answer. They leave at the end of the year. <button class="sm pri" data-tavshow="1">Show them</button> <button class="sm" data-tavaway="1">Send them away</button></div>`:""}
-  <div class="tiers">${GEN_TIERS.filter(t=>t.id!=="leg").map(tier).join("")}</div>`; }
-// the candidates: dealt face down, then turned one by one (a Legendary shakes and glows first)
-function cardBackSVG(){ let p=""; for(let y=0;y<9;y++)for(let x=0;x<7;x++) p+=`<path d="M${x*16+(y%2)*8} ${y*16+4}l4 4 -4 4 -4 -4Z" fill="#353a44"/>`;
-  return `<svg viewBox="0 0 110 150" preserveAspectRatio="xMidYMid slice"><rect width="110" height="150" fill="#22252c"/>${p}<rect x="6" y="6" width="98" height="138" rx="6" fill="none" stroke="#6b5a2e" stroke-width="1.2"/><path d="M55 46l22 9v22c0 16-10 26-22 31-12-5-22-15-22-31V55Z" fill="#2a2620" stroke="#e0b354" stroke-width="1.5"/><path d="M55 60l3.5 7 7.5 1-5.5 5 1.5 7.5L55 77l-7 3.5 1.5-7.5-5.5-5 7.5-1Z" fill="#e0b354"/><text x="55" y="128" text-anchor="middle" fill="#9aa1ad" font-size="8" font-family="Georgia,serif" letter-spacing="1.5">CANDIDATE</text></svg>`; }
+  const c=me(), v=tavOf(G,c), pend=v.pend, fresh=UI.tavFresh===G.turn+":"+(v.n[pend?.tier]||0), jn=UI.tavJoined?.t===G.turn?UI.tavJoined:null;
+  const calls=Math.round(R.genCalls);
+  const full=c.generals.length>=R.genMax;
+  const bill=t=>{ const left=tavLeft(G,c,t.id), pr=tavPrice(G,c,t.id), can=!pend&&!full&&left>0&&c.money>=pr, rs=(a,b)=>a===b?a:a+"–"+b;
+    return `<button class="bill" data-tavcall="${t.id}" ${can?"":"disabled"} title="${left?`Call for ${fmt(pr)} gold: ${Math.round(R.genCards)} candidates come forward${!pend&&c.money<pr?" (not enough gold)":""}`:"No calls left this year"}">${tierCrest(t.id)}<span class="wanted">${TAV_WANTED[t.id]||esc(t.name)}</span><span class="tn">${esc(t.name)}</span>
+      <span class="rng">Mind ${rs(t.mind0,t.mind1)} · Skill ${rs(t.skill0,t.skill1)}<br>Age ${rs(t.age0,t.age1)} · Traits ${rs(t.tr0,t.tr1)}<br>Flaw ${gPc(t.flaw)} a slot${t.rare?` · rare ${gPc(t.rare)}`:""}</span>
+      <span class="price">${COIN}${left?fmt(pr):"—"}</span><span class="tally" title="${left} of ${calls} calls left this year">${tally(left,calls)}</span><span class="leg" title="Each candidate's chance to be Legendary instead">✨ ${+(t.leg*100).toFixed(1)}% Legendary</span></button>`; };
+  return `<div class="tavern">
+   <div class="psec"><h3 class="tvh">Notice board ${gl("tavern")}<span class="grow"></span><span class="rt">${c.generals.length} of ${R.genMax} generals · ${fmt(c.money)} gold</span></h3>
+    <div class="bills">${GEN_TIERS.filter(t=>t.id!=="leg").map(bill).join("")}</div>
+    ${pend?`<div class="bnote">Answer the candidates below before pinning another notice.</div>`:full?`<div class="bnote">You have ${R.genMax} generals, the most a state can keep. Dismiss one under Generals to hire again.</div>`:""}
+    <div class="tvfoot">A notice brings ${Math.round(R.genCards)} candidates; hire one and the rest leave. Each tier can be called ${calls} times a year, and every extra call that year costs ${R.genRise}× the one before.</div></div>
+   <div class="psec"><h3 class="tvh">Candidates ${gl("traits")}<span class="grow"></span>${pend?`<button class="lnk" data-tavskip="1">Show all</button><button class="lnk" data-tavaway="1">Send them away</button>`:""}</h3>
+    ${jn?`<div class="tvjoined">${genFrame(jn.gen,c.color)}<span><b>${esc(jn.gen.name)}</b> joins your generals.</span><button class="sm" data-tab="generals" data-sub="list">See Generals</button></div>`:""}
+    ${pend?`<div class="deal${fresh?"":" ready"}" id="tavDraw">${pend.list.map((x,i)=>`<div class="flip ${RAR_OF[x.tier]}${fresh?" dealt":" open"}"><div class="inner"><div class="face back">${CARD_BACK()}</div><div class="face front">${candCard(c,x,i)}</div></div></div>`).join("")}</div>`
+      :jn?"":`<div class="tvempty">${CREST.cap}<span>No candidates. Pin a notice on the board and ${Math.round(R.genCards)} officers come forward. Undecided candidates leave at the end of the year; the gold is spent either way.</span></div>`}</div>
+  </div>`; }
+// turn the dealt cards over one by one; a Legendary shakes and glows first
 let TAV_T=[];
-function tavernModal(animate){ const c=me(), p=tavOf(G,c).pend; if(!p) return; const T=GTIER(p.tier);
-  modal(`<h2>${T.icon} ${esc(T.name)} candidates ${gl("tavern")}</h2>
-   <div class="row small"><span class="mut" id="tavHint">${animate?"Turning the cards…":"Hire one:"}</span><span class="grow"></span><button class="sm" data-tavskip="1">Show all</button></div>
-   <div class="tdraw${animate?"":" ready"}" id="tavDraw">${p.list.map((x,i)=>`<div class="flip ${RAR_OF[x.tier]}${animate?"":" open"}" style="--rc:var(--r-${RAR_OF[x.tier]})"><div class="rays"></div><div class="inner"><div class="face back">${cardBackSVG()}</div>${genCard(c,x,i)}</div></div>`).join("")}</div>
-   <div class="row"><button data-tavaway="1">Send them away</button><button data-a="close">Decide later</button><span class="small mut">The gold for the call is spent either way. Undecided candidates leave at the end of the year.</span></div>`,"tavern");
-  if(animate) tavReveal(); else tavDone(); }
-function tavReveal(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const fl=[...document.querySelectorAll("#tavDraw .flip")]; let t=700;
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return tavDone();
-  fl.forEach(f=>{ if(f.classList.contains("leg")){ TAV_T.push(setTimeout(()=>f.classList.add("charge"),t)); t+=1300; } TAV_T.push(setTimeout(()=>{ f.classList.remove("charge"); f.classList.add("open"); },t)); t+=650; });
-  TAV_T.push(setTimeout(tavDone,t+200)); }
-function tavDone(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const d=$("tavDraw"); if(!d) return; d.querySelectorAll(".flip").forEach(f=>{ f.classList.remove("charge"); f.classList.add("open"); }); d.classList.add("ready");
-  const h=$("tavHint"); if(h) h.textContent=[...d.querySelectorAll(".flip")].some(f=>f.classList.contains("leg"))?"✨ A Legendary officer came forward! Hire one:":"Hire one:"; }
+function tavReveal(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const fl=[...document.querySelectorAll("#tavDraw .flip")]; let t=650;
+  if(!fl.length||matchMedia("(prefers-reduced-motion: reduce)").matches) return tavDone();
+  fl.forEach((f,i)=>{ if(f.classList.contains("leg")){ TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.add("charge"); },t)); t+=1300; }
+    TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.remove("charge"); x?.classList.add("open"); },t)); t+=600; });
+  TAV_T.push(setTimeout(tavDone,t+150)); }
+function tavDone(){ TAV_T.forEach(clearTimeout); TAV_T=[]; UI.tavFresh=null; const d=$("tavDraw"); if(!d) return;
+  d.querySelectorAll(".flip").forEach(f=>{ f.classList.remove("charge"); f.classList.add("open"); }); d.classList.add("ready"); }
 // War tab: the wars you are in, and how many are going on among the states you know
 function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w.a!==c.id&&w.b!==c.id&&isKnown(w.a)&&isKnown(w.b)).length;
   const row=w=>{ const o=G.countries[warFoe(w,c.id)], how=w.why==="declared"?(w.a===c.id?"you declared it":"they declared it"):w.why==="rebels"?(w.a===c.id?"you broke away":"they broke away from you"):"hostility boiled over";
@@ -4474,12 +4672,10 @@ function stancePicker(c){ const cur=STANCES.indexOf(stanceOf(c));
   return `<div class="stance" role="group" aria-label="Defense stance">${STANCE_UI.map(([id,ic,nm,tip],i)=>`<button class="sm ${i===cur?"on":""}" data-stance="${id}" aria-pressed="${i===cur}" title="${nm}: ${tip}. ${stanceEffect(i)}">${ic} ${nm}</button>`).join("")}</div>
   <div class="small mut">${STANCE_UI[cur][2]}: ${STANCE_UI[cur][3]}. ${stanceEffect(cur)} Your neighbors don't see your stance.</div>`; }
 function pWar(sub){
-  if(sub==="generals") return pGenerals();
-  if(sub==="tavern") return pTavern();
   const c=me(); const nb=neighbors(G,c.id); const com=committed(c); const guards=c.soldiers-com;
   const busy=new Set(c.attacks.map(a=>a.gen));
   const dg=c.generals.find(x=>x.id===c.defGen&&!busy.has(x.id));
-  const idle=c.generals.filter(g=>!busy.has(g.id));
+  const idle=c.generals.filter(g=>!busy.has(g.id)&&!g.post);
   const peace=inPeace(G)?`<div class="note">🕊️ Peace time: nobody can attack until year ${G.peace+1} (${G.peace+1-G.turn} year${G.peace+1-G.turn===1?"":"s"} left).</div>`:"";
   if(sub==="nbrs") return `${peace}<h3>Neighbors ${gl("relations")}</h3>
   ${nb.length?`<table class="nbtab"><tr><th>State</th><th class="r">Soldiers</th><th class="r" title="How they feel about you: −100 hostile … +100 friendly">Relations</th><th></th></tr>
@@ -4540,7 +4736,7 @@ function atkTake(c,o,m,mine,est,n){ const eff=est>0?mine/(mine+est):1, sh=`${Mat
   return `<div class="small">Massacre: you bring ${sh}, so about <b>${fmt(k)}</b> of their peasants would die, costing you about ${fmt(Math.round(k*R.masFight))} more soldiers as they fight back <span class="mut">(no land; their allies and neighbors will hate you)</span>.</div>`; }
 function attackForm(c,j,idle){
   const o=G.countries[j];
-  if(!idle.length) return `<div class="note">Every general is busy or you have none. Hire one in the <button class="sm" data-tab="war" data-sub="tavern">War → Tavern</button>.</div>`;
+  if(!idle.length) return `<div class="note">Every general is busy or you have none. Hire one in the <button class="sm" data-tab="generals" data-sub="tavern">Generals → Tavern</button>.</div>`;
   const gsel=UI.atkGen && idle.some(g=>g.id===UI.atkGen)?UI.atkGen:idle.slice().sort((a,b)=>genEdge(b)-genEdge(a))[0].id; UI.atkGen=gsel;
   const gen=idle.find(g=>g.id===gsel), home=plannedPools(c), mix=atkMix(home), rows=TROOPS.filter(t=>home[t.id]>0);
   const fw=frontWidth(G,c.id,j), sea=seaOnlyFront(G,c.id,j), fb=frontBonusAD(G,c.id,j), td=terrainDefAD(G,c.id,j), n=troopCount(mix);
@@ -4767,7 +4963,7 @@ function reportHtml(b,d,ref){
   const wonderRow=(area,v)=>v>1?multRow(`${WONDERS[area].icon} ${esc(WONDERS[area].name)}`,v):multRow("🏛 Wonder: none",1);
   // general traits that changed the battle (newer reports): one row each; luck says how it was rolled
   const TRN={spear:"spearmen",archer:"archers",axe:"axemen",pike:"pikemen",sword:"swordsmen",cav:"cavalry"};
-  const trLab=([k,v,sh])=>TROOP_TRAIT[k]?`${GTR[k].icon} ${GTR[k].name}: ${TRN[TROOP_TRAIT[k]]} (${Math.round(sh*100)}% of the army)`:k==="pikeE"?"🔰 Enemy Pike Square: cavalry weaker":k==="siege"?"🏰 Attacker's Siege Breaker: border bonus cut":k==="foxA"?"⛰️ Attacker's Mountain Fox: terrain bonus cut":k==="foxD"?"⛰️ Mountain Fox: terrain bonus raised":k==="coward"?"🏳️ Coward: the attacker looked stronger":`${GTR[k]?.icon||""} ${GTR[k]?.name||k}`;
+  const trLab=([k,v,sh,tp])=>TROOP_TRAIT[k]?`${GTR[k].icon} ${GTR[k].name}: ${TRN[TROOP_TRAIT[k]]} (${Math.round(sh*100)}% of the army)`:k==="pikeE"?"🔰 Enemy Pike Square: cavalry weaker":k==="siege"?"🏰 Attacker's Siege Breaker: border bonus cut":k==="foxA"?"⛰️ Attacker's Mountain Fox: terrain bonus cut":k==="foxD"?"⛰️ Mountain Fox: terrain bonus raised":k==="coward"?"🏳️ Coward: the attacker looked stronger":k==="drillP"?`🎯 Drillmaster: ${TRN[tp]||""} (${Math.round(sh*100)}% of the army)`:`${GTR[k]?.icon||""} ${GTR[k]?.name||k}`;
   const trRows=L=>(L||[]).map(e=>multRow(`<span class="acc">${esc(trLab(e))}</span>`,e[1])).join("");
   const luckLab=k=>{ if(!k) return "Battle luck"; const b=[]; if(k.n>1) b.push(k.worst?`🐈‍⬛ worst of ${k.n} rolls`:`🍀 best of ${k.n} rolls`); if(Math.abs(k.w-R.battleLuck)>1e-9) b.push(`🎲 ±${Math.round(k.w*100)}%`); return b.length?`Battle luck <span class="acc">(${b.join(", ")})</span>`:"Battle luck"; };
   const genRow=(g,v)=>multRow(g?`General ${esc(g[0])} (skill ${g[2]}, morale ${g[4]})`:"No general",v,g?`skill ${g[2]} → ${mul(0.4+g[2]*0.008)} · morale ${g[4]} → ${mul(0.5+g[4]/200)}`:"");
@@ -4890,7 +5086,8 @@ const SETTINGS_META=[
   ["Wars",[["aiAidShare","Allied aid: share of its surplus a computer ally gives a year","%"],["aidTrust","Allied aid: trust gained per 1,000 gold of value"],["aidTrustMax","Allied aid: most trust gained from one gift"],["awarHostile","Alliance war starts when an alliance's relation reaches"],["arStep","Alliance relation: moves toward members' feelings per year","%"],["arWar","Alliance relation: per year of a state war between members"],["arBattle","Alliance relation: per battle between members"],["arBattleBig","Alliance relation: per battle taking over 10% of the land"],["warHostile","War starts when either side's feelings reach"],["warMin","War length: shortest (years)"],["warMax","War length: longest (years)"],["warRest","Years without new wars after peace"],["warDeclare","Computer declares war above this score"],["warDeclareHit","Victim's grievance when war is declared on it"]]],
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
   ["Generals",[["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
-  ["Generals: Tavern (tiers: the General tiers tab)",[["genCalls","Calls per tier per year"],["genRise","Each extra call that year costs (×)"],["genCards","Candidates per call"],["genHide","Rolled traits that start hidden","%"],["genTroopShare","Good trait slots that roll a troop trait","%"]]],
+  ["Generals: Tavern (tiers: the General tiers tab)",[["genCalls","Calls per tier per year"],["genRise","Each extra call that year costs (×)"],["genCards","Candidates per call"],["genMax","Most generals a state can keep"],["genHide","Rolled traits that start hidden","%"],["genTroopShare","Good trait slots that roll a troop trait","%"]]],
+  ["Generals: staff posts",[["postQm","Quartermaster: less grain eaten by the army per Mind","%"],["postQmFit","Quartermaster: Iron Quartermaster (×)"],["postQmMax","Quartermaster: at most","%"],["postDrill","Drillmaster: skill a year per Mind for generals in the field"],["postDrillTroop","Drillmaster: his troop traits' troops fight better","%"],["postChief","Chief of Staff: morale a year per Mind for generals in the field"],["postChiefFit","Chief of Staff: Beloved (×)"],["postEase","Governor, Ease: loyalty a year per Mind"],["postSqTax","Governor, Squeeze: taxes per Mind","%"],["postSqLoy","Governor, Squeeze: loyalty lost a year per Mind"],["postGovRevolt","Governor: a Butcher's revolt chance (×)"],["postDrunk","A Drunkard at a post in a bad year (×)"]]],
   ["Generals: traits",[["trLuckyDice","Lucky: luck rolls (keeps the best)"],["trLuckyBDice","Lucky Bastard: luck rolls (keeps the best)"],["trJinxDice","Jinxed: luck rolls (keeps the worst)"],["trReckless","Reckless: luck swing","%"],["trLuckyEarnWins","Lucky Bastard earned: battles won on a high luck roll"],["trLuckyEarnRoll","…a luck roll of at least (×)"],
     ["trFox","Mountain Fox: forest/mountain bonus cut when attacking, raised when defending","%"],["trSiege","Siege Breaker: narrow-front and sea bonus cut","%"],["trTroop","Troop traits: that troop's bonus","%"],["trTroopStrong","Troop traits: Swordsmen and Cavalry bonus","%"],["trHorseSpeed","Horse Lord: extra speed"],["trPikeCav","Pike Square: enemy cavalry weaker","%"],["trBowsLoss","Master of Bows: attackers lose more","%"],["trAxeLoss","Berserker Chief: axemen lose fewer","%"],["trBladeTough","Blademaster: swordsmen tougher","%"],["trSpearHold","Phalanx: km² each spearman holds"],
     ["trCautiousLoss","Cautious: fewer losses in defeat","%"],["trCautiousLand","Cautious: less land won or lost","%"],["trCowardOdds","Coward: calls off when the enemy looks this much stronger (×)"],["trCowardDef","Coward: weaker defending against a stronger attacker","%"],["trCowardMorale","Coward: morale lost when he calls off"],
@@ -5062,6 +5259,10 @@ function turnReport(prev){
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
 ["One Resources box on Home","2026-11-13 22:49",["Home: Resources and Year ahead are one box under Work, with a card each for grain, money, wood and iron","Each card shows what is in store, the change next year, where it comes from and goes, and the market price","Forest, mountain and shore farmland bonuses sit in the wood, iron and grain cards"]],
+["Staff posts and a Generals page","2026-11-13 22:16",["Generals has its own page in the main menu, after Market (key 5): Generals, Staff and Tavern. War keeps Wars and Neighbors (key 6)","New Staff posts: Quartermaster (army eats less grain), Drillmaster (generals in the field learn faster; his troop traits make those troops fight better), Chief of Staff (generals in the field recover morale faster), Governor (Ease raises loyalty, Squeeze raises taxes at a cost in loyalty)","A general at a post can't attack or defend; effects grow with his Mind and count at the end of the year","Click a post's portrait to see what each general would give there, best first","New trait: Iron Quartermaster (only works at the Quartermaster post)","At most 10 generals at once","Computer states use staff posts too"]],
+["Tavern in regular boxes","2026-11-13 21:42",["The Tavern tab is two regular boxes like every other page: Notice board and Candidates","The tavern name and the innkeeper's line are gone","Notice cards and candidate cards are a shade darker so they stand out on the box"]],
+["Upright general cards, trait popups","2026-11-13 21:16",["General cards stand upright: portrait on top, then name, stats, traits and buttons","Tavern candidates sit side by side, three across even in the side panel; your generals two across","Hover a trait (or tap it on a touch screen) for a popup with what it does"]],
+["New Tavern screen","2026-11-13 21:10",["The Tavern has a name and an innkeeper whose line changes with what happens","Tiers are notices on a notice board: crest, price, calls left as tally marks, Legendary chance on one line","Candidates are dealt onto the table in the Tavern tab and turn over there; no more pop-up window","Candidate cards are compact and fit the side panel without scrollbars; three across on a wide panel","Tier icons are drawn, so they show on every system"]],
 ["Steady research table","2026-11-13 21:07",["Research: the area column keeps its width, so a changing \"next level\" text no longer shifts the sliders"]],
 ["Simpler research rows","2026-11-13 20:57",["Research: progress bars are gone; under each area it says when the next level comes (\"next level in 5 yrs\", \"next level next year\")","Each area takes one line: level, slider and share line up","Points so far and the next level's cost are in the tooltip"]],
 ["Tavern, general cards and traits","2026-11-13 20:50",["New War → Tavern: call a tier (Captain, Veteran, Academy graduate) and three candidates come forward; hire one","Candidates' Mind, Speed, Age, starting skill and traits are rolled inside the tier's range; the price never depends on the roll","Each tier can be called 10 times a year; every extra call that year costs 1.5× more","Legendary officers can't be called: any candidate may turn out Legendary","Cards turn over one by one; a Legendary shakes and glows gold first","The Age, Speed and Mind sliders are gone","War → Generals shows a card for each general: a drawn face (greys with age, scars from lost battles), tier, rank, skill, morale, won–lost and traits","20 traits: luck (Lucky, Lucky Bastard, Jinxed, Reckless), borders (Mountain Fox, Siege Breaker), one for each troop type, and Cautious, Coward, Butcher, Beloved, Greedy, Drunkard","Some traits start hidden and show after the general's first battle; Old Guard, Nemesis and Lucky Bastard can be earned","Battle reports show both generals' faces and traits, a row for each trait that changed the battle, and how luck was rolled","Computer states hire in the Tavern too and count traits in their odds","Settings: new General tiers tab and trait numbers under General rules"]],
@@ -5220,7 +5421,7 @@ const GUIDE=[
 <p>A safe opening that works with most civilizations:</p>
 <ol class="glist"><li><b>Home tab:</b> put 10–20% of peasants into science. Keep enough farmers that the grain card under <i>Resources</i> shows a surplus.</li>
 <li><b>Science tab:</b> start with Science (it speeds up all research), then Agriculture and Finance. The presets (Science run, Economy, Balanced, War) are a quick start.</li>
-<li><b>War → Tavern:</b> hire a general early. A young one with good Mind learns every year and becomes your best asset. Set one general as defender under War → Generals.</li>
+<li><b>Generals → Tavern:</b> hire a general early. A young one with good Mind learns every year and becomes your best asset. Set one general as defender under Generals. Later, put spare or clever old generals on Staff posts.</li>
 <li><b>Army tab:</b> keep some guards from the start. An empty border invites attacks: a state with no guards loses as much land as the attacker can take.</li>
 <li><b>Market:</b> sell surplus grain (or tick <i>Auto-sell surplus every year</i>) to pay scientists.</li>
 <li>Around years 30–45, research Attack/Defense, buy an army, and look for a weak neighbor under War → Neighbors.</li></ol>
@@ -5268,6 +5469,7 @@ ${gTab(["System","Feeds","Is fed by"],[
 <li><b>Peace and war footing:</b> computer states disarm in peace and fill their land, then arm at war and refill losses.</li></ul>
 <h3>Choices that compete</h3>
 <ul class="log"><li>Farmers vs workers vs scientists vs soldiers: the same people.</li>
+<li>Generals in the field vs at staff posts: a Governor or Quartermaster is one general fewer for attacks and defense.</li>
 <li>Gold for scientists vs cavalry and generals vs buying goods. Another Tavern call this year costs ${R.genRise}× the last, so chasing a Legendary eats the treasury fast.</li>
 <li>Wood troops (cheap, die fast, need many people) vs iron troops (costly, survive, save people).</li>
 <li>Sending troops vs keeping guards: soldiers sent away don't defend that year.</li>
@@ -5288,7 +5490,7 @@ ${gTab(["Job","Makes per worker per year","Notes"],[["Farmer",`${R.foodPerFarmer
 <p><b>Rule of thumb:</b> one scientist costs about as much as six peasants pay in tax. Science is paid for by farmers and sales.</p>`],
 ["food","Your state","🌾","Food and famine",()=>`
 <ul class="log"><li><b>Harvest:</b> farmers × ${R.foodPerFarmer} grain, raised by Agriculture research, shore farmland and bonuses, times this year's weather.</li>
-<li><b>Eating:</b> every peasant eats 1 grain a year; troops eat their upkeep (2 for most, 3 for axemen, 5 for cavalry). People eat <i>before</i> the harvest comes in, so your stock must cover the year.</li>
+<li><b>Eating:</b> every peasant eats 1 grain a year; troops eat their upkeep (2 for most, 3 for axemen, 5 for cavalry), less with a Quartermaster (${gl("staff")} Staff posts). People eat <i>before</i> the harvest comes in, so your stock must cover the year.</li>
 <li><b>Famine:</b> if food runs short, ${gP(R.famineDeath)} of the shortfall dies, soldiers first (they count 1.5×). No births that year.</li>
 <li><b>Spoilage:</b> ${gP(R.foodSpoil)} of stored grain spoils every year (also grain held in sell orders). A store is insurance, not a bank.</li>
 <li><b>Shore farmland:</b> land touching water harvests more: +${R.shoreYield}% for every 1% of your land on the shore, up to +${gP(R.shoreMax)}.</li></ul>
@@ -5297,6 +5499,7 @@ ${gTab(["Job","Makes per worker per year","Notes"],[["Farmer",`${R.foodPerFarmer
 <ul class="log"><li><b>Income:</b> every peasant pays ${R.taxPerPeasant} gold a year (+${gP(R.finTaxPerLevel)} per Finance level), plus market sales.</li>
 <li><b>Costs:</b> scientists ${R.sciWage} gold a year each, cavalry upkeep, troop and general prices, festivals (loyalty), and market buys (buy orders hold their gold until they fill).</li>
 <li><b>Unrest:</b> with loyalty under ${R.loyUnrest}, taxes are ${gP(R.loyUnrestTax)} lower.</li>
+<li><b>Governor:</b> on Squeeze a Governor raises taxes by ${gP(R.postSqTax)} per Mind, at a cost in loyalty (${gl("staff")} Staff posts).</li>
 <li><b>Empty treasury:</b> debt can't build up. If you end a year below zero, the debt is forgiven but unpaid soldiers go home and scientists go back to farming.</li></ul>
 <p>The money card in the Home tab's Resources box shows gold in store, income and costs. When you spend more than you earn it also shows how many years your gold lasts.</p>`],
 ["res","Your state","🌲","Wood and iron",()=>`
@@ -5359,22 +5562,33 @@ ${gTab(["Troop","Attack","Defense","Toughness","Cost (food/wood/iron/gold)","Upk
 <li><b>Max</b> trains as many as you can afford, <b>Half</b> half of that. The Supplies card shows how much grain your army needs.</li></ul>`],
 ["generals","Military","🎖️","Generals",()=>`
 <p>You need a general to attack, one per attack. One idle general defends; without a defender your guards fight at ${gP(R.genNoGeneral)} of the usual general factor.</p>
-<p>Generals are hired in the ${gl("tavern")} Tavern (War → Tavern). Each one has a card under War → Generals: his face (it greys with age and gets scars from lost battles), his tier, rank, status, skill, morale, record and traits.</p>
+<p>Generals have their own page (main menu → Generals). They are hired in the ${gl("tavern")} Tavern, can run the state from ${gl("staff")} Staff posts instead of fighting, and each one has a card under Generals: his face (it greys with age and gets scars from lost battles), his tier, rank, status, skill, morale, record and traits.</p>
 <ul class="log"><li><b>Mind</b> decides how fast he learns: skill grows ${R.genTrainRate}× Mind a year by training (slower near the top) and more in each battle.</li>
 <li><b>Speed</b> caps the land a win can take: ${R.speedBase} + ${R.speedPerPoint} km² per point.</li>
 <li><b>Age:</b> generals retire between 62 and 76, so a young one serves longer. Older candidates start with more skill.</li>
 <li><b>Skill and morale</b> multiply your army's strength: (0.4 + skill × 0.008) × (0.5 + morale ÷ 200), from 0.4 for a fresh general up to 1.2.</li>
 <li><b>Traits</b> ${gl("traits")} change how he fights or what he costs. Some come with him (some hidden until his first battle), some are earned.</li>
+<li><b>At most ${R.genMax} generals</b> at once, counting those at staff posts.</li>
 <li><b>Rank</b> follows his battles: Major, then Colonel at 5, General at 15 and Marshal at 30. It is for show.</li></ul>
 <h3>Morale</h3><ul class="log"><li>Resting generals regain ${R.moraleRecovery} a year; the defender loses ${R.moraleDefend} a year instead.</li><li>Attacking costs ${R.moraleWin} on a win and ${R.moraleLoss} on a loss.</li><li>A defender who holds the border gains ${R.moraleHeld}; one whose border is broken loses ${R.moraleBroken}.</li><li><b>Rest</b> takes a defender off the border to recover. Rotate defenders; the computer does.</li></ul>`],
 ["tavern","Military","🍺","Tavern",()=>`
-<p>War → Tavern is where you hire generals. Pick a tier and call: you pay its price at once and ${Math.round(R.genCards)} candidates come forward, each with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. Their cards turn over one by one. Hire one; the others leave. You can also send them all away or decide later in the year: undecided candidates leave at the end of the year, and the gold is spent either way.</p>
-${gTab(["Tier","Price","Mind","Speed","Age","Skill","Traits","Flaw a slot","Legendary"],GEN_TIERS.filter(t=>t.id!=="leg").map(t=>[`${t.icon} ${t.name}`,fmt(t.price),`${t.mind0}–${t.mind1}`,`${t.speed0}–${t.speed1}`,`${t.age0}–${t.age1}`,`${t.skill0}–${t.skill1}`,`${t.tr0}–${t.tr1}`,gP(t.flaw),(t.leg*100).toFixed(1)+"%"]))}
+<p>Generals → Tavern is where you hire generals (at most ${R.genMax} at once; with ${R.genMax} you must dismiss one before you can call). Pick a tier and call: you pay its price at once and ${Math.round(R.genCards)} candidates come forward, each with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. The tiers are notices on the Notice board; the candidates' cards are dealt into the Candidates box below and turn over one by one. Hire one; the others leave. You can also send them all away or decide later in the year: undecided candidates leave at the end of the year, and the gold is spent either way.</p>
+${gTab(["Tier","Price","Mind","Speed","Age","Skill","Traits","Flaw a slot","Legendary"],GEN_TIERS.filter(t=>t.id!=="leg").map(t=>[`<span class="gtier">${tierCrest(t.id)}</span> ${t.name}`,fmt(t.price),`${t.mind0}–${t.mind1}`,`${t.speed0}–${t.speed1}`,`${t.age0}–${t.age1}`,`${t.skill0}–${t.skill1}`,`${t.tr0}–${t.tr1}`,gP(t.flaw),(t.leg*100).toFixed(1)+"%"]))}
 <ul class="log"><li><b>Price never depends on the roll:</b> a great candidate costs the same as a poor one, so a lucky call is pure gain.</li>
 <li><b>Calls:</b> each tier can be called ${Math.round(R.genCalls)} times a year. Every extra call in the same year costs ${R.genRise}× the one before (${GEN_TIERS.filter(t=>t.id==="acad").map(t=>`Academy: ${[0,1,2,3].map(k=>fmt(Math.round(t.price*Math.pow(R.genRise,k)/10)*10)).join(", ")}…`)}); prices reset every year.</li>
 <li><b>Legendary</b> officers can't be called. Each candidate has the tier's Legendary chance to be one instead: Mind ${GTIER("leg").mind0}–${GTIER("leg").mind1}, Speed ${GTIER("leg").speed0}–${GTIER("leg").speed1}, skill ${GTIER("leg").skill0}–${GTIER("leg").skill1}, ${GTIER("leg").tr0}–${GTIER("leg").tr1} traits, the first always rare. The card shakes and glows gold before it turns.</li>
 <li><b>Which tier:</b> Captains are cheap and ready but short-lived and often flawed. Veterans are seasoned from the first year. Academy graduates start raw but learn fast and serve long.</li>
 <li><b>Computer states</b> call the best tier they can afford with a cushion (a Captain only when they have no general), and hire the candidate worth most in battle over the next years, judged by what they can see.</li></ul>`],
+["staff","Military","🏛️","Staff posts",()=>`
+<p>Generals → Staff has four posts. A general at a post runs the state instead of fighting: he can't attack or defend that year. Click a post's portrait to choose who sits there; the list shows what each general would give, best first.</p>
+${gTab(["Post","Every year","Fitting traits"],[["Quartermaster",`Your army eats ${gP(R.postQm)} less grain per Mind (at most ${gP(R.postQmMax)})`,`Iron Quartermaster ×${R.postQmFit}`],["Drillmaster",`Every general in the field gains +${R.postDrill} skill per Mind`,`A troop trait: that troop fights +${gP(R.postDrillTroop)} better in all your battles (for its share of the army)`],["Chief of Staff",`Every general in the field recovers +${R.postChief} morale per Mind, on top of resting`,`Beloved ×${R.postChiefFit}`],["Governor",`Ease: loyalty +${R.postEase} per Mind. Squeeze: taxes +${gP(R.postSqTax)} and loyalty −${R.postSqLoy} per Mind`,`Beloved: Ease ×2, Squeeze loses half the loyalty. Greedy: keeps half the extra tax. Butcher: iron fist, revolts half as likely but Ease gives half`]])}
+<ul class="log"><li><b>When it counts:</b> every post is a yearly effect worked out at the end of the year for whoever holds it then. Putting a general on a post for a moment gains nothing, and no post makes buying anything cheaper.</li>
+<li><b>Mind</b> sets how much a general gives at a post, so old, slow but clever generals are worth keeping, and a Coward or Jinxed one does no harm there.</li>
+<li>A <b>Drunkard</b> at a post gives only half in about half his years.</li>
+<li>Putting a general on a post takes him off the border (another idle general defends) and cancels an attack he was ordered to lead.</li>
+<li>Posts count toward the limit of ${R.genMax} generals, so a post is one general fewer in the field.</li>
+<li><b>Squeezing too hard backfires:</b> under ${R.loyUnrest} loyalty taxes drop ${gP(R.loyUnrestTax)}, and low loyalty brings revolts (${gl("loyalty")}). Without the Rebellions rule loyalty does nothing, so Ease does nothing either.</li>
+<li><b>Computer states</b> keep their two best attackers and a defender in the field and put the rest on posts: a Governor first when loyalty is low, a Quartermaster when food is short, then Chief of Staff and Drillmaster. They squeeze when loyal but short of gold.</li></ul>`],
 ["traits","Military","🍀","General traits",()=>{ const row=t=>`<li>${t.icon} <b>${t.name}</b>: ${traitText(t.id)}</li>`, by=k=>GEN_TRAITS.filter(t=>t.kind===k).map(row).join("");
   return `<p>Traits give a general character. Battle traits work only in battles he commands, as attacker or as your defender. Costs and temper count every year. Hover a trait on a card for its exact effect; a battle report shows each trait that changed the battle in its own gold row.</p>
 <h3>How they are rolled</h3><ul class="log"><li>Each tier gives a number of trait slots (see ${gl("tavern")} Tavern). Each slot first rolls a flaw at the tier's flaw chance, then a rare trait at its rare chance, otherwise a good trait. ${gP(R.genTroopShare)} of good slots are a troop trait.</li>
@@ -5487,6 +5701,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 ["A famine year",`−${R.loyFamine}`],["An empty treasury",`−${R.loyBroke}`],
 ["Every year",`+${R.loyRec} at peace, +${R.loyRecWar} at war; a state bigger than at the start recovers slower (× √(starting land ÷ your land)), but always at least +${R.loyRecMin}`],
 ["Festivals","+1 per point bought (see below)"],
+[`A Governor (${gl("staff")} Staff posts)`,`Ease: +${R.postEase} a year per Mind; Squeeze: −${R.postSqLoy} a year per Mind (his Butcher iron fist halves the revolt chance)`],
 [`Your generals' wins (${gl("traits")})`,`a Beloved general +${R.trBelovedLoy} a win (at most +${R.trBelovedMax} a year); a Butcher −${R.trButcherLoy} a win`]])}
 <p><b>Ceiling:</b> loyalty can't rise above 100 − ${R.loyCeilMax} × √(your share of the world's land): ${[0.01,0.1,0.25,0.5,1].map(x=>`${gP(x)} of the world → ${Math.round(100-R.loyCeilMax*Math.pow(x,R.loyCeilExp))}`).join(", ")}. Growing pushes it down by itself.</p>
 <h3>What it does</h3>${gTab(["Loyalty","State","Effect"],[["70–100","Loyal","none"],[`${R.loyUnrest}–70`,"Restless","none yet"],[`${R.loyRevolt}–${R.loyUnrest}`,"Unrest",`taxes −${gP(R.loyUnrestTax)}`],[`under ${R.loyRevolt}`,"Revolt possible",`each year a ${gP(R.loyRevoltPer)} chance per point under ${R.loyRevolt} (${gP(Math.min(1,R.loyRevolt*R.loyRevoltPer))} at 0)`]])}
@@ -5530,9 +5745,9 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <p>Under the header is the main menu: Home, Science, Army, Market, War, World, Allies and News (see Menus).</p>
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
-<p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Market, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
-${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; work sliders; resources: grain, money, wood and iron in store, what comes in and goes out next year, prices"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Tavern · E Wars · R Neighbors","Generals: a card for each general (traits, record), dismiss, rest, pick the defender. Tavern: call candidates by tier and hire one. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
-<p>Allies shows only in games with alliances; News then takes key 7.</p>
+<p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Science, Market, Generals, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
+${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; work sliders; resources: grain, money, wood and iron in store, what comes in and goes out next year, prices"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🎖️ Generals","Q Generals · W Staff · E Tavern","Generals: a card for each general (traits, record), dismiss, rest, pick the defender. Staff: put generals on posts (Quartermaster, Drillmaster, Chief of Staff, Governor). Tavern: call candidates by tier and hire one"],["6","🗡️ War","Q Wars · W Neighbors","Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["7","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["8","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["9","📰 News","—","Every report and battle, newest first"]])}
+<p>Allies shows only in games with alliances; without them News takes key 8.</p>
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
@@ -5852,11 +6067,17 @@ document.addEventListener("click",async ev=>{
   if(d.cancel!=null){ cmd("cancelAttack",+d.cancel); render(); return; }
   if(d.defgen){ cmd("defGen",+d.defgen); render(); return; }
   if(d.dismiss){ cmd("dismissGeneral",+d.dismiss); render(); return; }
-  if(d.tavcall){ if(!cmd("tavCall",d.tavcall)){ flash("Not enough gold, or no calls left for that tier this year."); render(); return; } save(); render(); tavernModal(true); return; }
-  if(d.tavshow){ tavernModal(false); return; }
+  if(d.tavcall){ if(!cmd("tavCall",d.tavcall)){ flash("Not enough gold, or no calls left for that tier this year."); render(); return; }
+    const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; save(); render(); tavReveal(); return; }
+  if(d.staffopen!=null){ UI.staffOpen=d.staffopen&&UI.staffOpen!==d.staffopen?d.staffopen:null; render(); return; }
+  if(d.put){ cmd("post",+d.put,d.post); UI.staffOpen=null; save(); render(); return; }
+  if(d.unpost){ cmd("post",+d.unpost,null); UI.staffOpen=null; save(); render(); return; }
+  if(d.govpol){ cmd("govPol",d.govpol); save(); render(); return; }
+  if(d.tavshow){ goTab("generals","tavern"); render(); return; }
   if(d.tavskip){ tavDone(); return; }
-  if(d.tavaway){ cmd("tavAway"); closeModal(); save(); render(); return; }
-  if(d.tavhire!=null){ const x=cmd("tavHire",+d.tavhire); closeModal(); if(x){ save(); goTab("war","generals"); render(); flash(`${x.name} joined your generals.`); } else render(); return; }
+  if(d.tavaway){ TAV_T.forEach(clearTimeout); UI.tavFresh=null; cmd("tavAway"); save(); render(); return; }
+  if(d.tavhire!=null){ const i=+d.tavhire; document.querySelectorAll("#tavDraw .flip").forEach((f,k)=>f.classList.add(k===i?"taken":"leave")); UI.busyHire=true;
+    setTimeout(()=>{ UI.busyHire=false; const x=cmd("tavHire",i); if(x){ UI.tavJoined={t:G.turn,gen:x}; save(); } render(); },550); return; }
   if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=cmd("festival",n); UI.festN=undefined;
     flash(got?`Festivals held: loyalty +${got} for ${fmt(got*festCost(G,c))} gold.`:"Not enough gold, or no room for more loyalty this year."); render(); return; }
   if(d.find){ if(!G||observing()) return; goTab("world","rank"); UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
