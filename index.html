@@ -944,6 +944,9 @@ function worldMap(W,H){
 const LINKS=new WeakMap();
 function linkMap(links){ const mp=new Map(); for(const [a,b] of links||[]){ if(!mp.has(a)) mp.set(a,[]); if(!mp.has(b)) mp.set(b,[]); mp.get(a).push(b); mp.get(b).push(a); } return mp; }
 function linksOf(g){ if(!g.links||!g.links.length) return null; let mp=LINKS.get(g); if(!mp){ mp=linkMap(g.links); LINKS.set(g,mp); } return mp; }
+// cells with a sea route, as a flag per cell (skips the Map lookup for the rest); null when the map has none
+const LINKF=new WeakMap();
+function linkFlags(g){ const lk=linksOf(g); if(!lk) return null; let f=LINKF.get(lk); if(!f||f.length!==g.cells.length){ f=new Uint8Array(g.cells.length); for(const k of lk.keys()) f[k]=1; LINKF.set(lk,f); } return f; }
 
 const OBSERVER=-9; // g.player in observer mode (no state is yours)
 // unique id of a game: news and battle reports are stored under it (Math.random is fine here: it doesn't touch the game's dice)
@@ -1825,8 +1828,9 @@ function wsYear(g){ wxInitScale(g); const S=g.wxScale, ev=[];
 // weather for next year's harvest: drifting systems, small random yearly patches, and slow world-wide good and bad years
 function mkWeather(g){ const C=g.countries; const ev=wsYear(g);
   g.climS=(g.climS||0)*0.7+(R01(g)*2-1)*R.wxClimate*1.7; g.clim=Math.min(1+3*R.wxClimate,Math.max(1-3*R.wxClimate,1+g.climS));
-  { const t=C.map(()=>[0,0,0]); for(let i=0;i<g.cells.length;i++){ const o=g.cells[i]; if(o>=0){ const e=t[o]; e[0]+=i%g.W; e[1]+=(i/g.W)|0; e[2]++; } } // state centres, every year (states grow and shrink)
-    g.cent=t.map(e=>e[2]?[e[0]/e[2],e[1]/e[2]]:null); }
+  { const n=C.length, sx=new Float64Array(n), sy=new Float64Array(n), sn=new Float64Array(n), W=g.W, cl=g.cells; // state centres, every year (states grow and shrink)
+    for(let i=0,x=0,y=0;i<cl.length;i++,x++){ if(x===W){ x=0; y++; } const o=cl[i]; if(o>=0){ sx[o]+=x; sy[o]+=y; sn[o]++; } }
+    g.cent=Array.from({length:n},(_,k)=>sn[k]?[sx[k]/sn[k],sy[k]/sn[k]]:null); }
   // small random patches on top, re-rolled every year: each spans about 1–2.5 states, more of them on bigger maps
   const S=g.wxScale, nF=Math.max(4,Math.min(200,Math.round(g.wxLand/(Math.PI*(1.65*S)**2)))), F=[];
   for(let k=0;k<nF;k++) F.push([...wxOnLand(g),S*(0.8+1.7*R01(g)),(R01(g)<0.5?-1:1)*(g.noWx?R.wxRegionalOff:R.wxRegional)*(0.5+R01(g))]);
@@ -2649,10 +2653,12 @@ function settle(g){
   if(!any) return;
   const own=ownedCells(g), C=g.countries, order=C.filter(c=>c.alive).map(c=>c.id);
   for(let i=order.length-1;i>0;i--){ const j=Math.floor(R01(g)*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
-  const lk=linksOf(g), nb=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const L=lk?.get(i); if(L) for(const j of L) f(j); };
+  const lk=linksOf(g), lf=linkFlags(g), nb=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); if(lf&&lf[i]) for(const j of lk.get(i)) f(j); };
   for(const id of order){
     const c=C[id], budget=Math.round((R.settleBase+c.land*R.settleRate)*exploreMul(c)), q=[];
-    for(const i of own[id]) if(cells[i]===id) nb(i,j=>{ if(cells[j]===-1) q.push(j); });
+    for(const i of own[id]){ if(cells[i]!==id) continue; const x=i%W; // unowned cells next to its land (same order as nb)
+      if(x>0&&cells[i-1]===-1) q.push(i-1); if(x<W-1&&cells[i+1]===-1) q.push(i+1); if(i>=W&&cells[i-W]===-1) q.push(i-W); if(i+W<N&&cells[i+W]===-1) q.push(i+W);
+      if(lf&&lf[i]) for(const j of lk.get(i)) if(cells[j]===-1) q.push(j); }
     let k=0;
     while(k<budget&&q.length){
       const j=Math.floor(R01(g)*Math.min(q.length,8)), i=q.splice(j,1)[0];
@@ -4681,7 +4687,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Faster years on big maps","2026-11-13 19:18",["Ending a year is faster on big maps: computer states make their market plans faster, and the weather is worked out faster","Nothing about the game changes, only the speed"]],
+["Faster years on big maps","2026-11-13 19:18",["Ending a year is about twice as fast on big maps (4000 states: about 1 s instead of 1.5–3 s): faster market plans for computer states, weather and settlers","Nothing about the game changes, only the speed"]],
 ["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
 ["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","With Choose your state on, Start plays the preview map even when you didn't click a state, instead of making a second one","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
 ["Smoother map on big worlds","2026-11-13 19:00",["Panning and zooming the map no longer lags on large maps (thousands of states)","Trees and mountains draw much faster when zoomed in"]],
