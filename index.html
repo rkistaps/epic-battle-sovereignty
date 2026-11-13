@@ -338,6 +338,7 @@ table.gtab td{padding:4px 10px 4px 0;border-bottom:1px solid #ffffff0d;vertical-
 table.tight td,table.tight th{padding:4px 3px}
 .modal.settings{max-width:1100px}
 .stabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
+.shrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px} .shrow h2{margin:0} .shrow input{flex:1;min-width:160px;max-width:340px;padding:7px 12px;border-radius:8px}
 .stabs button.on{background:var(--acc);color:#1a1a1a;border-color:var(--acc)}
 .sgrid{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:3px 10px;align-items:center;margin-bottom:6px}
 .sgrid input[inputmode]{width:90px}
@@ -4580,12 +4581,27 @@ function settingsModal(tab){
     if(kind==="text"||kind==="icon") return `<input type="text" data-sk="${path}" data-kind="text" value="${esc(cur)}" class="${chg} ${kind==="icon"?"icon":""}">`;
     const shown=kind==="%"?+(cur*100).toFixed(4):cur;
     return `<input type="text" inputmode="decimal" data-sk="${path}" data-kind="${kind||""}" value="${shown}" class="${chg}" title="Default: ${kind==="%"?+(def*100).toFixed(4)+"%":def}">`; };
+  const gRow=(k,label,kind)=>`<span>${esc(label)}</span><span>${inp("R."+k,kind,getPath(d.R,k),getPath(v.R,k))}${kind==="%"?" %":""}</span><span class="small mut">default ${kind==="%"?+(getPath(d.R,k)*100).toFixed(4)+"%":kind==="bool"?(getPath(d.R,k)?"on":"off"):kind==="select"?(LABEL_STYLES.find(x=>x[0]===getPath(d.R,k))||[,""])[1]:getPath(d.R,k)}</span>`;
+  // a table tab's rows (all, or only those given as [row, index]) with its column headers
+  const tRows=(t,list)=>{ const M_=TABLE_META[t]; return `<div class="stable"><table class="tight"><tr>${M_.cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${(list||v[t].map((r,i)=>[r,i])).map(([row,i])=>
+      `<tr>${M_.cols.map(([f,,kind])=>`<td>${inp(t+"."+i+"."+f,kind,d[t][i][f],row[f])}${kind==="%"?"%":""}</td>`).join("")}</tr>`).join("")}</table></div>`; };
+  const wRow=a=>`<tr><td>${AREA_NAMES[a]}</td><td>${inp("wonders."+a+".name","text",d.wonders[a].name,v.wonders[a].name)}</td><td>${inp("wonders."+a+".icon","icon",d.wonders[a].icon,v.wonders[a].icon)}</td><td>${inp("wonders."+a+".bonus","%",d.wonders[a].bonus,v.wonders[a].bonus)} %</td></tr>`;
+  const wHead=`<tr><th>Research area</th><th>Name</th><th>Icon</th><th title="How much the holder's effect in this area is raised">Bonus</th></tr>`;
+  const q=(UI.sq||"").trim().toLowerCase(), hit=x=>String(x??"").toLowerCase().includes(q);
   let body="";
-  if(UI.stab==="general") body=SETTINGS_META.map(([grp,rows])=>{ const nChg=rows.filter(([k])=>JSON.stringify(getPath(v.R,k))!==JSON.stringify(getPath(d.R,k))).length;
+  if(q){ // search: every match from every tab on one page, editable in place
+    const out=[]; let cnt=0;
+    for(const [grp,rows] of SETTINGS_META){ const R_=hit(grp)?rows:rows.filter(([k,l])=>hit(l)||hit(k)); if(R_.length){ cnt+=R_.length; out.push(`<h3>General rules · ${esc(grp)}</h3><div class="sgrid">${R_.map(([k,l,kd])=>gRow(k,l,kd)).join("")}</div>`); } }
+    for(const t of Object.keys(TABLE_META)){ const M_=TABLE_META[t], col=hit(M_.title)||M_.cols.some(c=>hit(c[1])), L=v[t].map((r,i)=>[r,i]).filter(([r])=>col||hit(r.id)||M_.cols.some(([f,,kd])=>kd==="text"&&hit(r[f])));
+      if(L.length){ cnt+=L.length; out.push(`<h3>${M_.title}</h3>${tRows(t,L)}`); } }
+    const W_=Object.keys(v.wonders).filter(a=>hit("wonders")||hit(AREA_NAMES[a])||hit(v.wonders[a].name)); if(W_.length){ cnt+=W_.length; out.push(`<h3>Wonders</h3><div class="stable"><table class="tight">${wHead}${W_.map(wRow).join("")}</table></div>`); }
+    for(const [t,l,arr] of [["names","State names",v.names],["anames","Alliance names",v.anames]]){ const m=arr.filter(hit); if(m.length){ cnt++; out.push(`<h3>${l}</h3><div class="small">${fmt(m.length)} name${m.length>1?"s contain":" contains"} it: ${m.slice(0,8).map(esc).join(" · ")}${m.length>8?" …":""} <button class="sm" data-stab="${t}">Edit list</button></div>`); } }
+    if(["start","mid","end","forms"].some(k=>v.ngen[k].some(hit))||hit("invented")){ cnt++; out.push(`<h3>Invented names</h3><div class="small">Name parts or titles contain it. <button class="sm" data-stab="names">Edit name parts</button></div>`); }
+    body=cnt?out.join(""):`<div class="mut">No setting matches "${esc(UI.sq)}".</div>`; }
+  else if(UI.stab==="general") body=SETTINGS_META.map(([grp,rows])=>{ const nChg=rows.filter(([k])=>JSON.stringify(getPath(v.R,k))!==JSON.stringify(getPath(d.R,k))).length;
     return `<details class="sgrp" data-sgrp="${esc(grp)}" ${UI.sopen?.[grp]?"open":""}><summary><h3>${esc(grp)}</h3> <span class="small mut">${rows.length} setting${rows.length>1?"s":""}${nChg?` · <span class="acc">${nChg} changed</span>`:""}</span></summary><div class="sgrid">${rows.map(([k,label,kind])=>
-    `<span>${esc(label)}</span><span>${inp("R."+k,kind,getPath(d.R,k),getPath(v.R,k))}${kind==="%"?" %":""}</span><span class="small mut">default ${kind==="%"?+(getPath(d.R,k)*100).toFixed(4)+"%":kind==="bool"?(getPath(d.R,k)?"on":"off"):kind==="select"?(LABEL_STYLES.find(x=>x[0]===getPath(d.R,k))||[,""])[1]:getPath(d.R,k)}</span>`).join("")}</div></details>`; }).join("");
-  else if(UI.stab==="wonders") body=`<div class="stable"><table class="tight"><tr><th>Research area</th><th>Name</th><th>Icon</th><th title="How much the holder's effect in this area is raised">Bonus</th></tr>${Object.keys(v.wonders).map(a=>
-    `<tr><td>${AREA_NAMES[a]}</td><td>${inp("wonders."+a+".name","text",d.wonders[a].name,v.wonders[a].name)}</td><td>${inp("wonders."+a+".icon","icon",d.wonders[a].icon,v.wonders[a].icon)}</td><td>${inp("wonders."+a+".bonus","%",d.wonders[a].bonus,v.wonders[a].bonus)} %</td></tr>`).join("")}</table></div>
+    gRow(k,label,kind)).join("")}</div></details>`; }).join("");
+  else if(UI.stab==="wonders") body=`<div class="stable"><table class="tight">${wHead}${Object.keys(v.wonders).map(a=>wRow(a)).join("")}</table></div>
     <div class="small mut">Bonus: multiplies the holder's main effect in that area (research, food, taxes, capacity, births, attack, defense, wood, iron, land taken). +25% means ×1.25.</div>`;
   else if(UI.stab==="names"){ const chg=JSON.stringify(v.names)!==JSON.stringify(d.names)?"chg":"";
     const g=v.ngen, ta=(k,l,tip)=>`<label class="npart"><span>${l} <span class="small mut" id="ngN-${k}">${fmt(g[k].length)}</span></span><textarea class="names ${JSON.stringify(g[k])!==JSON.stringify(d.ngen[k])?"chg":""}" data-sk="ngen.${k}" data-kind="lines" spellcheck="false" title="${tip}">${esc(g[k].join("\n"))}</textarea></label>`;
@@ -4599,12 +4615,9 @@ function settingsModal(tab){
   else if(UI.stab==="anames"){ const chg=JSON.stringify(v.anames)!==JSON.stringify(d.anames)?"chg":"";
     body=`<div class="small mut" style="margin-bottom:6px">One name per line. A new game with alliances shuffles this list and gives each alliance a name from it; if there are more alliances than names, extra ones are called "Alliance 1", "Alliance 2", … <b id="namesN">${fmt(v.anames.length)}</b> names.</div>
     <textarea class="names ${chg}" data-sk="anames" data-kind="lines" spellcheck="false">${esc(v.anames.join("\n"))}</textarea>`; }
-  else { const M_=TABLE_META[UI.stab];
-    body=`<div class="stable"><table class="tight"><tr>${M_.cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${v[UI.stab].map((row,i)=>
-      `<tr>${M_.cols.map(([f,,kind])=>`<td>${inp(UI.stab+"."+i+"."+f,kind,d[UI.stab][i][f],row[f])}${kind==="%"?"%":""}</td>`).join("")}</tr>`).join("")}</table></div>
-      <div class="small mut">${M_.note}</div>`; }
-  modal(`<h2>⚙ Settings</h2>
-    <div class="stabs">${STABS.map(([k,l])=>`<button class="sm ${UI.stab===k?"on":""}" data-stab="${k}">${l}</button>`).join("")}</div>
+  else { const M_=TABLE_META[UI.stab]; body=`${tRows(UI.stab)}<div class="small mut">${M_.note}</div>`; }
+  modal(`<div class="rep-head shead"><div class="shrow"><h2>⚙ Settings</h2><input type="search" id="sq" placeholder="🔍 Search settings" value="${esc(UI.sq||"")}" autocomplete="off" aria-label="Search settings"></div>
+    <div class="stabs">${STABS.map(([k,l])=>`<button class="sm ${!q&&UI.stab===k?"on":""}" data-stab="${k}">${l}</button>`).join("")}</div></div>
     <div class="mbody">${body}</div>
     <div class="rep-foot" style="flex-wrap:wrap">
       <button class="pri" data-a="settingsSave">Save &amp; apply</button>
@@ -4695,6 +4708,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Search in Settings","2026-11-13 20:02",["Settings has a search box: type a word to see every matching rule, troop, civilization, leader, land type and wonder from all tabs on one page","Matches can be changed right in the results","State and alliance names that match are listed with a button to open the list"]],
 ["Map fills in while you drag","2026-11-13 19:40",["Trees, mountains and borders now fill in while you drag the map, not only after you let go","Small or zoomed-out maps redraw fully on every frame while you drag"]],
 ["Faster years on big maps","2026-11-13 19:18",["Ending a year is about twice as fast on big maps (4000 states: about 1 s instead of 1.5–3 s): faster market plans for computer states, weather and settlers","Nothing about the game changes, only the speed"]],
 ["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
@@ -5159,6 +5173,7 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
+<p><b>Search</b> (the box next to the title) finds settings on every tab at once: type a word like "mountain", "upkeep" or "spear" to see every rule, troop, civilization, leader, land type and wonder that matches, and change them right there. Click a tab to leave the search.</p>
 <h3>State names</h3><p>A new game gives each state a name from the list in Settings → State names (${fmt(NAMES.length)} names now). When a map has more states than the list, the rest get <b>invented names</b>: a title with a made-up place in it, like "Kingdom of Korvalia" or "Korvalian Empire". The place is built from a start, sometimes a middle, and an end; the title from a pattern where {N} is the place and {A} a word made from it. With the current parts there are about ${fmt(nameCombos(NAME_GEN))} different names. Set <b>Invented share</b> above 0 to give that share of states an invented name even when the list has enough. Rebel states get invented places too ("Rebels of Korvalia").</p>
 <h3>Saves</h3><p>The game saves itself in this browser every year. When you open the page again you can continue where you left off.</p>
 <p><b>Save to file</b> (Menu) downloads the whole game as one .json file: the map, every state, the news archive and the rules from Settings. <b>Load from file</b> (Menu, or the first window) opens it, also on another computer or browser, and you play on from that year. Loading replaces the game saved in this browser and its Settings, so save that one to a file first if you want to keep it.</p>
@@ -5402,7 +5417,7 @@ document.addEventListener("click",async ev=>{
   const t=ev.target.closest("button,tr[data-pick],tr[data-alliance],tr[data-amember]"); if(!t) return;
   const d=t.dataset;
   if(d.guide){ UI.guideQ=""; helpModal(d.guide); return; }
-  if(d.stab){ settingsModal(d.stab); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
+  if(d.stab){ UI.sq=""; settingsModal(d.stab); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
   if(d.npage!=null){ UI.news.page=Math.max(0,+d.npage); render(); $("panel").scrollTop=0; return; }
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
@@ -5542,6 +5557,7 @@ document.addEventListener("input",ev=>{
   const t=ev.target;
   if(t.dataset.mkt){ const v=t.id==="mkP"?t.value.replace(/[^\d.]/g,""):t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; paintMkt(); return; }
   if(t.id?.startsWith("trn-")){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; trainPreview(t.id.slice(4)); return; }
+  if(t.id==="sq"){ UI.sq=t.value; settingsModal(); const e=$("sq"); e.focus(); e.setSelectionRange(e.value.length,e.value.length); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
   if(t.dataset.sk&&UI.sdraft){ const k=t.dataset.kind; let v= k==="bool"?t.checked : k==="text"?t.value : k==="lines"?[...new Set(t.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))] : +t.value; if(k==="%") v=v/100;
     if(k!=="text"&&k!=="bool"&&k!=="lines"&&!isFinite(v)) return; setPath(UI.sdraft,t.dataset.sk,v);
     if(k==="lines"&&$("namesN")&&!t.dataset.sk.startsWith("ngen.")) $("namesN").textContent=fmt(v.length);
@@ -5762,7 +5778,7 @@ $("bExport").addEventListener("click",()=>{ if(!UI.busy) exportGame(); });
 $("bImport").addEventListener("click",()=>{ if(!UI.busy) $("gameFile").click(); });
 $("gameFile").addEventListener("change",e=>{ const f=e.target.files?.[0]; e.target.value=""; if(f&&!UI.busy) f.text().then(importGame); });
 $("bLog").addEventListener("click",()=>{ if(!UI.busy) changelogModal(); });
-$("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; settingsModal("general"); });
+$("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; UI.sq=""; settingsModal("general"); });
 $("bNew").addEventListener("click",()=>{ if(UI.busy) return; UI.setup=null; UI.fromWelcome=false; setupModal(); });
 window.addEventListener("resize",()=>mainView.resize()); // map height follows the window
 { // draggable divider between map and side panel (wide screens only)
