@@ -46,7 +46,7 @@ All code is in `index.html`. Function names are given rather than line numbers (
 
 The order matters: it decides which systems see this year's values and which see last year's.
 
-**Player's turn (UI, instant).** `act.*` changes `G` at once: hire/dismiss troops, buy/dismiss generals, trade now or post/cancel orders. The work split, research allocation, attack orders and defending general are only stored. The player's market trades land in the current market year at the merchant prices set last year.
+**Player's turn (UI, instant).** Every human order goes through `applyCmd(g, who, {t, a})` (engine, section "commands"), which checks it and calls `act.*` or stores the plan; the UI never edits `G` for a human directly. `act.*` changes `G` at once: hire/dismiss troops, buy/dismiss generals, trade now or post/cancel orders. The work split, research allocation, attack orders and defending general are only stored. The player's market trades land in the current market year at the merchant prices set last year.
 
 **End turn (`endTurnNow`).** Auto-sell posts surplus grain at the market price for one year. Then `ENGINE.call("endTurn", G)` runs:
 

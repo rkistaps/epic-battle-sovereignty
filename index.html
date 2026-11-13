@@ -1558,6 +1558,54 @@ const act = {
   dismissGeneral(g,c,id){ c.generals=c.generals.filter(x=>x.id!==id); c.attacks=c.attacks.filter(a=>a.gen!==id); if(c.defGen===id) c.defGen=null; },
 };
 function resPrice(r,g){ return mkPrice(g,r); }
+// ---------- commands: every change a human makes to their own state ----------
+// The UI never edits the game for a human: it sends applyCmd(g, who, {t, a:[args]}), which checks the order and applies it.
+// So every human move goes through one door (checked here, and ready to be sent over a network or recorded).
+// Seat changes (take over, give away, hot-seat turns) and new games are not commands.
+const WORK_MAX=80, WORK_TOTAL=90, WORK_KEYS=["wood","iron","sci"]; // each job up to WORK_MAX %, all jobs up to WORK_TOTAL % (farmers are the rest)
+const nat=(v,max=Infinity)=>Math.max(0,Math.min(max,Math.floor(+v||0)));
+const isTroop=id=>Object.hasOwn(TROOP,id), ownGen=(c,id)=>c.generals.some(x=>x.id===id);
+// troops still at home after the attacks already ordered
+function plannedPools(c){ const pool={...troopsOf(c)}; for(const a of c.attacks) a.mix?takeMix(pool,a.mix):takeTroops(pool,a.soldiers,ATTACK_ORDER); return pool; }
+const CMD={
+  hireTroop:(g,c,id,n)=>isTroop(id)?act.hireTroop(g,c,id,nat(n)):0,
+  fireTroop:(g,c,id,n)=>isTroop(id)?act.fireTroop(g,c,id,nat(n)):0,
+  buyRes:(g,c,r,n)=>MK_RES.includes(r)?act.buyRes(g,c,r,nat(n)):null,
+  sellRes:(g,c,r,n)=>MK_RES.includes(r)?act.sellRes(g,c,r,nat(n)):null,
+  postOrder:(g,c,r,side,n,p,yrs)=>MK_RES.includes(r)&&(side==="buy"||side==="sell")?act.postOrder(g,c,r,side,nat(n),+p||0,nat(yrs,999)):{},
+  cancelOrder:(g,c,id)=>act.cancelOrder(g,c,+id),
+  sendAid:(g,c,to,r,n)=>(to=+to,g.countries[to]&&to!==c.id)?act.sendAid(g,c,to,r,nat(n)):0,
+  buyGeneral:(g,c,age,speed,mind)=>act.buyGeneral(g,c,Math.max(20,nat(age,60)),Math.max(1,nat(speed,100)),Math.max(1,nat(mind,6))),
+  dismissGeneral:(g,c,id)=>act.dismissGeneral(g,c,+id),
+  festival:(g,c,n)=>act.festival(g,c,nat(n)),
+  // o: {target, gen, mix:{troop id: n}, mode}; takes only troops still at home; one attack per general
+  attack(g,c,o){ if(!o||inPeace(g)) return null; const to=+o.target, gen=+o.gen;
+    if(!g.countries[to]||to===c.id||!ownGen(c,gen)||c.attacks.some(a=>a.gen===gen)) return null;
+    const want={}; for(const k in o.mix||{}) if(isTroop(k)) want[k]=nat(o.mix[k]);
+    const mix=takeMix(plannedPools(c),want), n=troopCount(mix); if(n<=0) return null;
+    const mode=MODES.includes(o.mode)&&o.mode!=="normal"&&o.mode!=="assault"?o.mode:null, a={target:to,gen,soldiers:n,mix,...(mode?{mode}:{})};
+    c.attacks.push(a);
+    if(c.defGen===gen){ const other=c.generals.find(x=>x.id!==gen&&!c.attacks.some(y=>y.gen===x.id)); c.defGen=other?other.id:gen; } // its general was home guard
+    return a; },
+  cancelAttack(g,c,i){ i=nat(i); if(i>=c.attacks.length) return false; c.attacks.splice(i,1); return true; },
+  callOff(g,c,to){ c.attacks=c.attacks.filter(a=>a.target!==+to); return true; },
+  defGen(g,c,id){ id=id==null||+id<0?null:+id; if(id!=null&&!ownGen(c,id)) return false; c.defGen=id; return true; },
+  stance(g,c,s){ if(!STANCES.includes(s)) return false; c.stance=s; return true; },
+  autoSell(g,c,on){ c.autoSell=!!on; return true; },
+  // the year's plan, any part of it: p = {work, workLock, alloc, allocLock}
+  plan(g,c,p){ if(!p||typeof p!=="object") return false; let w=null, a=null;
+    if(p.work){ w={}; let s=0, s0=0; for(const k of WORK_KEYS){ w[k]=nat(p.work[k],WORK_MAX); s+=w[k]; s0+=c.work?.[k]||0; }
+      if(s>Math.max(WORK_TOTAL,s0)) return false; } // never more than the cap (an old plan over it may only shrink)
+    if(p.alloc){ a={}; for(const k of AREAS){ const v=+p.alloc[k]; a[k]=isFinite(v)?Math.max(0,Math.min(100,v)):0; } }
+    const locks=(o,keys)=>Object.fromEntries(keys.filter(k=>o[k]).map(k=>[k,true]));
+    if(w) c.work=w; if(a) c.alloc=a;
+    if(p.workLock) c.workLock=locks(p.workLock,["farm",...WORK_KEYS]);
+    if(p.allocLock) c.allocLock=locks(p.allocLock,AREAS);
+    return true; },
+};
+// a human's order: null if it isn't theirs to give (no such state, a computer state or fallen)
+function applyCmd(g,who,cmd){ const c=g.countries[who], f=cmd&&Object.hasOwn(CMD,cmd.t)&&CMD[cmd.t];
+  if(!c||c.ai||!c.alive||!f) return null; return f(g,c,...(Array.isArray(cmd.a)?cmd.a:[])); }
 // ---------- world market ----------
 // An order book per resource. A state posts an order to buy or sell at its own price: the gold or goods are held in it
 // until it fills, runs out of time or is cancelled. Or it trades now against the best orders already posted.
@@ -2651,6 +2699,11 @@ const fmtPow=n=>{ const a=Math.abs(n), sh=(v,u)=>(Math.abs(v)>=100?Math.round(v)
 // observer mode has no state of its own: me() is a stand-in that is never alive, so the game shows the watching view
 const OBS_ME={id:OBSERVER,name:"Observer",color:"#888",alive:false,observer:true,land:0,money:0,grain:0,wood:0,iron:0,peasants:0,sci:0,soldiers:0,troops:{},generals:[],attacks:[],lv:zeroAreas(),rp:zeroAreas(),alloc:zeroAreas(),rel:{},hitBy:{}};
 const me=()=>G.countries[G.player]||OBS_ME;
+// the player's orders go through the engine's commands (never edit G for a human directly)
+const cmd=(t,...a)=>applyCmd(G,G.player,{t,a});
+// the year's plan (work, research shares, their locks) is edited on a copy, then sent as one "plan" command
+function planEdit(f){ const c=me(), x={...c,work:{...c.work},workLock:{...c.workLock},alloc:{...c.alloc},allocLock:{...c.allocLock}}; f(x);
+  cmd("plan",{work:x.work,workLock:x.workLock,alloc:x.alloc,allocLock:x.allocLock}); return c; }
 const observing=()=>!!G&&G.player===OBSERVER;
 const canPlay=()=>!!G&&(!G.over||(G.over==="lose"&&!G.worldOver));
 const watching=()=>!!G&&!me().alive;
@@ -3358,7 +3411,7 @@ function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
   if(a==="pick"){ UI.sel=o; if(UI.tab!=="war"||o===G.player) UI.tab="world"; render(); }
   else if(a.startsWith("tab:")){ UI.tab=a.slice(4); render(); }
   else if(a==="attack"){ UI.attackTarget=o; UI.sel=o; UI.atkMix=null; UI.tab="war"; render(); $("atkSum")?.closest(".gen")?.scrollIntoView({block:"nearest"}); }
-  else if(a==="calloff"){ me().attacks=me().attacks.filter(x=>x.target!==o); render(); }
+  else if(a==="calloff"){ cmd("callOff",o); render(); }
   else if(a==="aid"){ if(o!==G.player) UI.aidTo=o; allianceModal(me().team); const n=$("aidN"); if(n){ n.scrollIntoView({block:"nearest"}); n.focus(); } }
   else if(a==="alliance") allianceModal(c.team);
   else if(a==="news"){ UI.news={f:"all",q:c.name,page:0,al:"all"}; UI.tab="news"; render(); $("panel").scrollTop=0; }
@@ -3552,7 +3605,7 @@ function loyCard(c){
     <span class="mut">${room?`up to ${room} more this year`:v>=ceil?"at the ceiling":`used up this year (${R.festMax} a year)`}</span></div>`;
 }
 function pEconomy(){
-  const c=me(); c.work=c.work||{wood:0,iron:0};
+  const c=me();
   const cap=popCap(c), pop=popOf(c), full=Math.min(100,Math.round(100*pop/cap)), yf=yearsToFull(c);
   const card=(l,v,sub)=>`<div class="stat"><span class="mut">${l}</span><b>${v}</b><span style="color:var(--mut)">${sub}</span></div>`;
   const job=(k,l)=>{ const fm=k==="farm", v=fm?farmShare(c):c.work[k]||0, lk=!!c.workLock?.[k];
@@ -3586,7 +3639,6 @@ function foodNote(c){
 }
 
 // troops still at home after the attacks already planned
-function plannedPools(c){ const pool={...troopsOf(c)}; for(const a of c.attacks) a.mix?takeMix(pool,a.mix):takeTroops(pool,a.soldiers,ATTACK_ORDER); return pool; }
 function mixText(tr){ return TROOPS.filter(t=>tr[t.id]>0).map(t=>`${t.icon} ${fmt(tr[t.id])} ${t.name}`).join(", ")||"none"; }
 // stored grain beyond next year's shortfall plus a 20% reserve (what "Sell surplus" sells)
 function surplusGrain(c){ const food=foodUse(c), keep=Math.max(0,food-foodProduction(c))+Math.round(food*0.2); return Math.max(0,c.grain-keep); }
@@ -3758,8 +3810,8 @@ function pBarracks(){
   </table>
   <div class="small mut" style="margin-top:6px">Each soldier is one of your people and eats 1 grain/yr. Attackers fight with their attack value, guards with their defense. In battle, losses are divided by toughness: a troop with toughness 2 loses half as many as a Spearman. On the War tab you pick which troops go on each attack; the rest stay home and guard. Training costs food, wood, iron and gold (see each troop); soldiers then eat their food upkeep every year, and cavalry also costs gold. Dismissed soldiers become peasants again (no refund).</div>`;
 }
-// work shares: each job up to WORK_MAX %, all jobs together up to WORK_TOTAL % (farmers are everyone else)
-const WORK_MAX=80, WORK_TOTAL=90, WORK_KEYS=["wood","iron","sci"];
+// work shares (limits WORK_MAX, WORK_TOTAL in the engine's commands section). These helpers and the research ones below
+// edit a copy of the state; planEdit sends the result as a "plan" command.
 // set one job's share; if there's no room, unlocked other jobs shrink (biggest first), locked ones never change
 function setWorkShare(c,k,pct){
   const w=c.work, lock=c.workLock||{}, others=WORK_KEYS.filter(x=>x!==k);
@@ -3817,9 +3869,9 @@ function setAllocShare(c,a,pct){
 }
 // while dragging a Science slider: it stops at the most it can reach (100% minus the locked areas), and every row's
 // share, progress bar and years-to-level follow live (each step starts from the shares before the drag)
-function sciLive(c,a,el){ if(UI.allocBase?.a!==a) UI.allocBase={a,alloc:{...c.alloc}}; c.alloc={...UI.allocBase.alloc};
-  const n=allocNorm(c), cap=100-AREAS.filter(x=>x!==a&&c.allocLock?.[x]).reduce((s,x)=>s+n[x],0); if(+el.value>cap) el.value=cap;
-  setAllocShare(c,a,el.value); const pts=researchPoints(c), sumA=AREAS.reduce((s,x)=>s+Math.max(0,c.alloc[x]||0),0), tot=Math.max(100,sumA), free=Math.max(0,Math.round(100-sumA));
+function sciLive(c,a,el){ if(UI.allocBase?.a!==a) UI.allocBase={a,alloc:{...c.alloc}}; const b={...c,alloc:{...UI.allocBase.alloc}};
+  const n=allocNorm(b), cap=100-AREAS.filter(x=>x!==a&&b.allocLock?.[x]).reduce((s,x)=>s+n[x],0); if(+el.value>cap) el.value=cap;
+  setAllocShare(b,a,el.value); cmd("plan",{alloc:b.alloc}); const pts=researchPoints(c), sumA=AREAS.reduce((s,x)=>s+Math.max(0,c.alloc[x]||0),0), tot=Math.max(100,sumA), free=Math.max(0,Math.round(100-sumA));
   const fw=$("sciFree"); if(fw){ fw.style.display=free>0?"flex":"none"; fw.querySelector("b").textContent=free+"%"; fw.querySelector(".grow>span").textContent=fmt(Math.round(pts*free/100)); }
   AREAS.forEach(x=>{ const sl=document.querySelector(`input[data-alloc="${x}"]`), td=sl?.closest("td"); if(!td) return; const sh=Math.round(100*c.alloc[x]/tot);
     if(sl!==el) sl.value=sh; const box=td.querySelector("[data-allocpct]"); if(box) box.value=sh;
@@ -5189,10 +5241,10 @@ document.addEventListener("click",async ev=>{
   if(d.tab){ UI.tab=d.tab; UI.untrainAsk=null; render(); return; }
   if(d.max){ const el=$("trn-"+d.max); if(el){ el.value=d.n; el.focus(); trainPreview(d.max); } return; }
   if(d.untrainno){ UI.untrainAsk=null; render(); return; }
-  if(d.untrainok){ const a=UI.untrainAsk; UI.untrainAsk=null; if(a&&a.id===d.untrainok) act.fireTroop(G,me(),a.id,a.n); render(); return; }
+  if(d.untrainok){ const a=UI.untrainAsk; UI.untrainAsk=null; if(a&&a.id===d.untrainok) cmd("fireTroop",a.id,a.n); render(); return; }
   if(d.train||d.untrain){ const id=d.train||d.untrain, n=Math.max(0,Math.floor(+($("trn-"+id)?.value||0)));
     UI.untrainAsk=null;
-    if(d.train){ const got=act.hireTroop(G,me(),id,n); if(got<n) flash(got?`Trained ${got}: not enough resources or peasants for more.`:"Not enough resources or peasants."); }
+    if(d.train){ const got=cmd("hireTroop",id,n)||0; if(got<n) flash(got?`Trained ${got}: not enough resources or peasants for more.`:"Not enough resources or peasants."); }
     else { const k=Math.min(n,troopsOf(me())[id]||0,me().soldiers-committed(me())); if(k>0) UI.untrainAsk={id,n:k}; else flash("None to dismiss."); }
     render(); return; }
   if(d.wonder!=null){ const w=G.wonders[+d.wonder]; mainView.centerOnCell(w.cell, Math.max(mainView.z,mainView.focusZoom())); return; }
@@ -5210,10 +5262,10 @@ document.addEventListener("click",async ev=>{
   if(d.target!=null){ UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkMix=null; UI.tab="war"; render(); return; }
   if(d.atkpre){ UI.atkPreset=d.atkpre; UI.atkMix=null; if(d.atkpre!=="none") try{ localStorage.setItem("eb.atkPreset",d.atkpre); }catch{} render(); return; }
   if(d.atkset){ if(UI.atkMix){ UI.atkMix[d.atkset]=+d.n; UI.atkEdited=true; } const el=document.querySelector(`[data-atkmix="${d.atkset}"]`); if(el) el.value=d.n; refreshAtk(); return; }
-  if(d.cancel!=null){ me().attacks.splice(+d.cancel,1); render(); return; }
-  if(d.defgen){ me().defGen=+d.defgen<0?null:+d.defgen; render(); return; }
-  if(d.dismiss){ act.dismissGeneral(G,me(),+d.dismiss); render(); return; }
-  if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=act.festival(G,c,n); UI.festN=undefined;
+  if(d.cancel!=null){ cmd("cancelAttack",+d.cancel); render(); return; }
+  if(d.defgen){ cmd("defGen",+d.defgen); render(); return; }
+  if(d.dismiss){ cmd("dismissGeneral",+d.dismiss); render(); return; }
+  if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=cmd("festival",n); UI.festN=undefined;
     flash(got?`Festivals held: loyalty +${got} for ${fmt(got*festCost(G,c))} gold.`:"Not enough gold, or no room for more loyalty this year."); render(); return; }
   if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
   if(d.find){ if(!G||observing()) return; UI.tab="world"; UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
@@ -5224,16 +5276,16 @@ document.addEventListener("click",async ev=>{
   if(d.wsort){ const s=UI.wsort||{k:"land",dir:-1}; UI.wsort=s.k===d.wsort?{k:s.k,dir:-s.dir}:{k:d.wsort,dir:-1}; render(); return; }
   if(d.asort){ const s=UI.asort||{k:"land",dir:-1}; UI.asort=s.k===d.asort?{k:s.k,dir:-s.dir}:{k:d.asort,dir:-1}; render(); return; }
   if(d.atkmode&&G){ UI.atkMode=d.atkmode; render(); return; }
-  if(d.stance&&G&&me()?.alive){ me().stance=d.stance; save(); render(); return; }
-  if(d.wlock){ const c=me(); c.workLock={...c.workLock,[d.wlock]:!c.workLock?.[d.wlock]}; render(); return; }
-  if(d.clr){ const c=me(); c.allocLock={...c.allocLock,[d.clr]:false}; setAllocShare(c,d.clr,0); render(); return; }
-  if(d.a==="sciLockAll"){ const c=me(), all=AREAS.every(x=>c.allocLock?.[x]); c.allocLock=Object.fromEntries(AREAS.map(x=>[x,!all])); render(); return; }
-  if(d.a==="sciNextAll"){ nextLvAll(me()); render(); return; }
-  if(d.a==="sciFill"){ allocFill(me()); render(); return; }
-  if(d.a==="sciClrAll"){ clearUnlocked(me()); render(); return; }
-  if(d.nextlv){ const c=me(); c.allocLock={...c.allocLock,[d.nextlv]:false}; setAllocShare(c,d.nextlv,+d.need); c.allocLock={...c.allocLock,[d.nextlv]:true}; render(); return; }
-  if(d.lock){ const c=me(); c.allocLock={...c.allocLock,[d.lock]:!c.allocLock?.[d.lock]}; render(); return; }
-  if(d.preset){ me().allocLock={}; const P={sci:{sci:100},econ:{sci:30,agri:20,fin:15,dens:10,grow:5,wood:10,iron:10},bal:{sci:16,agri:12,fin:8,dens:8,grow:12,atk:12,def:12,wood:7,iron:9,explore:4},war:{sci:10,agri:10,fin:6,dens:8,grow:12,atk:20,def:16,wood:6,iron:9,explore:3}}; me().alloc={...zeroAreas(),...P[d.preset]}; render(); return; }
+  if(d.stance&&G&&me()?.alive){ cmd("stance",d.stance); save(); render(); return; }
+  if(d.wlock){ planEdit(x=>x.workLock[d.wlock]=!x.workLock[d.wlock]); render(); return; }
+  if(d.clr){ planEdit(x=>{ x.allocLock[d.clr]=false; setAllocShare(x,d.clr,0); }); render(); return; }
+  if(d.a==="sciLockAll"){ const all=AREAS.every(x=>me().allocLock?.[x]); cmd("plan",{allocLock:Object.fromEntries(AREAS.map(x=>[x,!all]))}); render(); return; }
+  if(d.a==="sciNextAll"){ planEdit(nextLvAll); render(); return; }
+  if(d.a==="sciFill"){ planEdit(allocFill); render(); return; }
+  if(d.a==="sciClrAll"){ planEdit(clearUnlocked); render(); return; }
+  if(d.nextlv){ planEdit(x=>{ x.allocLock[d.nextlv]=false; setAllocShare(x,d.nextlv,+d.need); x.allocLock[d.nextlv]=true; }); render(); return; }
+  if(d.lock){ planEdit(x=>x.allocLock[d.lock]=!x.allocLock[d.lock]); render(); return; }
+  if(d.preset){ const P={sci:{sci:100},econ:{sci:30,agri:20,fin:15,dens:10,grow:5,wood:10,iron:10},bal:{sci:16,agri:12,fin:8,dens:8,grow:12,atk:12,def:12,wood:7,iron:9,explore:4},war:{sci:10,agri:10,fin:6,dens:8,grow:12,atk:20,def:16,wood:6,iron:9,explore:3}}; cmd("plan",{allocLock:{},alloc:{...zeroAreas(),...P[d.preset]}}); render(); return; }
   if(d.padd!=null&&UI.setup){ const s=UI.setup; s.players.push(newPlayer()); if(s.n<s.players.length) setStates(s.players.length,""); saveSetup(); setupModal(); $("modal").querySelector("[data-padd]")?.focus(); return; }
   if(d.prm!=null&&UI.setup){ const s=UI.setup, i=+d.prm; if(s.players.length>2){ s.players.splice(i,1); picksOf(s).splice(i,1); } saveSetup(); setupModal(); return; }
   if(d.pclr!=null&&UI.setup){ picksOf(UI.setup)[+d.pclr]=null; setPickText(); UI.pvView?.refresh(); return; }
@@ -5246,18 +5298,18 @@ document.addEventListener("click",async ev=>{
   switch(a){
     case "newsClear": UI.news={f:"all",q:"",page:0}; break;
     case "mkNow": { const r=mkR(), n=num("mkAmt"); if(!n){ flash("Type an amount."); return; }
-      if(!(mkSide()==="buy"?act.buyRes(G,c,r,n):act.sellRes(G,c,r,n))) flash(mkSide()==="buy"?"Not enough gold.":`You have no ${r} to sell.`); break; }
+      if(!(cmd(mkSide()==="buy"?"buyRes":"sellRes",r,n))) flash(mkSide()==="buy"?"Not enough gold.":`You have no ${r} to sell.`); break; }
     case "mkPost": { const r=mkR(), n=num("mkAmt"), p=+($("mkP")?.value||0); if(!n||!(p>0)){ flash("Type an amount and a price."); return; }
-      UI.mkY=+$("mkY").value; const o=act.postOrder(G,c,r,mkSide(),n,p,UI.mkY); if(!o.now&&!o.posted){ flash(mkSide()==="buy"?"Not enough gold.":`You have no ${r} to sell.`); return; } UI.mkP=undefined; break; }
-    case "mkCancel": act.cancelOrder(G,c,+d.id); break;
+      UI.mkY=+$("mkY").value; const o=cmd("postOrder",r,mkSide(),n,p,UI.mkY)||{}; if(!o.now&&!o.posted){ flash(mkSide()==="buy"?"Not enough gold.":`You have no ${r} to sell.`); return; } UI.mkP=undefined; break; }
+    case "mkCancel": cmd("cancelOrder",+d.id); break;
     case "aidSend": { const to=+$("aidTo").value, r=$("aidR").value, n=num("aidN"); UI.aidTo=to; UI.aidR=r; UI.aidN="";
-      if(!n){ flash("Type an amount."); return; } const k=act.sendAid(G,c,to,r,n); if(!k){ flash(`You have no ${AID_NAME[r]} to send.`); return; }
+      if(!n){ flash("Type an amount."); return; } const k=cmd("sendAid",to,r,n); if(!k){ flash(`You have no ${AID_NAME[r]} to send.`); return; }
       save(); render(); allianceModal(c.team); flash(`Sent ${fmt(k)} ${AID_NAME[r]} to ${G.countries[to].name}.`); return; }
-    case "buyGen": { const f=UI.genForm; if(!act.buyGeneral(G,c,f.age,f.speed,f.mind)) flash("Not enough money."); break; }
+    case "buyGen": { const f=UI.genForm; if(!cmd("buyGeneral",f.age,f.speed,f.mind)) flash("Not enough money."); break; }
     case "orderAttack": { if(inPeace(G)){ flash("Peace time: no attacks yet."); return; }
-      const gen=+$("atkGen").value, home=plannedPools(c), mix=takeMix({...home},atkMix(home)), n=troopCount(mix);
-      if(n<=0){ flash("Pick some troops to send."); return; }
-      c.attacks.push({target:UI.attackTarget,gen,soldiers:n,mix,...(atkModeNow()!=="normal"?{mode:atkModeNow()}:{})}); UI.atkMix=null; if(c.defGen===gen){ const other=c.generals.find(g=>g.id!==gen&&!c.attacks.some(x=>x.gen===g.id)); c.defGen=other?other.id:gen; }
+      const gen=+$("atkGen").value, home=plannedPools(c), mix=takeMix({...home},atkMix(home));
+      if(troopCount(mix)<=0){ flash("Pick some troops to send."); return; }
+      if(!cmd("attack",{target:UI.attackTarget,gen,mix,mode:atkModeNow()})){ flash("That attack can't be ordered."); return; } UI.atkMix=null;
       UI.attackTarget=null; break; }
     case "closeAttack": UI.attackTarget=null; break;
     case "close": UI.sdraft=null; closeModal(); return;
@@ -5309,7 +5361,7 @@ document.addEventListener("input",ev=>{
     if(k==="lines"&&$("namesN")) $("namesN").textContent=fmt(v.length);
     const def=getPath(JSON.parse(JSON.stringify(DEFAULTS)),t.dataset.sk.replace(/^R\./,"R."));
     t.classList.toggle("chg",JSON.stringify(v)!==JSON.stringify(def)); return; }
-  if(t.dataset.work){ const c=me(), k=t.dataset.work; if(k==="farm"){ UI.farmBase=UI.farmBase||{...c.work}; setFarmShare(c,t.value,UI.farmBase); } else setShare(c,k,t.value); const v=k==="farm"?farmShare(c):c.work[k]; if(+t.value!==v) t.value=v; paintWork(c,t); return; }
+  if(t.dataset.work){ const k=t.dataset.work, c=planEdit(x=>{ if(k==="farm"){ UI.farmBase=UI.farmBase||{...x.work}; setFarmShare(x,t.value,UI.farmBase); } else setShare(x,k,t.value); }); const v=k==="farm"?farmShare(c):c.work[k]; if(+t.value!==v) t.value=v; paintWork(c,t); return; }
   if(t.dataset.workpct){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; return; } // digits only; applied on change
   if(t.dataset.allocpct){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; return; } // digits only
   if(t.dataset.alloc){ sciLive(me(),t.dataset.alloc,t); return; } // live: shares and progress bars follow the drag
@@ -5334,11 +5386,11 @@ document.addEventListener("change",ev=>{
   const t=ev.target;
   if(t.dataset.work){ UI.farmBase=null; render(); return; } // refresh the Food section after a slider is released
   if(t.id==="wLandRank"||t.id==="wAllyCol"){ const k=t.id; UI[k]=t.checked; try{ localStorage.setItem("eb."+k,t.checked?"1":"0"); }catch{} render(); return; }
-  if(t.id==="autoSell"){ me().autoSell=t.checked; save(); return; }
+  if(t.id==="autoSell"){ cmd("autoSell",t.checked); save(); return; }
   if(t.id==="newsF"||t.id==="newsQ"||t.id==="newsA"){ const st=UI.news; if(t.id==="newsF") st.f=t.value; else if(t.id==="newsA") st.al=t.value==="all"?"all":+t.value; else st.q=t.value; st.page=0; render(); return; }
   if(t.id==="settingsFile"&&t.files&&t.files[0]){ const f=t.files[0]; f.text().then(importSettings); t.value=""; return; }
-  if(t.dataset.workpct){ setShare(me(),t.dataset.workpct,t.value); render(); return; }
-  if(t.dataset.alloc||t.dataset.allocpct){ const c=me(), a=t.dataset.alloc||t.dataset.allocpct; if(UI.allocBase?.a===a) c.alloc={...UI.allocBase.alloc}; UI.allocBase=null; setAllocShare(c,a,t.value); render(); return; }
+  if(t.dataset.workpct){ planEdit(x=>setShare(x,t.dataset.workpct,t.value)); render(); return; }
+  if(t.dataset.alloc||t.dataset.allocpct){ const a=t.dataset.alloc||t.dataset.allocpct, base=UI.allocBase?.a===a?UI.allocBase.alloc:null; UI.allocBase=null; planEdit(x=>{ if(base) x.alloc={...base}; setAllocShare(x,a,t.value); }); render(); return; }
   if(t.id==="atkGen"){ UI.atkGen=+t.value; if(UI.atkPreset==="x2"&&!UI.atkEdited) UI.atkMix=null; render(); return; }
   if(t.dataset.atkmix){ const k=t.dataset.atkmix; t.value=Math.min(UI.atkMix?.[k]||0,plannedPools(me())[k]||0); return; }
   const s=UI.setup; if(!s) return;
@@ -5388,7 +5440,7 @@ async function endTurnNow(){
   if(!canPlay()||UI.busy) return; UI.busy=true; $("end").disabled=true;
   const prev=snapshot(me()), prevs={};
   // auto-sell after the snapshot, so the report shows the sale (hot-seat: for every human)
-  for(const c of G.hot?G.hot.ids.map(id=>G.countries[id]):[me()]){ if(G.hot) prevs[c.id]=snapshot(c); if(c.autoSell&&c.alive&&!observing()){ const n=surplusGrain(c); if(n>0) act.postOrder(G,c,"grain","sell",n,G.price,1); } }
+  for(const c of G.hot?G.hot.ids.map(id=>G.countries[id]):[me()]){ if(G.hot) prevs[c.id]=snapshot(c); if(c.autoSell&&c.alive&&!observing()){ const n=surplusGrain(c); if(n>0) applyCmd(G,c.id,{t:"postOrder",a:["grain","sell",n,G.price,1]}); } }
   if(AUTO.on) showToast(`<span class="mut">Year ${G.turn}…</span>`);
   else modal(`<h2>Year ${G.turn}…</h2><p class="mut">The world is moving${ENGINE.inWorker?" (processing in the background)":""}.</p>`);
   try{ G=await ENGINE.call("endTurn",G); }
