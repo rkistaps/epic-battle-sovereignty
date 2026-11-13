@@ -338,7 +338,13 @@ table.gtab td{padding:4px 10px 4px 0;border-bottom:1px solid #ffffff0d;vertical-
 table.tight td,table.tight th{padding:4px 3px}
 .modal.settings{max-width:1100px}
 .stabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
-.shrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px} .shrow h2{margin:0} .shrow input{flex:1;min-width:160px;max-width:340px;padding:7px 12px;border-radius:8px}
+.sethead{border-bottom:1px solid var(--line);margin-bottom:12px}
+.shrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px} .shrow h2{margin:0} .shrow input{flex:1;min-width:180px;padding:8px 12px;border-radius:8px;font-size:14px}
+.stabs button.dim{opacity:.45} .stabs .sn{display:inline-block;min-width:16px;padding:0 5px;margin-left:3px;border-radius:8px;background:var(--acc);color:#1a1a1a;font-size:11px;font-weight:700;line-height:16px;text-align:center}
+.scount{display:flex;align-items:center;gap:10px;margin:0 0 10px;color:var(--mut)} .scount b{color:var(--txt)}
+.sres{border:1px solid var(--line);border-radius:8px;padding:8px 12px 6px;margin-bottom:10px;background:rgba(255,255,255,.022)}
+.sres table{width:auto} .sres-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px} .sres-h h3{margin:0}
+.modal.settings mark{background:rgba(224,179,84,.35);color:inherit;border-radius:2px;padding:0 1px}
 .stabs button.on{background:var(--acc);color:#1a1a1a;border-color:var(--acc)}
 .sgrid{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:3px 10px;align-items:center;margin-bottom:6px}
 .sgrid input[inputmode]{width:90px}
@@ -4589,15 +4595,26 @@ function settingsModal(tab){
   const wHead=`<tr><th>Research area</th><th>Name</th><th>Icon</th><th title="How much the holder's effect in this area is raised">Bonus</th></tr>`;
   const q=(UI.sq||"").trim().toLowerCase(), hit=x=>String(x??"").toLowerCase().includes(q);
   let body="";
-  if(q){ // search: every match from every tab on one page, editable in place
-    const out=[]; let cnt=0;
-    for(const [grp,rows] of SETTINGS_META){ const R_=hit(grp)?rows:rows.filter(([k,l])=>hit(l)||hit(k)); if(R_.length){ cnt+=R_.length; out.push(`<h3>General rules · ${esc(grp)}</h3><div class="sgrid">${R_.map(([k,l,kd])=>gRow(k,l,kd)).join("")}</div>`); } }
-    for(const t of Object.keys(TABLE_META)){ const M_=TABLE_META[t], col=hit(M_.title)||M_.cols.some(c=>hit(c[1])), L=v[t].map((r,i)=>[r,i]).filter(([r])=>col||hit(r.id)||M_.cols.some(([f,,kd])=>kd==="text"&&hit(r[f])));
-      if(L.length){ cnt+=L.length; out.push(`<h3>${M_.title}</h3>${tRows(t,L)}`); } }
-    const W_=Object.keys(v.wonders).filter(a=>hit("wonders")||hit(AREA_NAMES[a])||hit(v.wonders[a].name)); if(W_.length){ cnt+=W_.length; out.push(`<h3>Wonders</h3><div class="stable"><table class="tight">${wHead}${W_.map(wRow).join("")}</table></div>`); }
-    for(const [t,l,arr] of [["names","State names",v.names],["anames","Alliance names",v.anames]]){ const m=arr.filter(hit); if(m.length){ cnt++; out.push(`<h3>${l}</h3><div class="small">${fmt(m.length)} name${m.length>1?"s contain":" contains"} it: ${m.slice(0,8).map(esc).join(" · ")}${m.length>8?" …":""} <button class="sm" data-stab="${t}">Edit list</button></div>`); } }
-    if(["start","mid","end","forms"].some(k=>v.ngen[k].some(hit))||hit("invented")){ cnt++; out.push(`<h3>Invented names</h3><div class="small">Name parts or titles contain it. <button class="sm" data-stab="names">Edit name parts</button></div>`); }
-    body=cnt?out.join(""):`<div class="mut">No setting matches "${esc(UI.sq)}".</div>`; }
+  // search: every match from every tab on one page, editable in place; per tab counts for the tab buttons
+  const hl=x=>{ const t=String(x), k=t.toLowerCase().indexOf(q); return k<0?esc(t):esc(t.slice(0,k))+"<mark>"+esc(t.slice(k,k+q.length))+"</mark>"+esc(t.slice(k+q.length)); };
+  const sec=(tab,title,html)=>`<section class="sres"><div class="sres-h"><h3>${title}</h3><button class="sm" data-stab="${tab}">Open tab ›</button></div>${html}</section>`;
+  const tabN={}; let out=[], cnt=0;
+  if(q){
+    for(const [grp,rows] of SETTINGS_META){ const R_=hit(grp)?rows:rows.filter(([k,l])=>hit(l)||hit(k)); if(R_.length){ cnt+=R_.length; tabN.general=(tabN.general||0)+R_.length;
+      out.push(sec("general",`General rules · ${hl(grp)}`,`<div class="sgrid">${R_.map(([k,l,kd])=>gRow(k,l,kd).replace(`<span>${esc(l)}</span>`,`<span>${hl(l)}</span>`)).join("")}</div>`)); } }
+    for(const t of Object.keys(TABLE_META)){ const M_=TABLE_META[t], whole=hit(M_.title), cols=M_.cols.filter(c=>c[0]!=="name"&&c[0]!=="icon"&&hit(c[1]));
+      const L=v[t].map((r,i)=>[r,i]).filter(([r])=>whole||cols.length||hit(r.id)||M_.cols.some(([f,,kd])=>kd==="text"&&hit(r[f])));
+      if(!L.length) continue; cnt+=L.length; tabN[t]=L.length;
+      // a matching column: just the name and those columns (fits the window); a matching row: every column
+      const show=!whole&&cols.length&&!L.some(([r])=>hit(r.id)||hit(r.name))?M_.cols.filter(c=>c[0]==="name"||c[0]==="icon"||cols.includes(c)):M_.cols;
+      out.push(sec(t,hl(M_.title),`<div class="stable"><table class="tight"><tr>${show.map(c=>`<th>${hl(c[1])}</th>`).join("")}</tr>${L.map(([row,i])=>`<tr>${show.map(([f,,kd])=>`<td>${inp(t+"."+i+"."+f,kd,d[t][i][f],row[f])}${kd==="%"?"%":""}</td>`).join("")}</tr>`).join("")}</table></div>`)); }
+    const W_=Object.keys(v.wonders).filter(a=>hit("wonders")||hit(AREA_NAMES[a])||hit(v.wonders[a].name));
+    if(W_.length){ cnt+=W_.length; tabN.wonders=W_.length; out.push(sec("wonders","Wonders",`<div class="stable"><table class="tight">${wHead}${W_.map(wRow).join("")}</table></div>`)); }
+    for(const [t,l,arr] of [["names","State names",v.names],["anames","Alliance names",v.anames]]){ const m=arr.filter(hit); if(!m.length) continue; cnt+=m.length; tabN[t]=m.length;
+      out.push(sec(t,l,`<div class="small">${fmt(m.length)} name${m.length>1?"s match":" matches"}: ${m.slice(0,10).map(hl).join(" · ")}${m.length>10?" …":""}</div>`)); }
+    const np=["start","mid","end","forms"].reduce((a,k)=>a+v.ngen[k].filter(hit).length,0);
+    if(np){ cnt+=np; tabN.names=(tabN.names||0)+np; out.push(sec("names","Invented names",`<div class="small">${fmt(np)} name part${np>1?"s or titles match":" or title matches"}: ${["start","mid","end","forms"].flatMap(k=>v.ngen[k].filter(hit)).slice(0,10).map(hl).join(" · ")}</div>`)); }
+    body=`<div class="scount">${cnt?`<b>${fmt(cnt)}</b> match${cnt>1?"es":""} for "${esc(UI.sq.trim())}"`:`Nothing matches "${esc(UI.sq.trim())}". Try a shorter word.`} <button class="sm" data-a="sqClear">Clear</button></div>${out.join("")}`; }
   else if(UI.stab==="general") body=SETTINGS_META.map(([grp,rows])=>{ const nChg=rows.filter(([k])=>JSON.stringify(getPath(v.R,k))!==JSON.stringify(getPath(d.R,k))).length;
     return `<details class="sgrp" data-sgrp="${esc(grp)}" ${UI.sopen?.[grp]?"open":""}><summary><h3>${esc(grp)}</h3> <span class="small mut">${rows.length} setting${rows.length>1?"s":""}${nChg?` · <span class="acc">${nChg} changed</span>`:""}</span></summary><div class="sgrid">${rows.map(([k,label,kind])=>
     gRow(k,label,kind)).join("")}</div></details>`; }).join("");
@@ -4616,8 +4633,8 @@ function settingsModal(tab){
     body=`<div class="small mut" style="margin-bottom:6px">One name per line. A new game with alliances shuffles this list and gives each alliance a name from it; if there are more alliances than names, extra ones are called "Alliance 1", "Alliance 2", … <b id="namesN">${fmt(v.anames.length)}</b> names.</div>
     <textarea class="names ${chg}" data-sk="anames" data-kind="lines" spellcheck="false">${esc(v.anames.join("\n"))}</textarea>`; }
   else { const M_=TABLE_META[UI.stab]; body=`${tRows(UI.stab)}<div class="small mut">${M_.note}</div>`; }
-  modal(`<div class="rep-head shead"><div class="shrow"><h2>⚙ Settings</h2><input type="search" id="sq" placeholder="🔍 Search settings" value="${esc(UI.sq||"")}" autocomplete="off" aria-label="Search settings"></div>
-    <div class="stabs">${STABS.map(([k,l])=>`<button class="sm ${!q&&UI.stab===k?"on":""}" data-stab="${k}">${l}</button>`).join("")}</div></div>
+  modal(`<div class="rep-head sethead"><div class="shrow"><h2>⚙ Settings</h2><input type="search" id="sq" placeholder="🔍 Search every setting: mountain, upkeep, spear…" value="${esc(UI.sq||"")}" autocomplete="off" aria-label="Search settings"></div>
+    <div class="stabs">${STABS.map(([k,l])=>`<button class="sm ${!q&&UI.stab===k?"on":""}${q&&!tabN[k]?" dim":""}" data-stab="${k}">${l}${q&&tabN[k]?` <span class="sn">${fmt(tabN[k])}</span>`:""}</button>`).join("")}</div></div>
     <div class="mbody">${body}</div>
     <div class="rep-foot" style="flex-wrap:wrap">
       <button class="pri" data-a="settingsSave">Save &amp; apply</button>
@@ -4708,7 +4725,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Search in Settings","2026-11-13 20:02",["Settings has a search box: type a word to see every matching rule, troop, civilization, leader, land type and wonder from all tabs on one page","Matches can be changed right in the results","State and alliance names that match are listed with a button to open the list"]],
+["Search in Settings","2026-11-13 20:02",["Settings has a search box: type a word to see every matching rule, troop, civilization, leader, land type and wonder from all tabs on one page","Matches can be changed right in the results; the matched words are highlighted","Each tab shows how many matches it has; a column match (like \"upkeep\") shows just that column","Open tab › jumps to the full tab; Clear ends the search"]],
 ["Map fills in while you drag","2026-11-13 19:40",["Trees, mountains and borders now fill in while you drag the map, not only after you let go","Small or zoomed-out maps redraw fully on every frame while you drag"]],
 ["Faster years on big maps","2026-11-13 19:18",["Ending a year is about twice as fast on big maps (4000 states: about 1 s instead of 1.5–3 s): faster market plans for computer states, weather and settlers","Nothing about the game changes, only the speed"]],
 ["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
@@ -5512,6 +5529,7 @@ document.addEventListener("click",async ev=>{
     case "pickTakeover": closeModal(); UI.tab="world"; render(); flash("Click a state on the map, then press Take over."); return;
     case "settingsSave": saveSettings(diffSettings(UI.sdraft)); UI.sdraft=currentValues(); settingsModal(); if(G) render(); flash("Settings saved and applied."); return;
     case "settingsResetTab": { const t=UI.stab, d=JSON.parse(JSON.stringify(DEFAULTS)); if(t==="general") UI.sdraft.R=d.R; else UI.sdraft[t]=d[t]; if(t==="names") UI.sdraft.ngen=d.ngen; settingsModal(); return; }
+    case "sqClear": UI.sq=""; settingsModal(); $("sq")?.focus(); return;
     case "namePreview": if(UI.sdraft&&$("ngEx")) $("ngEx").innerHTML=nameExamples(UI.sdraft.ngen); return;
     case "settingsResetAll": UI.sdraft=JSON.parse(JSON.stringify(DEFAULTS)); settingsModal(); return;
     case "settingsExport": exportSettings(); return;
