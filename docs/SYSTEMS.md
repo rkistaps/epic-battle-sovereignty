@@ -382,7 +382,7 @@ Relationships that hold the economy together:
 4. **Give the AI a side.** Computer states must use the system, or the player gets a free edge.
 5. **Put its numbers in `R`** (with a comment) and in `SETTINGS_META` so they show in Settings; read `R` live so edits apply mid-game.
 6. **Old saves**: tolerate missing fields (`??`, init on first use, `// older saves` comment) or add a `migrateX(g)` called from both `loadSave` and `endTurn`. Never rename `sovereign-*` storage keys. Keep state JSON-safe.
-7. **Performance**: avoid new full-map loops per state; up to 1000+ states.
+7. **Performance**: avoid new full-map loops per state; up to 4000 states (New game limit; a 4000-state turn takes ~2 s).
 8. **Simulate** (section 8) and compare with the anchors in section 6, before and after. Look at pacing, gold, research, famine, and the system's own numbers.
 9. **Player-facing**: UI, the Rules & guide (`GUIDE` topics: its own topic, every topic that mentions it, and "How it all fits together"), a change log entry, and this document.
 10. **Update this map** as described in section 10, in the same commit.
