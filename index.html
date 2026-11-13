@@ -3089,7 +3089,7 @@ class MapView{
   setGame(g){
     const key=(g.gid??g.seed)+":"+g.W+"x"+g.H; // a new game, not a change inside one (rebels add states mid-game)
     this.g=g; this.dirty=true;
-    if(key!==this.key){ this.key=key; this.fresh=true; this.resize(); }
+    if(key!==this.key){ this.key=key; this.fresh=true; this.drawn=null; this.fullMs=0; this.resize(); }
   }
   refresh(){ this.dirty=true; this.schedule(); }
   ownerAt([mx,my]){ const g=this.g, x=Math.floor(this.ox+mx/this.z), y=Math.floor(this.oy+my/this.z);
@@ -3119,7 +3119,10 @@ class MapView{
   centerOn(id,z){ this.mode=null; const g=this.g, b=labelSpots(g).best[id]; if(b<0) return; if(z) this.z=z;
     this.ox=b%g.W+0.5-this.cw/this.z/2; this.oy=((b/g.W)|0)+0.5-this.ch/this.z/2; this.clamp(); this.schedule(); }
   // while panning or zooming: move the last full frame around (fast), then draw properly once the map stops
-  quick(){ this.fast=true; clearTimeout(this.qt); this.qt=setTimeout(()=>{ this.fast=false; this.schedule(); },150); this.schedule(); }
+  // if full frames are quick on this machine and map, they are drawn every frame instead;
+  // otherwise a full frame is still drawn every so often while moving, so trees and borders fill in at the edges
+  quick(){ if((this.fullMs||0)<20){ this.fast=false; this.schedule(); return; }
+    this.fast=true; clearTimeout(this.qt); this.qt=setTimeout(()=>{ this.fast=false; this.schedule(); },150); this.schedule(); }
   drawFast(){ const D=this.drawn, cv=this.cv, k=this.z/D.z;
     if(this.dirty||D.w!==cv.width||D.h!==cv.height||k<0.25||k>4) return false;
     if(this.snapId!==D.id){ const sn=this.snap||(this.snap=document.createElement("canvas")); sn.width=cv.width; sn.height=cv.height; sn.getContext("2d").drawImage(cv,0,0); this.snapId=D.id; }
@@ -3294,16 +3297,19 @@ class MapView{
   }
   draw(){
     const g=this.g; if(!g||!this.cw) return;
-    if(this.fast&&this.drawn&&this.drawFast()) return;
+    const t0=performance.now();
+    if(this.fast&&this.drawn&&t0-this.drawn.t<Math.min(400,Math.max(120,this.fullMs*2.5))&&this.drawFast()) return;
     this.known=this.o.known?.()||null;
     if(this.dirty) this.buildBase();
-    const ctx=this.cv.getContext("2d"), s=this.z*this.dpr, {W,H}=g, known=this.known;
+    if(g.feat&&this.z>=2) featGlyphs(g); labelSpots(g); // built once per map / year, kept out of the frame timing below
+    const t1b=performance.now(), ctx=this.cv.getContext("2d"), s=this.z*this.dpr, {W,H}=g, known=this.known;
     const sel=this.o.sel(), pl=this.o.player();
     ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle=BG; ctx.fillRect(0,0,this.cv.width,this.cv.height);
     const X=x=>(x-this.ox)*s, Y=y=>(y-this.oy)*s;
     // the map body (land, borders, trees) is kept, so hovering a state only redraws what sits on top
     const bk=[this.gen,this.ox,this.oy,this.z,this.cv.width,this.cv.height,sel,pl,UI.featGlyphs].join();
-    if(bk===this.bodyKey&&this.body) ctx.drawImage(this.body,0,0);
+    const rebuilt=!(bk===this.bodyKey&&this.body);
+    if(!rebuilt) ctx.drawImage(this.body,0,0);
     else { this.drawBody(ctx,X,Y,s,sel,pl); const b=this.body||(this.body=document.createElement("canvas")); b.width=this.cv.width; b.height=this.cv.height; b.getContext("2d").drawImage(this.cv,0,0); this.bodyKey=bk; }
     const lift=this.liftId(), LY=lift>=0?Math.round(5*this.dpr):0; if(lift>=0) this.drawLift(ctx,lift,LY,bk,X,Y,s);
     // sea links (pre-made maps): dashed lines; one that crosses the map edge is drawn off both edges
@@ -3352,7 +3358,8 @@ class MapView{
         ctx.beginPath(); ctx.arc(px,py,R_,0,Math.PI*2); ctx.fillStyle="#14161ae6"; ctx.fill(); ctx.lineWidth=2*this.dpr; ctx.strokeStyle="#e0b354"; ctx.stroke();
         ctx.font=`${R_*1.15}px system-ui,"Segoe UI Emoji",sans-serif`; ctx.fillStyle="#fff"; ctx.fillText(WONDERS[w.area].icon,px,py+R_*0.06); }
     }
-    this.drawn={id:(this.drawn?.id||0)+1,ox:this.ox,oy:this.oy,z:this.z,w:this.cv.width,h:this.cv.height}; // for the fast pan/zoom path
+    const t1=performance.now(); if(rebuilt&&this.drawn){ const dt=t1-t1b; this.fullMs=this.fullMs&&dt>this.fullMs?this.fullMs*0.7+dt*0.3:dt; } // how long a full frame takes here (a one-off slow frame counts little)
+    this.drawn={id:(this.drawn?.id||0)+1,ox:this.ox,oy:this.oy,z:this.z,w:this.cv.width,h:this.cv.height,t:t1}; // for the fast pan/zoom path
   }
   // the raised state: cut out of the map body, drawn a few pixels up with a soft shadow below and a light rim
   drawLift(ctx,id,LY,bk,X,Y,s){
@@ -3421,15 +3428,16 @@ class MapView{
     const x0=this.ox-2, y0=this.oy-2, x1=this.ox+this.cw/this.z+2, y1=this.oy+this.ch/this.z+2;
     const q5=v=>Math.pow(1.05,Math.round(Math.log(v)/Math.log(1.05))); // glyph sizes in 5% steps, so sprites are reused across zoom levels
     const fz=q5(Math.min(1.2*s,20*this.dpr,Math.max(5*this.dpr,0.7*s/Math.sqrt(pF)))), mz=q5(Math.min(1.8*s,22*this.dpr,Math.max(9*this.dpr,1.0*s/Math.sqrt(pM))));
-    const sp=this.sprites(fz,mz);
+    const sp=this.sprites(fz,mz), vs=[];
     const r0=Math.max(0,Math.floor(y0)), r1=Math.min(H-1,Math.floor(y1)), c0=Math.max(0,Math.floor(x0/P.CH)), c1=Math.min(P.nc-1,Math.floor(x1/P.CH));
     for(let ry=r0;ry<=r1;ry++) for(let k=P.bs[ry*P.nc+c0],ke=P.bs[ry*P.nc+c1+1];k<ke;k++){ const x=P.x[k], y=P.y[k]; if(x<x0||x>x1||y<y0||y>y1) continue;
       const kind=P.k[k]; if(P.r[k]>=(kind===2?pM:pF)) continue;
       const o=vis[(y|0)*W+(x|0)]; if(o<-1) continue;
       // trees: size = sz × a fixed random height factor, 9 steps; peaks: 5 steps
       const b=kind===1?Math.round((P.sz[k]*(0.6+0.8*((P.r[k]*7919)%1))-0.48)/0.15):Math.round((P.sz[k]-0.8)/0.1);
-      const e=sp.get(kind,o,b), X=(x-this.ox)*s, Y=(y-this.oy)*s+(kind===1?fz*0.5*P.sz[k]:0); // trees stand on their base
-      ctx.drawImage(e[0],e[1],e[2],e[3],e[4],Math.round(X)-e[5],Math.round(Y)-e[6],e[3],e[4]); }
+      // all new sprites are made before any is drawn: drawing from a sprite canvas that just changed makes the browser copy it each time
+      vs.push(sp.get(kind,o,b),Math.round((x-this.ox)*s),Math.round((y-this.oy)*s+(kind===1?fz*0.5*P.sz[k]:0))); } // trees stand on their base
+    for(let j=0;j<vs.length;j+=3){ const e=vs[j]; ctx.drawImage(e[0],e[1],e[2],e[3],e[4],vs[j+1]-e[5],vs[j+2]-e[6],e[3],e[4]); }
   }
   // little pre-drawn tree and peak pictures, one per state color and size step, packed into shared canvases
   sprites(fz,mz){
@@ -4687,6 +4695,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Map fills in while you drag","2026-11-13 19:40",["Trees, mountains and borders now fill in while you drag the map, not only after you let go","Small or zoomed-out maps redraw fully on every frame while you drag"]],
 ["Faster years on big maps","2026-11-13 19:18",["Ending a year is about twice as fast on big maps (4000 states: about 1 s instead of 1.5–3 s): faster market plans for computer states, weather and settlers","Nothing about the game changes, only the speed"]],
 ["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
 ["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","With Choose your state on, Start plays the preview map even when you didn't click a state, instead of making a second one","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
