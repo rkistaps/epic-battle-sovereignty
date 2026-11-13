@@ -274,17 +274,17 @@ const R = {
   startPeasants: 800, startGrain: 2600, startMoney: 300,
   foodPerFarmer: 3,                // epic-battle style: every farmer produces food each year (no sowing)
   taxPerPeasant: 0.6,
-  sciWage: 3.5,                    // wage per scientist per year (scientists are peasants set to research in Work)
+  sciWage: 2.5,                    // wage per scientist per year (scientists are peasants set to research in Work)
   foodSpoil: 0.1,                  // share of stored grain that spoils each year
   famineDeath: 0.5,                // share of a food shortfall that dies of famine
   popPerKm: 3, birthRate: 0.03, minPop: 20, // base capacity per km², base birth rate, a state below minPop collapses
   grainBuy: 1.6, priceMin: 0.7, priceMax: 1.6, priceMean: 1.1, priceDrift: 0.15, // grain market
   // research: cost per level = researchCostBase × (level+1)^researchCostExp; effect per level
   researchCostBase: 18, researchCostExp: 2,
-  levelKnee: 25,                   // diminishing returns: levels count in full up to 25, beyond that with the square root
+  levelKnee: 35,                   // diminishing returns: levels count in full up to 35, beyond that with the square root
   techEdgeMax: 3,                  // in battle, one side's attack/defense research counts at most 3× the other side's
-  sciPerLevel: 0.15, agriPerLevel: 0.06, finTaxPerLevel: 0.07, finPricePerLevel: 0.02, densPerLevel: 0.5, growPerLevel: 0.006,
-  atkPerLevel: 0.08, defPerLevel: 0.08, woodPerLevel: 0.08, ironPerLevel: 0.08, explorePerLevel: 0.05,
+  sciPerLevel: 0.15, agriPerLevel: 0.09, finTaxPerLevel: 0.1, finPricePerLevel: 0.02, densPerLevel: 0.5, growPerLevel: 0.006,
+  atkPerLevel: 0.12, defPerLevel: 0.12, woodPerLevel: 0.08, ironPerLevel: 0.08, explorePerLevel: 0.08,
   // battle
   defenderBonus: 0.15, battleLoss: 0.7, loserPenalty: 1.2, raidLoss: 0.02, battleLuck: 0.15, narrowWinShare: 0.25,
   capturedPeasants: 0.8, lootGrain: 0.5,
@@ -388,8 +388,8 @@ function clashPowers(A,D){
   return [a*M(A,"attack")*wonderMul(A,"atk"), d*M(D,"defense")*wonderMul(D,"def")];
 }
 
-// Wonders: one per research area. Holding one multiplies that area's main effect by 1 + the wonder's bonus (default +25%).
-const WONDERS = {sci:{name:"Great Library",icon:"📜",bonus:0.25}, agri:{name:"Hanging Gardens",icon:"🌿",bonus:0.25}, fin:{name:"Golden Exchange",icon:"💰",bonus:0.25},
+// Wonders: one per research area. Holding one multiplies that area's main effect by 1 + the wonder's bonus (default +25%, Great Library +40%).
+const WONDERS = {sci:{name:"Great Library",icon:"📜",bonus:0.4}, agri:{name:"Hanging Gardens",icon:"🌿",bonus:0.25}, fin:{name:"Golden Exchange",icon:"💰",bonus:0.25},
                  dens:{name:"Tower of Babel",icon:"🗼",bonus:0.25}, grow:{name:"Temple of Life",icon:"🌸",bonus:0.25}, def:{name:"Iron Citadel",icon:"🏰",bonus:0.25},
                  atk:{name:"Arena of Champions",icon:"🏟️",bonus:0.25}, wood:{name:"Sacred Grove",icon:"🌳",bonus:0.25}, iron:{name:"Great Forge",icon:"⚒️",bonus:0.25}, explore:{name:"Great Lighthouse",icon:"⛵",bonus:0.25}};
 const WONDER_EFFECT = {sci:"research",agri:"food",fin:"taxes",dens:"population capacity",grow:"birth rate",atk:"attack strength",def:"defense strength",wood:"wood",iron:"iron",explore:"land taken & settling"};
@@ -2601,7 +2601,7 @@ function helpModal(){
   <li><b>Relations:</b> every state has an opinion of every other, from −100 (hostile) to +100 (friendly). Years of peace with a neighbor build trust. Attacking someone angers them badly, angers their allies, and makes your other neighbors wary (less so if you're striking back at someone who attacked you within ${R.relJustYears} years). Growing much bigger than your neighbors' average size makes them nervous. Computer states attack the states they dislike first, avoid attacking friends, and guard less against friendly borders.</li>
   <li><b>Balance of power:</b> when one state holds far more than its share of the land (1.5× an average state's share, at least ${R.coalitionMin*100}% and at most ${R.coalitionMax*100}% of all land), its neighbors form a coalition. They arm more, stop fighting each other and attack it together, including when the leader is you.</li>
   <li><b>Unowned land:</b> when a state collapses from famine, its land becomes unowned. Every state bordering it settles ${R.settleBase} km² plus ${R.settleRate*100}% of its own size each year, no army needed.</li>
-  <li><b>Wonders</b> (optional): ten landmarks, one per science area. Whoever holds the land a wonder stands on gets that area's effect raised by the wonder's bonus (+25% by default, e.g. +25% attack strength or +25% research). Conquer the land and the wonder is yours.</li>
+  <li><b>Wonders</b> (optional): ten landmarks, one per science area. Whoever holds the land a wonder stands on gets that area's effect raised by the wonder's bonus (+25% by default, +40% for the Great Library, e.g. +25% attack strength or +40% research). Conquer the land and the wonder is yours.</li>
   <li><b>Narrow fronts:</b> on a shared border of ${R.narrowFront} km or less, defenders fight +${R.narrowBonus*100}% harder. The bonus fades to nothing at ${R.wideFront} km. Lakes and rivers make these chokepoints; the War tab shows each border's length.</li>
   <li><b>Sea routes</b> (dashed lines on pre-made maps) count as a border. An attack that only crosses the sea gives defenders +${Math.round((R.seaBonus??0.15)*100)}% instead of the narrow-front bonus.</li>
   <li>Computer states remember who hurt them. Attack one repeatedly and it will focus on you.</li></ul>
@@ -2637,7 +2637,7 @@ const info=(label,t,cls="")=>`<button type="button" class="info ${cls}" aria-lab
 const SETUP_RULES=[ // [id, setup key, label, one-line description, full explanation, player only]
   ["sF","fog","Fog of war","See only your neighbors","You only see your neighbors. Everything else stays hidden.",true],
   ["sAl","al","Alliances","Allies win together","Allies never attack each other and win together.",false],
-  ["sWo","wonders","Wonders","Landmarks that boost one science area","10 landmarks, one per science area. Holding one boosts that area's effect (+25% by default).",false],
+  ["sWo","wonders","Wonders","Landmarks that boost one science area","10 landmarks, one per science area. Holding one boosts that area's effect (+25% by default, Great Library +40%).",false],
   ["sRn","relNoise","Random starting relations","States start a little friendly or hostile",()=>`Each pair of states starts between −${R.relNoiseAmp} and +${R.relNoiseAmp} instead of 0.`,false],
   ["sC","choose","Choose my state on the map","Pick your starting state on a preview","Generates the map now so you can click the state you want to lead.",true]];
 function setupModal(){
