@@ -281,7 +281,7 @@ const R = {
   grainBuy: 1.6, priceMin: 0.7, priceMax: 1.6, priceMean: 1.1, priceDrift: 0.15, // grain market
   // research: cost per level = researchCostBase × (level+1)^researchCostExp; effect per level
   researchCostBase: 18, researchCostExp: 2,
-  levelKnee: 35,                   // diminishing returns: levels count in full up to 35, beyond that with the square root
+  levelKnee: 0,                    // diminishing returns (0 = off): levels count in full up to this, beyond that with the square root
   techEdgeMax: 3,                  // in battle, one side's attack/defense research counts at most 3× the other side's
   sciPerLevel: 0.15, agriPerLevel: 0.09, finTaxPerLevel: 0.1, finPricePerLevel: 0.02, densPerLevel: 0.5, growPerLevel: 0.006,
   atkPerLevel: 0.1, defPerLevel: 0.1, woodPerLevel: 0.08, ironPerLevel: 0.08, explorePerLevel: 0.08,
@@ -2233,7 +2233,7 @@ function pScience(){
     <td style="min-width:110px"><div class="bar"><i style="width:${Math.min(100,100*c.rp[a]/cost)}%"></i></div><div class="small mut">${fmt(c.rp[a])}/${fmt(cost)}${eta?` · ${eta}y`:""}</div></td>
     <td style="white-space:nowrap">${(lk=>`<input type="range" min="0" max="100" value="${share}" data-alloc="${a}" style="width:70px"${lk?" disabled":""}> <input type="text" inputmode="numeric" maxlength="3" value="${share}" data-allocpct="${a}" style="width:38px;text-align:right" title="Type an exact share"${lk?" disabled":""}>% <button class="sm lockbtn${lk?" on":""}" data-lock="${a}" title="${lk?"Locked: other areas can't change this share. Click to unlock":"Lock this share so changing other areas leaves it alone"}">${lk?"🔒":"🔓"}</button>`)(!!c.allocLock?.[a])}</td></tr>`}).join("")}
   </table>
-  <div class="small mut" style="margin-top:6px">Drag a slider or type an exact %; the other unlocked areas rescale so the total stays 100%. Lock 🔒 an area to keep its share fixed. Each level in an area costs more than the last, and levels above ${R.levelKnee} have diminishing returns (they count with the square root). In battle, the side with better Attack/Defense research gets at most ${R.techEdgeMax}× the other side's research bonus.</div>
+  <div class="small mut" style="margin-top:6px">Drag a slider or type an exact %; the other unlocked areas rescale so the total stays 100%. Lock 🔒 an area to keep its share fixed. Each level in an area costs more than the last${R.levelKnee>0?`, and levels above ${R.levelKnee} have diminishing returns (they count with the square root)`:""}. In battle, the side with better Attack/Defense research gets at most ${R.techEdgeMax}× the other side's research bonus.</div>
   ${bonusTable(c)}`;
 }
 
@@ -2590,7 +2590,7 @@ function helpModal(){
   <li>Taxes and selling surplus grain are your income. Scientists cost ${R.sciWage}/yr and cavalry needs gold upkeep. If you can't pay, they quit.</li>
   <li><b>Shore farmland:</b> land touching water harvests more: +1% for every 1% of your land on the shore, up to +${R.shoreMax*100}%.</li>
   <li>Population grows toward capacity (land × density). Pop. density and growth research raise it.</li></ul>
-  <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last, and levels above ${R.levelKnee} have diminishing returns (they count with the square root).</li></ul>
+  <h3>Science</h3><ul class="log"><li>Scientists produce research points. Split them across ten areas. Science boosts all research, so invest in it early. Each level costs more than the last${R.levelKnee>0?`, and levels above ${R.levelKnee} have diminishing returns (they count with the square root)`:""}.</li></ul>
   <h3>Resources</h3><ul class="log"><li>Food (grain), wood, iron and gold (money). Set what share of your peasants cut wood and mine iron in the Economy tab; the rest farm. Wood and iron train troops; trade any of them at the market.</li></ul>
   <h3>Troops</h3><ul class="log"><li>Six troop types, trained in the Barracks, all available from the start: Spearman, Archers, Axeman, Pikeman, Swordsman, Cavalry. Each has its own attack, defense, toughness, cost (food, wood, iron, gold) and upkeep (food, plus gold for cavalry). Attackers fight with attack, guards with defense; attacks send your most offensive troops first. Every soldier is one person, so better troops mean more strength per head. Cavalry holds 2 km² of conquered land per soldier.</li></ul>
   <h3>Civilizations &amp; leaders</h3><ul class="log"><li>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties to attack, defense, harvest, taxes, research, population growth, capacity and conquest; the three add together. Islands and Oceanic land only go to states with a coastline. Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do and Scientist and Loyal leaders put more people into research, Defenders keep a big army home. Your Economy tab lists your bonuses.</li></ul>
