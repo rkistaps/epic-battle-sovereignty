@@ -387,6 +387,9 @@ table.gtab td{padding:4px 10px 4px 0;border-bottom:1px solid #ffffff0d;vertical-
 table.tight td,table.tight th{padding:4px 3px}
 .modal.settings{max-width:1100px}
 .stabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
+.sethead{border-bottom:1px solid var(--line);margin-bottom:12px}
+.ssearch{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px} .ssearch input{flex:1;min-width:200px;max-width:460px;padding:8px 12px;border-radius:8px;font-size:14px} .ssearch b{color:var(--txt)}
+.modal.settings mark{background:rgba(224,179,84,.35);color:inherit;border-radius:2px;padding:0 1px}
 .stabs button.on{background:var(--acc);color:#1a1a1a;border-color:var(--acc)}
 .sgrid{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:3px 10px;align-items:center;margin-bottom:6px}
 .sgrid input[inputmode]{width:90px}
@@ -1022,6 +1025,9 @@ function worldMap(W,H){
 const LINKS=new WeakMap();
 function linkMap(links){ const mp=new Map(); for(const [a,b] of links||[]){ if(!mp.has(a)) mp.set(a,[]); if(!mp.has(b)) mp.set(b,[]); mp.get(a).push(b); mp.get(b).push(a); } return mp; }
 function linksOf(g){ if(!g.links||!g.links.length) return null; let mp=LINKS.get(g); if(!mp){ mp=linkMap(g.links); LINKS.set(g,mp); } return mp; }
+// cells with a sea route, as a flag per cell (skips the Map lookup for the rest); null when the map has none
+const LINKF=new WeakMap();
+function linkFlags(g){ const lk=linksOf(g); if(!lk) return null; let f=LINKF.get(lk); if(!f||f.length!==g.cells.length){ f=new Uint8Array(g.cells.length); for(const k of lk.keys()) f[k]=1; LINKF.set(lk,f); } return f; }
 
 const OBSERVER=-9; // g.player in observer mode (no state is yours)
 // unique id of a game: news and battle reports are stored under it (Math.random is fine here: it doesn't touch the game's dice)
@@ -1847,8 +1853,15 @@ function mkPost(g,c,r,side,n,p,yrs,end){ const B=mkBook(g,r), buy=side==="buy"; 
   const qt=mkQuote(g,c,r,side,n,p); if(qt.n) mkDo(g,c,r,side,qt);
   const left=Math.min(n-qt.n,buy?Math.floor(Math.max(0,c.money)/p):Math.floor(c[r]||0));
   if(left>0){ const o={id:g.obId=(g.obId||0)+1,s:c.id,q:left,q0:left,p,end:end!==undefined?end:yrs===0?null:g.turn+Math.max(1,Math.floor(yrs)||1)-1};
-    if(buy) c.money-=left*p; else c[r]-=left; const L=buy?B.b:B.a; L.push(o); L.sort(buy?(x,y)=>y.p-x.p||x.id-y.id:(x,y)=>x.p-y.p||x.id-y.id); }
+    if(buy) c.money-=left*p; else c[r]-=left; const L=buy?B.b:B.a;
+     // the book stays sorted (best price first, then oldest): the new order (newest id) goes after every order at its price or better
+     let lo=0, hi=L.length; while(lo<hi){ const mid=(lo+hi)>>1; if(buy?L[mid].p>=p:L[mid].p<=p) lo=mid+1; else hi=mid; } L.splice(lo,0,o); }
   return {now:qt.n,posted:Math.max(0,left)}; }
+// take order o back from its side of book B if it's still there (others may have filled it this year): found by its price
+// (the book is sorted by price), then the holdings return
+function mkTakeBack(c,r,B,o,buy){ const L=buy?B.b:B.a; let lo=0, hi=L.length;
+  while(lo<hi){ const mid=(lo+hi)>>1; if(buy?L[mid].p>o.p:L[mid].p<o.p) lo=mid+1; else hi=mid; }
+  for(let i=lo;i<L.length&&L[i].p===o.p;i++) if(L[i]===o){ L.splice(i,1); if(buy) c.money+=o.q*o.p; else c[r]=(c[r]||0)+o.q; return; } }
 // take an order back: what it still holds returns
 function mkCancel(g,c,r,o){ const B=g.ob[r], bid=B.b.includes(o); if(bid) c.money+=o.q*o.p; else c[r]=(c[r]||0)+o.q; B.a=B.a.filter(x=>x!==o); B.b=B.b.filter(x=>x!==o); }
 // merchants take any order that beats their own price: sell orders below what they pay, buy orders above what they charge
@@ -1949,15 +1962,20 @@ function wsYear(g){ wxInitScale(g); const S=g.wxScale, ev=[];
 // weather for next year's harvest: drifting systems, small random yearly patches, and slow world-wide good and bad years
 function mkWeather(g){ const C=g.countries; const ev=wsYear(g);
   g.climS=(g.climS||0)*0.7+(R01(g)*2-1)*R.wxClimate*1.7; g.clim=Math.min(1+3*R.wxClimate,Math.max(1-3*R.wxClimate,1+g.climS));
-  { const t=C.map(()=>[0,0,0]); for(let i=0;i<g.cells.length;i++){ const o=g.cells[i]; if(o>=0){ const e=t[o]; e[0]+=i%g.W; e[1]+=(i/g.W)|0; e[2]++; } } // state centres, every year (states grow and shrink)
-    g.cent=t.map(e=>e[2]?[e[0]/e[2],e[1]/e[2]]:null); }
+  { const n=C.length, sx=new Float64Array(n), sy=new Float64Array(n), sn=new Float64Array(n), W=g.W, cl=g.cells; // state centres, every year (states grow and shrink)
+    for(let i=0,x=0,y=0;i<cl.length;i++,x++){ if(x===W){ x=0; y++; } const o=cl[i]; if(o>=0){ sx[o]+=x; sy[o]+=y; sn[o]++; } }
+    g.cent=Array.from({length:n},(_,k)=>sn[k]?[sx[k]/sn[k],sy[k]/sn[k]]:null); }
   // small random patches on top, re-rolled every year: each spans about 1–2.5 states, more of them on bigger maps
   const S=g.wxScale, nF=Math.max(4,Math.min(200,Math.round(g.wxLand/(Math.PI*(1.65*S)**2)))), F=[];
   for(let k=0;k<nF;k++) F.push([...wxOnLand(g),S*(0.8+1.7*R01(g)),(R01(g)<0.5?-1:1)*(g.noWx?R.wxRegionalOff:R.wxRegional)*(0.5+R01(g))]);
   // a state's weather is the average over its whole land, from an even grid of sample points (about 60,000 on any map)
   const at=(x,y)=>{ let w=0; for(const [fx,fy,rad,a] of F){ const d2=((x-fx)**2+(y-fy)**2)/(rad*rad); if(d2<9) w+=a*Math.exp(-d2); } return [w,wsEffect(g,x,y)]; };
   const step=Math.max(1,Math.round(Math.sqrt(g.cells.length/60000))), aw=new Float64Array(C.length), as=new Float64Array(C.length), an=new Uint32Array(C.length);
-  for(let y=step>>1;y<g.H;y+=step) for(let x=step>>1;x<g.W;x+=step){ const o=g.cells[y*g.W+x]; if(o<0) continue; const [w,sy]=at(x,y); aw[o]+=w; as[o]+=sy; an[o]++; }
+  // patches first: each adds to the sample points within its reach (same sums, in the same order, as looping every patch per point)
+  const s0=step>>1, nx=Math.ceil((g.W-s0)/step), ny=Math.ceil((g.H-s0)/step), PW=new Float64Array(nx*ny);
+  for(const [fx,fy,rad,a] of F){ const r3=3*rad, x0=Math.max(0,Math.ceil((fx-r3-s0)/step)), x1=Math.min(nx-1,Math.floor((fx+r3-s0)/step)), y0=Math.max(0,Math.ceil((fy-r3-s0)/step)), y1=Math.min(ny-1,Math.floor((fy+r3-s0)/step));
+    for(let iy=y0;iy<=y1;iy++){ const y=s0+iy*step; for(let ix=x0;ix<=x1;ix++){ const x=s0+ix*step, d2=((x-fx)**2+(y-fy)**2)/(rad*rad); if(d2<9) PW[iy*nx+ix]+=a*Math.exp(-d2); } } }
+  for(let iy=0,y=s0;y<g.H;iy++,y+=step) for(let ix=0,x=s0;x<g.W;ix++,x+=step){ const o=g.cells[y*g.W+x]; if(o<0) continue; aw[o]+=PW[iy*nx+ix]; as[o]+=wsEffect(g,x,y); an[o]++; }
   C.forEach((c,i)=>{ let w=1, sy=0; if(an[i]){ w+=aw[i]/an[i]; sy=as[i]/an[i]; } else if(g.cent[i]){ const [a,b]=at(g.cent[i][0],g.cent[i][1]); w+=a; sy=b; } // tiny state: its centre
     const before=c.wxSys??1; c.wxSys=+(1+sy).toFixed(3); const cap=Math.max(R.wxMax,Math.abs(sy)); c.wx=+Math.min(1+cap,Math.max(1-cap,w+sy)).toFixed(3); // only a very strong system goes past the usual limit
     if(!c.ai&&c.alive){ const pc=Math.round(Math.abs(sy)*100); // a system reaching or leaving your lands
@@ -2031,7 +2049,11 @@ function aiTrade(g,c,r,side,n,w){ n=Math.floor(n); if(n<=0) return 0; const qt=m
   if(n>qt.n) mkPost(g,c,r,side,n-qt.n,side==="buy"?w*(1-R.aiMargin):w*(1+R.aiMargin),1,g.turn+1); return qt.n; }
 // AI trading: last year's orders come back first, then fresh ones
 function aiMarket(g,c){
-  for(const r of MK_RES){ const B=mkBook(g,r); for(const o of [...B.a,...B.b]) if(o.s===c.id) mkCancel(g,c,r,o); }
+  for(const r of MK_RES){ const B=mkBook(g,r), I=g._own?.[r]; // take last year's orders back (same as mkCancel on each, in book order)
+    if(I){ for(const buy of [false,true]){ const mine=I[buy?"b":"a"].get(c.id); if(mine) for(const o of mine) mkTakeBack(c,r,B,o,buy); } continue; } // indexed: no scan of the whole book
+    const own=o=>o.s===c.id;
+    if(B.a.some(own)) B.a=B.a.filter(o=>{ if(!own(o)) return true; c[r]=(c[r]||0)+o.q; return false; });
+    if(B.b.some(own)) B.b=B.b.filter(o=>{ if(!own(o)) return true; c.money+=o.q*o.p; return false; }); }
   // grain: this year's food arrives before eating; keep a reserve, trade the rest
   const food=Math.round(foodUse(c)*1.04), prod=foodProduction(c), reserve=Math.round(food*0.3), plan=Math.round(prod*R.aiBuyPlan*(c.wxSys??1)); // plan for a weak harvest
   const hungry=food-c.grain-plan; if(hungry>0) act.buy(g,c,hungry); // not enough to eat: pay what it takes
@@ -2149,7 +2171,7 @@ function aiTurn(g,c){
   if(popOf(c)>popCap(c)*0.9){ c.alloc.dens+=10; c.alloc.sci=Math.max(0,c.alloc.sci-10); }
   // attacks
   // stalemate breaker: the longer without a fight (or the fewer states left), the bolder
-  const idleYrs=t-Math.max(c.lastWar||0,g.peace||0), aliveN=g.countries.filter(x=>x.alive).length;
+  const idleYrs=t-Math.max(c.lastWar||0,g.peace||0), aliveN=g._aliveN??g.countries.filter(x=>x.alive).length; // _aliveN: counted once a year in endTurn
   const bold=Math.max(Math.min(1,Math.max(0,(idleYrs-R.idleStart)/(R.idleFull-R.idleStart))), aliveN<=3?0.5:0);
   // exposure: the attack of all neighbors likely to strike while our army is away (grudges in full, wariness half, trust cancels it)
   // the state we attack is busy defending, so it doesn't count toward exposure against itself
@@ -2567,7 +2589,11 @@ function endTurn(g){
   g.revolts=[]; C.forEach(c=>{ c.gConq=c.gRet=c.gSet=0; c.land0y=c.land; }); // land won this year (loyalty)
   // progress for the year window (worker only; cheap: reports only when the whole percent changes)
   const step=(a,b,lab,i)=>genProg(a+(b-a)*(i==null?0:i/C.length),lab);
+  g._aliveN=C.filter(c=>c.alive).length; // nobody falls while plans are made
+  // each state's orders in the books at the start of the year, in book order (computer states take theirs back first thing)
+  g._own={}; for(const r of MK_RES){ const B=mkBook(g,r), I=g._own[r]={a:new Map(),b:new Map()}; for(const k of ["a","b"]) for(const o of B[k]){ let l=I[k].get(o.s); if(!l) I[k].set(o.s,l=[]); l.push(o); } }
   C.forEach((c,i)=>{ if(!(i&63)) step(0.02,0.45,"Rulers make their plans",i); if(c.alive&&c.ai) aiTurn(g,c); if(!c.ai) c.eff=1; c.lostThis=0; });
+  delete g._aliveN; delete g._own;
   step(0.45,0,"Armies march");
   // battles
   const adjNow=adjacency(g);
@@ -2795,10 +2821,12 @@ function settle(g){
   if(!any) return;
   const own=ownedCells(g), C=g.countries, order=C.filter(c=>c.alive).map(c=>c.id);
   for(let i=order.length-1;i>0;i--){ const j=Math.floor(R01(g)*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
-  const lk=linksOf(g), nb=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const L=lk?.get(i); if(L) for(const j of L) f(j); };
+  const lk=linksOf(g), lf=linkFlags(g), nb=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); if(lf&&lf[i]) for(const j of lk.get(i)) f(j); };
   for(const id of order){
     const c=C[id], budget=Math.round((R.settleBase+c.land*R.settleRate)*exploreMul(c)), q=[];
-    for(const i of own[id]) if(cells[i]===id) nb(i,j=>{ if(cells[j]===-1) q.push(j); });
+    for(const i of own[id]){ if(cells[i]!==id) continue; const x=i%W; // unowned cells next to its land (same order as nb)
+      if(x>0&&cells[i-1]===-1) q.push(i-1); if(x<W-1&&cells[i+1]===-1) q.push(i+1); if(i>=W&&cells[i-W]===-1) q.push(i-W); if(i+W<N&&cells[i+W]===-1) q.push(i+W);
+      if(lf&&lf[i]) for(const j of lk.get(i)) if(cells[j]===-1) q.push(j); }
     let k=0;
     while(k<budget&&q.length){
       const j=Math.floor(R01(g)*Math.min(q.length,8)), i=q.splice(j,1)[0];
@@ -3231,7 +3259,7 @@ class MapView{
   setGame(g){
     const key=(g.gid??g.seed)+":"+g.W+"x"+g.H; // a new game, not a change inside one (rebels add states mid-game)
     this.g=g; this.dirty=true;
-    if(key!==this.key){ this.key=key; this.fresh=true; this.resize(); }
+    if(key!==this.key){ this.key=key; this.fresh=true; this.drawn=null; this.fullMs=0; this.resize(); }
   }
   refresh(){ this.dirty=true; this.schedule(); }
   ownerAt([mx,my]){ const g=this.g, x=Math.floor(this.ox+mx/this.z), y=Math.floor(this.oy+my/this.z);
@@ -3261,7 +3289,10 @@ class MapView{
   centerOn(id,z){ this.mode=null; const g=this.g, b=labelSpots(g).best[id]; if(b<0) return; if(z) this.z=z;
     this.ox=b%g.W+0.5-this.cw/this.z/2; this.oy=((b/g.W)|0)+0.5-this.ch/this.z/2; this.clamp(); this.schedule(); }
   // while panning or zooming: move the last full frame around (fast), then draw properly once the map stops
-  quick(){ this.fast=true; clearTimeout(this.qt); this.qt=setTimeout(()=>{ this.fast=false; this.schedule(); },150); this.schedule(); }
+  // if full frames are quick on this machine and map, they are drawn every frame instead;
+  // otherwise a full frame is still drawn every so often while moving, so trees and borders fill in at the edges
+  quick(){ if((this.fullMs||0)<20){ this.fast=false; this.schedule(); return; }
+    this.fast=true; clearTimeout(this.qt); this.qt=setTimeout(()=>{ this.fast=false; this.schedule(); },150); this.schedule(); }
   drawFast(){ const D=this.drawn, cv=this.cv, k=this.z/D.z;
     if(this.dirty||D.w!==cv.width||D.h!==cv.height||k<0.25||k>4) return false;
     if(this.snapId!==D.id){ const sn=this.snap||(this.snap=document.createElement("canvas")); sn.width=cv.width; sn.height=cv.height; sn.getContext("2d").drawImage(cv,0,0); this.snapId=D.id; }
@@ -3436,16 +3467,19 @@ class MapView{
   }
   draw(){
     const g=this.g; if(!g||!this.cw) return;
-    if(this.fast&&this.drawn&&this.drawFast()) return;
+    const t0=performance.now();
+    if(this.fast&&this.drawn&&t0-this.drawn.t<Math.min(400,Math.max(120,this.fullMs*2.5))&&this.drawFast()) return;
     this.known=this.o.known?.()||null;
     if(this.dirty) this.buildBase();
-    const ctx=this.cv.getContext("2d"), s=this.z*this.dpr, {W,H}=g, known=this.known;
+    if(g.feat&&this.z>=2) featGlyphs(g); labelSpots(g); // built once per map / year, kept out of the frame timing below
+    const t1b=performance.now(), ctx=this.cv.getContext("2d"), s=this.z*this.dpr, {W,H}=g, known=this.known;
     const sel=this.o.sel(), pl=this.o.player();
     ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle=BG; ctx.fillRect(0,0,this.cv.width,this.cv.height);
     const X=x=>(x-this.ox)*s, Y=y=>(y-this.oy)*s;
     // the map body (land, borders, trees) is kept, so hovering a state only redraws what sits on top
     const bk=[this.gen,this.ox,this.oy,this.z,this.cv.width,this.cv.height,sel,pl,UI.featGlyphs].join();
-    if(bk===this.bodyKey&&this.body) ctx.drawImage(this.body,0,0);
+    const rebuilt=!(bk===this.bodyKey&&this.body);
+    if(!rebuilt) ctx.drawImage(this.body,0,0);
     else { this.drawBody(ctx,X,Y,s,sel,pl); const b=this.body||(this.body=document.createElement("canvas")); b.width=this.cv.width; b.height=this.cv.height; b.getContext("2d").drawImage(this.cv,0,0); this.bodyKey=bk; }
     const lift=this.liftId(), LY=lift>=0?Math.round(5*this.dpr):0; if(lift>=0) this.drawLift(ctx,lift,LY,bk,X,Y,s);
     // sea links (pre-made maps): dashed lines; one that crosses the map edge is drawn off both edges
@@ -3494,7 +3528,8 @@ class MapView{
         ctx.beginPath(); ctx.arc(px,py,R_,0,Math.PI*2); ctx.fillStyle="#14161ae6"; ctx.fill(); ctx.lineWidth=2*this.dpr; ctx.strokeStyle="#e0b354"; ctx.stroke();
         ctx.font=`${R_*1.15}px system-ui,"Segoe UI Emoji",sans-serif`; ctx.fillStyle="#fff"; ctx.fillText(WONDERS[w.area].icon,px,py+R_*0.06); }
     }
-    this.drawn={id:(this.drawn?.id||0)+1,ox:this.ox,oy:this.oy,z:this.z,w:this.cv.width,h:this.cv.height}; // for the fast pan/zoom path
+    const t1=performance.now(); if(rebuilt&&this.drawn){ const dt=t1-t1b; this.fullMs=this.fullMs&&dt>this.fullMs?this.fullMs*0.7+dt*0.3:dt; } // how long a full frame takes here (a one-off slow frame counts little)
+    this.drawn={id:(this.drawn?.id||0)+1,ox:this.ox,oy:this.oy,z:this.z,w:this.cv.width,h:this.cv.height,t:t1}; // for the fast pan/zoom path
   }
   // the raised state: cut out of the map body, drawn a few pixels up with a soft shadow below and a light rim
   drawLift(ctx,id,LY,bk,X,Y,s){
@@ -3563,15 +3598,16 @@ class MapView{
     const x0=this.ox-2, y0=this.oy-2, x1=this.ox+this.cw/this.z+2, y1=this.oy+this.ch/this.z+2;
     const q5=v=>Math.pow(1.05,Math.round(Math.log(v)/Math.log(1.05))); // glyph sizes in 5% steps, so sprites are reused across zoom levels
     const fz=q5(Math.min(1.2*s,20*this.dpr,Math.max(5*this.dpr,0.7*s/Math.sqrt(pF)))), mz=q5(Math.min(1.8*s,22*this.dpr,Math.max(9*this.dpr,1.0*s/Math.sqrt(pM))));
-    const sp=this.sprites(fz,mz);
+    const sp=this.sprites(fz,mz), vs=[];
     const r0=Math.max(0,Math.floor(y0)), r1=Math.min(H-1,Math.floor(y1)), c0=Math.max(0,Math.floor(x0/P.CH)), c1=Math.min(P.nc-1,Math.floor(x1/P.CH));
     for(let ry=r0;ry<=r1;ry++) for(let k=P.bs[ry*P.nc+c0],ke=P.bs[ry*P.nc+c1+1];k<ke;k++){ const x=P.x[k], y=P.y[k]; if(x<x0||x>x1||y<y0||y>y1) continue;
       const kind=P.k[k]; if(P.r[k]>=(kind===2?pM:pF)) continue;
       const o=vis[(y|0)*W+(x|0)]; if(o<-1) continue;
       // trees: size = sz × a fixed random height factor, 9 steps; peaks: 5 steps
       const b=kind===1?Math.round((P.sz[k]*(0.6+0.8*((P.r[k]*7919)%1))-0.48)/0.15):Math.round((P.sz[k]-0.8)/0.1);
-      const e=sp.get(kind,o,b), X=(x-this.ox)*s, Y=(y-this.oy)*s+(kind===1?fz*0.5*P.sz[k]:0); // trees stand on their base
-      ctx.drawImage(e[0],e[1],e[2],e[3],e[4],Math.round(X)-e[5],Math.round(Y)-e[6],e[3],e[4]); }
+      // all new sprites are made before any is drawn: drawing from a sprite canvas that just changed makes the browser copy it each time
+      vs.push(sp.get(kind,o,b),Math.round((x-this.ox)*s),Math.round((y-this.oy)*s+(kind===1?fz*0.5*P.sz[k]:0))); } // trees stand on their base
+    for(let j=0;j<vs.length;j+=3){ const e=vs[j]; ctx.drawImage(e[0],e[1],e[2],e[3],e[4],vs[j+1]-e[5],vs[j+2]-e[6],e[3],e[4]); }
   }
   // little pre-drawn tree and peak pictures, one per state color and size step, packed into shared canvases
   sprites(fz,mz){
@@ -3723,14 +3759,15 @@ function renderHeader(){
     if(on){ const v=loyOf(c), [st,cls]=loyState(v); $("hLoy").textContent=Math.round(v); $("hLoy").className=cls; b.title=`Loyalty ${Math.round(v)} of ${loyCeil(G,c)} (${st}): click to see it on the Home tab`; } }
   $("end").disabled=!canPlay()||UI.busy; $("bAuto").disabled=!canPlay()||!!G.hot; if((!canPlay()||G.hot)&&AUTO.on) setAuto(false); $("bAutoOpt").disabled=$("bAuto").disabled; $("bRep").disabled=!lastPrev();
   $("end").textContent=G.hot?(hotLast()?"End year ▶":"Done ▶"):watching()?"Next year ▶":"End turn ▶";
-  $("end").title=G.hot?(hotLast()?"You're the last player this year: the year runs now":"Hand over to the next player"):"";
+  $("end").title=(G.hot?(hotLast()?"You're the last player this year: the year runs now":"Hand over to the next player"):"End the year")+" (key X)";
 }
 
 // ---------- tabs ----------
 // main menu above the map: [key, short name, icon, full name]
 const TABS=[["economy","Home","🏰","Home: your state"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["war","War","🗡️","War: generals, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
 // second menu at the top of the side panel, for pages split in parts (keys Q W E …)
-const SUBS={market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
+const SUBS={science:[["research","Research","🔬","Research: split your points"],["bonus","Bonuses","✨","Total bonuses: where every bonus comes from"]],
+  market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
   war:[["generals","Generals","🎖️","Your generals"],["tavern","Tavern","🍺","Tavern: hire generals"],["wars","Wars","🔥","Wars, defense and this year's orders"],["nbrs","Neighbors","🧭","Neighbors: plan an attack"]],
   world:[["rank","Rankings","🏆","Rankings"],["wonders","Wonders","🗼","Wonders: who holds each one"],["recent","Recent wars","🗡️","Recent wars"]]};
 const SUBKEYS="qwertyuiop";
@@ -3771,7 +3808,7 @@ function badgeFor(k){
   if(k==="market"&&fresh("market")) return {cls:"dot good",tip:"your orders traded"};
   return null; }
 const tabBadge=k=>k==="war"?badgeFor("war")||badgeFor("generals"):badgeFor(k);
-const SUB_BADGE={war:{generals:"generals",wars:"war"},market:{trade:"market"}}; // which badge each part of a page shows
+const SUB_BADGE={science:{research:"science"},war:{generals:"generals",wars:"war"},market:{trade:"market"}}; // which badge each part of a page shows
 const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
@@ -4189,7 +4226,8 @@ function bonusTable(c){
   </table></div>
   <div class="small mut">Each row is a formula: start from 1, add your civilization, leader and land bonuses, then multiply by research${hasW?", a held wonder":""}${hasS?" and terrain (shore farmland for food, forest for wood, mountains for iron)":""}. Your food: (1 ${rows[1][2].map(v=>`${v<0?"−":"+"}${Math.abs(Math.round(v*100))}%`).join(" ")}) × ${(1+rows[1][3][0]).toFixed(2)}${hasW?` × ${(1+rows[1][3][1]).toFixed(2)}`:""}${hasS?` × ${(1+rows[1][4]).toFixed(2)}`:""} = ×${rows[1][5].toFixed(2)}. A trait bonus keeps its full value however far research goes. Rows follow the research areas above. Birth rate and capacity research are shown relative to the base rate (${+(R.birthRate*100).toFixed(2)}%/yr, ${R.popPerKm} people per km²).</div>`;
 }
-function pScience(){
+function pScience(sub){
+  if(sub==="bonus") return bonusTable(me());
   const c=me(); const pts=researchPoints(c); const sumA=AREAS.reduce((s,a)=>s+Math.max(0,c.alloc[a]||0),0), tot=Math.max(100,sumA), free=Math.max(0,Math.round(100-sumA));
   const pc=v=>+(v*100).toFixed(2), eff={sci:`+${pc(R.sciPerLevel)}% research per level`,agri:`+${pc(R.agriPerLevel)}% food per level`,fin:`+${pc(R.finTaxPerLevel)}% taxes, +${pc(R.finPricePerLevel)}% sell prices per level`,dens:`+${R.densPerLevel} people per km² capacity per level`,grow:`+${pc(R.growPerLevel)}% birth rate per level`,atk:`+${pc(R.atkPerLevel)}% attack strength per level`,def:`+${pc(R.defPerLevel)}% defense strength per level`,wood:`+${pc(R.woodPerLevel)}% wood production per level`,iron:`+${pc(R.ironPerLevel)}% iron production per level`,explore:`+${pc(R.explorePerLevel)}% land per battle and settling speed per level`};
   const what={sci:"research",agri:"food",fin:"taxes",dens:"capacity",grow:"births",atk:"attack",def:"defense",wood:"wood",iron:"iron",explore:"land"};
@@ -4209,8 +4247,7 @@ function pScience(){
     <td style="width:100%"><div class="rsplit">${(lk=>`<input type="range" min="0" max="100" value="${share}" data-alloc="${a}"${lk?" disabled":""}><span class="rctl"><input type="text" inputmode="numeric" maxlength="3" value="${share}" data-allocpct="${a}" style="width:34px;text-align:right" title="Type an exact share"${lk?" disabled":""}>%<span class="aslot">${share>0?`<button class="sm" data-clr="${a}" title="Set ${AREA_NAMES[a]} to 0% and unlock it; its share becomes unassigned">✕</button>`:""}</span><span class="aslot">${nx}</span><button class="sm lockbtn${lk?" on":""}" data-lock="${a}" title="${lk?"Locked: other areas can't change this share. Click to unlock":"Lock this share so changing other areas leaves it alone"}">${lk?"🔒":"🔓"}</button></span>`)(!!c.allocLock?.[a])}
     <div class="bar rbar" title="${esc(costTip)}${yr>0?` · +${fmt(yr)} next year`:""}"><i style="width:${Math.min(100,100*c.rp[a]/cost)}%"></i><i class="nxt" style="width:${Math.max(0,Math.min(100,100*(c.rp[a]+yr)/cost)-Math.min(100,100*c.rp[a]/cost))}%"></i></div><div class="small mut" title="${esc(costTip)}">${fmt(c.rp[a])}/${fmt(cost)}${eta?` · ${eta}y`:""}</div></div></td></tr>`}).join("")}
   </table>
-  <div class="small mut" style="margin-top:6px">Drag a slider or type a %. Shares can add up to less than 100%, but the unassigned rest is lost; going over 100% takes from the unlocked areas. 🔒 keeps a share fixed. ⏩ sets the least share that reaches the next level next year and locks it; ✕ sets an area to 0%. The buttons in the header do the same for every area: ✕ clears all unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all. Blue is progress so far, green what this share adds next year. Hover ⓘ for what each level gives, the progress bar for its cost.</div>
-  ${bonusTable(c)}`;
+  <div class="small mut" style="margin-top:6px">Drag a slider or type a %. Shares can add up to less than 100%, but the unassigned rest is lost; going over 100% takes from the unlocked areas. 🔒 keeps a share fixed. ⏩ sets the least share that reaches the next level next year and locks it; ✕ sets an area to 0%. The buttons in the header do the same for every area: ✕ clears all unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all. Blue is progress so far, green what this share adds next year. Hover ⓘ for what each level gives, the progress bar for its cost.</div>`;
 }
 
 // ---------- general portraits (drawn from a seed, no images) ----------
@@ -4900,12 +4937,22 @@ function settingsModal(tab){
     if(kind==="text"||kind==="icon") return `<input type="text" data-sk="${path}" data-kind="text" value="${esc(cur)}" class="${chg} ${kind==="icon"?"icon":""}">`;
     const shown=kind==="%"?+(cur*100).toFixed(4):cur;
     return `<input type="text" inputmode="decimal" data-sk="${path}" data-kind="${kind||""}" value="${shown}" class="${chg}" title="Default: ${kind==="%"?+(def*100).toFixed(4)+"%":def}">`; };
+  const gRow=(k,label,kind)=>`<span>${esc(label)}</span><span>${inp("R."+k,kind,getPath(d.R,k),getPath(v.R,k))}${kind==="%"?" %":""}</span><span class="small mut">default ${kind==="%"?+(getPath(d.R,k)*100).toFixed(4)+"%":kind==="bool"?(getPath(d.R,k)?"on":"off"):kind==="select"?(LABEL_STYLES.find(x=>x[0]===getPath(d.R,k))||[,""])[1]:getPath(d.R,k)}</span>`;
+  // a table tab's rows (all, or only those given as [row, index]) with its column headers
+  const tRows=(t,list)=>{ const M_=TABLE_META[t]; return `<div class="stable"><table class="tight"><tr>${M_.cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${(list||v[t].map((r,i)=>[r,i])).map(([row,i])=>
+      `<tr>${M_.cols.map(([f,,kind])=>`<td>${inp(t+"."+i+"."+f,kind,d[t][i][f],row[f])}${kind==="%"?"%":""}</td>`).join("")}</tr>`).join("")}</table></div>`; };
+  const wRow=a=>`<tr><td>${AREA_NAMES[a]}</td><td>${inp("wonders."+a+".name","text",d.wonders[a].name,v.wonders[a].name)}</td><td>${inp("wonders."+a+".icon","icon",d.wonders[a].icon,v.wonders[a].icon)}</td><td>${inp("wonders."+a+".bonus","%",d.wonders[a].bonus,v.wonders[a].bonus)} %</td></tr>`;
+  const wHead=`<tr><th>Research area</th><th>Name</th><th>Icon</th><th title="How much the holder's effect in this area is raised">Bonus</th></tr>`;
+  const q=(UI.sq||"").trim().toLowerCase(), hit=x=>String(x??"").toLowerCase().includes(q);
   let body="";
-  if(UI.stab==="general") body=SETTINGS_META.map(([grp,rows])=>{ const nChg=rows.filter(([k])=>JSON.stringify(getPath(v.R,k))!==JSON.stringify(getPath(d.R,k))).length;
-    return `<details class="sgrp" data-sgrp="${esc(grp)}" ${UI.sopen?.[grp]?"open":""}><summary><h3>${esc(grp)}</h3> <span class="small mut">${rows.length} setting${rows.length>1?"s":""}${nChg?` · <span class="acc">${nChg} changed</span>`:""}</span></summary><div class="sgrid">${rows.map(([k,label,kind])=>
-    `<span>${esc(label)}</span><span>${inp("R."+k,kind,getPath(d.R,k),getPath(v.R,k))}${kind==="%"?" %":""}</span><span class="small mut">default ${kind==="%"?+(getPath(d.R,k)*100).toFixed(4)+"%":kind==="bool"?(getPath(d.R,k)?"on":"off"):kind==="select"?(LABEL_STYLES.find(x=>x[0]===getPath(d.R,k))||[,""])[1]:getPath(d.R,k)}</span>`).join("")}</div></details>`; }).join("");
-  else if(UI.stab==="wonders") body=`<div class="stable"><table class="tight"><tr><th>Research area</th><th>Name</th><th>Icon</th><th title="How much the holder's effect in this area is raised">Bonus</th></tr>${Object.keys(v.wonders).map(a=>
-    `<tr><td>${AREA_NAMES[a]}</td><td>${inp("wonders."+a+".name","text",d.wonders[a].name,v.wonders[a].name)}</td><td>${inp("wonders."+a+".icon","icon",d.wonders[a].icon,v.wonders[a].icon)}</td><td>${inp("wonders."+a+".bonus","%",d.wonders[a].bonus,v.wonders[a].bonus)} %</td></tr>`).join("")}</table></div>
+  const hl=x=>{ const t=String(x), k=t.toLowerCase().indexOf(q); return k<0?esc(t):esc(t.slice(0,k))+"<mark>"+esc(t.slice(k,k+q.length))+"</mark>"+esc(t.slice(k+q.length)); };
+  if(UI.stab==="general"){ // search filters the groups: only matching rules, their groups open, the words highlighted
+    const G_=SETTINGS_META.map(([grp,rows])=>[grp,!q||hit(grp)?rows:rows.filter(([k,l])=>hit(l)||hit(k))]).filter(([,r])=>r.length), nHit=G_.reduce((a,[,r])=>a+r.length,0);
+    body=`<div class="ssearch"><input type="search" id="sq" placeholder="🔍 Search the general rules: mountain, upkeep, loyalty…" value="${esc(UI.sq||"")}" autocomplete="off" aria-label="Search the general rules">${q?`<span class="small mut">${nHit?`<b>${fmt(nHit)}</b> rule${nHit>1?"s":""} match`:"No rule matches. Try a shorter word."}</span><button class="sm" data-a="sqClear">Clear</button>`:""}</div>`+
+    G_.map(([grp,rows])=>{ const nChg=rows.filter(([k])=>JSON.stringify(getPath(v.R,k))!==JSON.stringify(getPath(d.R,k))).length;
+    return `<details class="sgrp" data-sgrp="${esc(grp)}" ${q||UI.sopen?.[grp]?"open":""}><summary><h3>${q?hl(grp):esc(grp)}</h3> <span class="small mut">${rows.length} setting${rows.length>1?"s":""}${nChg?` · <span class="acc">${nChg} changed</span>`:""}</span></summary><div class="sgrid">${rows.map(([k,label,kind])=>
+    q?gRow(k,label,kind).replace(`<span>${esc(label)}</span>`,`<span>${hl(label)}</span>`):gRow(k,label,kind)).join("")}</div></details>`; }).join(""); }
+  else if(UI.stab==="wonders") body=`<div class="stable"><table class="tight">${wHead}${Object.keys(v.wonders).map(a=>wRow(a)).join("")}</table></div>
     <div class="small mut">Bonus: multiplies the holder's main effect in that area (research, food, taxes, capacity, births, attack, defense, wood, iron, land taken). +25% means ×1.25.</div>`;
   else if(UI.stab==="names"){ const chg=JSON.stringify(v.names)!==JSON.stringify(d.names)?"chg":"";
     const g=v.ngen, ta=(k,l,tip)=>`<label class="npart"><span>${l} <span class="small mut" id="ngN-${k}">${fmt(g[k].length)}</span></span><textarea class="names ${JSON.stringify(g[k])!==JSON.stringify(d.ngen[k])?"chg":""}" data-sk="ngen.${k}" data-kind="lines" spellcheck="false" title="${tip}">${esc(g[k].join("\n"))}</textarea></label>`;
@@ -4919,12 +4966,9 @@ function settingsModal(tab){
   else if(UI.stab==="anames"){ const chg=JSON.stringify(v.anames)!==JSON.stringify(d.anames)?"chg":"";
     body=`<div class="small mut" style="margin-bottom:6px">One name per line. A new game with alliances shuffles this list and gives each alliance a name from it; if there are more alliances than names, extra ones are called "Alliance 1", "Alliance 2", … <b id="namesN">${fmt(v.anames.length)}</b> names.</div>
     <textarea class="names ${chg}" data-sk="anames" data-kind="lines" spellcheck="false">${esc(v.anames.join("\n"))}</textarea>`; }
-  else { const M_=TABLE_META[UI.stab];
-    body=`<div class="stable"><table class="tight"><tr>${M_.cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${v[UI.stab].map((row,i)=>
-      `<tr>${M_.cols.map(([f,,kind])=>`<td>${inp(UI.stab+"."+i+"."+f,kind,d[UI.stab][i][f],row[f])}${kind==="%"?"%":""}</td>`).join("")}</tr>`).join("")}</table></div>
-      <div class="small mut">${M_.note}</div>`; }
-  modal(`<h2>⚙ Settings</h2>
-    <div class="stabs">${STABS.map(([k,l])=>`<button class="sm ${UI.stab===k?"on":""}" data-stab="${k}">${l}</button>`).join("")}</div>
+  else { const M_=TABLE_META[UI.stab]; body=`${tRows(UI.stab)}<div class="small mut">${M_.note}</div>`; }
+  modal(`<div class="rep-head sethead"><h2>⚙ Settings</h2>
+    <div class="stabs">${STABS.map(([k,l])=>`<button class="sm ${UI.stab===k?"on":""}" data-stab="${k}">${l}</button>`).join("")}</div></div>
     <div class="mbody">${body}</div>
     <div class="rep-foot" style="flex-wrap:wrap">
       <button class="pri" data-a="settingsSave">Save &amp; apply</button>
@@ -4937,7 +4981,7 @@ function settingsModal(tab){
       <button data-a="close">Close</button></div>`,"report settings");
 }
 // remember which General-rules groups are open while the game is running (all start collapsed)
-document.addEventListener("toggle",e=>{ const t=e.target; if(t.matches?.("details.sgrp")) (UI.sopen??={})[t.dataset.sgrp]=t.open; },true);
+document.addEventListener("toggle",e=>{ const t=e.target; if(t.matches?.("details.sgrp")&&!(UI.sq||"").trim()) (UI.sopen??={})[t.dataset.sgrp]=t.open; },true); // not the ones a search opened
 function saveSettings(o){
   SETTINGS=o; try{ localStorage.setItem(SETTINGS_KEY,JSON.stringify(o)); }catch(e){}
   applySettings(SETTINGS);
@@ -5016,6 +5060,11 @@ function turnReport(prev){
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
 ["Tavern, general cards and traits","2026-11-13 20:50",["New War → Tavern: call a tier (Captain, Veteran, Academy graduate) and three candidates come forward; hire one","Candidates' Mind, Speed, Age, starting skill and traits are rolled inside the tier's range; the price never depends on the roll","Each tier can be called 10 times a year; every extra call that year costs 1.5× more","Legendary officers can't be called: any candidate may turn out Legendary","Cards turn over one by one; a Legendary shakes and glows gold first","The Age, Speed and Mind sliders are gone","War → Generals shows a card for each general: a drawn face (greys with age, scars from lost battles), tier, rank, skill, morale, won–lost and traits","20 traits: luck (Lucky, Lucky Bastard, Jinxed, Reckless), borders (Mountain Fox, Siege Breaker), one for each troop type, and Cautious, Coward, Butcher, Beloved, Greedy, Drunkard","Some traits start hidden and show after the general's first battle; Old Guard, Nemesis and Lucky Bastard can be earned","Battle reports show both generals' faces and traits, a row for each trait that changed the battle, and how luck was rolled","Computer states hire in the Tavern too and count traits in their odds","Settings: new General tiers tab and trait numbers under General rules"]],
+["X ends the turn","2026-11-13 20:20",["Press X to end the turn (when no window is open and you are not typing)"]],
+["Science in two parts","2026-11-13 20:18",["Science has a second menu: Research (key Q) and Bonuses (key W, the Total bonuses table)"]],
+["Search in Settings","2026-11-13 20:02",["General rules has a search box: type a word to see only the matching rules, with their groups open","The matched words are highlighted; Clear shows every rule again"]],
+["Map fills in while you drag","2026-11-13 19:40",["Trees, mountains and borders now fill in while you drag the map, not only after you let go","Small or zoomed-out maps redraw fully on every frame while you drag"]],
+["Faster years on big maps","2026-11-13 19:18",["Ending a year is about twice as fast on big maps (4000 states: about 1 s instead of 1.5–3 s): faster market plans for computer states, weather and settlers","Nothing about the game changes, only the speed"]],
 ["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
 ["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","With Choose your state on, Start plays the preview map even when you didn't click a state, instead of making a second one","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
 ["Smoother map on big worlds","2026-11-13 19:00",["Panning and zooming the map no longer lags on large maps (thousands of states)","Trees and mountains draw much faster when zoomed in"]],
@@ -5283,7 +5332,7 @@ ${gTab(["Area","Each level gives"],AREAS.map(a=>[`${WONDERS[a]?.icon||""} ${AREA
 <li><b>Ideas spread:</b> an area costs ${gP(R.catchUpPer)} less per level you are behind the world average (at most −${gP(R.catchUpMax)}) and ${gP(R.leadPer)} more per level you are ahead (at most ×${R.leadMax}).</li></ul>
 <h3>On top of research</h3><p>Civilization, leader, land and wonder bonuses multiply on top of research. In battle, one side's attack or defense research counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy.</p>`; }],
 ["identity","Your state","🏛️","Civilizations, leaders and land",()=>`
-<p>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties; the three <b>add together</b> (two +20% bonuses make +40%, not +44%). Defense, population growth and capacity bonuses apply at ${gP(R.traitWeight.defense)} because they compound. Islands and Oceanic land only go to states with a coastline. Your Home tab lists your bonuses, and the Science tab's Total bonuses table shows how they combine: civilization, leader and land add up into one multiplier, then research, a held wonder and shore farmland multiply it (×1.70 × ×1.20 = ×2.04).</p>
+<p>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties; the three <b>add together</b> (two +20% bonuses make +40%, not +44%). Defense, population growth and capacity bonuses apply at ${gP(R.traitWeight.defense)} because they compound. Islands and Oceanic land only go to states with a coastline. Your Home tab lists your bonuses, and Science → Bonuses shows how they combine: civilization, leader and land add up into one multiplier, then research, a held wonder and shore farmland multiply it (×1.70 × ×1.20 = ×2.04).</p>
 <p>Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home.</p>
 <h3>Civilizations</h3>${gTab(["Civilization","Bonuses"],CIVS.map(x=>[x.name,gTraits(x)]))}
 <h3>Leaders</h3>${gTab(["Leader","Bonuses"],LEADERS.map(x=>[x.name,gTraits(x)]))}
@@ -5477,7 +5526,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
 <p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Market, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
-${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; resources (stock, change per year, prices); work sliders; year ahead"],["2","🔬 Science","—","Research split, levels, costs, presets; total bonuses"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Tavern · E Wars · R Neighbors","Generals: a card for each general (traits, record), dismiss, rest, pick the defender. Tavern: call candidates by tier and hire one. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
+${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; resources (stock, change per year, prices); work sliders; year ahead"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Tavern · E Wars · R Neighbors","Generals: a card for each general (traits, record), dismiss, rest, pick the defender. Tavern: call candidates by tier and hire one. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
 <p>Allies shows only in games with alliances; News then takes key 7.</p>
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
@@ -5509,10 +5558,11 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
+<p><b>Search</b> (top of General rules) narrows the long list of rules: type a word like "mountain", "upkeep" or "loyalty" and only the matching rules stay, with their groups open, ready to change.</p>
 <h3>State names</h3><p>A new game gives each state a name from the list in Settings → State names (${fmt(NAMES.length)} names now). When a map has more states than the list, the rest get <b>invented names</b>: a title with a made-up place in it, like "Kingdom of Korvalia" or "Korvalian Empire". The place is built from a start, sometimes a middle, and an end; the title from a pattern where {N} is the place and {A} a word made from it. With the current parts there are about ${fmt(nameCombos(NAME_GEN))} different names. Set <b>Invented share</b> above 0 to give that share of states an invented name even when the list has enough. Rebel states get invented places too ("Rebels of Korvalia").</p>
 <h3>Saves</h3><p>The game saves itself in this browser every year. When you open the page again you can continue where you left off.</p>
 <p><b>Save to file</b> (Menu) downloads the whole game as one .json file: the map, every state, the news archive and the rules from Settings. <b>Load from file</b> (Menu, or the first window) opens it, also on another computer or browser, and you play on from that year. Loading replaces the game saved in this browser and its Settings, so save that one to a file first if you want to keep it.</p>
-<h3>Keys</h3>${gTab(["Key","Does"],[["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
+<h3>Keys</h3>${gTab(["Key","Does"],[["X","End turn"],["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
 <p>Menu → Change log lists what changed in each update.</p>`],
 
 ["strategy","Strategy","💡","Strategy tips",()=>`
@@ -5851,6 +5901,7 @@ document.addEventListener("click",async ev=>{
     case "pickTakeover": closeModal(); UI.tab="world"; render(); flash("Click a state on the map, then press Take over."); return;
     case "settingsSave": saveSettings(diffSettings(UI.sdraft)); UI.sdraft=currentValues(); settingsModal(); if(G) render(); flash("Settings saved and applied."); return;
     case "settingsResetTab": { const t=UI.stab, d=JSON.parse(JSON.stringify(DEFAULTS)); if(t==="general") UI.sdraft.R=d.R; else UI.sdraft[t]=d[t]; if(t==="names") UI.sdraft.ngen=d.ngen; settingsModal(); return; }
+    case "sqClear": UI.sq=""; settingsModal(); $("sq")?.focus(); return;
     case "namePreview": if(UI.sdraft&&$("ngEx")) $("ngEx").innerHTML=nameExamples(UI.sdraft.ngen); return;
     case "settingsResetAll": UI.sdraft=JSON.parse(JSON.stringify(DEFAULTS)); settingsModal(); return;
     case "settingsExport": exportSettings(); return;
@@ -5896,6 +5947,7 @@ document.addEventListener("input",ev=>{
   const t=ev.target;
   if(t.dataset.mkt){ const v=t.id==="mkP"?t.value.replace(/[^\d.]/g,""):t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; paintMkt(); return; }
   if(t.id?.startsWith("trn-")){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; trainPreview(t.id.slice(4)); return; }
+  if(t.id==="sq"){ UI.sq=t.value; settingsModal(); const e=$("sq"); e.focus(); e.setSelectionRange(e.value.length,e.value.length); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
   if(t.dataset.sk&&UI.sdraft){ const k=t.dataset.kind; let v= k==="bool"?t.checked : k==="text"?t.value : k==="lines"?[...new Set(t.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))] : +t.value; if(k==="%") v=v/100;
     if(k!=="text"&&k!=="bool"&&k!=="lines"&&!isFinite(v)) return; setPath(UI.sdraft,t.dataset.sk,v);
     if(k==="lines"&&$("namesN")&&!t.dataset.sk.startsWith("ngen.")) $("namesN").textContent=fmt(v.length);
@@ -6048,7 +6100,8 @@ document.addEventListener("keydown",e=>{
     if(e.key==="Escape"&&UI.sel!=null&&!UI.busy&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){ UI.sel=null; render(); }
     // number keys 1-9 switch pages, Q W E … the parts of a page
     if(G&&!UI.busy&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)&&!e.target.isContentEditable){
-      if(/^[1-9]$/.test(e.key)){ const t=visibleTabs()[+e.key-1]; if(t){ UI.tab=t[0]; UI.untrainAsk=null; render(); } }
+      if(e.key==="x"||e.key==="X"){ const b=$("end"); if(!b.disabled) b.click(); } // X: end turn (same as the button)
+      else if(/^[1-9]$/.test(e.key)){ const t=visibleTabs()[+e.key-1]; if(t){ UI.tab=t[0]; UI.untrainAsk=null; render(); } }
       else if(e.key.length===1){ const i=SUBKEYS.indexOf(e.key.toLowerCase()), x=$("tabs").hidden?null:subsOf(UI.tab)?.[i]; if(x){ goTab(UI.tab,x[0]); UI.untrainAsk=null; render(); } } }
     return;
   }
@@ -6114,7 +6167,7 @@ $("bExport").addEventListener("click",()=>{ if(!UI.busy) exportGame(); });
 $("bImport").addEventListener("click",()=>{ if(!UI.busy) $("gameFile").click(); });
 $("gameFile").addEventListener("change",e=>{ const f=e.target.files?.[0]; e.target.value=""; if(f&&!UI.busy) f.text().then(importGame); });
 $("bLog").addEventListener("click",()=>{ if(!UI.busy) changelogModal(); });
-$("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; settingsModal("general"); });
+$("bSettings").addEventListener("click",()=>{ if(UI.busy) return; UI.sdraft=null; UI.sq=""; settingsModal("general"); });
 $("bNew").addEventListener("click",()=>{ if(UI.busy) return; UI.setup=null; UI.fromWelcome=false; setupModal(); });
 window.addEventListener("resize",()=>mainView.resize()); // map height follows the window
 { // draggable divider between map and side panel (wide screens only)
