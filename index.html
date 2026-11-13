@@ -4607,6 +4607,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Up to 4000 states","2026-11-13 18:37",["New game takes up to 4000 states (was 1000); the slider goes on to 1280, 1600, 2000, 2500, 3200 and 4000","Big maps take longer to make: about a minute at 4000 states"]],
 ["Invented state names","2026-11-13 18:32",["States beyond the name list get full invented names with a title, like \"Kingdom of Korvalia\" or \"Korvalian Empire\"","Settings → State names: edit the starts, middles, ends and titles used to invent names, with examples","Invented share: give part of the states an invented name even when the list has enough","Over two million possible names"]],
 ["Round map guide button","2026-11-13 18:25",["The ? button next to the map views is a small circle again, not a stretched oval","Every ? guide button shows its ? centered"]],
 ["Wonders page","2026-11-13 18:23",["Wonders have their own part of the World page (World → Wonders, key W) in games with wonders","Recent wars moves to key E there"]],
@@ -5055,7 +5056,7 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <li><b>Fog of war:</b> you only see your neighbors.</li></ul>`],
 ["setup","Interface","⚙️","New game options",()=>`
 <ul class="log"><li><b>You:</b> empire name, civilization, leader and land (or Random).</li>
-<li><b>World:</b> a random map or a pre-made one (like the World map), and the number of states.</li>
+<li><b>World:</b> a random map or a pre-made one (like the World map), and the number of states (2 to ${fmt(N_MAX)}; big maps take a while to make, up to about a minute at the top).</li>
 <li><b>More options:</b> territory size per state, water (lakes, rivers or both: chokepoints), and the rules below.</li></ul>
 ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="function"?f():f]))}
 <p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one piece with its own natural shape and rough, ragged borders. Only scraps of land, and islands no sea route reaches, start unowned; neighbors settle them.</p>
@@ -5136,8 +5137,8 @@ function loadSetup(){
 }
 function saveSetup(){ const s=UI.setup; if(!s) return; const out={}; for(const k of Object.keys(setupDefaults())) out[k]=s[k];
   try{ localStorage.setItem(SETUP_KEY,JSON.stringify(out)); }catch{} }
-// state counts the slider snaps to; the number box above it takes any value from 2 to 1000
-const N_STEPS=[2,3,4,5,6,8,10,12,16,20,24,32,40,50,64,80,100,128,160,200,250,320,400,500,640,800,1000];
+// state counts the slider snaps to; the number box above it takes any value from 2 to N_MAX
+const N_MAX=4000, N_STEPS=[2,3,4,5,6,8,10,12,16,20,24,32,40,50,64,80,100,128,160,200,250,320,400,500,640,800,1000,1280,1600,2000,2500,3200,4000];
 const nStep=n=>{ let b=0; N_STEPS.forEach((v,i)=>{ if(Math.abs(v-n)<Math.abs(N_STEPS[b]-n)) b=i; }); return b; };
 // info icon: a real button whose tooltip shows on hover and on keyboard focus
 const info=(label,t,cls="")=>`<button type="button" class="info ${cls}" aria-label="${esc(label)}: ${esc(t)}" data-tip="${esc(t)}">ⓘ</button>`;
@@ -5159,7 +5160,7 @@ function setupModal(){
     if(id==="sC"&&hot){ label="Choose states on the map"; short="Pick starting states on a preview"; }
     return `<div class="rule ${po&&obs?"hidden":""}"><label><input type="checkbox" id="${id}" ${s[key]?"checked":""}><span><b>${label}</b><small>${short}</small></span></label>${info(label,f,"r")}</div>`
       +(id==="sAl"?`<div class="alopts ${s.al?"":"hidden"}"><select id="sAlMode" aria-label="Alliance setup"><option value="count" ${s.alMode==="count"?"selected":""}>Number of alliances</option><option value="size" ${s.alMode==="size"?"selected":""}>States per alliance</option></select>
-        <input type="text" inputmode="numeric" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="1000" value="${s.alN}">
+        <input type="text" inputmode="numeric" id="sAlN" aria-label="Alliance count" min="${s.alMode==="size"?1:2}" max="${N_MAX}" value="${s.alN}">
         <select id="sAlLay" aria-label="Alliance layout"><option value="region" ${s.alLay==="region"?"selected":""}>In a region</option><option value="scattered" ${s.alLay==="scattered"?"selected":""}>Scattered</option></select>
         <span class="small mut" id="sAlInfo">${allyInfo()}</span></div>`:"")
       +(id==="sPc"?`<div class="alopts ${s.peaceOn?"":"hidden"}"><input type="text" inputmode="numeric" id="sPeace" maxlength="3" value="${s.peace}" aria-label="Peace years"> <span class="small mut">years without war</span></div>`:""); };
@@ -5178,7 +5179,7 @@ function setupModal(){
   <section><h3 class="sh">World</h3>
     <div class="fld"><span><label for="sMap">Map</label> ${info("Map",preset?"Pre-made map. Dashed lines are sea routes that count as borders; defenders get a small sea-crossing bonus.":"A new random landscape every game.")}</span>
       <select id="sMap"><option value="random" ${!preset?"selected":""}>Random (generated)</option>${Object.entries(PRESET_MAPS).map(([k,v])=>`<option value="${k}" ${s.map===k?"selected":""}>${v.name}</option>`).join("")}</select></div>
-    <div class="fld"><span class="lr"><label for="sN">States</label><input type="text" inputmode="numeric" id="sNV" min="2" max="1000" value="${s.n}" aria-label="Number of states (2 to 1000)"></span>
+    <div class="fld"><span class="lr"><label for="sN">States</label><input type="text" inputmode="numeric" id="sNV" min="2" max="${N_MAX}" value="${s.n}" aria-label="Number of states (2 to ${fmt(N_MAX)})"></span>
       <input type="range" id="sN" min="0" max="${N_STEPS.length-1}" value="${nStep(s.n)}" aria-valuetext="${s.n} states"></div></section>
   <div class="more"><button type="button" class="mbtn" data-smore aria-expanded="${!!s.more}" aria-controls="sMore"><span class="chev" aria-hidden="true">›</span><b>More options</b><span class="mut">Territory size, water, terrain, rules</span></button>
   <div id="sMore" role="region" aria-label="More options" ${s.more?"":"hidden"}>
@@ -5448,7 +5449,7 @@ document.addEventListener("input",ev=>{
   if(t.id==="sPeace"){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; if(+v>0){ s.peace=Math.min(999,+v); updateSummary(); } return; }
   if(t.dataset.pf){ const [i,k]=t.dataset.pf.split("."), q=s.players[+i]; if(q) q[k]=k==="name"?t.value.slice(0,24):t.value; return; }
   if(t.id==="sN"||t.id==="sNV"){ const v=t.id==="sN"?N_STEPS[+t.value]:Math.floor(+t.value);
-    if(t.id==="sNV"&&!(v>=2&&v<=1000)) return; // finish typing; clamped on change
+    if(t.id==="sNV"&&!(v>=2&&v<=N_MAX)) return; // finish typing; clamped on change
     setStates(v,t.id); }
   if(t.id==="sAlN"){ const v=Math.floor(+t.value); if(v>=1){ s.alN=s.alMode==="count"?Math.max(2,v):v; $("sAlInfo").innerHTML=allyInfo(); } return; }
   if(t.id==="sT"){ s.terr=+t.value; $("sTV").textContent=s.terr; $("sTK").textContent=fmt(Math.round(s.terr*5.5))+" km² each"; s.preview=null; s.pick=null; }
@@ -5477,7 +5478,7 @@ document.addEventListener("change",ev=>{
   if(t.id==="sAl"||t.id==="sAlMode"||t.id==="sAlLay"){ if(t.id==="sAl") s.al=t.checked; else if(t.id==="sAlMode"){ s.alMode=t.value; if(s.alMode==="count") s.alN=Math.max(2,s.alN); } else s.alLay=t.value;
     s.preview=null; s.pick=null; setupModal(); return; }
   if(t.id==="sAlN"){ s.preview=null; s.pick=null; if(s.choose&&!s.observer) drawPreview(); return; }
-  if(t.id==="sNV"){ const v=Math.max(minStates(),Math.min(1000,Math.floor(+t.value)||s.n)); setStates(v,""); }
+  if(t.id==="sNV"){ const v=Math.max(minStates(),Math.min(N_MAX,Math.floor(+t.value)||s.n)); setStates(v,""); }
   if(["sN","sNV","sT","sW","sWS","sFo","sMo"].includes(t.id)&&s.choose) drawPreview();
   if(t.id==="sC"){ s.choose=t.checked; setupModal(); }
   if(t.id==="sF"){ s.fog=t.checked; }
