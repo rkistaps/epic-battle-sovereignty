@@ -4638,7 +4638,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","Pressing Start plays the map from the New game preview instead of making a second one (unless you picked a state, which already did)","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
+["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","With Choose your state on, Start plays the preview map even when you didn't click a state, instead of making a second one","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
 ["Year dial while a turn runs","2026-11-13 18:40",["While a year runs, a dial shows it: a sun circles the year number and a gold ring fills as the year goes on","A line under it says what is happening: rulers plan, armies march, harvest, markets, envoys","Auto-run shows a small spinner next to \"Year …\""]],
 ["Up to 4000 states","2026-11-13 18:37",["New game takes up to 4000 states (was 1000); the slider goes on to 1280, 1600, 2000, 2500, 3200 and 4000","Big maps take longer to make: about a minute at 4000 states"]],
 ["Invented state names","2026-11-13 18:32",["States beyond the name list get full invented names with a title, like \"Kingdom of Korvalia\" or \"Korvalian Empire\"","Settings → State names: edit the starts, middles, ends and titles used to invent names, with examples","Invented share: give part of the states an invented name even when the list has enough","Over two million possible names"]],
@@ -5094,7 +5094,7 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <li><b>More options:</b> territory size per state, water (lakes, rivers or both: chokepoints), and the rules below.</li></ul>
 ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="function"?f():f]))}
 <p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one piece with its own natural shape and rough, ragged borders. Only scraps of land, and islands no sea route reaches, start unowned; neighbors settle them.</p>
-<p>Big maps take a while to make (around half a minute at ${fmt(N_MAX)} states). A dial shows how far along it is and what is being done. The map in the New game preview is the one you play, so pressing Start doesn't make a second one; if the preview isn't finished yet, the dial shows until it is.</p>
+<p>Big maps take a while to make (around half a minute at ${fmt(N_MAX)} states). A dial shows how far along it is and what is being done. When you choose your state on the preview map, that map is the one you play, even if you leave the choice to chance: Start doesn't make a second one, and if the preview isn't finished yet, the dial shows until it is.</p>
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
