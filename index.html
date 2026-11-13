@@ -169,12 +169,12 @@ td.r,th.r{text-align:right}
 .tl-track{fill:none;stroke:var(--panel2);stroke-width:7} .tl-tick{stroke:var(--line);stroke-width:2;stroke-linecap:round}
 .tl-arc{fill:none;stroke:var(--acc);stroke-width:7;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .3s ease;transform:rotate(-90deg);transform-origin:60px 60px}
 .tload.ind .tl-arc{stroke-dasharray:22 78;animation:tlSpin 1.4s linear infinite;transition:none}
-.tl-orbit{transform-origin:60px 60px;animation:tlSpin 2.6s linear infinite} .tl-sun{font-size:15px}
+.tl-orbit{transform-origin:60px 60px;transition:transform .3s ease} .tload.ind .tl-orbit{animation:tlSpin 2.6s linear infinite} .tl-sun{font-size:15px;transform-box:fill-box;transform-origin:center;transition:transform .3s ease} /* rides the end of the arc; spins when there's no progress to show */
 .tl-yr{fill:var(--txt);font-size:26px;font-weight:700} .tl-lab{fill:var(--mut);font-size:9.5px;letter-spacing:1.5px}
 .tl-step{min-height:1.4em;color:var(--mut);font-size:13px;text-align:center}
 .tlmini{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid var(--panel2);border-top-color:var(--acc);vertical-align:-1px;margin-right:6px;animation:tlSpin .9s linear infinite}
 @keyframes tlSpin{to{transform:rotate(270deg)}} @keyframes tlIn{from{opacity:0;transform:scale(.96)}}
-@media(prefers-reduced-motion:reduce){.tl-orbit,.tlmini,.tload.ind .tl-arc{animation-duration:6s}}
+@media(prefers-reduced-motion:reduce){.tload.ind .tl-orbit,.tlmini,.tload.ind .tl-arc{animation-duration:6s}}
 /* rules & guide: menu and search on the left, one topic on the right */
 .glink{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:2px 0 0!important;box-sizing:border-box;margin-left:6px;border-radius:50%!important;border:1px solid var(--line)!important;background:none!important;color:var(--mut);font-size:10.5px;font-weight:700;line-height:1;vertical-align:2px;cursor:pointer;text-transform:none;letter-spacing:0;flex:none}
 .glink:hover,.glink:focus-visible{color:var(--acc);border-color:var(--acc)!important}
@@ -4638,6 +4638,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
 ["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","With Choose your state on, Start plays the preview map even when you didn't click a state, instead of making a second one","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
 ["Year dial while a turn runs","2026-11-13 18:40",["While a year runs, a dial shows it: a sun circles the year number and a gold ring fills as the year goes on","A line under it says what is happening: rulers plan, armies march, harvest, markets, envoys","Auto-run shows a small spinner next to \"Year …\""]],
 ["Up to 4000 states","2026-11-13 18:37",["New game takes up to 4000 states (was 1000); the slider goes on to 1280, 1600, 2000, 2500, 3200 and 4000","Big maps take longer to make: about a minute at 4000 states"]],
@@ -5077,7 +5078,7 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
 ["news","Interface","📰","News and reports",()=>`
-<ul class="log"><li>While a year runs, a dial shows it passing: the sun circles the year, the gold ring fills, and a line says what the world is doing (plans, battles, harvest, markets, envoys). During auto-run a small spinner sits in the corner instead.</li>
+<ul class="log"><li>While a year runs, a dial shows it passing: the gold ring fills with the sun riding its tip, and a line says what the world is doing (plans, battles, harvest, markets, envoys). During auto-run a small spinner sits in the corner instead.</li>
 <li>After each year the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
 <li>The <b>News</b> tab keeps every report, page by page (← Newer / Older). <b>Details ›</b> opens a full battle report.</li>
 <li>War news reaches you when a war starts or ends next to you or in your alliance.</li></ul>`],
@@ -5303,12 +5304,12 @@ function setPstText(){ const s=UI.setup; s.players.forEach((_,i)=>{ const el=$("
 function dialLoader(lab,big,icon,step){ const ticks=Array.from({length:12},(_,i)=>{ const a=i/12*2*Math.PI, x=Math.sin(a), z=-Math.cos(a); return `<line class="tl-tick" x1="${60+x*40}" y1="${60+z*40}" x2="${60+x*44}" y2="${60+z*44}"/>`; }).join("");
   return `<div class="tload${ENGINE.inWorker?"":" ind"}" role="status" aria-live="polite"><svg viewBox="0 0 120 120" aria-hidden="true">
     <circle class="tl-track" cx="60" cy="60" r="52"/>${ticks}<circle class="tl-arc" id="tlArc" cx="60" cy="60" r="52" pathLength="100"/>
-    <g class="tl-orbit"><text class="tl-sun" x="60" y="13" text-anchor="middle">${icon}</text></g>
+    <g class="tl-orbit" id="tlOrb"><text class="tl-sun" id="tlIcon" x="60" y="13" text-anchor="middle">${icon}</text></g>
     <text class="tl-lab" x="60" y="50" text-anchor="middle">${lab}</text><text class="tl-yr" id="tlBig" x="60" y="78" text-anchor="middle">${big}</text></svg>
     <div class="tl-step" id="tlStep">${step}</div></div>`; }
 const turnLoader=y=>dialLoader("YEAR",y,"☀️",ENGINE.inWorker?"The year begins…":"The world is moving…");
 const mapLoader=()=>dialLoader("MAP",ENGINE.inWorker?"0%":"…","🧭",ENGINE.inWorker?"Shaping the land…":"Drawing the map…");
-function dialShow(p,label,pct){ const a=$("tlArc"), l=$("tlStep"), b=$("tlBig"); if(a) a.style.strokeDashoffset=100-Math.round(p*100); if(l&&label) l.textContent=label+"…"; if(pct&&b) b.textContent=Math.round(p*100)+"%"; }
+function dialShow(p,label,pct){ const a=$("tlArc"), l=$("tlStep"), b=$("tlBig"), o=$("tlOrb"); if(a) a.style.strokeDashoffset=100-Math.round(p*100); if(o){ const d=Math.round(p*100)*3.6; o.style.transform=`rotate(${d}deg)`; const ic=$("tlIcon"); if(ic) ic.style.transform=`rotate(${-d}deg)`; } /* the icon stays upright */ if(l&&label) l.textContent=label+"…"; if(pct&&b) b.textContent=Math.round(p*100)+"%"; }
 const turnShow=(p,label)=>dialShow(p,label);
 // map generation progress bar (filled by genShow while the worker reports; mini = the small one in the New game preview)
 const genBar=(p,mini)=>`<div class="genbar${mini?" mini":""}"><i id="${mini?"":"genBarI"}" style="width:${Math.round((p||0)*100)}%"></i></div>${mini?"":`<div class="small mut" id="genLab">Starting…</div>`}`;
