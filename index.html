@@ -496,7 +496,7 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .mprev{font-size:12px;color:var(--mut);text-align:center;white-space:nowrap;margin-top:-2px} .mprev b{font-weight:600}
 .mkfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px}
 .mlink{background:none;border:0;padding:0;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px} .mlink.good{color:var(--good)} .mlink.bad{color:var(--bad)}
-.ya{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:4px 0 8px} .ya4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))} .yah .stk{color:var(--mut);font-weight:400;font-size:13px;margin-left:3px}
+.ya{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:4px 0 8px} .ya4{grid-template-columns:repeat(2,minmax(0,1fr))} .ya4>.yac{display:flex;flex-direction:column} .ya4 .yaf{margin-top:auto} .ya4 .yar:last-of-type{margin-bottom:7px} @container (min-width:860px){.ya4{grid-template-columns:repeat(4,minmax(0,1fr))}} /* 2 or 4 in a row, never 3+1 */ .yah .stk{color:var(--mut);font-weight:400;font-size:13px;margin-left:3px}
 .yac{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-variant-numeric:tabular-nums}
 .yah{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;margin-bottom:6px} .yah b{font-size:18px}
 .yar{display:flex;justify-content:space-between;padding:2px 0} .yar b{font-weight:600}
@@ -5258,6 +5258,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Resource cards in even rows","2026-11-13 23:01",["Home → Resources: the four cards sit 2 by 2, or 4 in a row on a wide side panel (no more 3 and 1)","Research sliders are longer when the side panel is wide"]],
 ["Research rows stay still","2026-11-13 22:53",["Research: when the next level comes has its own line under each area, so the table never jumps when it changes","\"level up next year 🎉\" is shorter and fits narrow panels"]],
 ["One Resources box on Home","2026-11-13 22:49",["Home: Resources and Year ahead are one box under Work, with a card each for grain, money, wood and iron","Each card shows what is in store, the change next year, where it comes from and goes, and the market price","Forest, mountain and shore farmland bonuses sit in the wood, iron and grain cards"]],
 ["Staff posts and a Generals page","2026-11-13 22:16",["Generals has its own page in the main menu, after Market (key 5): Generals, Staff and Tavern. War keeps Wars and Neighbors (key 6)","New Staff posts: Quartermaster (army eats less grain), Drillmaster (generals in the field learn faster; his troop traits make those troops fight better), Chief of Staff (generals in the field recover morale faster), Governor (Ease raises loyalty, Squeeze raises taxes at a cost in loyalty)","A general at a post can't attack or defend; effects grow with his Mind and count at the end of the year","Click a post's portrait to see what each general would give there, best first","New trait: Iron Quartermaster (only works at the Quartermaster post)","At most 10 generals at once","Computer states use staff posts too"]],
