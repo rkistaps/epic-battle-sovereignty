@@ -2699,7 +2699,6 @@ if(typeof module!=="undefined") module.exports={worldAvgLv,costParts,newGame,end
 <script>
 // ===== Epic Battle: Sovereignty — UI =====
 let G=null; const UI={tab:"economy",sel:null,setup:null,known:null,busy:false};
-try{ if(localStorage.getItem("eb.wondersOpen")==="0") UI.wondersOpen=false; }catch{}
 try{ UI.wLandRank=localStorage.getItem("eb.wLandRank")==="1"; UI.wAllyCol=localStorage.getItem("eb.wAllyCol")==="1"; }catch{}
 UI.atkPreset="p90"; try{ const p=localStorage.getItem("eb.atkPreset"); if(["p90","x2","off","all"].includes(p)) UI.atkPreset=p; }catch{}
 const $=id=>document.getElementById(id);
@@ -3491,9 +3490,10 @@ const TABS=[["economy","Home","🏰","Home: your state"],["science","Science","�
 // second menu at the top of the side panel, for pages split in parts (keys Q W E …)
 const SUBS={market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
   war:[["generals","Generals","🎖️","Your generals and hiring"],["wars","Wars","🔥","Wars, defense and this year's orders"],["nbrs","Neighbors","🧭","Neighbors: plan an attack"]],
-  world:[["rank","Rankings","🏆","Rankings"],["recent","Recent wars","🗡️","Recent wars"]]};
+  world:[["rank","Rankings","🏆","Rankings"],["wonders","Wonders","🗼","Wonders: who holds each one"],["recent","Recent wars","🗡️","Recent wars"]]};
 const SUBKEYS="qwertyuiop";
-const subOf=k=>{ const S=SUBS[k]; if(!S) return null; const s=UI.sub?.[k]; return S.some(x=>x[0]===s)?s:S[0][0]; };
+const subsOf=k=>SUBS[k]?.filter(x=>x[0]!=="wonders"||G?.wonders); // Wonders only in games with wonders
+const subOf=k=>{ const S=subsOf(k); if(!S) return null; const s=UI.sub?.[k]; return S.some(x=>x[0]===s)?s:S[0][0]; };
 function goTab(t,sub){ UI.tab=t; if(sub) (UI.sub||(UI.sub={}))[t]=sub; }
 const PUBLIC_TABS=["world","alliances","news"]; // what an observer (or a fallen player) can look at
 function renderTabs(){
@@ -3503,7 +3503,7 @@ function renderTabs(){
   const T=visibleTabs(), bdg=b=>b?`<span class="tbdg ${b.cls||""}">${b.n??""}</span>`:""; seeTab(UI.tab);
   $("topnav").innerHTML=T.map(([k,l,ic,full],i)=>{ const b=tabBadge(k), tip=full+(i<9?` · key ${i+1}`:"")+(b?.tip?` · ${b.tip}`:"");
     return `<button data-tab="${k}" class="${UI.tab===k?'on':''}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="ic">${ic}</span>${l}${i<9?`<span class="key">${i+1}</span>`:""}${bdg(b)}</button>`; }).join("")+gl("tabs");
-  const S=watching()&&!PUBLIC_TABS.includes(UI.tab)?null:SUBS[UI.tab], el=$("tabs"), cur=subOf(UI.tab); el.hidden=!S;
+  const S=watching()&&!PUBLIC_TABS.includes(UI.tab)?null:subsOf(UI.tab), el=$("tabs"), cur=subOf(UI.tab); el.hidden=!S;
   if(!S){ el.innerHTML=""; return; }
   el.style.gridTemplateColumns=`repeat(${S.length},1fr)`;
   el.innerHTML=S.map(([k,l,ic,full],i)=>{ const b=subBadge(UI.tab,k), tip=full+` · key ${SUBKEYS[i].toUpperCase()}`+(b?.tip?` · ${b.tip}`:"");
@@ -4134,8 +4134,8 @@ function pWorld(sub){
   if(sub==="recent") return `${sel?inspect(sel):""}
   <h3>Recent wars ${gl("wars")}</h3>
   ${recent.length?recent.map(b=>`<div class="small"><b>Year ${b.turn}</b>${b.list.length?"":" <span class='mut'>peace</span>"}<ul class="log" style="margin:2px 0 6px;padding-left:18px">${b.list.map(battleLine).join("")}</ul></div>`).join(""):`<div class="mut small">No turns played yet.</div>`}`;
+  if(sub==="wonders") return `${sel?inspect(sel):""}${wonderList()}`;
   return `${sel?inspect(sel):""}
-  ${wonderList()}
   <h3>Rankings ${gl("power")}</h3>
   ${hidden?`<div class="small mut">🌫 ${fmt(hidden)} other states are hidden by fog of war.</div>`:""}
   <div class="small mut">${all.length>LIMIT?`Showing the top ${LIMIT} of ${fmt(all.length)} states. `:""}Alive ${fmt(nAlive)} / ${fmt(G.countries.length)} states.</div>
@@ -4195,10 +4195,8 @@ function pAlliances(){
 }
 function wonderList(){
   if(!G.wonders) return "";
-  const open=UI.wondersOpen!==false, mine=G.wonders.filter(w=>G.cells[w.cell]===G.player).length;
-  const head=`<h3><button class="h3btn" data-wtoggle="1" aria-expanded="${open}">${open?"▾":"▸"} Wonders <span class="small" style="text-transform:none;letter-spacing:0">· you hold ${mine} of ${G.wonders.length}</span></button></h3>`;
-  if(!open) return head;
-  return `${head}<table>${G.wonders.map((w,i)=>{ const o=G.cells[w.cell], seen=o>=0&&isKnown(o), h=seen?G.countries[o]:null;
+  const mine=G.wonders.filter(w=>G.cells[w.cell]===G.player).length;
+  return `<h3>Wonders ${gl("wonders")}</h3><div class="small mut" style="margin-bottom:4px">You hold ${mine} of ${G.wonders.length}.</div><table>${G.wonders.map((w,i)=>{ const o=G.cells[w.cell], seen=o>=0&&isKnown(o), h=seen?G.countries[o]:null;
     if(o===-1) return `<tr><td style="white-space:nowrap">${WONDERS[w.area].icon} ${WONDERS[w.area].name}<div class="small mut">${AREA_NAMES[w.area]} +${wonderPct(w.area)}%</div></td><td class="mut">unowned land</td><td><button class="sm" data-wonder="${i}">Show</button></td></tr>`;
     return `<tr><td style="white-space:nowrap">${WONDERS[w.area].icon} ${WONDERS[w.area].name}<div class="small mut">${AREA_NAMES[w.area]} +${wonderPct(w.area)}%</div></td>
       <td>${h?`<span class="sw" style="background:${h.color}"></span>${o===G.player?"★ ":""}${esc(h.name)}`:'<span class="mut">unknown</span>'}</td>
@@ -4579,6 +4577,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Wonders page","2026-11-13 18:23",["Wonders have their own part of the World page (World → Wonders, key W) in games with wonders","Recent wars moves to key E there"]],
 ["Two-level menu","2026-11-13 18:15",["Main menu moved above the map and side panel: Home, Science, Army, Market, War, World, Allies, News (keys 1–8)","Market, War and World split into parts, picked in a second menu at the top of the side panel (keys Q, W, E)","Market: Stock (your goods and the world market) and Trade (trade, order book, your orders)","War: Generals, Wars (wars, defense, this year's orders) and Neighbors","World: Rankings and Recent wars","Generals moved into War","Home shows your state's name and alliance, and a Resources box after Population","Army lists your soldiers per troop type with attack, defense and upkeep"]],
 ["Loyalty in the Population box","2026-11-13 17:21",["Home tab: Loyalty, next year's recovery, revolt chance and festivals now sit in the Population box"]],
 ["Rankings: color next to the name","2026-11-12 21:41",["World rankings show the alliance tag first, then the state's color square right next to its name","Long names get cut with … but the tag and color square stay"]],
@@ -4844,6 +4843,7 @@ ${gTab(["Area","Each level gives"],AREAS.map(a=>[`${WONDERS[a]?.icon||""} ${AREA
 <h3>Land types</h3>${gTab(["Land","Bonuses"],LANDS.map(x=>[x.name,gTraits(x)]))}`],
 ["wonders","Your state","🗼","Wonders",()=>`
 <p>With wonders on (New game → More options → Rules), ten landmarks are placed on the map, one per research area. Whoever owns the land a wonder stands on gets that area's effect raised by its bonus. Conquer the land and the wonder is yours. Computer states like to attack for them.</p>
+<p>World → Wonders lists every wonder, who holds it and a Show button that finds it on the map.</p>
 ${gTab(["Wonder","Area","Bonus"],AREAS.filter(a=>WONDERS[a]).map(a=>[`${WONDERS[a].icon} ${WONDERS[a].name}`,AREA_NAMES[a],"+"+gP(WONDERS[a].bonus)]))}`],
 
 ["troops","Military","⚔️","Troops",()=>`
@@ -5000,7 +5000,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
 <p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Market, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
-${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; resources (stock, change per year, prices); work sliders; year ahead"],["2","🔬 Science","—","Research split, levels, costs, presets; total bonuses"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Wars · E Neighbors","Generals: hire, dismiss, rest, pick the defender. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Recent wars","Rankings of every state and wonders; the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
+${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; resources (stock, change per year, prices); work sliders; year ahead"],["2","🔬 Science","—","Research split, levels, costs, presets; total bonuses"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Wars · E Neighbors","Generals: hire, dismiss, rest, pick the defender. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
 <p>Allies shows only in games with alliances; News then takes key 7.</p>
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
@@ -5308,7 +5308,6 @@ document.addEventListener("click",async ev=>{
   if(d.dismiss){ cmd("dismissGeneral",+d.dismiss); render(); return; }
   if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=cmd("festival",n); UI.festN=undefined;
     flash(got?`Festivals held: loyalty +${got} for ${fmt(got*festCost(G,c))} gold.`:"Not enough gold, or no room for more loyalty this year."); render(); return; }
-  if(d.wtoggle){ UI.wondersOpen=UI.wondersOpen===false; try{ localStorage.setItem("eb.wondersOpen",UI.wondersOpen?"1":"0"); }catch{} render(); return; }
   if(d.find){ if(!G||observing()) return; goTab("world","rank"); UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
   if(d.mfill){ const box=$("mkAmt"); if(box){ box.value=d.n; paintMkt(); box.focus(); } return; }
   if(d.mkp){ const box=$("mkP"); if(box){ box.value=d.mkp; paintMkt(); box.focus(); } return; }
@@ -5551,7 +5550,7 @@ document.addEventListener("keydown",e=>{
     // number keys 1-9 switch pages, Q W E … the parts of a page
     if(G&&!UI.busy&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)&&!e.target.isContentEditable){
       if(/^[1-9]$/.test(e.key)){ const t=visibleTabs()[+e.key-1]; if(t){ UI.tab=t[0]; UI.untrainAsk=null; render(); } }
-      else if(e.key.length===1){ const i=SUBKEYS.indexOf(e.key.toLowerCase()), x=$("tabs").hidden?null:SUBS[UI.tab]?.[i]; if(x){ goTab(UI.tab,x[0]); UI.untrainAsk=null; render(); } } }
+      else if(e.key.length===1){ const i=SUBKEYS.indexOf(e.key.toLowerCase()), x=$("tabs").hidden?null:subsOf(UI.tab)?.[i]; if(x){ goTab(UI.tab,x[0]); UI.untrainAsk=null; render(); } } }
     return;
   }
   if(UI.busy) return;
