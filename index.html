@@ -159,31 +159,71 @@ td.r,th.r{text-align:right}
 .gtr{font-size:12px;border-radius:6px;padding:1px 7px;border:1px solid var(--line);background:#1b1e24;cursor:help;white-space:nowrap}
 .gtr.g,.gtr.t{border-color:#2f5a40;color:#8fdcae} .gtr.f{border-color:#6b3a33;color:#f0a094} .gtr.r{border-color:#5a4a8a;color:#c9b2f5} .gtr.e{border-color:#6b5a2e;color:var(--acc)} .gtr.h{border-style:dashed;color:var(--mut)}
 .gbtns{display:flex;gap:6px;flex-wrap:wrap}
-.tiers{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-.tier{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--rc);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
-.tier .tn{display:flex;align-items:center;gap:7px} .tier .tn b{font:600 15px var(--f-name)} .tier .ic{font-size:18px}
-.tdl{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;color:var(--mut)} .tdl b{color:var(--txt);font-variant-numeric:tabular-nums}
-.legline{font-size:12px;color:var(--r-leg)}
-.modal.tavern{max-width:1040px}
-.tdraw{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;padding:8px 2px}
-.flip{position:relative;perspective:900px;min-width:0;animation:deal .55s cubic-bezier(.2,.8,.2,1) backwards}
-.flip:nth-child(2){animation-delay:.12s} .flip:nth-child(3){animation-delay:.24s} .flip:nth-child(4){animation-delay:.36s}
-@keyframes deal{from{transform:translateY(-40px) rotate(-8deg) scale(.85);opacity:0}}
-.flip .inner{position:relative;display:grid;transition:transform .7s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
+/* War → Tavern: a header with the innkeeper's line, a notice board of tier cards, and the table where candidates are dealt (in the tab, no window) */
+.tavern{container-type:inline-size;display:flex;flex-direction:column;gap:12px}
+.tvhead{display:flex;align-items:center;gap:10px}
+.tvhead .mark{flex:none;width:36px;height:36px;border-radius:8px;border:1px solid #5e5236;background:#2a2620;display:grid;place-items:center}
+.tvhead .mark svg{width:22px;height:22px}
+.tvhead .ttl{display:flex;flex-direction:column;min-width:0;flex:1}
+.tvhead .ttl b{font:600 16px var(--f-name);color:var(--acc)}
+.tvsay{font:italic 13px/1.35 var(--f-name);color:var(--mut);text-wrap:balance}
+.tvboard{background:#191c21;border:1px solid #2c3038;border-radius:8px;padding:10px}
+.tvboard .bh{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 8px;gap:8px}
+.tvboard .bh b{font:600 14px var(--f-name)} .tvboard .bh span{font-size:12px;color:var(--mut)}
+.bills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bill{position:relative;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0;cursor:pointer;font:inherit}
+.bill:hover:not(:disabled){border-color:var(--acc)} .bill:disabled{cursor:default;opacity:.62}
+.bill .crest{width:40px;height:40px;color:var(--acc)}
+.bill .wanted{font-weight:700;font-size:9.5px;line-height:1.1;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
+.bill .tn{font:700 15px/1.1 var(--f-name)}
+.bill .rng{font-size:11px;line-height:1.3;color:var(--mut);display:none}
+.bill .price{display:flex;align-items:center;gap:4px;font:700 14px var(--f-name);margin-top:2px}
+.bill .price svg{width:15px;height:15px}
+.bill .tally{display:flex;gap:5px;justify-content:center}
+.bill .tally svg{height:13px;width:auto}
+.bill .leg{margin-top:auto;padding-top:3px;font-size:10.5px;color:var(--acc);font-weight:600}
+.bnote{margin:8px 2px 0;font:italic 12px var(--f-name);color:var(--mut);text-align:center}
+@container (min-width:620px){ .bill{padding:12px 10px 10px} .bill .crest{width:50px;height:50px} .bill .tn{font-size:18px} .bill .rng{display:block} .bills{gap:12px} }
+.tvtable .th{display:flex;align-items:center;gap:8px;margin:0 2px 8px;flex-wrap:wrap}
+.tvtable .th b{font:600 14px var(--f-name)} .tvtable .th .grow{flex:1}
+.lnk{background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;text-underline-offset:2px;font-size:12px}
+.tvempty{display:flex;align-items:center;gap:10px;color:var(--mut);font:italic 13px var(--f-name);padding:8px 4px}
+.tvempty svg{width:40px;height:40px;flex:none;opacity:.6;color:var(--mut)}
+.deal{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+@container (min-width:620px){ .deal{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px} }
+.flip{position:relative;perspective:900px;min-width:0;display:grid}
+.flip.dealt{animation:deal .5s cubic-bezier(.2,.8,.2,1) backwards} .flip.dealt:nth-child(2){animation-delay:.1s} .flip.dealt:nth-child(3){animation-delay:.2s} .flip.dealt:nth-child(4){animation-delay:.3s}
+@keyframes deal{from{transform:translate(30px,-30px) rotate(10deg);opacity:0}}
+.flip .inner{position:relative;display:grid;transition:transform .65s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
 .flip.open .inner{transform:rotateY(180deg)}
-.flip .face{grid-area:1/1;position:relative;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:10px;overflow:hidden;min-width:0}
-.flip .back{background:var(--panel2);border:1px solid var(--line)} .flip .back svg{position:absolute;inset:0;width:100%;height:100%}
+.flip .face{grid-area:1/1;position:relative;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:8px;overflow:hidden;min-width:0}
+.flip .back{background:#22252c;border:1px solid #6b5a2e} .flip .back svg{position:absolute;inset:0;width:100%;height:100%}
 .flip .front{transform:rotateY(180deg)}
-.flip.open .front{animation:glow 1.4s ease-out 1} .flip.open.leg .front,.flip.open.gift .front{box-shadow:0 0 22px -4px var(--rc)}
-@keyframes glow{0%{box-shadow:0 0 0 0 var(--rc)}35%{box-shadow:0 0 40px 6px var(--rc)}100%{box-shadow:0 0 18px -4px var(--rc)}}
-.flip .rays{position:absolute;inset:-18%;border-radius:50%;background:repeating-conic-gradient(from 0deg,#e0b35400 0deg 9deg,#e0b35455 9deg 18deg);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);mask:radial-gradient(circle,#000 30%,transparent 70%);opacity:0;transition:opacity .4s;pointer-events:none;animation:spin 9s linear infinite}
-.flip.leg.charge .rays,.flip.leg.open .rays{opacity:1}
-@keyframes spin{to{transform:rotate(360deg)}}
-.flip.charge .back{animation:shake .09s linear infinite;box-shadow:0 0 30px 4px var(--r-leg);border-color:var(--r-leg)}
+.flip.charge .back{animation:shake .09s linear infinite;box-shadow:0 0 24px 3px var(--r-leg)}
 @keyframes shake{0%{transform:translate(1px,0) rotate(.6deg)}50%{transform:translate(-1px,1px) rotate(-.6deg)}100%{transform:translate(1px,-1px) rotate(.3deg)}}
-.flip .hire{visibility:hidden} .tdraw.ready .hire{visibility:visible}
+.flip.open.leg .front{box-shadow:0 0 18px -2px var(--r-leg)}
+.flip.leave{transition:opacity .5s,transform .5s;opacity:0;transform:translateY(14px)}
+.flip.taken .front{box-shadow:0 0 0 2px var(--acc),0 0 22px -2px var(--acc)}
+.cand{--rc:var(--r-common);background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--rc);border-radius:8px;padding:8px;display:grid;grid-template-columns:72px minmax(0,1fr);grid-template-rows:auto auto 1fr auto;gap:4px 10px;height:100%}
+.cand .pf{grid-row:span 3;align-self:start;border-radius:6px}
+.cand .cn{display:flex;flex-direction:column;min-width:0}
+.cand .ctier{display:flex;align-items:center;gap:4px;font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--rc);font-weight:700}
+.cand .ctier svg{width:13px;height:13px}
+.cand .cn b{font:600 16px/1.15 var(--f-name);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cand .cn span.age{font-size:12px;color:var(--mut)}
+.cst{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
+.cst span{background:#0f1114;border-radius:5px;padding:2px 0;text-align:center;font-size:10px;color:var(--mut);line-height:1.2}
+.cst span b{display:block;font-size:13px;color:var(--txt);font-variant-numeric:tabular-nums}
+.cand .gtraits{min-height:20px;align-items:center;align-self:start}
+.cand .act{grid-column:1/-1;display:flex;align-items:center;gap:8px;align-self:end}
+.cand .act span{font-size:11.5px;color:var(--r-leg)}
+.flip .act .pri{visibility:hidden} .deal.ready .act .pri{visibility:visible}
+.tvjoined{display:flex;align-items:center;gap:10px;background:#1a2a21;border:1px solid #2f5a40;color:#8fdcae;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px}
+.tvjoined .pf{width:38px}
+.tvfoot{font-size:12px;color:var(--mut)}
+.gtier svg{width:12px;height:12px;vertical-align:-1px}
 .bgen .pf{width:46px}
-@media (prefers-reduced-motion:reduce){.flip,.flip .inner,.pf.leg::after,.flip .rays,.flip.charge .back{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){.flip,.flip .inner,.pf.leg::after,.flip.charge .back{animation:none!important;transition:none!important}}
 .note{background:#2b2618;border:1px solid #5a4a22;border-radius:8px;padding:8px;margin:8px 0;font-size:13px}
 .warn{background:#341d1a;border-color:#6d2f27}
 #end{font-size:15px;padding:8px 18px}
@@ -1633,7 +1673,7 @@ function neighbors(g,id){ return [...adjacency(g)[id]].filter(j=>g.countries[j].
 // genCards candidates with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. Hire one; the rest leave.
 // Legendary can't be called: each candidate has the tier's `leg` chance to be one. Price never depends on the roll.
 const GEN_TIERS=[
-  {id:"cap",name:"Captain",icon:"🪖",price:600,mind0:1,mind1:2,speed0:20,speed1:60,age0:30,age1:50,skill0:0,skill1:10,tr0:0,tr1:1,flaw:0.6,rare:0,leg:0.005},
+  {id:"cap",name:"Captain",icon:"🗡️",price:600,mind0:1,mind1:2,speed0:20,speed1:60,age0:30,age1:50,skill0:0,skill1:10,tr0:0,tr1:1,flaw:0.6,rare:0,leg:0.005},
   {id:"vet",name:"Veteran",icon:"⚔️",price:3000,mind0:2,mind1:3,speed0:40,speed1:80,age0:28,age1:45,skill0:5,skill1:15,tr0:1,tr1:1,flaw:0.35,rare:0,leg:0.02},
   {id:"acad",name:"Academy graduate",icon:"🎓",price:20000,mind0:3,mind1:5,speed0:60,speed1:100,age0:20,age1:30,skill0:0,skill1:10,tr0:1,tr1:2,flaw:0.15,rare:0.08,leg:0.06},
   {id:"leg",name:"Legendary",icon:"✨",price:40000,mind0:5,mind1:6,speed0:85,speed1:100,age0:22,age1:35,skill0:10,skill1:25,tr0:2,tr1:3,flaw:0,rare:0,leg:0}, // luck only; its first trait is always rare
@@ -4394,7 +4434,7 @@ function genCard(c,x,cand){
     :`${c.defGen===x.id?`<button class="sm" data-defgen="-1" title="Take him off the border to rest. Your guards fight without a general meanwhile.">Rest</button>`:c.attacks.some(a=>a.gen===x.id)?"":`<button class="sm" data-defgen="${x.id}">Set as defender</button>`}<button class="sm" data-dismiss="${x.id}" title="He leaves for good">Dismiss</button>`;
   return `<article class="gcard${cand!=null?" face front":""}" style="--rc:var(--r-${r})">
    <div class="gtop">${genFrame(x,c.color)}
-    <div class="gid"><span class="rar">${T?.icon||""} ${esc(T?.name||"")}</span><span class="gname">${esc(x.name)}</span>
+    <div class="gid"><span class="rar gtier">${tierCrest(t)} ${esc(T?.name||"")}</span><span class="gname">${esc(x.name)}</span>
      <span class="rank">${"★".repeat(rk+1)} ${RANK_NAMES[rk]} · age ${x.age} (retires ~${x.maxAge})</span>
      <span>${cand!=null?`<span class="pill idle">Candidate</span>`:genStatus(c,x)}</span></div></div>
    <div class="bars"><span class="mut">Skill</span><div class="bar"><i style="width:${x.skill}%;background:var(--acc)"></i></div><b>${Math.round(x.skill)}</b>
@@ -4405,36 +4445,63 @@ function genCard(c,x,cand){
 function pGenerals(){
   const c=me(), v=tavOf(G,c);
   return `<h3>Your generals ${gl("generals")}</h3>
-  ${v.pend?`<div class="note">🍺 ${v.pend.list.length} candidates are waiting in the Tavern. <button class="sm" data-tavshow="1">Show them</button></div>`:""}
+  ${v.pend?`<div class="note">🍺 ${v.pend.list.length} candidates are waiting at the Tavern table. <button class="sm" data-tavshow="1">Go to the Tavern</button></div>`:""}
   ${c.generals.length?`<div class="gcards">${c.generals.map(x=>genCard(c,x)).join("")}</div>`:`<div class="note">You have no generals. You can't attack without one, and your border guards fight at about a third of their strength with nobody in command.</div>`}
   <div class="row"><button class="pri" data-tab="war" data-sub="tavern">🍺 Hire in the Tavern</button><span class="small mut">Skill grows every year (faster with higher Mind) and faster in battle. Morale drops after battles and recovers ${R.moraleRecovery} a year, so avoid attacking below 70.</span></div>`; }
-// ---------- War → Tavern: call a tier, then pick one of the candidates ----------
+// ---------- War → Tavern: a notice board of tiers, then candidates dealt onto the table in the tab ----------
+// drawn tier crests (no emoji: they look the same on every system), a coin, chalk tally marks for calls left
+const CREST={
+  cap:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 30h32l-3 4H11z" fill="currentColor"/><path d="M12 30c0-10 5-17 12-17s12 7 12 17z" fill="currentColor"/><path d="M15 26h18" stroke="#000" stroke-width="1.6" opacity=".35"/><circle cx="24" cy="12" r="2" fill="currentColor"/></svg>`,
+  vet:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><g stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M11 11l24 24"/><path d="M37 11L13 35"/></g><g stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M31 37l6-6"/><path d="M11 31l6 6"/></g><circle cx="38" cy="38" r="2.4" fill="currentColor"/><circle cx="10" cy="38" r="2.4" fill="currentColor"/></svg>`,
+  acad:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 15c7-2 13-1 18 3 5-4 11-5 18-3v20c-7-2-13-1-18 3-5-4-11-5-18-3z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M24 18v20" stroke="currentColor" stroke-width="2"/><path d="M33 6l-6 16 2 1 6-15z" fill="currentColor"/></svg>`,
+  leg:`<svg class="crest" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9l3.6 7.6 8.2 1-6 5.6 1.6 8.2L24 27.4l-7.4 4 1.6-8.2-6-5.6 8.2-1z" fill="currentColor"/>${[...Array(7)].map((_,i)=>{ const a=(200+i*20)*Math.PI/180, x=+(24+Math.cos(a)*17).toFixed(1), y=+(26-Math.sin(a)*17).toFixed(1); return `<ellipse cx="${x}" cy="${y}" rx="3.4" ry="1.5" fill="currentColor" transform="rotate(${-(200+i*20)+90} ${x} ${y})"/><ellipse cx="${48-x}" cy="${y}" rx="3.4" ry="1.5" fill="currentColor" transform="rotate(${(200+i*20)-90} ${48-x} ${y})"/>`; }).join("")}</svg>`};
+const tierCrest=id=>CREST[id]||CREST.cap;
+const COIN=`<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#c9962e" stroke="#7a5a12"/><circle cx="8" cy="8" r="4.4" fill="none" stroke="#7a5a12" stroke-width=".9"/></svg>`;
+const MUG=`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="12" height="14" rx="2" fill="none" stroke="#e0b354" stroke-width="1.8"/><path d="M16 9h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H16" fill="none" stroke="#e0b354" stroke-width="1.8"/><path d="M4 6c1-2.5 3-3 4.5-2s3.5-1.5 5.5 0 2 2 2 2" fill="none" stroke="#e0b354" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+function tally(left,tot){ let out=""; for(let k=0;k<Math.ceil(tot/5);k++){ let s=""; const n=Math.min(5,tot-k*5);
+    for(let i=0;i<Math.min(4,n);i++) s+=`<path d="M${3+i*5} 2v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="${k*5+i<left?.85:.2}"/>`;
+    if(n===5) s+=`<path d="M1 12L22 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="${k*5+4<left?.85:.2}"/>`;
+    out+=`<svg viewBox="0 0 24 16" aria-hidden="true">${s}</svg>`; } return out; }
+const CARD_BACK=()=>{ let p=""; for(let y=0;y<8;y++)for(let x=0;x<14;x++) p+=`<path d="M${x*16+(y%2)*8} ${y*16+4}l4 4 -4 4 -4 -4Z" fill="#353a44"/>`;
+  return `<svg viewBox="0 0 220 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="220" height="120" fill="#22252c"/>${p}<rect x="5" y="5" width="210" height="110" rx="6" fill="none" stroke="#6b5a2e" stroke-width="1.2"/><path d="M110 30l16 6v16c0 12-7 19-16 23-9-4-16-11-16-23V36Z" fill="#2a2620" stroke="#e0b354" stroke-width="1.4"/><path d="M110 41l2.6 5 5.6.8-4 3.8 1 5.6-5.2-2.6-5.2 2.6 1-5.6-4-3.8 5.6-.8Z" fill="#e0b354"/></svg>`; };
+const TAVERN_NAMES=["The Broken Lance","The Rusty Helm","The Gilded Tankard","The Old Banner","The Sleeping Lion","The Iron Kettle","The Three Swords","The Crooked Crown","The Last Ration","The Black Drum"];
+const TAV_WANTED={cap:"Captains wanted",vet:"Veterans wanted",acad:"From the Academy"};
+const TAV_SAY={cap:"Old soldiers put down their mugs and come over.",vet:"Scarred veterans pull up chairs. Each has a story.",acad:"Young officers from the Academy, boots still shining.",
+  leg:"The room goes quiet. Someone famous is among them.",idle:"The innkeeper wipes a mug. \"Looking for officers? Pin up a notice.\"",wait:"They are waiting for your answer at the back table.",
+  away:"They finish their drinks and leave. The gold for the call is spent.",year:"A new year. The prices on the board are back to normal."};
+function candCard(c,x,i){ const t=x.tier||tierOf(x), T=GTIER(t), r=RAR_OF[t];
+  return `<div class="cand" style="--rc:var(--r-${r})">${genFrame(x,c.color)}
+    <div class="cn"><span class="ctier">${tierCrest(t)} ${esc(T?.name||"")}</span><b>${esc(x.name)}</b><span class="age" title="Retires at about ${x.maxAge}">Age ${x.age} · serves ~${Math.max(1,x.maxAge-x.age)} yrs</span></div>
+    <div class="cst"><span><b>${Math.round(x.skill)}</b>Skill</span><span><b>${x.mind}</b>Mind</span><span><b title="Caps the land a win can take: ${speedCap(x)} km²">${genSpeed(x)}</b>Speed</span><span><b title="Skill × morale: what he multiplies his army's strength by">×${genFactor(x).toFixed(2)}</b>Battle</span></div>
+    <div class="gtraits">${genTraits(x)}</div>
+    <div class="act"><button class="pri sm" data-tavhire="${i}">Hire ${esc(x.name.split(" ")[0])}</button>${t==="leg"?`<span>✨ Legendary</span>`:""}</div></div>`; }
 function pTavern(){
-  const c=me(), v=tavOf(G,c), pend=v.pend;
-  const tier=t=>{ const left=tavLeft(G,c,t.id), pr=tavPrice(G,c,t.id), can=!pend&&left>0&&c.money>=pr, nx=left>1?Math.round(pr*R.genRise/10)*10:0, rs=(a,b)=>a===b?a:a+"–"+b;
-    return `<div class="tier" style="--rc:var(--r-${RAR_OF[t.id]})"><div class="tn"><span class="ic">${t.icon}</span><b>${esc(t.name)}</b><span class="grow"></span><span class="legline" title="Each candidate's chance to be Legendary instead">✨ ${+(t.leg*100).toFixed(1)}%</span></div>
-      <div class="tdl"><span>Mind <b>${rs(t.mind0,t.mind1)}</b></span><span>Speed <b>${rs(t.speed0,t.speed1)}</b></span><span>Age <b>${rs(t.age0,t.age1)}</b></span><span>Skill <b>${rs(t.skill0,t.skill1)}</b></span><span>Traits <b>${rs(t.tr0,t.tr1)}</b></span><span>Flaw <b>${gPc(t.flaw)}</b>/slot${t.rare?` · rare <b>${gPc(t.rare)}</b>`:""}</span></div>
-      <div class="row"><button class="pri sm" data-tavcall="${t.id}" ${can?"":"disabled"}>${left?`Call · ${fmt(pr)}`:"No calls left"}</button><span class="small mut">${left?`${left} of ${Math.round(R.genCalls)} left${nx?` · next ${fmt(nx)}`:""}`:"until next year"}</span></div></div>`; };
-  return `<h3>Tavern ${gl("tavern")}</h3>
-  <div class="small mut">A call brings ${Math.round(R.genCards)} candidates with stats rolled inside the tier's range; hire one and the others leave. Each tier can be called ${Math.round(R.genCalls)} times a year, and every extra call that year costs ${R.genRise}× the one before. Legendary officers can't be called: any candidate may be one. Traits: ${gl("traits")}</div>
-  ${pend?`<div class="note">🍺 ${pend.list.length} ${esc(GTIER(pend.tier)?.name||"")} candidates are waiting for your answer. They leave at the end of the year. <button class="sm pri" data-tavshow="1">Show them</button> <button class="sm" data-tavaway="1">Send them away</button></div>`:""}
-  <div class="tiers">${GEN_TIERS.filter(t=>t.id!=="leg").map(tier).join("")}</div>`; }
-// the candidates: dealt face down, then turned one by one (a Legendary shakes and glows first)
-function cardBackSVG(){ let p=""; for(let y=0;y<9;y++)for(let x=0;x<7;x++) p+=`<path d="M${x*16+(y%2)*8} ${y*16+4}l4 4 -4 4 -4 -4Z" fill="#353a44"/>`;
-  return `<svg viewBox="0 0 110 150" preserveAspectRatio="xMidYMid slice"><rect width="110" height="150" fill="#22252c"/>${p}<rect x="6" y="6" width="98" height="138" rx="6" fill="none" stroke="#6b5a2e" stroke-width="1.2"/><path d="M55 46l22 9v22c0 16-10 26-22 31-12-5-22-15-22-31V55Z" fill="#2a2620" stroke="#e0b354" stroke-width="1.5"/><path d="M55 60l3.5 7 7.5 1-5.5 5 1.5 7.5L55 77l-7 3.5 1.5-7.5-5.5-5 7.5-1Z" fill="#e0b354"/><text x="55" y="128" text-anchor="middle" fill="#9aa1ad" font-size="8" font-family="Georgia,serif" letter-spacing="1.5">CANDIDATE</text></svg>`; }
+  const c=me(), v=tavOf(G,c), pend=v.pend, fresh=UI.tavFresh===G.turn+":"+(v.n[pend?.tier]||0), jn=UI.tavJoined?.t===G.turn?UI.tavJoined:null;
+  const say=UI.tavSay?.t===G.turn?UI.tavSay.s:pend?TAV_SAY.wait:TAV_SAY.idle, calls=Math.round(R.genCalls);
+  const bill=t=>{ const left=tavLeft(G,c,t.id), pr=tavPrice(G,c,t.id), can=!pend&&left>0&&c.money>=pr, rs=(a,b)=>a===b?a:a+"–"+b;
+    return `<button class="bill" data-tavcall="${t.id}" ${can?"":"disabled"} title="${left?`Call for ${fmt(pr)} gold: ${Math.round(R.genCards)} candidates come to your table${!pend&&c.money<pr?" (not enough gold)":""}`:"No calls left this year"}">${tierCrest(t.id)}<span class="wanted">${TAV_WANTED[t.id]||esc(t.name)}</span><span class="tn">${esc(t.name)}</span>
+      <span class="rng">Mind ${rs(t.mind0,t.mind1)} · Skill ${rs(t.skill0,t.skill1)}<br>Age ${rs(t.age0,t.age1)} · Traits ${rs(t.tr0,t.tr1)}<br>Flaw ${gPc(t.flaw)} a slot${t.rare?` · rare ${gPc(t.rare)}`:""}</span>
+      <span class="price">${COIN}${left?fmt(pr):"—"}</span><span class="tally" title="${left} of ${calls} calls left this year">${tally(left,calls)}</span><span class="leg" title="Each candidate's chance to be Legendary instead">✨ ${+(t.leg*100).toFixed(1)}% Legendary</span></button>`; };
+  return `<div class="tavern">
+   <div class="tvhead"><div class="mark">${MUG}</div><div class="ttl"><b>${esc(TAVERN_NAMES[c.id%TAVERN_NAMES.length])}</b><div class="tvsay" id="tavSay">${esc(say)}</div></div>${gl("tavern")}</div>
+   <div class="tvboard"><div class="bh"><b>Notice board</b><span>Year ${G.turn} · ${fmt(c.money)} gold</span></div>
+    <div class="bills">${GEN_TIERS.filter(t=>t.id!=="leg").map(bill).join("")}</div>
+    ${pend?`<div class="bnote">Answer the officers at the table before pinning another notice.</div>`:""}</div>
+   <div class="tvtable"><div class="th"><b>${pend?`${esc(GTIER(pend.tier)?.name||"")} candidates`:"At the back table"}</b><span class="grow"></span>${pend?`<button class="lnk" data-tavskip="1">Show all</button><button class="lnk" data-tavaway="1">Send them away</button>`:""}</div>
+    ${jn?`<div class="tvjoined">${genFrame(jn.gen,c.color)}<span><b>${esc(jn.gen.name)}</b> joins your generals.</span><button class="sm" data-tab="war" data-sub="generals">See Generals</button></div>`:""}
+    ${pend?`<div class="deal${fresh?"":" ready"}" id="tavDraw">${pend.list.map((x,i)=>`<div class="flip ${RAR_OF[x.tier]}${fresh?" dealt":" open"}"><div class="inner"><div class="face back">${CARD_BACK()}</div><div class="face front">${candCard(c,x,i)}</div></div></div>`).join("")}</div>`
+      :jn?"":`<div class="tvempty">${CREST.cap}<span>The table is empty. Pin a notice on the board and officers will come over.</span></div>`}</div>
+   <div class="tvfoot">A call brings ${Math.round(R.genCards)} candidates; hire one and the rest leave. Each tier can be called ${calls} times a year, and every extra call that year costs ${R.genRise}× the one before. Undecided candidates leave at the end of the year; the gold is spent either way. Traits ${gl("traits")}</div>
+  </div>`; }
+// turn the dealt cards over one by one; a Legendary shakes and glows first
 let TAV_T=[];
-function tavernModal(animate){ const c=me(), p=tavOf(G,c).pend; if(!p) return; const T=GTIER(p.tier);
-  modal(`<h2>${T.icon} ${esc(T.name)} candidates ${gl("tavern")}</h2>
-   <div class="row small"><span class="mut" id="tavHint">${animate?"Turning the cards…":"Hire one:"}</span><span class="grow"></span><button class="sm" data-tavskip="1">Show all</button></div>
-   <div class="tdraw${animate?"":" ready"}" id="tavDraw">${p.list.map((x,i)=>`<div class="flip ${RAR_OF[x.tier]}${animate?"":" open"}" style="--rc:var(--r-${RAR_OF[x.tier]})"><div class="rays"></div><div class="inner"><div class="face back">${cardBackSVG()}</div>${genCard(c,x,i)}</div></div>`).join("")}</div>
-   <div class="row"><button data-tavaway="1">Send them away</button><button data-a="close">Decide later</button><span class="small mut">The gold for the call is spent either way. Undecided candidates leave at the end of the year.</span></div>`,"tavern");
-  if(animate) tavReveal(); else tavDone(); }
-function tavReveal(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const fl=[...document.querySelectorAll("#tavDraw .flip")]; let t=700;
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return tavDone();
-  fl.forEach(f=>{ if(f.classList.contains("leg")){ TAV_T.push(setTimeout(()=>f.classList.add("charge"),t)); t+=1300; } TAV_T.push(setTimeout(()=>{ f.classList.remove("charge"); f.classList.add("open"); },t)); t+=650; });
-  TAV_T.push(setTimeout(tavDone,t+200)); }
-function tavDone(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const d=$("tavDraw"); if(!d) return; d.querySelectorAll(".flip").forEach(f=>{ f.classList.remove("charge"); f.classList.add("open"); }); d.classList.add("ready");
-  const h=$("tavHint"); if(h) h.textContent=[...d.querySelectorAll(".flip")].some(f=>f.classList.contains("leg"))?"✨ A Legendary officer came forward! Hire one:":"Hire one:"; }
+function tavReveal(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const fl=[...document.querySelectorAll("#tavDraw .flip")]; let t=650;
+  if(!fl.length||matchMedia("(prefers-reduced-motion: reduce)").matches) return tavDone();
+  fl.forEach((f,i)=>{ if(f.classList.contains("leg")){ TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.add("charge"); UI.tavSay={t:G.turn,s:TAV_SAY.leg}; const s=$("tavSay"); if(s) s.textContent=TAV_SAY.leg; },t)); t+=1300; }
+    TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.remove("charge"); x?.classList.add("open"); },t)); t+=600; });
+  TAV_T.push(setTimeout(tavDone,t+150)); }
+function tavDone(){ TAV_T.forEach(clearTimeout); TAV_T=[]; UI.tavFresh=null; const d=$("tavDraw"); if(!d) return;
+  d.querySelectorAll(".flip").forEach(f=>{ f.classList.remove("charge"); f.classList.add("open"); }); d.classList.add("ready"); }
 // War tab: the wars you are in, and how many are going on among the states you know
 function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w.a!==c.id&&w.b!==c.id&&isKnown(w.a)&&isKnown(w.b)).length;
   const row=w=>{ const o=G.countries[warFoe(w,c.id)], how=w.why==="declared"?(w.a===c.id?"you declared it":"they declared it"):w.why==="rebels"?(w.a===c.id?"you broke away":"they broke away from you"):"hostility boiled over";
@@ -5059,6 +5126,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["New Tavern screen","2026-11-13 21:10",["The Tavern has a name and an innkeeper whose line changes with what happens","Tiers are notices on a notice board: crest, price, calls left as tally marks, Legendary chance on one line","Candidates are dealt onto the table in the Tavern tab and turn over there; no more pop-up window","Candidate cards are compact and fit the side panel without scrollbars; three across on a wide panel","Tier icons are drawn, so they show on every system"]],
 ["Tavern, general cards and traits","2026-11-13 20:50",["New War → Tavern: call a tier (Captain, Veteran, Academy graduate) and three candidates come forward; hire one","Candidates' Mind, Speed, Age, starting skill and traits are rolled inside the tier's range; the price never depends on the roll","Each tier can be called 10 times a year; every extra call that year costs 1.5× more","Legendary officers can't be called: any candidate may turn out Legendary","Cards turn over one by one; a Legendary shakes and glows gold first","The Age, Speed and Mind sliders are gone","War → Generals shows a card for each general: a drawn face (greys with age, scars from lost battles), tier, rank, skill, morale, won–lost and traits","20 traits: luck (Lucky, Lucky Bastard, Jinxed, Reckless), borders (Mountain Fox, Siege Breaker), one for each troop type, and Cautious, Coward, Butcher, Beloved, Greedy, Drunkard","Some traits start hidden and show after the general's first battle; Old Guard, Nemesis and Lucky Bastard can be earned","Battle reports show both generals' faces and traits, a row for each trait that changed the battle, and how luck was rolled","Computer states hire in the Tavern too and count traits in their odds","Settings: new General tiers tab and trait numbers under General rules"]],
 ["X ends the turn","2026-11-13 20:20",["Press X to end the turn (when no window is open and you are not typing)"]],
 ["Science in two parts","2026-11-13 20:18",["Science has a second menu: Research (key Q) and Bonuses (key W, the Total bonuses table)"]],
@@ -5363,8 +5431,8 @@ ${gTab(["Troop","Attack","Defense","Toughness","Cost (food/wood/iron/gold)","Upk
 <li><b>Rank</b> follows his battles: Major, then Colonel at 5, General at 15 and Marshal at 30. It is for show.</li></ul>
 <h3>Morale</h3><ul class="log"><li>Resting generals regain ${R.moraleRecovery} a year; the defender loses ${R.moraleDefend} a year instead.</li><li>Attacking costs ${R.moraleWin} on a win and ${R.moraleLoss} on a loss.</li><li>A defender who holds the border gains ${R.moraleHeld}; one whose border is broken loses ${R.moraleBroken}.</li><li><b>Rest</b> takes a defender off the border to recover. Rotate defenders; the computer does.</li></ul>`],
 ["tavern","Military","🍺","Tavern",()=>`
-<p>War → Tavern is where you hire generals. Pick a tier and call: you pay its price at once and ${Math.round(R.genCards)} candidates come forward, each with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. Their cards turn over one by one. Hire one; the others leave. You can also send them all away or decide later in the year: undecided candidates leave at the end of the year, and the gold is spent either way.</p>
-${gTab(["Tier","Price","Mind","Speed","Age","Skill","Traits","Flaw a slot","Legendary"],GEN_TIERS.filter(t=>t.id!=="leg").map(t=>[`${t.icon} ${t.name}`,fmt(t.price),`${t.mind0}–${t.mind1}`,`${t.speed0}–${t.speed1}`,`${t.age0}–${t.age1}`,`${t.skill0}–${t.skill1}`,`${t.tr0}–${t.tr1}`,gP(t.flaw),(t.leg*100).toFixed(1)+"%"]))}
+<p>War → Tavern is where you hire generals. Pick a tier and call: you pay its price at once and ${Math.round(R.genCards)} candidates come forward, each with Mind, Speed, Age, starting skill and traits rolled inside the tier's range. The tiers are notices on the Tavern's notice board; the candidates' cards are dealt onto the table below and turn over one by one. Hire one; the others leave. You can also send them all away or decide later in the year: undecided candidates leave at the end of the year, and the gold is spent either way.</p>
+${gTab(["Tier","Price","Mind","Speed","Age","Skill","Traits","Flaw a slot","Legendary"],GEN_TIERS.filter(t=>t.id!=="leg").map(t=>[`<span class="gtier">${tierCrest(t.id)}</span> ${t.name}`,fmt(t.price),`${t.mind0}–${t.mind1}`,`${t.speed0}–${t.speed1}`,`${t.age0}–${t.age1}`,`${t.skill0}–${t.skill1}`,`${t.tr0}–${t.tr1}`,gP(t.flaw),(t.leg*100).toFixed(1)+"%"]))}
 <ul class="log"><li><b>Price never depends on the roll:</b> a great candidate costs the same as a poor one, so a lucky call is pure gain.</li>
 <li><b>Calls:</b> each tier can be called ${Math.round(R.genCalls)} times a year. Every extra call in the same year costs ${R.genRise}× the one before (${GEN_TIERS.filter(t=>t.id==="acad").map(t=>`Academy: ${[0,1,2,3].map(k=>fmt(Math.round(t.price*Math.pow(R.genRise,k)/10)*10)).join(", ")}…`)}); prices reset every year.</li>
 <li><b>Legendary</b> officers can't be called. Each candidate has the tier's Legendary chance to be one instead: Mind ${GTIER("leg").mind0}–${GTIER("leg").mind1}, Speed ${GTIER("leg").speed0}–${GTIER("leg").speed1}, skill ${GTIER("leg").skill0}–${GTIER("leg").skill1}, ${GTIER("leg").tr0}–${GTIER("leg").tr1} traits, the first always rare. The card shakes and glows gold before it turns.</li>
@@ -5847,11 +5915,13 @@ document.addEventListener("click",async ev=>{
   if(d.cancel!=null){ cmd("cancelAttack",+d.cancel); render(); return; }
   if(d.defgen){ cmd("defGen",+d.defgen); render(); return; }
   if(d.dismiss){ cmd("dismissGeneral",+d.dismiss); render(); return; }
-  if(d.tavcall){ if(!cmd("tavCall",d.tavcall)){ flash("Not enough gold, or no calls left for that tier this year."); render(); return; } save(); render(); tavernModal(true); return; }
-  if(d.tavshow){ tavernModal(false); return; }
+  if(d.tavcall){ if(!cmd("tavCall",d.tavcall)){ flash("Not enough gold, or no calls left for that tier this year."); render(); return; }
+    const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; UI.tavSay={t:G.turn,s:TAV_SAY[d.tavcall]||TAV_SAY.wait}; save(); render(); tavReveal(); return; }
+  if(d.tavshow){ goTab("war","tavern"); render(); return; }
   if(d.tavskip){ tavDone(); return; }
-  if(d.tavaway){ cmd("tavAway"); closeModal(); save(); render(); return; }
-  if(d.tavhire!=null){ const x=cmd("tavHire",+d.tavhire); closeModal(); if(x){ save(); goTab("war","generals"); render(); flash(`${x.name} joined your generals.`); } else render(); return; }
+  if(d.tavaway){ TAV_T.forEach(clearTimeout); UI.tavFresh=null; cmd("tavAway"); UI.tavSay={t:G.turn,s:TAV_SAY.away}; save(); render(); return; }
+  if(d.tavhire!=null){ const i=+d.tavhire; document.querySelectorAll("#tavDraw .flip").forEach((f,k)=>f.classList.add(k===i?"taken":"leave")); UI.busyHire=true;
+    setTimeout(()=>{ UI.busyHire=false; const x=cmd("tavHire",i); if(x){ UI.tavJoined={t:G.turn,gen:x}; UI.tavSay={t:G.turn,s:`${x.name.split(" ")[0]} shakes your hand. The others finish their drinks and leave.`}; save(); } render(); },550); return; }
   if(d.fest){ const c=me(), n=d.fest==="max"?festRoom(G,c):Math.max(0,parseInt($("festN")?.value)||0), got=cmd("festival",n); UI.festN=undefined;
     flash(got?`Festivals held: loyalty +${got} for ${fmt(got*festCost(G,c))} gold.`:"Not enough gold, or no room for more loyalty this year."); render(); return; }
   if(d.find){ if(!G||observing()) return; goTab("world","rank"); UI.wsort={k:d.find,dir:-1}; render(); document.querySelector(`tr[data-pick="${G.player}"]`)?.scrollIntoView({block:"center"}); return; }
