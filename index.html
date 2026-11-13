@@ -3599,7 +3599,8 @@ function renderHeader(){
 // main menu above the map: [key, short name, icon, full name]
 const TABS=[["economy","Home","🏰","Home: your state"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["war","War","🗡️","War: generals, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
 // second menu at the top of the side panel, for pages split in parts (keys Q W E …)
-const SUBS={market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
+const SUBS={science:[["research","Research","🔬","Research: split your points"],["bonus","Bonuses","✨","Total bonuses: where every bonus comes from"]],
+  market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
   war:[["generals","Generals","🎖️","Your generals and hiring"],["wars","Wars","🔥","Wars, defense and this year's orders"],["nbrs","Neighbors","🧭","Neighbors: plan an attack"]],
   world:[["rank","Rankings","🏆","Rankings"],["wonders","Wonders","🗼","Wonders: who holds each one"],["recent","Recent wars","🗡️","Recent wars"]]};
 const SUBKEYS="qwertyuiop";
@@ -3640,7 +3641,7 @@ function badgeFor(k){
   if(k==="market"&&fresh("market")) return {cls:"dot good",tip:"your orders traded"};
   return null; }
 const tabBadge=k=>k==="war"?badgeFor("war")||badgeFor("generals"):badgeFor(k);
-const SUB_BADGE={war:{generals:"generals",wars:"war"},market:{trade:"market"}}; // which badge each part of a page shows
+const SUB_BADGE={science:{research:"science"},war:{generals:"generals",wars:"war"},market:{trade:"market"}}; // which badge each part of a page shows
 const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
@@ -4058,7 +4059,8 @@ function bonusTable(c){
   </table></div>
   <div class="small mut">Each row is a formula: start from 1, add your civilization, leader and land bonuses, then multiply by research${hasW?", a held wonder":""}${hasS?" and terrain (shore farmland for food, forest for wood, mountains for iron)":""}. Your food: (1 ${rows[1][2].map(v=>`${v<0?"−":"+"}${Math.abs(Math.round(v*100))}%`).join(" ")}) × ${(1+rows[1][3][0]).toFixed(2)}${hasW?` × ${(1+rows[1][3][1]).toFixed(2)}`:""}${hasS?` × ${(1+rows[1][4]).toFixed(2)}`:""} = ×${rows[1][5].toFixed(2)}. A trait bonus keeps its full value however far research goes. Rows follow the research areas above. Birth rate and capacity research are shown relative to the base rate (${+(R.birthRate*100).toFixed(2)}%/yr, ${R.popPerKm} people per km²).</div>`;
 }
-function pScience(){
+function pScience(sub){
+  if(sub==="bonus") return bonusTable(me());
   const c=me(); const pts=researchPoints(c); const sumA=AREAS.reduce((s,a)=>s+Math.max(0,c.alloc[a]||0),0), tot=Math.max(100,sumA), free=Math.max(0,Math.round(100-sumA));
   const pc=v=>+(v*100).toFixed(2), eff={sci:`+${pc(R.sciPerLevel)}% research per level`,agri:`+${pc(R.agriPerLevel)}% food per level`,fin:`+${pc(R.finTaxPerLevel)}% taxes, +${pc(R.finPricePerLevel)}% sell prices per level`,dens:`+${R.densPerLevel} people per km² capacity per level`,grow:`+${pc(R.growPerLevel)}% birth rate per level`,atk:`+${pc(R.atkPerLevel)}% attack strength per level`,def:`+${pc(R.defPerLevel)}% defense strength per level`,wood:`+${pc(R.woodPerLevel)}% wood production per level`,iron:`+${pc(R.ironPerLevel)}% iron production per level`,explore:`+${pc(R.explorePerLevel)}% land per battle and settling speed per level`};
   const what={sci:"research",agri:"food",fin:"taxes",dens:"capacity",grow:"births",atk:"attack",def:"defense",wood:"wood",iron:"iron",explore:"land"};
@@ -4078,8 +4080,7 @@ function pScience(){
     <td style="width:100%"><div class="rsplit">${(lk=>`<input type="range" min="0" max="100" value="${share}" data-alloc="${a}"${lk?" disabled":""}><span class="rctl"><input type="text" inputmode="numeric" maxlength="3" value="${share}" data-allocpct="${a}" style="width:34px;text-align:right" title="Type an exact share"${lk?" disabled":""}>%<span class="aslot">${share>0?`<button class="sm" data-clr="${a}" title="Set ${AREA_NAMES[a]} to 0% and unlock it; its share becomes unassigned">✕</button>`:""}</span><span class="aslot">${nx}</span><button class="sm lockbtn${lk?" on":""}" data-lock="${a}" title="${lk?"Locked: other areas can't change this share. Click to unlock":"Lock this share so changing other areas leaves it alone"}">${lk?"🔒":"🔓"}</button></span>`)(!!c.allocLock?.[a])}
     <div class="bar rbar" title="${esc(costTip)}${yr>0?` · +${fmt(yr)} next year`:""}"><i style="width:${Math.min(100,100*c.rp[a]/cost)}%"></i><i class="nxt" style="width:${Math.max(0,Math.min(100,100*(c.rp[a]+yr)/cost)-Math.min(100,100*c.rp[a]/cost))}%"></i></div><div class="small mut" title="${esc(costTip)}">${fmt(c.rp[a])}/${fmt(cost)}${eta?` · ${eta}y`:""}</div></div></td></tr>`}).join("")}
   </table>
-  <div class="small mut" style="margin-top:6px">Drag a slider or type a %. Shares can add up to less than 100%, but the unassigned rest is lost; going over 100% takes from the unlocked areas. 🔒 keeps a share fixed. ⏩ sets the least share that reaches the next level next year and locks it; ✕ sets an area to 0%. The buttons in the header do the same for every area: ✕ clears all unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all. Blue is progress so far, green what this share adds next year. Hover ⓘ for what each level gives, the progress bar for its cost.</div>
-  ${bonusTable(c)}`;
+  <div class="small mut" style="margin-top:6px">Drag a slider or type a %. Shares can add up to less than 100%, but the unassigned rest is lost; going over 100% takes from the unlocked areas. 🔒 keeps a share fixed. ⏩ sets the least share that reaches the next level next year and locks it; ✕ sets an area to 0%. The buttons in the header do the same for every area: ✕ clears all unlocked areas, ⏩ levels up as many areas as fit next year, 🔒 locks or unlocks all. Blue is progress so far, green what this share adds next year. Hover ⓘ for what each level gives, the progress bar for its cost.</div>`;
 }
 
 function genStatus(c,gen){
@@ -4705,6 +4706,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Science in two parts","2026-11-13 20:18",["Science has a second menu: Research (key Q) and Bonuses (key W, the Total bonuses table)"]],
 ["Search in Settings","2026-11-13 20:02",["General rules has a search box: type a word to see only the matching rules, with their groups open","The matched words are highlighted; Clear shows every rule again"]],
 ["Map fills in while you drag","2026-11-13 19:40",["Trees, mountains and borders now fill in while you drag the map, not only after you let go","Small or zoomed-out maps redraw fully on every frame while you drag"]],
 ["Faster years on big maps","2026-11-13 19:18",["Ending a year is about twice as fast on big maps (4000 states: about 1 s instead of 1.5–3 s): faster market plans for computer states, weather and settlers","Nothing about the game changes, only the speed"]],
@@ -4974,7 +4976,7 @@ ${gTab(["Area","Each level gives"],AREAS.map(a=>[`${WONDERS[a]?.icon||""} ${AREA
 <li><b>Ideas spread:</b> an area costs ${gP(R.catchUpPer)} less per level you are behind the world average (at most −${gP(R.catchUpMax)}) and ${gP(R.leadPer)} more per level you are ahead (at most ×${R.leadMax}).</li></ul>
 <h3>On top of research</h3><p>Civilization, leader, land and wonder bonuses multiply on top of research. In battle, one side's attack or defense research counts at most ${R.techEdgeMax}× the other side's, so numbers still matter against a more advanced enemy.</p>`; }],
 ["identity","Your state","🏛️","Civilizations, leaders and land",()=>`
-<p>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties; the three <b>add together</b> (two +20% bonuses make +40%, not +44%). Defense, population growth and capacity bonuses apply at ${gP(R.traitWeight.defense)} because they compound. Islands and Oceanic land only go to states with a coastline. Your Home tab lists your bonuses, and the Science tab's Total bonuses table shows how they combine: civilization, leader and land add up into one multiplier, then research, a held wonder and shore farmland multiply it (×1.70 × ×1.20 = ×2.04).</p>
+<p>Every state has a civilization, a leader and a land type. Each gives bonuses and penalties; the three <b>add together</b> (two +20% bonuses make +40%, not +44%). Defense, population growth and capacity bonuses apply at ${gP(R.traitWeight.defense)} because they compound. Islands and Oceanic land only go to states with a coastline. Your Home tab lists your bonuses, and Science → Bonuses shows how they combine: civilization, leader and land add up into one multiplier, then research, a held wonder and shore farmland multiply it (×1.70 × ×1.20 = ×2.04).</p>
 <p>Computer leaders also shape personality: Attackers and Warriors start wars early, Scientists rarely do, Defenders keep a big army home.</p>
 <h3>Civilizations</h3>${gTab(["Civilization","Bonuses"],CIVS.map(x=>[x.name,gTraits(x)]))}
 <h3>Leaders</h3>${gTab(["Leader","Bonuses"],LEADERS.map(x=>[x.name,gTraits(x)]))}
@@ -5138,7 +5140,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
 <p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Market, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
-${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; resources (stock, change per year, prices); work sliders; year ahead"],["2","🔬 Science","—","Research split, levels, costs, presets; total bonuses"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Wars · E Neighbors","Generals: hire, dismiss, rest, pick the defender. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
+${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; resources (stock, change per year, prices); work sliders; year ahead"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🗡️ War","Q Generals · W Wars · E Neighbors","Generals: hire, dismiss, rest, pick the defender. Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["6","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["7","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["8","📰 News","—","Every report and battle, newest first"]])}
 <p>Allies shows only in games with alliances; News then takes key 7.</p>
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
