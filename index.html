@@ -1337,7 +1337,8 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10,ROUGH=60){
   const N=W*H, n=counts.length; if(N>=2097152) rounds=Math.min(rounds,4);
   // heap keys pack (priority, cell) as priority*SH+cell: SH must hold every cell index, and keys must stay exact (< 2^53)
   let SH=2097152; while(SH<N) SH*=2; const KMAX=Math.floor(2**53/SH)-1;
-  const nbs=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); const L=lk?.get(i); if(L) for(const j of L) f(j); };
+  const hasL=new Uint8Array(N); if(lk) for(const k of lk.keys()) hasL[k]=1; // cells with sea routes (skips the Map lookup for the rest)
+  const nbs=(i,f)=>{ const x=i%W; if(x>0)f(i-1); if(x<W-1)f(i+1); if(i>=W)f(i-W); if(i+W<N)f(i+W); if(hasL[i]) for(const j of lk.get(i)) f(j); };
   // land to share: every land cell a state can reach over land or sea routes (also unowned land next to states)
   const share=new Uint8Array(N), Q=new Int32Array(N); let qh=0,qt=0;
   for(let i=0;i<N;i++) if(cells[i]>=0){ share[i]=1; Q[qt++]=i; }
@@ -1352,14 +1353,14 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10,ROUGH=60){
   for(let i=0;i<N;i++) cost[i]=Math.exp(cost[i]);
   // each state stretches its own way
   const ang=new Float64Array(n), str=new Float64Array(n); for(let s=0;s<n;s++){ ang[s]=rnd()*Math.PI; str[s]=1+0.6*rnd(); }
-  const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]], dist=new Float64Array(N), SF=new Float64Array(n*8);
+  const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]], DX=D8.map(d=>d[0]), DY=D8.map(d=>d[1]), dist=new Float64Array(N), SF=new Float64Array(n*8);
   for(let s=0;s<n;s++){ const c=Math.cos(ang[s]), sn=Math.sin(ang[s]); D8.forEach(([dx,dy],k)=>{ const L=Math.hypot(dx,dy), a=(dx*c+dy*sn)/L, p=(-dx*sn+dy*c)/L; SF[s*8+k]=L*Math.hypot(a/str[s],p*str[s]); }); } // step length in each of 8 directions
   const push=(h,v)=>{ let k=h.length; h.push(v); while(k>0){ const p=(k-1)>>1; if(h[p]<=v) break; h[k]=h[p]; k=p; } h[k]=v; };
   const pop=h=>{ const top=h[0], v=h.pop(); const L=h.length; if(L){ let k=0; for(;;){ let c=2*k+1; if(c>=L) break; if(c+1<L&&h[c+1]<h[c]) c++; if(h[c]>=v) break; h[k]=h[c]; k=c; } h[k]=v; } return top; };
   // path cost from s's own land to free cell j (through any own cell around it), and the heap key for it
   const reach=(s,j)=>{ const x=j%W,y=(j/W)|0, cj=cost[j], b=s*8; let d=Infinity;
-    for(let q=0;q<8;q++){ const X=x-D8[q][0],Y=y-D8[q][1]; if(X<0||Y<0||X>=W||Y>=H) continue; const k=Y*W+X; if(cells[k]===s){ const e=dist[k]+SF[b+q]*cj; if(e<d) d=e; } }
-    const L=lk?.get(j); if(L) for(const k of L) if(cells[k]===s){ const e=dist[k]+3*cost[j]; if(e<d) d=e; }
+    for(let q=0;q<8;q++){ const X=x-DX[q],Y=y-DY[q]; if(X<0||Y<0||X>=W||Y>=H) continue; const k=Y*W+X; if(cells[k]===s){ const e=dist[k]+SF[b+q]*cj; if(e<d) d=e; } }
+    if(hasL[j]) for(const k of lk.get(j)) if(cells[k]===s){ const e=dist[k]+3*cost[j]; if(e<d) d=e; }
     return d; };
   let best=null, bestMin=-1, bestCounts=null;
   for(let r=0;r<rounds;r++){
@@ -1396,38 +1397,48 @@ function relaxStates(cells,W,H,counts,lk,rnd=Math.random,rounds=10,ROUGH=60){
   // finishing: a state short of land takes the cells nearest its middle, free ones first, then from bigger neighbors
   // (each giver stays in one piece), so a shortfall is shared out thinly among the states around it
   const at=(x,y)=>x<0||y<0||x>=W||y>=H?-9:cells[y*W+x];
-  const whole=(o,i)=>{ if(lk?.get(i)?.some(j=>cells[j]===o)) return false; const x=i%W,y=(i/W)|0;
+  const whole=(o,i)=>{ if(hasL[i]&&lk.get(i).some(j=>cells[j]===o)) return false; const x=i%W,y=(i/W)|0;
     const aN=at(x,y-1)===o,aE=at(x+1,y)===o,aS=at(x,y+1)===o,aW=at(x-1,y)===o,a4=aN+aE+aS+aW; if(!a4) return false;
     const l=(aN&&aE&&at(x+1,y-1)===o)+(aE&&aS&&at(x+1,y+1)===o)+(aS&&aW&&at(x-1,y+1)===o)+(aW&&aN&&at(x-1,y-1)===o);
     return a4-l===1||(a4===4&&l===4); };
-  const seen=new Int32Array(N); let tick=0;
+  const seen=new Int32Array(N), mark=new Int32Array(N); let tick=0, mtick=0;
+  // a cell inside its state: all four neighbours its own and no sea route (it can't border anything)
+  const inner=(i,s)=>{ const x=i%W; return !hasL[i]&&x>0&&x<W-1&&i>=W&&i+W<N&&cells[i-1]===s&&cells[i+1]===s&&cells[i-W]===s&&cells[i+W]===s; };
   const finish=()=>{ cx.fill(0); cy.fill(0); const cnt=new Int32Array(n);
     for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0){ cx[o]+=i%W; cy[o]+=(i/W)|0; cnt[o]++; } }
     for(let s=0;s<n;s++) if(cnt[s]){ cx[s]/=cnt[s]; cy[s]/=cnt[s]; }
     const key=(s,i)=>Math.min(KMAX,Math.round((i%W-cx[s])**2+(((i/W)|0)-cy[s])**2))*SH+i;
-    for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const by=new Map(); genProg(0.86+0.05*(1-Math.pow(0.85,++fin)),"Evening out borders");
+    // each state's border cells, kept up to date as cells change hands (may hold stale entries; they're skipped and dropped)
+    const bl=Array.from({length:n},()=>[]); for(let i=0;i<N;i++){ const o=cells[i]; if(o>=0&&!inner(i,o)) bl[o].push(i); }
+    const hist=[]; for(let pass=0;pass<60;pass++){ let moved=0, mn=Infinity, mx=0; const todo=[]; genProg(0.86+0.05*(1-Math.pow(0.85,++fin)),"Evening out borders");
       for(let s=0;s<n;s++) if(counts[s]){ if(counts[s]<mn) mn=counts[s]; if(counts[s]>mx) mx=counts[s]; }
       if(mn>=cap*0.985&&mx<=cap*1.015) break; // everyone within 1.5% of the share
+      hist.push(mn); if(pass>=8&&mn-hist[pass-8]<cap*0.004) break; // the smallest state gained under 0.4% of a share in 8 passes: little left to gain
       const over=mx>cap*1.015; // someone holds too much (after the arm cleanup): then every state may pull from a bigger neighbor
-      for(let s=0;s<n;s++) if(counts[s]&&(over||counts[s]<cap)) by.set(s,[]);
-      for(let i=0;i<N;i++){ const l=by.get(cells[i]); if(l) l.push(i); }
-      for(const s of [...by.keys()].sort((a,b)=>counts[a]-counts[b])){
-        const h=[]; tick++; const add=j=>{ if(cells[j]!==s&&cells[j]>=-1&&seen[j]!==tick){ seen[j]=tick; push(h,key(s,j)); } };
-        for(const i of by.get(s)) if(cells[i]===s) nbs(i,add);
-        while(h.length){ const j=pop(h)%SH, o=cells[j]; if(o===s) continue;
+      for(let s=0;s<n;s++) if(counts[s]&&(over||counts[s]<cap)) todo.push(s);
+      for(const s of todo.sort((a,b)=>counts[a]-counts[b])){
+        // nbMax: biggest neighbour seen (neighbours only shrink while s takes), free: unowned cells waiting in the heap.
+        // Once nothing in the heap can qualify (no free land, every neighbour < s+2), the rest is skipped: same result, less work
+        const h=[]; tick++; let nbMax=0, free=0; const add=j=>{ const o=cells[j]; if(o!==s&&o>=-1&&seen[j]!==tick){ seen[j]=tick; push(h,key(s,j)); if(o<0) free++; else if(counts[o]>nbMax) nbMax=counts[o]; } };
+        const keep=[]; mtick++; for(const i of bl[s]){ if(cells[i]!==s||mark[i]===mtick||inner(i,s)) continue; mark[i]=mtick; keep.push(i); nbs(i,add); } bl[s]=keep;
+        const took=j=>k=>{ add(k); const t=cells[k]; if(t>=0&&t!==s) bl[t].push(k); }; // k may now border s
+        while(h.length&&(free>0&&counts[s]<cap||counts[s]+2<=nbMax)){ const j=pop(h)%SH, o=cells[j]; if(o<0) free--; if(o===s) continue;
           if(o<0?counts[s]>=cap:(counts[o]-counts[s]<2||(counts[s]>=cap&&counts[o]<=cap)||!whole(o,j))) continue;
-          cells[j]=s; counts[s]++; if(o>=0) counts[o]--; moved++; nbs(j,add); } }
+          cells[j]=s; counts[s]++; if(o>=0) counts[o]--; moved++; keep.push(j); nbs(j,took(j)); } }
       if(moved<Math.max(1,n/50)) break; } }; // little left to gain
   finish(); unthin(cells,W,H,counts,lk); finish(); // no narrow arms (peninsulas shared lengthwise), then sizes evened again
   // rough borders: border cells switch to a neighbor state that already half surrounds them, in random order, many times,
   // so borders fray like old maps. A cell only moves if the giver stays in one piece and isn't smaller than the taker
   // (so sizes only drift a cell or two)
-  const sur=(i,p)=>{ const x=i%W,y=(i/W)|0; let k=0; for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if((dx||dy)&&at(x+dx,y+dy)===p) k++; return k; };
+  const sur=(i,p)=>{ const x=i%W, l=x>0, r=x<W-1, u=i>=W, d=i+W<N; // how many of the 8 cells around i belong to p
+    return (l&&cells[i-1]===p)+(r&&cells[i+1]===p)+(u&&cells[i-W]===p)+(d&&cells[i+W]===p)+(l&&u&&cells[i-W-1]===p)+(r&&u&&cells[i-W+1]===p)+(l&&d&&cells[i+W-1]===p)+(r&&d&&cells[i+W+1]===p); };
+  const ns=new Int32Array(4);
   for(let pass=0;pass<ROUGH;pass++){ const edge=[]; genProg(0.91+0.06*pass/ROUGH,"Roughening borders");
     for(let i=0;i<N;i++){ const o=cells[i]; if(o<0) continue; const x=i%W; if((x>0&&cells[i-1]>=0&&cells[i-1]!==o)||(x<W-1&&cells[i+1]>=0&&cells[i+1]!==o)||(i>=W&&cells[i-W]>=0&&cells[i-W]!==o)||(i+W<N&&cells[i+W]>=0&&cells[i+W]!==o)) edge.push(i); }
     for(let k=edge.length-1;k>0;k--){ const j=Math.floor(rnd()*(k+1)); const tmp=edge[k]; edge[k]=edge[j]; edge[j]=tmp; }
-    for(const i of edge){ if(rnd()<0.5) continue; const o=cells[i], x=i%W, ns=[x>0?cells[i-1]:-9,x<W-1?cells[i+1]:-9,i>=W?cells[i-W]:-9,i+W<N?cells[i+W]:-9].filter(v=>v>=0&&v!==o);
-      if(!ns.length) continue; const p=ns[Math.floor(rnd()*ns.length)];
+    for(const i of edge){ if(rnd()<0.5) continue; const o=cells[i], x=i%W; let m=0, v; // other states next to it: left, right, up, down
+      if(x>0&&(v=cells[i-1])>=0&&v!==o) ns[m++]=v; if(x<W-1&&(v=cells[i+1])>=0&&v!==o) ns[m++]=v; if(i>=W&&(v=cells[i-W])>=0&&v!==o) ns[m++]=v; if(i+W<N&&(v=cells[i+W])>=0&&v!==o) ns[m++]=v;
+      if(!m) continue; const p=ns[Math.floor(rnd()*m)];
       if(counts[o]<counts[p]||sur(i,p)<3||!whole(o,i)) continue;
       cells[i]=p; counts[o]--; counts[p]++; } }
 }
@@ -4627,6 +4638,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Faster big maps, map dial","2026-11-13 19:03",["Big maps are made faster: about a quarter faster at 4000 states and half the time on a 300-state World map","Pressing Start plays the map from the New game preview instead of making a second one (unless you picked a state, which already did)","Making a map shows a dial like the year one: a compass circles the percent done, with what is being done under it"]],
 ["Year dial while a turn runs","2026-11-13 18:40",["While a year runs, a dial shows it: a sun circles the year number and a gold ring fills as the year goes on","A line under it says what is happening: rulers plan, armies march, harvest, markets, envoys","Auto-run shows a small spinner next to \"Year …\""]],
 ["Up to 4000 states","2026-11-13 18:37",["New game takes up to 4000 states (was 1000); the slider goes on to 1280, 1600, 2000, 2500, 3200 and 4000","Big maps take longer to make: about a minute at 4000 states"]],
 ["Invented state names","2026-11-13 18:32",["States beyond the name list get full invented names with a title, like \"Kingdom of Korvalia\" or \"Korvalian Empire\"","Settings → State names: edit the starts, middles, ends and titles used to invent names, with examples","Invented share: give part of the states an invented name even when the list has enough","Over two million possible names"]],
@@ -5078,11 +5090,11 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <li><b>Fog of war:</b> you only see your neighbors.</li></ul>`],
 ["setup","Interface","⚙️","New game options",()=>`
 <ul class="log"><li><b>You:</b> empire name, civilization, leader and land (or Random).</li>
-<li><b>World:</b> a random map or a pre-made one (like the World map), and the number of states (2 to ${fmt(N_MAX)}; big maps take a while to make, up to about a minute at the top).</li>
+<li><b>World:</b> a random map or a pre-made one (like the World map), and the number of states (2 to ${fmt(N_MAX)}).</li>
 <li><b>More options:</b> territory size per state, water (lakes, rivers or both: chokepoints), and the rules below.</li></ul>
 ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="function"?f():f]))}
 <p><b>Starting land:</b> every state starts with almost the same land, within about 1% on most maps and 5% on the biggest world maps, in one piece with its own natural shape and rough, ragged borders. Only scraps of land, and islands no sea route reaches, start unowned; neighbors settle them.</p>
-<p>Big maps take a few seconds to make; a progress bar shows how far along it is.</p>
+<p>Big maps take a while to make (around half a minute at ${fmt(N_MAX)} states). A dial shows how far along it is and what is being done. The map in the New game preview is the one you play, so pressing Start doesn't make a second one; if the preview isn't finished yet, the dial shows until it is.</p>
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
@@ -5287,25 +5299,29 @@ function pstHtml(i){ const s=UI.setup; if(!s.choose||!s.preview) return '<span c
   return nextPick(s)===i?'<span class="acc">Click the map</span>':'<span class="mut">Random</span>'; }
 function setPstText(){ const s=UI.setup; s.players.forEach((_,i)=>{ const el=$("pst"+i); if(el) el.innerHTML=pstHtml(i); }); }
 // the year window: dial with the year, a sun orbiting, an arc filled by the engine's progress (turnShow)
-function turnLoader(y){ const ticks=Array.from({length:12},(_,i)=>{ const a=i/12*2*Math.PI, x=Math.sin(a), z=-Math.cos(a); return `<line class="tl-tick" x1="${60+x*40}" y1="${60+z*40}" x2="${60+x*44}" y2="${60+z*44}"/>`; }).join("");
+// a progress dial: lab over big (the year, or the percent done), an icon circling, the ring filled by dialShow
+function dialLoader(lab,big,icon,step){ const ticks=Array.from({length:12},(_,i)=>{ const a=i/12*2*Math.PI, x=Math.sin(a), z=-Math.cos(a); return `<line class="tl-tick" x1="${60+x*40}" y1="${60+z*40}" x2="${60+x*44}" y2="${60+z*44}"/>`; }).join("");
   return `<div class="tload${ENGINE.inWorker?"":" ind"}" role="status" aria-live="polite"><svg viewBox="0 0 120 120" aria-hidden="true">
     <circle class="tl-track" cx="60" cy="60" r="52"/>${ticks}<circle class="tl-arc" id="tlArc" cx="60" cy="60" r="52" pathLength="100"/>
-    <g class="tl-orbit"><text class="tl-sun" x="60" y="13" text-anchor="middle">☀️</text></g>
-    <text class="tl-lab" x="60" y="50" text-anchor="middle">YEAR</text><text class="tl-yr" x="60" y="78" text-anchor="middle">${y}</text></svg>
-    <div class="tl-step" id="tlStep">${ENGINE.inWorker?"The year begins…":"The world is moving…"}</div></div>`; }
-function turnShow(p,label){ const a=$("tlArc"), l=$("tlStep"); if(a) a.style.strokeDashoffset=100-Math.round(p*100); if(l&&label) l.textContent=label+"…"; }
+    <g class="tl-orbit"><text class="tl-sun" x="60" y="13" text-anchor="middle">${icon}</text></g>
+    <text class="tl-lab" x="60" y="50" text-anchor="middle">${lab}</text><text class="tl-yr" id="tlBig" x="60" y="78" text-anchor="middle">${big}</text></svg>
+    <div class="tl-step" id="tlStep">${step}</div></div>`; }
+const turnLoader=y=>dialLoader("YEAR",y,"☀️",ENGINE.inWorker?"The year begins…":"The world is moving…");
+const mapLoader=()=>dialLoader("MAP",ENGINE.inWorker?"0%":"…","🧭",ENGINE.inWorker?"Shaping the land…":"Drawing the map…");
+function dialShow(p,label,pct){ const a=$("tlArc"), l=$("tlStep"), b=$("tlBig"); if(a) a.style.strokeDashoffset=100-Math.round(p*100); if(l&&label) l.textContent=label+"…"; if(pct&&b) b.textContent=Math.round(p*100)+"%"; }
+const turnShow=(p,label)=>dialShow(p,label);
 // map generation progress bar (filled by genShow while the worker reports; mini = the small one in the New game preview)
 const genBar=(p,mini)=>`<div class="genbar${mini?" mini":""}"><i id="${mini?"":"genBarI"}" style="width:${Math.round((p||0)*100)}%"></i></div>${mini?"":`<div class="small mut" id="genLab">Starting…</div>`}`;
-function genShow(p,label){ const b=$("genBarI"), l=$("genLab"); if(b) b.style.width=Math.round(p*100)+"%"; if(l) l.textContent=`${label} · ${Math.round(p*100)}%`; }
+function genShow(p,label){ const b=$("genBarI"), l=$("genLab"); if(b) b.style.width=Math.round(p*100)+"%"; if(l) l.textContent=`${label} · ${Math.round(p*100)}%`; dialShow(p,label,true); }
 function pickText(){ const s=UI.setup;
   if(s.hot&&!s.observer){ if(!s.preview) return `Generating map… ${s.genP!=null?Math.round(s.genP*100)+"%":""}${genBar(s.genP,true)}`; const i=nextPick(s); return i<0?"Every player has a state.":`Next: <b>player ${i+1}</b>. Players without a state start at random, away from the others.`; }
   return !s.preview?`Generating map… ${s.genP!=null?Math.round(s.genP*100)+"%":""}${genBar(s.genP,true)}`:s.pick!=null?`Selected: <b>${esc(s.preview.countries[s.pick].name)}</b>`:"No state selected (random)."; }
 function setPickText(){ const l=$("pvPick"); if(l) l.innerHTML=pickText(); setPstText(); }
 async function makePreview(){
   const s=UI.setup, tok=s.tok=(s.tok||0)+1; s.preview=null; s.pick=null; s.genP=null; setPickText();
-  const g=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,forest:s.forest,mtn:s.mtn,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,alliances:allyOpts()},(p,l)=>{ if(UI.setup===s&&s.tok===tok){ s.genP=p; s.genL=l; setPickText(); } });
+  const g=await (s.previewP=ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,forest:s.forest,mtn:s.mtn,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,alliances:allyOpts()},(p,l)=>{ if(UI.setup===s&&s.tok===tok){ s.genP=p; s.genL=l; setPickText(); dialShow(p,l,true); } }));
   if(UI.setup!==s||s.tok!==tok) return; // settings changed meanwhile
-  g.player=-1; s.preview=g; setPickText(); drawPreview();
+  g.player0=g.player; g.player=-1; s.preview=g; setPickText(); drawPreview(); // player0: the state the engine picked for you
 }
 function drawPreview(){
   const s=UI.setup, cv=$("pvc"); if(!cv) return;
@@ -5442,10 +5458,14 @@ document.addEventListener("click",async ev=>{
         if(s.n<s.players.length) setStates(s.players.length,"");
         ho={humans:s.players.map(q=>({...q})),picks:s.choose&&s.preview?picksOf(s).slice():[],allHumans:!!s.allHumans,rotate:!!s.rotate}; }
       const rebRule=g=>{ g.rebels=!!s.rebels; g.countries.forEach(x=>{ if(g.rebels) x.loy=loyCeil(g,x); else delete x.loy; }); }; // the preview map was made with the default
+      // Play without picking a state: the preview map is the game (no second map to make); still being made → wait for it
+      if(!hot&&!s.observer&&!(s.choose&&s.pick!=null)&&!s.preview&&s.previewP){ const tok=s.tok; UI.busy=true; modal(mapLoader(),"turnwin"); if(s.genP!=null) dialShow(s.genP,s.genL,true);
+        try{ await s.previewP; }catch(e){} UI.busy=false; if(UI.setup!==s||s.tok!==tok) return; }
       if(hot&&s.choose&&s.preview){ G=s.preview; G.relNoise=!!s.relNoise; rebRule(G); setupHumans(G,ho,Math.random); }
+      else if(!hot&&!s.observer&&!(s.choose&&s.pick!=null)&&s.preview?.player0>=0){ const g=s.preview, pk=g.player0; G=g; G.player=pk; G.relNoise=!!s.relNoise; rebRule(G); G.countries.forEach(x=>x.ai=x.id!==pk); pickTraits(G.countries[pk],s.civ,s.leader,s.landType); }
       else if(!hot&&s.choose&&!s.observer&&s.preview&&s.pick!=null){ G=s.preview; G.player=s.pick; G.relNoise=!!s.relNoise; rebRule(G); G.countries.forEach(x=>x.ai=x.id!==s.pick); pickTraits(G.countries[s.pick],s.civ,s.leader,s.landType); }
       else {
-        UI.busy=true; modal(`<h2>Generating map…</h2><p class="mut">${fmt(s.n)} states.</p>${genBar()}`);
+        UI.busy=true; modal(mapLoader(),"turnwin");
         try{ G=await ENGINE.call("newGame",{nStates:s.n,terr:s.terr,water:s.water,waterStyle:s.wstyle,forest:s.forest,mtn:s.mtn,map:s.map,wonders:s.wonders,weather:!!s.weather,civ:s.civ,leader:s.leader,landType:s.landType,difficulty:s.diff,observer:!!s.observer,relNoise:!!s.relNoise,rebels:!!s.rebels,alliances:allyOpts(),...(ho||{})},genShow); }
         catch(e){ console.error(e); UI.busy=false; flash("Map generation failed."); setupModal(); return; }
         UI.busy=false;
