@@ -169,7 +169,7 @@ td.r,th.r{text-align:right}
 /* relics: drawn icon tiles framed by rarity, the slot on a general's card, the Treasury */
 :root{--rc-c:#8a919c;--rc-r:#9a7fe0;--rc-x:#d0584a;--rc-u:#e0b354}
 .ri{--k:var(--rc-c);width:var(--s,40px);height:var(--s,40px);flex:none;border-radius:8px;display:inline-grid;place-items:center;color:var(--k);background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--k) 22%,#16181d),#0f1114 72%);border:1.5px solid color-mix(in srgb,var(--k) 70%,#000);position:relative;overflow:hidden;vertical-align:middle}
-.ri svg{width:66%;height:66%}
+.ri svg{width:66%;height:66%} .ri .rie{font-size:calc(var(--s,40px)*.5);line-height:1}
 .ri.r{--k:var(--rc-r)} .ri.x{--k:var(--rc-x)} .ri.u{--k:var(--rc-u);box-shadow:0 0 10px #e0b35444}
 .ri.u::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,#fff4 50%,transparent 65%);background-size:250% 100%;animation:pfshine 4s ease-in-out infinite;pointer-events:none}
 .ri.none{--k:var(--line);background:#0f1114;border-style:dashed;color:var(--mut)}
@@ -745,7 +745,9 @@ const R = {
   postEase: 0.3, postSqTax: 0.015, postSqLoy: 0.2,   // Governor: Ease loyalty +0.3 a year per Mind; Squeeze taxes +1.5% and loyalty −0.2 a year per Mind
   postGovRevolt: 0.5, postDrunk: 0.5,
   relSpoil: 0.25, relRuin: 0.02, relRuinFamous: 0.2, relAcad: 0.1, relLegRare: 0.5, relTake: 10, relFamous: 6, relCovet: 0.3, // relics: spoils chance, ruins chance (and the share that turns up a lost famous one), hiring, morale for taking one back, famous ones at the start, how much computer states covet them
-  rlBlade: 3, rlMap: 10, rlAstro: 25, rlShield: 0.1, rlAegis: 0.2, rlHorn: 0.06, rlCursed: 0.12, rlCursedLoy: 0.5, rlDragon: 0.08, rlDragonFloor: 60, rlSpear: 0.15, rlHammer: 0.2, rlBanner: 5, rlSaint: 1, rlLedger: 1.5, rlSeal: 1.5, rlCrown: 2, rlCrownLoy: 1,                // a Butcher governor halves the revolt chance (and Ease); a Drunkard at a post gives half in half his years         // share of rolled traits that start hidden; share of good trait slots that roll a troop trait
+  rlBlade: 3, rlMap: 10, rlAstro: 25, rlShield: 0.1, rlAegis: 0.2, rlHorn: 0.06, rlCursed: 0.12, rlCursedLoy: 0.5, rlDragon: 0.08, rlDragonFloor: 60, rlSpear: 0.15, rlHammer: 0.2, rlBanner: 5, rlSaint: 1, rlLedger: 1.5, rlSeal: 1.5, rlCrown: 2, rlCrownLoy: 1,
+  rlTroopC: 0.05, rlTroopR: 0.1, rlTroopU: 0.15, // troop relics: that troop fights better (common, rare, famous), for its share of the army
+  rlSpearLossR: 0.1, rlSpearLossU: 0.2, rlSpearHoldU: 2, rlArcherR: 0.05, rlArcherU: 0.15, rlAxeLossR: 0.1, rlPikeCavR: 0.1, rlPikeCavU: 0.25, rlSwordTough: 0.1, rlSwordLossU: 0.25, rlCavSpeedR: 10, rlCavSpeedU: 25,                // a Butcher governor halves the revolt chance (and Ease); a Drunkard at a post gives half in half his years         // share of rolled traits that start hidden; share of good trait slots that roll a troop trait
   // general traits (battle traits work in battles he commands; costs and temper every year)
   trLuckyDice: 2, trLuckyBDice: 3, trJinxDice: 2, trReckless: 0.3, // Lucky: best of 2 luck rolls; Lucky Bastard: best of 3; Jinxed: worst of 2; Reckless: luck ±30%
   trLuckyEarnWins: 3, trLuckyEarnRoll: 1.1, // earned Lucky Bastard: 3 battles won on a luck roll of ×1.10 or better
@@ -921,7 +923,7 @@ const ATTACK_ORDER=TROOPS.slice().sort((a,b)=>(b.atk/b.def)-(a.atk/a.def)||b.atk
 function troopsOf(c){ if(!c.troops) c.troops={spear:c.soldiers||0}; return c.troops; } // older saves: everyone was a spearman
 function troopCount(tr){ let n=0; for(const k in tr) n+=tr[k]; return n; }
 function troopSum(tr,stat){ let s=0; for(const k in tr) s+=tr[k]*(TROOP[k]?TROOP[k][stat]:1); return s; }
-function holdUnits(tr,gen){ let s=0; for(const k in tr) s+=tr[k]*(TROOP[k]?.hold||1)*(k==="spear"&&hasTr(gen,"drill")?R.trSpearHold:1); return s; } // Phalanx: spearmen hold more
+function holdUnits(tr,gen){ let s=0; for(const k in tr) s+=tr[k]*(TROOP[k]?.hold||1)*(k==="spear"&&hasTr(gen,"drill")?R.trSpearHold:1)*(k==="spear"&&gen&&rk(gen,"legion")?R.rlSpearHoldU:1); return s; } // Phalanx trait, Spear of the First Legion: spearmen hold more
 function armyAtk(c,tr){ return troopSum(tr||troopsOf(c),"atk")*atkPower(c); }
 function armyDef(c,tr){ return troopSum(tr||troopsOf(c),"def")*defPower(c); }
 function troopUnlocked(c,id){ return !!TROOP[id]; } // no unlocks: every troop type is available
@@ -954,7 +956,7 @@ function genWages(c){ let w=0; for(const gen of c.generals||[]) if(hasTr(gen,"gr
 function sellPrice(g,c){ return +(g.price*mkFin(c)).toFixed(2); } // market price, with this state's Finance bonus
 function buyPrice(g){ return g.price; }
 function genFactor(gen){ return gen ? (0.4+(gen.skill+(rk(gen,"blade")?R.rlBlade:0))*0.008)*(0.5+gen.morale/200) : R.genNoGeneral; } // Veteran's Blade: + skill in battle
-function genSpeed(gen){ return Math.min(100,(gen.speed||0)+(hasTr(gen,"horse")?R.trHorseSpeed:0))+(rk(gen,"map")?R.rlMap:rk(gen,"astro")?R.rlAstro:0); } // Horse Lord rides faster; Scout's Map, Star Compass
+function genSpeed(gen){ return Math.min(100,(gen.speed||0)+(hasTr(gen,"horse")?R.trHorseSpeed:0))+(rk(gen,"map")?R.rlMap:rk(gen,"astro")?R.rlAstro:rk(gen,"saddle")?R.rlCavSpeedR:rk(gen,"riders")?R.rlCavSpeedU:0); } // Horse Lord rides faster; Scout's Map, Star Compass
 function speedCap(gen){ return Math.round(R.speedBase+genSpeed(gen)*R.speedPerPoint); }
 // battle luck: Lucky keeps the best of several rolls, Jinxed the worst; Reckless doubles the swing
 function luckDice(gen){ const lb=hasTr(gen,"luckyB"), lu=hasTr(gen,"lucky"), rd=rk(gen,"coin")||rk(gen,"astro"), jx=hasTr(gen,"jinx")&&!lb&&!lu&&!rd; // a lucky relic: one more die, or lifts a jinx
@@ -1001,7 +1003,14 @@ const RELICS={
   horn:{name:"War Horn",k:"r",w:"battle"}, spear:{name:"Breaching Spear",k:"r",w:"battle"}, ledger:{name:"Quartermaster's Ledger",k:"r",w:"qm"}, seal:{name:"Seal of Office",k:"r",w:"gov"},
   cursed:{name:"Black Blade",k:"x",w:"battle"},
   crown:{name:"Crown of the First King",k:"u",w:"gov"}, dragon:{name:"Dragon Standard",k:"u",w:"battle"}, relic:{name:"Saint's Reliquary",k:"u",w:"any"},
-  hammer:{name:"Hammer of the Breaker",k:"u",w:"battle"}, astro:{name:"Star Compass",k:"u",w:"battle"}, aegis:{name:"The Unbroken Shield",k:"u",w:"battle"}};
+  hammer:{name:"Hammer of the Breaker",k:"u",w:"battle"}, astro:{name:"Star Compass",k:"u",w:"battle"}, aegis:{name:"The Unbroken Shield",k:"u",w:"battle"},
+  // troop relics (tp: the troop, lv 0 common / 1 rare / 2 famous); archer relics work only defending, axe relics only attacking
+  pennant:{name:"Militia Pennant",k:"c",w:"battle",tp:"spear",lv:0}, phalanx:{name:"Phalanx Standard",k:"r",w:"battle",tp:"spear",lv:1}, legion:{name:"Spear of the First Legion",k:"u",w:"battle",tp:"spear",lv:2},
+  quiver:{name:"Fletcher's Quiver",k:"c",w:"battle",tp:"archer",lv:0}, longbow:{name:"Yew Longbow",k:"r",w:"battle",tp:"archer",lv:1}, huntbow:{name:"Bow of the Hunter Queen",k:"u",w:"battle",tp:"archer",lv:2},
+  woodaxe:{name:"Woodsman's Axe",k:"c",w:"battle",tp:"axe",lv:0}, totem:{name:"Berserker's Totem",k:"r",w:"battle",tp:"axe",lv:1}, mking:{name:"Axe of the Mountain King",k:"u",w:"battle",tp:"axe",lv:2},
+  shaft:{name:"Ash Pike Shaft",k:"c",w:"battle",tp:"pike",lv:0}, hedge:{name:"Hedgehog Banner",k:"r",w:"battle",tp:"pike",lv:1}, wallpike:{name:"Wall of Pikes",k:"u",w:"battle",tp:"pike",lv:2},
+  whet:{name:"Whetstone",k:"c",w:"battle",tp:"sword",lv:0}, gauntlet:{name:"Duelist's Gauntlet",k:"r",w:"battle",tp:"sword",lv:1}, kingblade:{name:"Blade of Kings",k:"u",w:"battle",tp:"sword",lv:2},
+  shoe:{name:"Iron Horseshoe",k:"c",w:"battle",tp:"cav",lv:0}, saddle:{name:"Saddle of the Steppe",k:"r",w:"battle",tp:"cav",lv:1}, riders:{name:"Banner of the Thousand Riders",k:"u",w:"battle",tp:"cav",lv:2}};
 const REL_IDS=Object.keys(RELICS), REL_FAMOUS=REL_IDS.filter(k=>RELICS[k].k==="u"), REL_COMMON=REL_IDS.filter(k=>RELICS[k].k==="c"), REL_RARE=REL_IDS.filter(k=>RELICS[k].k==="r"||RELICS[k].k==="x");
 const relK=gen=>gen?.relic?.k||null;
 // does his relic work where he is now? battle relics: in the field; post relics: at that post; "any": always
@@ -1011,6 +1020,17 @@ function relPostMul(gen,id){ const k=relK(gen); return gen?.post!==id?1:id==="qm
 function relAtkMul(gen){ return rk(gen,"horn")?1+R.rlHorn:rk(gen,"cursed")?1+R.rlCursed:rk(gen,"dragon")?1+R.rlDragon:1; }
 function relLandMul(gen){ return rk(gen,"spear")?1+R.rlSpear:rk(gen,"hammer")?1+R.rlHammer:1; }
 function relLoy(c){ let v=0; for(const x of c.generals||[]){ if(rk(x,"relic")) v+=R.rlSaint; if(relK(x)==="cursed") v-=R.rlCursedLoy; } return v; } // loyalty a year from carried relics
+// troop relics: that troop fights better for its share of the army (stat "atk" or "def"); archer relics only defend, axe relics only attack
+function relTroopMul(gen,tr,stat){ const k=relK(gen), d=RELICS[k]; if(!d?.tp||!rk(gen,k)||d.tp==="archer"&&stat==="atk"||d.tp==="axe"&&stat==="def") return null;
+  const tot=troopSum(tr,stat), sh=tot>0?(tr[d.tp]||0)*(TROOP[d.tp]?.[stat]||0)/tot:0; if(sh<=0) return null;
+  const v=1+[R.rlTroopC,R.rlTroopR,R.rlTroopU][d.lv]*sh; return ["rel:"+k,+v.toFixed(4),+sh.toFixed(3),d.tp]; }
+// Hedgehog Banner, Wall of Pikes: the enemy army's cavalry fights weaker (for its share)
+function relCavCut(gen,tr,stat){ const x=rk(gen,"hedge")?R.rlPikeCavR:rk(gen,"wallpike")?R.rlPikeCavU:0; if(!x) return null;
+  const tot=troopSum(tr,stat), sh=tot>0?(tr.cav||0)*(TROOP.cav?.[stat]||0)/tot:0; return sh>0?["relE:"+relK(gen),+(1-x*sh).toFixed(4),+sh.toFixed(3)]:null; }
+// troop relics on losses (× each troop's losses), for the attacker (att) or the defender
+function relLossMods(gen,mods,att){ const m=(t,v)=>{ mods[t]=(mods[t]??1)*v; };
+  if(rk(gen,"phalanx")) m("spear",1-R.rlSpearLossR); if(rk(gen,"legion")) m("spear",1-R.rlSpearLossU);
+  if(att&&rk(gen,"totem")) m("axe",1-R.rlAxeLossR); if(rk(gen,"gauntlet")) m("sword",1/(1+R.rlSwordTough)); if(rk(gen,"kingblade")) m("sword",1-R.rlSwordLossU); return mods; }
 function relDefLoss(gen){ return rk(gen,"shield")?1-R.rlShield:rk(gen,"aegis")?1-R.rlAegis:1; }
 function newRelic(g,k,src){ g.relId=(g.relId||0)+1; return {n:g.relId,k,src,t:g.turn}; }
 const relicsOf=c=>c.relics||(c.relics=[]);
@@ -1044,8 +1064,9 @@ function relSeed(g){ const n=Math.min(REL_FAMOUS.length,Math.max(0,Math.round(R.
   for(let i=0;i<n&&pool.length;i++){ const c=pool.splice(Math.floor(R01(g)*pool.length),1)[0]; relicsOf(c).push(newRelic(g,REL_FAMOUS[i],"Held since the founding")); } }
 // computer: hand Treasury relics to generals with none: post relics to that post, battle relics to the best field generals first
 function aiRelics(g,c){ const T=c.relics; if(!T?.length) return;
-  const free=(c.generals||[]).filter(x=>!x.relic).sort((a,b)=>genEdge(b)-genEdge(a));
-  for(const r of T.slice()){ const w=RELICS[r.k]?.w; let gen=null;
+  const free=(c.generals||[]).filter(x=>!x.relic).sort((a,b)=>genEdge(b)-genEdge(a)), tr=troopsOf(c), nT=Math.max(1,troopCount(tr)), rank={u:3,r:2,x:1,c:1};
+  for(const r of T.slice().sort((a,b)=>(rank[RELICS[b.k]?.k]||0)-(rank[RELICS[a.k]?.k]||0))){ const d=RELICS[r.k], w=d?.w; let gen=null;
+    if(d?.tp&&(tr[d.tp]||0)/nT<0.15) continue; // a troop relic waits until the army has enough of that troop
     if(w==="qm"||w==="gov") gen=free.find(x=>x.post===w);
     else if(w==="battle") gen=free.find(x=>!x.post&&(r.k!=="cursed"||loyOf(c)>60));
     else gen=free[0];
@@ -2889,6 +2910,7 @@ function attackStrength(g,a,defGenOf){
   { const dm=drillMul(A,atkTr,"atk"); tm*=dm.m; trA.push(...dm.rows); } // the Drillmaster's troops
   if(hasTr(gen,"nemesis")&&gen.nem===D.id){ tm*=1+R.trNemesis; trA.push(["nemesis",1+R.trNemesis]); }
   { const v=relAtkMul(gen); if(v!==1){ tm*=v; trA.push(["rel:"+relK(gen),v]); } } // War Horn, Black Blade, Dragon Standard
+  { const t=relTroopMul(gen,atkTr,"atk"); if(t){ tm*=t[1]; trA.push(t); } const e=relCavCut(dg,atkTr,"atk"); if(e){ tm*=e[1]; trA.push(e); } } // troop relics; the defender's pike relic
   const p=[troopSum(atkTr,"atk"),clashTech(A,D)[0],M(A,"attack"),wonderMul(A,"atk"),genFactor(gen),luckRoll(g,gen),tm]; // research edge capped; traits last, so older reports keep their order
   a.parts=p; a.trA=trA; return p.reduce((x,y)=>x*y,1);
 }
@@ -2920,6 +2942,8 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   if(tbE>0&&hasTr(dg,"fox")){ const v=(1+tbE*(1+R.trFox))/(1+tbE); dm*=v; trD.push(["foxD",+v.toFixed(4)]); }
   if(hasTr(dg,"nemesis")&&dg.nem===A.id){ dm*=1+R.trNemesis; trD.push(["nemesis",1+R.trNemesis]); }
   { const d2=drillMul(D,gTr,"def"); dm*=d2.m; trD.push(...d2.rows); } // the defender's Drillmaster
+  { const t=relTroopMul(dg,gTr,"def"); if(t){ dm*=t[1]; trD.push(t); } const e=relCavCut(gen,gTr,"def"); if(e){ dm*=e[1]; trD.push(e); } } // troop relics; the attacker's pike relic
+  if(tdf.fo>0&&tdf.b>0&&rk(gen,"mking")){ const bF=tdf.fo*(R.forestDef??0)/Math.max(1,tdf.n), v=(1+Math.max(0,tdf.b-bF))/(1+tdf.b); if(v<1){ dm*=v; trD.push(["rel:mking",+v.toFixed(4)]); } } // Axe of the Mountain King: no forest bonus
   const sDp=[troopSum(gTr,"def"),clashTech(A,D)[1],M(D,"defense"),wonderMul(D,"def"),genFactor(dg),1+R.defenderBonus,1+fb,luckRoll(g,dg),1+tdf.b,dm];
   const strA0=strA/(a.parts?.[5]||1), strD0=sDp.reduce((x,y)=>x*y,1)/sDp[7]; // how strong each side looks, before luck
   if(hasTr(dg,"coward")&&strA0>strD0){ sDp[9]*=1-R.trCowardDef; trD.push(["coward",1-R.trCowardDef]); }
@@ -2932,11 +2956,12 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   let decisive=1; const guarded=troopCount(gTr)>0&&strD>0, stLand=guarded?stanceMul(D,"stLand"):1; // no guards: no stance
   const modA={}, modD={}; // general traits on losses: Berserker axemen and Blademaster swordsmen lose fewer
   if(hasTr(gen,"berserk")) modA.axe=1-R.trAxeLoss; if(hasTr(gen,"blade")) modA.sword=1/(1+R.trBladeTough); if(hasTr(dg,"blade")) modD.sword=1/(1+R.trBladeTough);
+  relLossMods(gen,modA,true); relLossMods(dg,modD,false); // troop relics
   if(!guarded){ win=true; const L=casualties(atkTr,R.raidLoss,modA); applyLosses(A,atkTr,L.out); lossA=L.n; lossTrA=L.out; }
   else {
     // raid, kidnap and massacre withdraw rather than lose: no beaten-attacker penalty for them
     const r=strA/strD, sl=stanceMul(D,"stLoss"), fA=Math.min(1,R.battleLoss*strD/(strA+strD)*(r>1||NOLAND[mode]?1:R.loserPenalty)*sl*modeMul(mode,"atLoss")), fD=Math.min(1,R.battleLoss*strA/(strA+strD)*sl*modeMul(mode,"atDef")); // × the defender's stance and the attack mode
-    const tA=(hasTr(dg,"bows")?1+R.trBowsLoss:1)*(r<=1&&hasTr(gen,"cautious")?1-R.trCautiousLoss:1); // Master of Bows defending; a Cautious attacker who loses
+    const tA=(hasTr(dg,"bows")?1+R.trBowsLoss:1)*(rk(dg,"longbow")?1+R.rlArcherR:rk(dg,"huntbow")?1+R.rlArcherU:1)*(r<=1&&hasTr(gen,"cautious")?1-R.trCautiousLoss:1); // Master of Bows defending; a Cautious attacker who loses
     const LA=casualties(atkTr,Math.min(1,fA*tA),modA), LD=casualties(gTr,fD*relDefLoss(dg),modD); // Iron Shield, Unbroken Shield
     for(const k in LD.out) LD.out[k]=Math.min(pool[k]||0,Math.round(LD.out[k])); // whole soldiers only
     LD.n=Object.values(LD.out).reduce((s,v)=>s+v,0);
@@ -4724,14 +4749,25 @@ const REL_ICON={
  aegis:RS_(`<path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="11.5" r="3.5"/><path d="M12 6v2M12 15v2M7 11.5h1.5M15.5 11.5H17" stroke-width="1.2"/>`)};
 const REL_LORE={banner:"Carried at every retreat, never once lowered.",blade:"Notched from a hundred fights; it still finds the gap.",coin:"Heads, we march. Tails, we march anyway.",map:"Every ford and goat path, inked by a dead man.",shield:"Dented, never broken.",
  horn:"Its call reaches the enemy before the arrows do.",spear:"The first through every gate.",ledger:"Every sack of grain, every mouth, every lie.",seal:"What it stamps, the land obeys.",cursed:"It wins. The people whisper about how.",
- crown:"Whoever wears it is obeyed, by right or by fear.",dragon:"Men follow it into the sea.",relic:"No hand that took it by force has kept it.",hammer:"Walls were a suggestion.",astro:"It points to where the enemy is weakest.",aegis:"The border it guards does not move."};
+ crown:"Whoever wears it is obeyed, by right or by fear.",dragon:"Men follow it into the sea.",relic:"No hand that took it by force has kept it.",hammer:"Walls were a suggestion.",astro:"It points to where the enemy is weakest.",aegis:"The border it guards does not move.",
+ pennant:"Stitched by the village that sent the first levy.",phalanx:"Behind it, a hedge of spears that never breaks.",legion:"The legion that carried it never gave back a field.",
+ quiver:"Every arrow straight, every feather matched.",longbow:"Cut from a churchyard yew, older than the kingdom.",huntbow:"She never missed, and neither do those who draw it.",
+ woodaxe:"It felled forests before it felled men.",totem:"Bones and iron, and a scream that won't stop.",mking:"Forests open before it like a door.",
+ shaft:"Seasoned ash, straight as a law.",hedge:"Horses balk at the very sight of it.",wallpike:"A thousand points, and not one gap.",
+ whet:"A sharp edge is a cheap victory.",gauntlet:"Worn by the champion of a hundred duels.",kingblade:"The sword kings were crowned with, and killed with.",
+ shoe:"Nailed on for luck, and it held.",saddle:"From the endless grass, where riders are born.",riders:"When it rides, the ground shakes for a day's march."};
 const REL_KN={c:"Common",r:"Rare",x:"Cursed",u:"Famous"}, REL_WN={any:"Works anywhere",battle:"Works in his battles",qm:"Works at the Quartermaster post",gov:"Works at the Governor post"};
 // what a relic does, with today's numbers
 function relEff(k){ return ({banner:`Morale recovers +${R.rlBanner} a year.`,blade:`+${R.rlBlade} skill in battle.`,coin:"Battle luck: one more roll, keeps the best (or lifts a Jinx).",map:`Speed +${R.rlMap}: wins can take more land.`,shield:`Defending: his troops lose ${gPc(R.rlShield)} fewer.`,
   horn:`Attack +${gPc(R.rlHorn)}.`,spear:`Wins take ${gPc(R.rlSpear)} more land.`,ledger:`At the Quartermaster post: its effect ×${R.rlLedger}.`,seal:`At the Governor post: its effect ×${R.rlSeal}.`,cursed:`Attack +${gPc(R.rlCursed)}, but loyalty −${R.rlCursedLoy} a year while he carries it.`,
   crown:`At the Governor post: its effect ×${R.rlCrown}, and loyalty +${R.rlCrownLoy} a year.`,dragon:`Attack +${gPc(R.rlDragon)}. His morale never drops below ${R.rlDragonFloor}.`,relic:`Loyalty +${R.rlSaint} a year. Never lost in battle.`,
-  hammer:`Ignores narrow-pass and sea bonuses; wins take ${gPc(R.rlHammer)} more land.`,astro:`Speed +${R.rlAstro}. Battle luck: one more roll.`,aegis:`Defending: his troops lose ${gPc(R.rlAegis)} fewer, and he loses no morale.`})[k]||""; }
-const relTile=(k,s)=>k?`<span class="ri ${RELICS[k]?.k||"c"}"${s?` style="--s:${s}px"`:""}>${REL_ICON[k]||""}</span>`:`<span class="ri none"${s?` style="--s:${s}px"`:""}>${RS_(`<path d="M12 7v10M7 12h10"/>`)}</span>`;
+  hammer:`Ignores narrow-pass and sea bonuses; wins take ${gPc(R.rlHammer)} more land.`,astro:`Speed +${R.rlAstro}. Battle luck: one more roll.`,aegis:`Defending: his troops lose ${gPc(R.rlAegis)} fewer, and he loses no morale.`})[k]||relTroopEff(k); }
+// troop relics: the troop bonus, then the extra
+function relTroopEff(k){ const d=RELICS[k]; if(!d?.tp) return ""; const tn=TROOP_PL[d.tp], x=[R.rlTroopC,R.rlTroopR,R.rlTroopU][d.lv], how=d.tp==="archer"?" defending":d.tp==="axe"?" attacking":"";
+  const extra={phalanx:`; spearmen lose ${gPc(R.rlSpearLossR)} fewer`,legion:`; spearmen lose ${gPc(R.rlSpearLossU)} fewer and hold ${R.rlSpearHoldU}× the land`,longbow:`; attackers lose ${gPc(R.rlArcherR)} more`,huntbow:`; attackers lose ${gPc(R.rlArcherU)} more`,
+    totem:`; axemen lose ${gPc(R.rlAxeLossR)} fewer`,mking:"; ignores forest borders",hedge:`; enemy cavalry ${gPc(R.rlPikeCavR)} weaker`,wallpike:`; enemy cavalry ${gPc(R.rlPikeCavU)} weaker`,gauntlet:`; swordsmen ${gPc(R.rlSwordTough)} tougher`,kingblade:`; swordsmen lose ${gPc(R.rlSwordLossU)} fewer`,saddle:`; speed +${R.rlCavSpeedR}`,riders:`; speed +${R.rlCavSpeedU}`}[k]||"";
+  return `${tn} +${gPc(x)}${how} (for their share of the army)${extra}.`; }
+const relTile=(k,s)=>k?`<span class="ri ${RELICS[k]?.k||"c"}"${s?` style="--s:${s}px"`:""}>${REL_ICON[k]||(RELICS[k]?.tp?`<span class="rie">${TROOP[RELICS[k].tp]?.icon||""}</span>`:"")}</span>`:`<span class="ri none"${s?` style="--s:${s}px"`:""}>${RS_(`<path d="M12 7v10M7 12h10"/>`)}</span>`;
 const relLab=k=>`<span class="rlab ${RELICS[k].k}">${REL_KN[RELICS[k].k]} relic</span>`;
 // the relic slot on a general's card (cand: a candidate, shown but not clickable)
 function relSlot(c,x,cand){ const r=x.relic, k=r?.k;
@@ -4753,7 +4789,7 @@ function pTreasury(){
   const carried=c.generals.filter(x=>x.relic), rows=carried.map(x=>{ const ok=relWorks(x); return `<div class="rgrow">${genFrame(x,c.color)}<div><b>${esc(x.name)}</b><div class="m">${relTile(x.relic.k,20)} ${esc(relName(x.relic))}</div><div class="m ${ok?"rgd":"rwn"}">${ok?esc(relEff(x.relic.k)):"Does nothing here: "+REL_WN[RELICS[x.relic.k].w].toLowerCase()}</div></div><button class="sm" data-relslot="${x.id}">Change</button></div>`; }).join("");
   const hold={}; G.countries.forEach(o=>{ if(!o.alive) return; (o.relics||[]).forEach(r=>{ if(RELICS[r.k]?.k==="u") hold[r.k]=[o,null]; }); (o.generals||[]).forEach(x=>{ if(RELICS[x.relic?.k]?.k==="u") hold[x.relic.k]=[o,x]; }); });
   const fam=REL_FAMOUS.map(k=>{ const h=hold[k], o=h?.[0], mine=o&&o.id===c.id;
-    return `<div class="frow">${relTile(k,40)}<div><b>${esc(RELICS[k].name)}</b><div class="m">${esc(relEff(k))}</div></div><div class="who${mine?" me":o?"":" unk"}">${o?`${mine?"You":`<span class="flagdot" style="background:${o.color}"></span>${esc(o.name)}`}<div class="m">${h[1]?"General "+esc(h[1].name):"in the Treasury"}</div>`:`Lost<div class="m">may turn up in ruins</div>`}</div></div>`; }).join("");
+    return `<div class="frow">${relTile(k,40)}<div><b>${esc(RELICS[k].name)}</b><div class="m">${esc(relEff(k))}</div></div><div class="who${mine?" me":o?"":" unk"}">${o?`${mine?"You":`<span class="flagdot" style="background:${o.color}"></span>${esc(o.name)}`}<div class="m">${h[1]?"General "+esc(h[1].name):"in the Treasury"}</div>`:`Not held<div class="m">may turn up in ruins</div>`}</div></div>`; }).join("");
   return `<div class="tavern">
    ${picker()}
    <div class="psec"><h3 class="tvh">Treasury ${gl("relics")}<span class="grow"></span><span class="rt">${T.length} relic${T.length===1?"":"s"} waiting · ${carried.length} carried</span></h3>${vault}${det}</div>
@@ -5144,7 +5180,7 @@ function reportHtml(b,d,ref){
   const wonderRow=(area,v)=>v>1?multRow(`${WONDERS[area].icon} ${esc(WONDERS[area].name)}`,v):multRow("🏛 Wonder: none",1);
   // general traits that changed the battle (newer reports): one row each; luck says how it was rolled
   const TRN={spear:"spearmen",archer:"archers",axe:"axemen",pike:"pikemen",sword:"swordsmen",cav:"cavalry"};
-  const trLab=([k,v,sh,tp])=>k.startsWith?.("rel:")?`🏺 ${RELICS[k.slice(4)]?.name||"Relic"}${k==="rel:hammer"?": no narrow-pass or sea bonus":""}`:TROOP_TRAIT[k]?`${GTR[k].icon} ${GTR[k].name}: ${TRN[TROOP_TRAIT[k]]} (${Math.round(sh*100)}% of the army)`:k==="pikeE"?"🔰 Enemy Pike Square: cavalry weaker":k==="siege"?"🏰 Attacker's Siege Breaker: border bonus cut":k==="foxA"?"⛰️ Attacker's Mountain Fox: terrain bonus cut":k==="foxD"?"⛰️ Mountain Fox: terrain bonus raised":k==="coward"?"🏳️ Coward: the attacker looked stronger":k==="drillP"?`🎯 Drillmaster: ${TRN[tp]||""} (${Math.round(sh*100)}% of the army)`:`${GTR[k]?.icon||""} ${GTR[k]?.name||k}`;
+  const trLab=([k,v,sh,tp])=>k.startsWith?.("relE:")?`🏺 Enemy's ${RELICS[k.slice(5)]?.name||"relic"}: cavalry weaker (${Math.round(sh*100)}% of the army)`:k.startsWith?.("rel:")?`🏺 ${RELICS[k.slice(4)]?.name||"Relic"}${k==="rel:hammer"?": no narrow-pass or sea bonus":k==="rel:mking"?": no forest bonus":tp?`: ${TRN[tp]} (${Math.round(sh*100)}% of the army)`:""}`:TROOP_TRAIT[k]?`${GTR[k].icon} ${GTR[k].name}: ${TRN[TROOP_TRAIT[k]]} (${Math.round(sh*100)}% of the army)`:k==="pikeE"?"🔰 Enemy Pike Square: cavalry weaker":k==="siege"?"🏰 Attacker's Siege Breaker: border bonus cut":k==="foxA"?"⛰️ Attacker's Mountain Fox: terrain bonus cut":k==="foxD"?"⛰️ Mountain Fox: terrain bonus raised":k==="coward"?"🏳️ Coward: the attacker looked stronger":k==="drillP"?`🎯 Drillmaster: ${TRN[tp]||""} (${Math.round(sh*100)}% of the army)`:`${GTR[k]?.icon||""} ${GTR[k]?.name||k}`;
   const trRows=L=>(L||[]).map(e=>multRow(`<span class="acc">${esc(trLab(e))}</span>`,e[1])).join("");
   const luckLab=k=>{ if(!k) return "Battle luck"; const b=[]; if(k.n>1) b.push(k.worst?`🐈‍⬛ worst of ${k.n} rolls`:`🍀 best of ${k.n} rolls`); if(Math.abs(k.w-R.battleLuck)>1e-9) b.push(`🎲 ±${Math.round(k.w*100)}%`); return b.length?`Battle luck <span class="acc">(${b.join(", ")})</span>`:"Battle luck"; };
   const genRow=(g,v)=>multRow(g?`General ${esc(g[0])} (skill ${g[2]}, morale ${g[4]})`:"No general",v,g?`skill ${g[2]} → ${mul(0.4+g[2]*0.008)} · morale ${g[4]} → ${mul(0.5+g[4]/200)}`:"");
@@ -5272,7 +5308,8 @@ const SETTINGS_META=[
   ["Generals: Tavern (tiers: the General tiers tab)",[["genCalls","Calls per tier per year"],["genRise","Each extra call that year costs (×)"],["genCards","Candidates per call"],["genMax","Most generals a state can keep"],["genHide","Rolled traits that start hidden","%"],["genTroopShare","Good trait slots that roll a troop trait","%"]]],
   ["Generals: staff posts",[["postQm","Quartermaster: less grain eaten by the army per Mind","%"],["postQmFit","Quartermaster: Iron Quartermaster (×)"],["postQmMax","Quartermaster: at most","%"],["postDrill","Drillmaster: skill a year per Mind for generals in the field"],["postDrillTroop","Drillmaster: his troop traits' troops fight better","%"],["postChief","Chief of Staff: morale a year per Mind for generals in the field"],["postChiefFit","Chief of Staff: Beloved (×)"],["postEase","Governor, Ease: loyalty a year per Mind"],["postSqTax","Governor, Squeeze: taxes per Mind","%"],["postSqLoy","Governor, Squeeze: loyalty lost a year per Mind"],["postGovRevolt","Governor: a Butcher's revolt chance (×)"],["postDrunk","A Drunkard at a post in a bad year (×)"]]],
   ["Generals: relics",[["relSpoil","Chance to take a beaten general's relic","%"],["relRuin","Chance a win that takes land finds a relic","%"],["relRuinFamous","Share of finds that are a lost famous relic","%"],["relAcad","Chance an Academy candidate brings a relic","%"],["relLegRare","Share of Legendary candidates' relics that are rare","%"],["relTake","Morale a general loses when his relic is taken back"],["relFamous","Famous relics handed out at the start"],["relCovet","Computer: war motive per famous relic a neighbor holds"],
-    ["rlBlade","Veteran's Blade: skill in battle"],["rlMap","Scout's Map: speed"],["rlAstro","Star Compass: speed"],["rlShield","Iron Shield: fewer losses defending","%"],["rlAegis","Unbroken Shield: fewer losses defending","%"],["rlHorn","War Horn: attack","%"],["rlCursed","Black Blade: attack","%"],["rlCursedLoy","Black Blade: loyalty lost a year"],["rlDragon","Dragon Standard: attack","%"],["rlDragonFloor","Dragon Standard: lowest morale"],["rlSpear","Breaching Spear: more land per win","%"],["rlHammer","Hammer of the Breaker: more land per win","%"],["rlBanner","Tattered Banner: morale a year"],["rlSaint","Saint's Reliquary: loyalty a year"],["rlLedger","Quartermaster's Ledger: Quartermaster effect (×)"],["rlSeal","Seal of Office: Governor effect (×)"],["rlCrown","Crown of the First King: Governor effect (×)"],["rlCrownLoy","Crown of the First King: loyalty a year as Governor"]]],
+    ["rlBlade","Veteran's Blade: skill in battle"],["rlMap","Scout's Map: speed"],["rlAstro","Star Compass: speed"],["rlShield","Iron Shield: fewer losses defending","%"],["rlAegis","Unbroken Shield: fewer losses defending","%"],["rlHorn","War Horn: attack","%"],["rlCursed","Black Blade: attack","%"],["rlCursedLoy","Black Blade: loyalty lost a year"],["rlDragon","Dragon Standard: attack","%"],["rlDragonFloor","Dragon Standard: lowest morale"],["rlSpear","Breaching Spear: more land per win","%"],["rlHammer","Hammer of the Breaker: more land per win","%"],["rlBanner","Tattered Banner: morale a year"],["rlSaint","Saint's Reliquary: loyalty a year"],["rlLedger","Quartermaster's Ledger: Quartermaster effect (×)"],["rlSeal","Seal of Office: Governor effect (×)"],["rlCrown","Crown of the First King: Governor effect (×)"],["rlCrownLoy","Crown of the First King: loyalty a year as Governor"],
+    ["rlTroopC","Troop relics, common: that troop fights better (for its share)","%"],["rlTroopR","Troop relics, rare: that troop fights better","%"],["rlTroopU","Troop relics, famous: that troop fights better","%"],["rlSpearLossR","Phalanx Standard: spearmen lose fewer","%"],["rlSpearLossU","Spear of the First Legion: spearmen lose fewer","%"],["rlSpearHoldU","Spear of the First Legion: land a spearman holds (×)"],["rlArcherR","Yew Longbow: attackers lose more","%"],["rlArcherU","Bow of the Hunter Queen: attackers lose more","%"],["rlAxeLossR","Berserker's Totem: axemen lose fewer","%"],["rlPikeCavR","Hedgehog Banner: enemy cavalry weaker","%"],["rlPikeCavU","Wall of Pikes: enemy cavalry weaker","%"],["rlSwordTough","Duelist's Gauntlet: swordsmen tougher","%"],["rlSwordLossU","Blade of Kings: swordsmen lose fewer","%"],["rlCavSpeedR","Saddle of the Steppe: speed"],["rlCavSpeedU","Banner of the Thousand Riders: speed"]]],
   ["Generals: traits",[["trLuckyDice","Lucky: luck rolls (keeps the best)"],["trLuckyBDice","Lucky Bastard: luck rolls (keeps the best)"],["trJinxDice","Jinxed: luck rolls (keeps the worst)"],["trReckless","Reckless: luck swing","%"],["trLuckyEarnWins","Lucky Bastard earned: battles won on a high luck roll"],["trLuckyEarnRoll","…a luck roll of at least (×)"],
     ["trFox","Mountain Fox: forest/mountain bonus cut when attacking, raised when defending","%"],["trSiege","Siege Breaker: narrow-front and sea bonus cut","%"],["trTroop","Troop traits: that troop's bonus","%"],["trTroopStrong","Troop traits: Swordsmen and Cavalry bonus","%"],["trHorseSpeed","Horse Lord: extra speed"],["trPikeCav","Pike Square: enemy cavalry weaker","%"],["trBowsLoss","Master of Bows: attackers lose more","%"],["trAxeLoss","Berserker Chief: axemen lose fewer","%"],["trBladeTough","Blademaster: swordsmen tougher","%"],["trSpearHold","Phalanx: km² each spearman holds"],
     ["trCautiousLoss","Cautious: fewer losses in defeat","%"],["trCautiousLand","Cautious: less land won or lost","%"],["trCowardOdds","Coward: calls off when the enemy looks this much stronger (×)"],["trCowardDef","Coward: weaker defending against a stronger attacker","%"],["trCowardMorale","Coward: morale lost when he calls off"],
@@ -5443,6 +5480,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Troop relics","2026-11-13 23:48",["18 new relics: a common, a rare and a famous one for each troop type","Each makes its troop fight better for its share of your army (+5%, +10%, +15%); rare and famous ones add an extra, such as fewer losses, weaker enemy cavalry or more speed","Archer relics work when defending, axe relics when attacking","The six famous troop relics don't start with anyone: they turn up in ruins","Computer states hand out troop relics only when their army has enough of that troop","Rules & guide: a troop relic table"]],
 ["Relics and the Treasury","2026-11-13 23:32",["New relics: 16 objects a general can carry, from a Lucky Coin to the Crown of the First King; each general carries one","New Generals → Treasury (key R): relics waiting, who carries what, and who holds each famous relic","A relic slot on every general's card: click it to give or change his relic. Taking one back costs him 10 morale","Beat a general who carries a relic: 1 in 4 to take it. Your generals can lose theirs the same way","Wins that take land can turn up a relic in the ruins; Legendary candidates bring one, Academy ones sometimes","Conquer a state to take its whole Treasury","Six famous relics, one of each in the world, start with computer states; they covet them like wonders","Battle reports show the generals' relics, relic rows in the strength tables, and spoils","Last year's loyalty change on Home also lists the Governor and relics"]],
 ["Research box always there","2026-11-13 23:20",["Research: the box above the table is always shown, so the table no longer jumps","Green when all research is assigned (points a year and from how many scientists), red with Spread it when some is lost"]],
 ["Generals in order","2026-11-13 23:04",["Your generals are listed by tier (Legendary first) and then by skill"]],
@@ -5783,7 +5821,9 @@ ${gTab(["Post","Every year","Fitting traits"],[["Quartermaster",`Your army eats 
 <li><b>Computer states</b> keep their two best attackers and a defender in the field and put the rest on posts: a Governor first when loyalty is low, a Quartermaster when food is short, then Chief of Staff and Drillmaster. They squeeze when loyal but short of gold.</li></ul>`],
 ["relics","Military","🏺","Relics and the Treasury",()=>{ const row=k=>[`${relTile(k,22)} ${RELICS[k].name}`,REL_KN[RELICS[k].k],esc(relEff(k)),REL_WN[RELICS[k].w]];
   return `<p>Relics are famous objects your generals carry: banners, blades, horns, crowns. Each general carries <b>one</b>, shown under his portrait; the rest wait in the <b>Treasury</b> (Generals → Treasury). Click a relic there to see it and give it to a general, or click the slot on a general's card.</p>
-${gTab(["Relic","Kind","Effect","Where it works"],REL_IDS.map(row))}
+${gTab(["Relic","Kind","Effect","Where it works"],REL_IDS.filter(k=>!RELICS[k].tp).map(row))}
+<h3>Troop relics</h3><p>One for each troop type at each kind. The bonus counts for that troop's share of your army's strength, like a troop trait, and stacks with one. Archer relics work only when defending, axe relics only when attacking. Famous troop relics don't start with anyone: they turn up in ruins.</p>
+${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t.id]}`,...[0,1,2].map(lv=>{ const k=REL_IDS.find(x=>RELICS[x].tp===t.id&&RELICS[x].lv===lv); return k?`<b>${RELICS[k].name}</b><br><span class="small">${esc(relEff(k))}</span>`:""; })]))}
 <h3>Carrying</h3><ul class="log"><li>Most relics work <b>in his battles</b>, attacking or as your defender. Post relics work only at that staff post (${gl("staff")}); a few work anywhere. A relic that does nothing where he is now shows in orange.</li>
 <li>Giving a relic is free. <b>Taking one back costs him ${R.relTake} morale</b>, also when a new relic replaces it.</li>
 <li>A general who retires or is dismissed hands his relic back to the Treasury.</li></ul>
@@ -5791,9 +5831,9 @@ ${gTab(["Relic","Kind","Effect","Where it works"],REL_IDS.map(row))}
 <li><b>Ruins:</b> a win that takes land has a ${gP(R.relRuin)} chance to turn up a common relic, and ${gP(R.relRuinFamous)} of those finds are a lost famous relic, if one is lost.</li>
 <li><b>Hiring:</b> Legendary candidates always bring a relic (${gP(R.relLegRare)} of them rare); Academy candidates bring one ${gP(R.relAcad)} of the time. It shows on their card.</li>
 <li><b>Conquest:</b> wipe out a state and its whole Treasury, and its generals' relics, are yours. A state that collapses on its own loses them.</li></ul>
-<h3>Famous relics</h3><ul class="log"><li>There's one of each of the ${REL_FAMOUS.length} famous relics in the world. They start with computer states. The Treasury lists who holds each one, and the news tells everyone when one changes hands.</li>
+<h3>Famous relics</h3><ul class="log"><li>There's one of each of the ${REL_FAMOUS.length} famous relics in the world. ${Math.min(REL_FAMOUS.length,Math.round(R.relFamous))} start with computer states; the rest (the famous troop relics first) turn up only in ruins. The Treasury lists who holds each one, and the news tells everyone when one changes hands.</li>
 <li><b>Computer states covet them</b> like wonders: a famous relic gives its neighbors a reason to declare war on the holder and to pick it as a target.</li>
-<li>Computer states give battle relics to their best generals in the field and post relics to their staff. They keep the Black Blade off their generals while loyalty is low.</li></ul>`; }],
+<li>Computer states give their best relics to their best generals in the field and post relics to their staff. They keep the Black Blade off their generals while loyalty is low, and a troop relic waits until at least 15% of their army is that troop.</li></ul>`; }],
 ["traits","Military","🍀","General traits",()=>{ const row=t=>`<li>${t.icon} <b>${t.name}</b>: ${traitText(t.id)}</li>`, by=k=>GEN_TRAITS.filter(t=>t.kind===k).map(row).join("");
   return `<p>Traits give a general character. Battle traits work only in battles he commands, as attacker or as your defender. Costs and temper count every year. Hover a trait on a card for its exact effect; a battle report shows each trait that changed the battle in its own gold row.</p>
 <h3>How they are rolled</h3><ul class="log"><li>Each tier gives a number of trait slots (see ${gl("tavern")} Tavern). Each slot first rolls a flaw at the tier's flaw chance, then a rare trait at its rare chance, otherwise a good trait. ${gP(R.genTroopShare)} of good slots are a troop trait.</li>
