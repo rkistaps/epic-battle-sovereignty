@@ -295,6 +295,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 ### 3.18 Setup and difficulty
 - **Intent**: Variety and replay value; difficulty mostly changes how bold and how fast-researching computer states are. *(inferred)*
 - `newGame` options: map (random with water/lakes/rivers, or world), number of states, land per state, wonders, alliances, weather systems on/off, random starting relations, observer, hot-seat humans, civ/leader/land picks. The UI then sets peace years, fog and difficulty.
+- State names: shuffled from `NAMES`; `NAME_GEN.share` of the states (default 0) and every state beyond the list get `inventName` (title pattern from `NAME_GEN.forms` with {N} = root, {A} = `nameAdj(root)`; root = start + middle (~45%) + end). Rebels use `nameRoot` in `rebelName`. All parts editable in Settings → State names (`ngen`).
 - Starting values: 800 peasants, 2600 grain, 300 gold, 150 wood, 60 iron, work 15/5/10, no troops or generals.
 
 ---

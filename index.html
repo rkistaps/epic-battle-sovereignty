@@ -389,6 +389,8 @@ tr.click{cursor:pointer} tr.click:hover{background:var(--panel2)}
 tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{background:rgba(224,179,84,.2)} tr.sel>td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
 .hfind{background:none;border:0;padding:0;font:inherit;color:var(--mut);cursor:pointer} .hfind:hover{color:var(--txt)} .hfind:hover b{text-decoration:underline}
 .small{font-size:12px}
+.nparts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px} .npart{display:flex;flex-direction:column;gap:3px;min-width:0} .npart textarea.names{height:200px}
+@media(max-width:700px){.nparts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .homename{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:6px} .homename>b{font-size:16px}
 </style>
 </head>
@@ -465,7 +467,25 @@ function migrateResearch(g){
     g.resSteady=1; }
   if(g.wonders) for(const w of g.wonders) if(w.area==="mil") w.area="def";
 }
-const NAME_SYL=["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor"], NAME_END=["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora"]; // invented names
+// invented state names (Settings → State names): a title pattern + a root. Root = start + (a middle, ~45% of the time) + end.
+// In a title {N} is the root ("Korvalia") and {A} an adjective made from it ("Korvalian").
+const NAME_GEN={share:0,
+  start:["ar","bor","cal","dre","es","fa","gal","hes","ib","jar","kor","lu","mor","nor","os","pra","quel","rus","sar","ul","vet","za","ten","mir","val","ost","ken","dra","lin","tor","ael","bel","cor","dal","ed","fen","gor","hal","ir","kas","lor","mar","ner","or","pel","rha","sel","tal","ur","vor","xan","yr","zor","ath","bra","cyr","eld","thal","vel","ky"],
+  mid:["a","e","i","o","an","el","en","ir","or","ul","ar","is","al","ev","on","ad","ur","em","ith","av","er","ol","un","ari","ene","ora","ilu","ava","eri","oth"],
+  end:["ia","ova","heim","gard","on","ar","is","enia","mark","land","eth","ora","ea","os","ys","ae","ion","ara","ina","una","eon","alis","oria","esh","ane","oth","uria","enor","avia","ilis"],
+  forms:["Kingdom of {N}","Empire of {N}","Republic of {N}","Realm of {N}","Sultanate of {N}","Khaganate of {N}","Duchy of {N}","Grand Duchy of {N}","Principality of {N}","Theocracy of {N}","Confederacy of {N}","Federation of {N}","Lands of {N}","Free Cities of {N}","Emirate of {N}","Tsardom of {N}","Satrapy of {N}","Dominion of {N}","Clans of {N}","Tribes of {N}","City-States of {N}","Commonwealth of {N}","March of {N}","Caliphate of {N}","Shogunate of {N}","High Kingdom of {N}","Crown of {N}","Most Serene Republic of {N}","{A} Empire","{A} Kingdom","{A} Republic","{A} Dynasty","{A} Hegemony","{A} Federation","{A} Confederacy","{A} League","{A} Khanate","{A} Union","Holy {A} Empire","{N}"]};
+const capFirst=s=>s?s[0].toUpperCase()+s.slice(1):s;
+function nameRoot(rnd,gen=NAME_GEN){ const pick=a=>a[Math.floor(rnd()*a.length)]||"";
+  const s=(pick(gen.start)+(gen.mid.length&&rnd()<0.45?pick(gen.mid):"")+pick(gen.end)).toLowerCase().replace(/([aeiouy])\1+/g,"$1").replace(/([aeiouy]{2})[aeiouy]+/g,"$1");
+  return capFirst(s); }
+// "Vororis" → "Vororian", "Myravia" → "Myravian"; null when it would read badly ("…heim", "…land")
+function nameAdj(n){ if(/(heim|gard|mark|land|burg)$/i.test(n)) return null; const s=n.replace(/(ia|ea|ae|ua|ova|is|os|ys|us|as|es)$/i,"").replace(/[aeiouy]+$/i,""); return s.length<2?null:s+(/i$/i.test(s)?"an":"ian"); }
+// one invented state name not in used (a Set); gen = the name parts (Settings draft or the applied ones)
+function inventName(rnd,used,gen=NAME_GEN){ const F=gen.forms.length?gen.forms:["{N}"];
+  for(let t=0;t<300;t++){ const root=nameRoot(rnd,gen), adj=nameAdj(root); let f=F[Math.floor(rnd()*F.length)];
+    if(f.includes("{A}")&&!adj){ const of=F.filter(x=>!x.includes("{A}")); f=of.length?of[Math.floor(rnd()*of.length)]:"{N}"; }
+    const nm=f.replace(/\{N\}/g,root).replace(/\{A\}/g,adj||root); if(!used.has(nm)) return nm; }
+  let k=used.size+1; while(used.has("State "+k)) k++; return "State "+k; }
 const GEN_FIRST = ["Ivan","Karl","Pavel","Otto","Lev","Anton","Boris","Emil","Felix","Gustav","Hugo","Igor","Jan","Konrad","Leon","Mikhail","Nikolai","Oskar","Piotr","Rudolf","Stefan","Taras","Viktor","Yuri"];
 const GEN_LAST = ["Volkov","Brandt","Orlov","Kessler","Zorin","Lind","Novak","Sokol","Reiner","Petrov","Halden","Dragan","Marek","Stein","Kuzmin","Varga","Holt","Belov","Wolff","Radek"];
 
@@ -1034,13 +1054,10 @@ function newGame(opts){
   for(let i=0;i<cells.length;i++) if(cells[i]===-3) cells[i]=-1;
   relaxStates(cells,W,H,counts,lk,rnd); // equal starting land, natural shapes (see relaxStates)
   genProg(0.98,"Naming states");
-  const names = shuffle(NAMES.slice(),rnd), colors=shuffle(COLORS.slice(),rnd);
-  // more states than the fixed lists: invent names, spread extra colors by golden-ratio hue
-  const used=new Set(names), SYL=NAME_SYL, END=NAME_END;
-  while(names.length<n){
-    let nm; do{ nm=SYL[Math.floor(rnd()*SYL.length)]+(rnd()<0.5?SYL[Math.floor(rnd()*SYL.length)]:"")+END[Math.floor(rnd()*END.length)]; nm=nm[0].toUpperCase()+nm.slice(1); }while(used.has(nm));
-    used.add(nm); names.push(nm);
-  }
+  let names = shuffle(NAMES.slice(),rnd); const colors=shuffle(COLORS.slice(),rnd);
+  // invented names: for the share set in Settings, and for every state the list can't cover; extra colors by golden-ratio hue
+  const nInv=Math.min(n,Math.max(n-names.length,Math.round(n*(NAME_GEN.share||0))));
+  if(nInv>0){ names=names.slice(0,n-nInv); const used=new Set(NAMES); for(let k=0;k<nInv;k++){ const nm=inventName(rnd,used); used.add(nm); names.push(nm); } if(n-nInv>0) shuffle(names,rnd); }
   const hsl2hex=(h,s,l)=>{const a=s*Math.min(l,1-l),f=k=>{const t=(k+h*12)%12;return Math.round(255*(l-a*Math.max(-1,Math.min(t-3,9-t,1)))).toString(16).padStart(2,"0");};return "#"+f(0)+f(8)+f(4);};
   for(let i=colors.length;i<n;i++) colors.push(hsl2hex((i*0.618034)%1,0.45+0.35*rnd(),0.38+0.25*rnd()));
   const countries=[];
@@ -2306,7 +2323,7 @@ function loyaltyYear(g){
 }
 // a new rebel state's name: an invented place with "Rebels" in it
 function rebelName(g){ const used=new Set(g.countries.map(c=>c.name)), PAT=["Rebels of %","% Rebels","Free % Rebels","Rebels of Free %"], pick=a=>a[Math.floor(R01(g)*a.length)];
-  for(let t=0;t<300;t++){ let nm=pick(NAME_SYL)+(R01(g)<0.5?pick(NAME_SYL):"")+pick(NAME_END); nm=nm[0].toUpperCase()+nm.slice(1); const s=pick(PAT).replace("%",nm); if(!used.has(s)) return s; }
+  for(let t=0;t<300;t++){ const s=pick(PAT).replace("%",nameRoot(()=>R01(g))); if(!used.has(s)) return s; }
   return "Rebels "+g.countries.length; }
 // P revolts: 1..9 pieces (odds R.rebOdds) break away, each one connected piece of R.rebShareMin–Max of its land. The core (the land
 // it has held longest) never goes. Pieces start far apart, on recently won land far from the core, and grow at the same time, so
@@ -2674,7 +2691,7 @@ function economy(g,c){
 // Everything editable lives in R and the data tables. A settings object holds only what differs
 // from the defaults: {R:{key:value}, troops:{id:{field:value}}, civs:{...}, leaders:{...}, lands:{...}, wonders:{area:{...}}}
 const SETTING_TABLES={troops:TROOPS, civs:CIVS, leaders:LEADERS, lands:LANDS};
-const DEFAULTS=JSON.parse(JSON.stringify({R, troops:TROOPS, civs:CIVS, leaders:LEADERS, lands:LANDS, wonders:WONDERS, names:NAMES, anames:ANAMES}));
+const DEFAULTS=JSON.parse(JSON.stringify({R, troops:TROOPS, civs:CIVS, leaders:LEADERS, lands:LANDS, wonders:WONDERS, names:NAMES, anames:ANAMES, ngen:NAME_GEN}));
 function applySettings(o){
   o=o||{};
   // reset to defaults, then apply overrides
@@ -2690,6 +2707,8 @@ function applySettings(o){
   NAMES.splice(0,NAMES.length,...(nm.length?nm:DEFAULTS.names));
   const an=Array.isArray(o.anames)?[...new Set(o.anames.map(s=>String(s).trim()).filter(Boolean))]:[];
   ANAMES.splice(0,ANAMES.length,...(an.length?an:DEFAULTS.anames));
+  const ng=o.ngen||{}, parts=(k,ok=()=>true)=>{ const a=Array.isArray(ng[k])?[...new Set(ng[k].map(s=>String(s).trim()).filter(x=>x&&ok(x)))]:[]; return a.length?a:DEFAULTS.ngen[k].slice(); };
+  NAME_GEN.share=Math.max(0,Math.min(1,+ng.share||0)); for(const k of ["start","mid","end"]) NAME_GEN[k]=parts(k); NAME_GEN.forms=parts("forms",x=>/\{[NA]\}/.test(x));
   for(const a of Object.keys(WONDERS)){ Object.assign(WONDERS[a],DEFAULTS.wonders[a]); Object.assign(WONDERS[a],(o.wonders||{})[a]||{}); }
   ATTACK_ORDER.splice(0,ATTACK_ORDER.length,...TROOPS.slice().sort((a,b)=>(b.atk/b.def)-(a.atk/a.def)||b.atk-a.atk).map(t=>t.id));
 }
@@ -4446,7 +4465,10 @@ const TABLE_META={
 };
 const STABS=[["general","General rules"],["troops","Troops"],["civs","Civilizations"],["leaders","Leaders"],["lands","Land types"],["wonders","Wonders"],["names","State names"],["anames","Alliance names"]];
 // a full editable copy of the current values
-function currentValues(){ return JSON.parse(JSON.stringify({R, troops:TROOPS, civs:CIVS, leaders:LEADERS, lands:LANDS, wonders:WONDERS, names:NAMES, anames:ANAMES})); }
+function currentValues(){ return JSON.parse(JSON.stringify({R, troops:TROOPS, civs:CIVS, leaders:LEADERS, lands:LANDS, wonders:WONDERS, names:NAMES, anames:ANAMES, ngen:NAME_GEN})); }
+// rough count of different invented names, and a few samples, from a set of name parts
+function nameCombos(g){ return g.start.length*(1+g.mid.length)*g.end.length*Math.max(1,g.forms.length); }
+function nameExamples(g){ const u=new Set(); for(let i=0;i<6;i++) u.add(inventName(Math.random,u,{...g,forms:g.forms.filter(x=>/\{[NA]\}/.test(x))})); return [...u].map(esc).join(" · "); }
 function getPath(o,path){ return path.split(".").reduce((a,k)=>a==null?a:a[k],o); }
 function setPath(o,path,v){ const ks=path.split("."); let a=o; while(ks.length>1) a=a[ks.shift()]; a[ks[0]]=v; }
 // only what differs from the defaults (this is what gets saved and exported)
@@ -4458,6 +4480,7 @@ function diffSettings(v){
   for(const a of Object.keys(d.wonders)) for(const f of Object.keys(d.wonders[a])) if(!eq(v.wonders[a][f],d.wonders[a][f])) ((out.wonders??={})[a]??={})[f]=v.wonders[a][f];
   if(v.names&&v.names.length&&!eq(v.names,d.names)) out.names=v.names;
   if(v.anames&&v.anames.length&&!eq(v.anames,d.anames)) out.anames=v.anames;
+  for(const k of Object.keys(d.ngen)) if(v.ngen&&!eq(v.ngen[k],d.ngen[k])&&!(Array.isArray(v.ngen[k])&&!v.ngen[k].length)) (out.ngen??={})[k]=v.ngen[k];
   return out;
 }
 function settingsModal(tab){
@@ -4477,8 +4500,14 @@ function settingsModal(tab){
     `<tr><td>${AREA_NAMES[a]}</td><td>${inp("wonders."+a+".name","text",d.wonders[a].name,v.wonders[a].name)}</td><td>${inp("wonders."+a+".icon","icon",d.wonders[a].icon,v.wonders[a].icon)}</td><td>${inp("wonders."+a+".bonus","%",d.wonders[a].bonus,v.wonders[a].bonus)} %</td></tr>`).join("")}</table></div>
     <div class="small mut">Bonus: multiplies the holder's main effect in that area (research, food, taxes, capacity, births, attack, defense, wood, iron, land taken). +25% means ×1.25.</div>`;
   else if(UI.stab==="names"){ const chg=JSON.stringify(v.names)!==JSON.stringify(d.names)?"chg":"";
-    body=`<div class="small mut" style="margin-bottom:6px">One name per line. A new game shuffles this list and gives each state a name from it; if a map has more states than names, extra names are invented. <b id="namesN">${fmt(v.names.length)}</b> names.</div>
-    <textarea class="names ${chg}" data-sk="names" data-kind="lines" spellcheck="false">${esc(v.names.join("\n"))}</textarea>`; }
+    const g=v.ngen, ta=(k,l,tip)=>`<label class="npart"><span>${l} <span class="small mut" id="ngN-${k}">${fmt(g[k].length)}</span></span><textarea class="names ${JSON.stringify(g[k])!==JSON.stringify(d.ngen[k])?"chg":""}" data-sk="ngen.${k}" data-kind="lines" spellcheck="false" title="${tip}">${esc(g[k].join("\n"))}</textarea></label>`;
+    body=`<div class="small mut" style="margin-bottom:6px">One name per line. A new game shuffles this list and gives each state a name from it. <b id="namesN">${fmt(v.names.length)}</b> names.</div>
+    <textarea class="names ${chg}" data-sk="names" data-kind="lines" spellcheck="false">${esc(v.names.join("\n"))}</textarea>
+    <h3>Invented names</h3>
+    <div class="small mut" style="margin-bottom:6px">States the list can't cover get an invented name: a title with a made-up place in it. The place is a start, sometimes a middle, and an end (Kor + va + lia = Korvalia). In a title, {N} is the place and {A} a word made from it (Korvalian): "Kingdom of {N}", "{A} Empire". About <b id="ngCombos">${fmt(nameCombos(g))}</b> different names.</div>
+    <div class="sgrid" style="margin-bottom:8px"><span>Invented share</span><span>${inp("ngen.share","%",d.ngen.share,g.share)} %</span><span class="small mut">of the states in a new game get an invented name even when the list has enough (default 0: only when it runs out)</span></div>
+    <div class="nparts">${ta("start","Starts","First part of a place name")}${ta("mid","Middles","Put between start and end in about half the names")}${ta("end","Ends","Last part of a place name")}${ta("forms","Titles","Each needs {N} or {A}")}</div>
+    <div class="row small" style="margin-top:8px;align-items:center"><button class="sm" data-a="namePreview">Examples</button><span id="ngEx" class="mut">${nameExamples(g)}</span></div>`; }
   else if(UI.stab==="anames"){ const chg=JSON.stringify(v.anames)!==JSON.stringify(d.anames)?"chg":"";
     body=`<div class="small mut" style="margin-bottom:6px">One name per line. A new game with alliances shuffles this list and gives each alliance a name from it; if there are more alliances than names, extra ones are called "Alliance 1", "Alliance 2", … <b id="namesN">${fmt(v.anames.length)}</b> names.</div>
     <textarea class="names ${chg}" data-sk="anames" data-kind="lines" spellcheck="false">${esc(v.anames.join("\n"))}</textarea>`; }
@@ -4578,6 +4607,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Invented state names","2026-11-13 18:32",["States beyond the name list get full invented names with a title, like \"Kingdom of Korvalia\" or \"Korvalian Empire\"","Settings → State names: edit the starts, middles, ends and titles used to invent names, with examples","Invented share: give part of the states an invented name even when the list has enough","Over two million possible names"]],
 ["Round map guide button","2026-11-13 18:25",["The ? button next to the map views is a small circle again, not a stretched oval","Every ? guide button shows its ? centered"]],
 ["Wonders page","2026-11-13 18:23",["Wonders have their own part of the World page (World → Wonders, key W) in games with wonders","Recent wars moves to key E there"]],
 ["Two-level menu","2026-11-13 18:15",["Main menu moved above the map and side panel: Home, Science, Army, Market, War, World, Allies, News (keys 1–8)","Market, War and World split into parts, picked in a second menu at the top of the side panel (keys Q, W, E)","Market: Stock (your goods and the world market) and Trade (trade, order book, your orders)","War: Generals, Wars (wars, defense, this year's orders) and Neighbors","World: Rankings and Recent wars","Generals moved into War","Home shows your state's name and alliance, and a Resources box after Population","Army lists your soldiers per troop type with attack, defense and upkeep"]],
@@ -5033,6 +5063,7 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 <p>🎲 <b>Randomize all</b> rolls every choice. Your choices are remembered for next time.</p>`],
 ["settings","Interface","🧰","Settings, saves and keys",()=>`
 <h3>Settings</h3><p>Menu → Settings lets you change every rule, troop, civilization, leader, land type, wonder and name list: ${STABS.map(s=>s[1]).join(", ")}. Changes apply at once, also mid-game.</p>
+<h3>State names</h3><p>A new game gives each state a name from the list in Settings → State names (${fmt(NAMES.length)} names now). When a map has more states than the list, the rest get <b>invented names</b>: a title with a made-up place in it, like "Kingdom of Korvalia" or "Korvalian Empire". The place is built from a start, sometimes a middle, and an end; the title from a pattern where {N} is the place and {A} a word made from it. With the current parts there are about ${fmt(nameCombos(NAME_GEN))} different names. Set <b>Invented share</b> above 0 to give that share of states an invented name even when the list has enough. Rebel states get invented places too ("Rebels of Korvalia").</p>
 <h3>Saves</h3><p>The game saves itself in this browser every year. When you open the page again you can continue where you left off.</p>
 <p><b>Save to file</b> (Menu) downloads the whole game as one .json file: the map, every state, the news archive and the rules from Settings. <b>Load from file</b> (Menu, or the first window) opens it, also on another computer or browser, and you play on from that year. Loading replaces the game saved in this browser and its Settings, so save that one to a file first if you want to keep it.</p>
 <h3>Keys</h3>${gTab(["Key","Does"],[["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
@@ -5357,7 +5388,8 @@ document.addEventListener("click",async ev=>{
     case "close": UI.sdraft=null; closeModal(); return;
     case "pickTakeover": closeModal(); UI.tab="world"; render(); flash("Click a state on the map, then press Take over."); return;
     case "settingsSave": saveSettings(diffSettings(UI.sdraft)); UI.sdraft=currentValues(); settingsModal(); if(G) render(); flash("Settings saved and applied."); return;
-    case "settingsResetTab": { const t=UI.stab, d=JSON.parse(JSON.stringify(DEFAULTS)); if(t==="general") UI.sdraft.R=d.R; else UI.sdraft[t]=d[t]; settingsModal(); return; }
+    case "settingsResetTab": { const t=UI.stab, d=JSON.parse(JSON.stringify(DEFAULTS)); if(t==="general") UI.sdraft.R=d.R; else UI.sdraft[t]=d[t]; if(t==="names") UI.sdraft.ngen=d.ngen; settingsModal(); return; }
+    case "namePreview": if(UI.sdraft&&$("ngEx")) $("ngEx").innerHTML=nameExamples(UI.sdraft.ngen); return;
     case "settingsResetAll": UI.sdraft=JSON.parse(JSON.stringify(DEFAULTS)); settingsModal(); return;
     case "settingsExport": exportSettings(); return;
     case "settingsImport": $("settingsFile").click(); return;
@@ -5400,7 +5432,8 @@ document.addEventListener("input",ev=>{
   if(t.id?.startsWith("trn-")){ const v=t.value.replace(/\D/g,""); if(v!==t.value) t.value=v; trainPreview(t.id.slice(4)); return; }
   if(t.dataset.sk&&UI.sdraft){ const k=t.dataset.kind; let v= k==="bool"?t.checked : k==="text"?t.value : k==="lines"?[...new Set(t.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))] : +t.value; if(k==="%") v=v/100;
     if(k!=="text"&&k!=="bool"&&k!=="lines"&&!isFinite(v)) return; setPath(UI.sdraft,t.dataset.sk,v);
-    if(k==="lines"&&$("namesN")) $("namesN").textContent=fmt(v.length);
+    if(k==="lines"&&$("namesN")&&!t.dataset.sk.startsWith("ngen.")) $("namesN").textContent=fmt(v.length);
+    if(t.dataset.sk.startsWith("ngen.")&&$("ngCombos")){ $("ngCombos").textContent=fmt(nameCombos(UI.sdraft.ngen)); const c=$("ngN-"+t.dataset.sk.slice(5)); if(c) c.textContent=fmt(v.length); }
     const def=getPath(JSON.parse(JSON.stringify(DEFAULTS)),t.dataset.sk.replace(/^R\./,"R."));
     t.classList.toggle("chg",JSON.stringify(v)!==JSON.stringify(def)); return; }
   if(t.dataset.work){ const k=t.dataset.work, c=planEdit(x=>{ if(k==="farm"){ UI.farmBase=UI.farmBase||{...x.work}; setFarmShare(x,t.value,UI.farmBase); } else setShare(x,k,t.value); }); const v=k==="farm"?farmShare(c):c.work[k]; if(+t.value!==v) t.value=v; paintWork(c,t); return; }
