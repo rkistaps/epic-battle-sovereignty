@@ -75,7 +75,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Intent**: People are the core currency. Growth rewards peace and room, and capacity is what makes land valuable: a state that stops growing has to expand (settle, conquer) or research density. Overcrowding is meant to hurt (births turn negative). Growth bonuses are kept small because people compound. *(inferred)*
 - Population = peasants + soldiers (scientists are peasants with a job; `c.sci` is a legacy field, always 0).
 - Capacity: `popCap = land × (popPerKm 3 + densPerLevel 0.16·lvl(dens)) × M(capacity) × wonder(dens)`.
-- What fills capacity: `roomPop(c)` = peasants + scientists + soldiers (`c.sci` is legacy and always 0: scientists are peasants on the research job). Setting `peasantRoom` (default off) drops soldiers, so only peasants fill capacity. `roomPop` is used by births, the battle trim, kidnap room, the AI's fullness checks (density research, land hunger, harass mode, `aiAtkRoom`/`aiAtkFull`) and the Home tab's Population card. Total population (`popOf`) still counts everyone for research size cost, festivals, rankings and collapse.
+- What fills capacity: `roomPop(c)` = peasants + scientists + soldiers (`c.sci` is legacy and always 0: scientists are peasants on the research job). Setting `peasantRoom` (default on since 2026-11-13) drops soldiers, so only peasants fill capacity; off restores the old rule where soldiers fill it too. `roomPop` is used by births, the battle trim, kidnap room, the AI's fullness checks (density research, land hunger, harass mode, `aiAtkRoom`/`aiAtkFull`) and the Home tab's Population card. Total population (`popOf`) still counts everyone for research size cost, festivals, rankings and collapse.
 - Births: `(peasants + armyBirths 0.5 × soldiers) × growthRate × roomFactor(roomPop/cap)`, `growthRate = (birthRate 0.03 + growPerLevel·lvl(grow)) × M(births) × wonder(grow)`. `roomFactor(x) = 1 − x^birthCurve` (24): births stay near full speed until ~80% full, peak near 87%, stop at capacity; above capacity `1 − x` (a gentle decline) *(your direction: growth should not slow from half full)*. None in a famine year.
 - Collapse below `minPop` 20 (land becomes unowned). In battle a state is also absorbed if it has under 20 peasants (with `keepPeople`, the capacity trim can push it there; not from soldiers with `peasantRoom` on).
 - Losing land in battle (`keepPeople`): peasants above the new capacity are removed at once, so a beaten state sits at about 0.95× capacity instead of overcrowding (a land-only test without the trim left losers at 3.5–5×).
@@ -327,7 +327,7 @@ Rows act on columns (● strong, ○ weak).
 ## 5. Feedback loops
 
 Positive (snowball) loops, and what brakes them:
-- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity (soldiers count toward it unless `peasantRoom` is on, so armies also brake growth), size-scaled research cost, conquest brings land but no people (only a wipe-out hands over people and stocks), fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
+- **Land → capacity → peasants → taxes, food, workers → army → more land.** Brakes: births stop at capacity (only peasants count with `peasantRoom` on, the default; off, soldiers count too and armies also brake growth), size-scaled research cost, conquest brings land but no people (only a wipe-out hands over people and stocks), fear wars against a runaway state, fear and wariness, general speed and holding limits on land per battle.
 - **Science → research points.** Brakes: cost ×1.8 per level, size cost, lead penalty, scientist wages vs tax.
 - **Land → settling budget.** Brake: unowned land runs out.
 - **Conquest → land → more conquest** is also braked by loyalty (Rebellions on): each conquest costs loyalty, recovery slows with size and the ceiling falls with world share; a revolt hands land, people and troops to rebel states at war with the parent. Revolt → +30 loyalty → conquest resumes, so big states can cycle (revolt, retake at full cost, revolt).
@@ -344,20 +344,20 @@ Negative (stabilising) loops:
 
 ## 6. Balance anchors
 
-Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11–16 (11/12/13 for quick checks), observer mode, Rebellions on unless noted). Refreshed with `keepPeople`, defense stances and raid/kidnap/massacre (2026-11-12); the old ranges had drifted with the map changes before them:
+Numbers to compare against after any change (all-computer games, 60 states, land 100, difficulty 1, seeds 11–16 (11/12/13 for quick checks), observer mode, Rebellions on unless noted). `peasantRoom` on (the default) from 2026-11-13; the old numbers with it off are in brackets. Refreshed with `keepPeople`, defense stances and raid/kidnap/massacre (2026-11-12); the old ranges had drifted with the map changes before them:
 
 | Measure | Expected range |
 |---|---|
 | States alive at year 30 | 59–60 |
-| States alive at year 90 | 44–50 (Rebellions off: 35–48; old spoils rule: 3–36) |
-| States alive at year 150 | 8–18 (Rebellions off: 5–20; old spoils rule: 1–9) |
-| Biggest state's share of world land at year 150 | 18–30% (Rebellions off: 14–40%; old spoils rule: 37–100%) |
-| Year 300 (seeds 11–16) | 2–3 states left, biggest 37–80%: games still end (Rebellions off, seeds 11–12: 2–4 left, biggest 59–64%) |
+| States alive at year 90 | 48–60 (`peasantRoom` off: 42–49; Rebellions off: 35–48; old spoils rule: 3–36) |
+| States alive at year 150 | 19–34 (`peasantRoom` off: 15–23, earlier 8–18; Rebellions off: 5–20; old spoils rule: 1–9) |
+| Biggest state's share of world land at year 150 | 13–21% (`peasantRoom` off: 14–30%; Rebellions off: 14–40%; old spoils rule: 37–100%) |
+| Year 300 (seeds 11–16) | 2–4 states left, biggest 34–60% (`peasantRoom` off: 2–3 left, biggest 37–80%): games still end (Rebellions off, seeds 11–12: 2–4 left, biggest 59–64%) |
 | Battles by mode (per game) | normal ~400, raid ~120–150, massacre ~13–15, kidnap ~3 |
-| 1000 states, seeds 11–13, year 150 | 129–157 alive, biggest 2–3%, top 10 hold 17–21%, ~3,000 raids per game (old spoils rule: 38–44 alive, top 10 52–60%) |
+| 1000 states, seeds 11–13, year 150 | 390–394 alive, biggest 1.4–1.7%, top 10 hold 12–13% (`peasantRoom` off: 233–264, 1.8–2.2%, 15–17%; earlier 129–157 alive, biggest 2–3%, top 10 17–21%), ~3,000 raids per game (old spoils rule: 38–44 alive, top 10 52–60%) |
 | Games with one state left by year 300 (seeds 11–13) | 1 of 3 before raids (old spoils rule: 3 of 3); not re-run |
-| Average gold at year 30 | 6–7k (7.1–7.5k after forest/mountain bonuses: more wood/iron to sell) |
-| Average research levels (sum of areas) at year 150 | 103–109 (steady levels, ×1.8 cost; was 138–185 with capped levels) |
+| Average gold at year 30 | 6.6–8.1k (`peasantRoom` off: 6.3–7.9k) |
+| Average research levels (sum of areas) at year 150 | 99–103 (`peasantRoom` off: 96–102; earlier 103–109 with steady levels, ×1.8 cost; was 138–185 with capped levels) |
 | Average research bonus per area, years 30–150 | within ~3 points of the capped version (e.g. year 150: sci 60%, agri 54%, atk 77%, def 75%) |
 | Defense stances (share of state-years) | fall back 23–34%, stand ground 1–3% |
 | Famine collapses in 150 years | 0 |

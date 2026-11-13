@@ -510,7 +510,7 @@ const R = {
   sciWage: 3.5,                    // wage per scientist per year (scientists are peasants set to research in Work)
   foodSpoil: 0.1,                  // share of stored grain that spoils each year
   famineDeath: 0.5,                // share of a food shortfall that dies of famine
-  peasantRoom: false,             // only peasants take up population space (soldiers don't count toward capacity); off = everyone counts
+  peasantRoom: true,              // only peasants take up population space (soldiers don't count toward capacity); off = everyone counts
   popPerKm: 3, birthRate: 0.03, armyBirths: 0.5, birthCurve: 24, minPop: 20, // base capacity per km², base birth rate, soldiers count half toward births, birthCurve: how long births stay strong as a state fills (1 = classic, peak at half full; 24 = strong until ~80% full, peak near 87%), a state below minPop collapses
   priceMean: 1.1,                 // grain: normal price
   // world market: an order book per resource, with outside merchants behind it
@@ -4672,6 +4672,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Only peasants take up room","2026-11-13 23:58",["Soldiers no longer count toward population capacity: only peasants do","Armies no longer slow births, so states grow bigger and richer","Conquest is slower: more states survive longer","Settings → Food & population can switch back to everyone taking up room"]],
 ["Setting: only peasants take up room","2026-11-13 23:29",["New setting (Settings → Food & population): soldiers don't count toward population capacity, only peasants do","With it on, an army no longer slows births, beaten states with big armies aren't wiped out by overcrowding, and kidnaps have more room","Off by default: everyone takes up room, as before"]],
 ["Map fills in while you drag","2026-11-13 19:40",["Trees, mountains and borders now fill in while you drag the map, not only after you let go","Small or zoomed-out maps redraw fully on every frame while you drag"]],
 ["Dial icon rides the ring","2026-11-13 19:08",["The compass (new map) and the sun (end of year) sit at the tip of the gold ring and travel round with it, staying upright"]],
@@ -4881,7 +4882,7 @@ ${gTab(["System","Feeds","Is fed by"],[
 ["pop","Your state","👥","Population",()=>`
 <p>People are the core resource: every peasant farms or works, pays tax and has children; every soldier is one person taken from them.</p>
 <h3>Capacity</h3><p>Your land holds <b>land × density</b> people: ${R.popPerKm} per km² at the start, +${R.densPerLevel} per km² for each Pop. density level, times your civilization's, leader's and land's capacity bonus (and the Tower of Babel). Conquest and settling add land, so they add room.</p>
-<p>${R.peasantRoom?"<b>Only peasants take up room</b> (scientists are peasants too). Soldiers don't count toward capacity, so an army doesn't slow your births: your peasants can fill the land while your army sits on top.":"Everyone takes up room: peasants, scientists and soldiers. Every soldier fills a place a peasant could have been born into, so a big army slows your births. (Settings can make only peasants count.)"}</p>
+<p>${R.peasantRoom?"<b>Only peasants take up room</b> (scientists are peasants too). Soldiers don't count toward capacity, so an army doesn't slow your births: your peasants can fill the land while your army sits on top.":"Everyone takes up room: peasants, scientists and soldiers. Every soldier fills a place a peasant could have been born into, so a big army slows your births."}</p>
 <h3>Births</h3><p>Births come from peasants (soldiers count ${gP(R.armyBirths)} as much). The base rate is ${(R.birthRate*100).toFixed(1)}% a year, raised by Pop. growth research and bonuses. Births stay strong until you are about <b>80% full</b>, peak near 87% and stop at capacity. Over capacity people slowly die off.</p>
 <ul class="log"><li>No births in a famine year.</li><li>A state below ${R.minPop} people collapses and its land becomes unowned. In battle a state with under 20 peasants left is conquered.</li></ul>
 <p>The Home tab's Population card shows ${R.peasantRoom?"peasants":"people"}, capacity and how full you are.</p>`],
