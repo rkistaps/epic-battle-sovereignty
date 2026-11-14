@@ -5789,7 +5789,7 @@ function rpPlan(b,d){
   // volleys: archers' share of the strength is the share of the other side's losses that arrows cause
   const raw=(T,st)=>TROOPS.reduce((t,x,k)=>t+(T[k]||0)*x[st],0), shots=[];
   const volley=(from,side,share,t0)=>{ const tg=U.filter(u=>u.side!==side&&u.k!==1&&u.L>0); if(!tg.length||share<=0) return; const ts=[];
-    for(let t=t0;t<tC-.4;t+=1.5) ts.push(t);
+    for(let t=t0;t<tM-RP_FLY;t+=1.5) ts.push(t); // archers keep shooting through the charge and the melee
     ts.forEach((t,i)=>{ const u=tg[i%tg.length]; shots.push({t,from,u}); });
     for(const u of tg){ const mine=shots.filter(s=>s.u===u&&s.from===from), tot=Math.round(u.L*share); let left=tot;
       mine.forEach((s,i)=>{ const a=i===mine.length-1?left:Math.round(tot/mine.length); left-=a; s.n=a; u.steps.push([s.t+RP_FLY,a]); }); } };
@@ -5829,7 +5829,7 @@ function rpStatus(P,u,t,hit){
   if(!u.side){ if(t<tV) return ["Forming up","mut"]; if(t<tC) return [u.k===1?"Shooting":u.k===5?"Riding round":"Charging","acc"];
     if(t<tM) return [u.k===1?"Shooting":"Fighting","acc"]; return P.win?["Pursuing","good"]:["Pulling back","bad"]; }
   if(t>=tM) return P.rout?["Falling back","bad"]:["Holding","good"];
-  if(u.k===1) return [t<tC+4?"Shooting":"Fighting","rpi"]; return t<tC?["Holding","mut"]:["Fighting","acc"];
+  if(u.k===1) return ["Shooting","rpi"]; return t<tC?["Holding","mut"]:["Fighting","acc"];
 }
 // terrain: forest and mountains on the defender's side, a narrow pass or a sea crossing at the front
 // on a narrow screen the field stands upright: the attacker comes from the bottom (x runs up, y runs across)
@@ -6020,6 +6020,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Archers keep shooting","2026-11-14 10:59",["In battle replays, archers keep shooting through the charge and the melee, not just at the start","Their volleys still take men only when they land; total losses are unchanged"]],
 ["Market chart in gold","2026-11-14 10:58",["The World market chart shows prices in gold instead of % of normal","Each normal price is a faint dashed line in its colour","Hover (or touch) the chart to see that year's grain, wood and iron prices"]],
 ["Replays on phones","2026-11-14 10:41",["On a phone the replay field stands upright, the attacker coming from the bottom, so it fills the screen","Smaller troop labels and generals on small screens","Compact header and bigger play, speed and skip buttons; the timeline gets its own row","Turning the phone redraws the field"]],
 ["Battle replays","2026-11-14 10:32",["▶ Watch on battle reports and on the Your battles screen plays the battle","Real troops, losses, generals, terrain and result; only the moves are made up","Archers shoot first and men fall only when a volley lands","Each troop is a block sized by its men that shrinks as they fall, with its icon, men left and what it is doing","Generals ride behind their lines with their portrait","Forest, mountains, narrow fronts and sea crossings show on the field","Play, pause, drag to any moment, ½× to 4× speed, skip to the result"]],
@@ -6439,7 +6440,7 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <p>Any battle with a full report can be watched: press <b>▶ Watch</b> on a battle report or on the Your battles screen. The replay is made from the report: the same troops on each side, the same losses per troop type, the same generals, terrain and result. Only the moves on the field are made up.</p>
 <ul class="log"><li>The attacker comes from the left, the defender waits on the right. Each troop type is one block in its state's colour; its area is in proportion to its men (very small troops are drawn a little bigger so they stay visible) and it shrinks as men fall, with its own look: spears and pikes in upright rows, swordsmen in tight ranks, axemen loose, archers scattered, cavalry wide apart. A label shows its icon, men left and what it is doing (Charging, Fighting, Under fire, Falling back…); the bar under it shows the share still standing.</li>
 <li>Generals ride behind their lines, with their portrait.</li>
-<li><b>Volleys</b>: archers on either side shoot first. Their share of their side's strength is the share of the enemy's losses the arrows cause, and each volley takes its men only when it lands: the block flashes red and the number falls.</li>
+<li><b>Volleys</b>: archers on either side shoot first, and keep shooting over the charge and the melee until the battle is decided. Their share of their side's strength is the share of the enemy's losses the arrows cause, and each volley takes its men only when it lands: the block flashes red and the number falls.</li>
 <li><b>Charge</b>: the attacker's foot marches on the defenders; cavalry ride round the flank.</li>
 <li><b>Melee</b>: the lines meet and the rest of the losses fall. Defender bonuses show on the field: forest and mountains on the defender's side, a narrow front between rocks, or a sea crossing.</li>
 <li><b>Rout</b> or <b>After</b>: if the attacker won, the defenders fall back and some of their losses come in the pursuit; if not, the attacker pulls back. Raids, kidnaps and massacres always end with the attacker going home with what it took.</li>
