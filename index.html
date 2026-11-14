@@ -188,6 +188,7 @@ button.rslot{cursor:pointer} button.rslot:hover,button.rslot:focus-visible{borde
 .rbar{display:inline-block;width:46px;height:6px;border-radius:3px;background:#0f1114;border:1px solid var(--line);overflow:hidden;vertical-align:middle} .rbar i{display:block;height:100%;background:var(--acc)}
 .rdet .lore{font-style:italic;color:var(--mut);font-size:12.5px;margin-top:4px;font-family:var(--f-name)}
 .rdet .prov{font-size:11.5px;color:var(--mut);margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.modal.relpick{width:min(520px,94vw)} .rpick{grid-template-columns:40px minmax(0,1fr);text-align:left;width:100%;cursor:pointer;color:inherit;font:inherit} .rpick:hover{border-color:var(--acc)} .rpick .rlab{font-size:10px}
 .rgive{display:flex;flex-direction:column;gap:5px;margin-top:8px} .psec>.rgive:first-of-type{margin-top:0}
 .rgrow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 7px}
 .rgrow .pf{width:40px} .rgrow b{font:600 13px var(--f-name)} .rgrow .m{font-size:11.5px;color:var(--mut)} .rgrow .m.rgd{color:#8fdcae} .rgrow .m.rwn{color:#e0a05a}
@@ -4901,7 +4902,15 @@ const relLab=k=>`<span class="rlab ${RELICS[k].k}">${REL_KN[RELICS[k].k]} relic<
 function relSlot(c,x,cand){ const r=x.relic, k=r?.k;
   if(cand) return k?`<div class="rslot on">${relTile(k,36)}<span class="rt2">${relLab(k)}<b>${esc(RELICS[k].name)}</b><span>Comes with him. ${esc(relEff(k,r))}</span></span></div>`:"";
   const ok=k&&relWorks(x);
-  return `<button class="rslot ${k?(ok?"on":"off"):""}" data-relslot="${x.id}" title="Open the Treasury to change his relic">${relTile(k,36)}<span class="rt2">${k?`${relLab(k)}<b>${esc(RELICS[k].name)}</b><span>${ok?esc(relEff(k,r)):"Does nothing here: "+REL_WN[RELICS[k].w].toLowerCase()}</span>`:`<span class="rlab c">No relic</span><span>Give him one from the Treasury</span>`}</span></button>`; }
+  return `<button class="rslot ${k?(ok?"on":"off"):""}" data-relslot="${x.id}" title="Pick a relic for him from the Treasury">${relTile(k,36)}<span class="rt2">${k?`${relLab(k)}<b>${esc(RELICS[k].name)}</b><span>${ok?esc(relEff(k,r)):"Does nothing here: "+REL_WN[RELICS[k].w].toLowerCase()}</span>`:`<span class="rlab c">No relic</span><span>Give him one from the Treasury</span>`}</span></button>`; }
+// the relic picker: a pop-up list of Treasury relics for one general; giving one closes it and leaves you where you were
+const relPickOpen=()=>!$("ov").classList.contains("hidden")&&$("modal").classList.contains("relpick");
+function relPickModal(id){ const c=me(), x=c.generals.find(g=>g.id===id); if(!x) return; const T=c.relics||[];
+  const rows=T.map(r=>({r,ok:relWorks(x,r.k)})).sort((a,b)=>b.ok-a.ok).map(({r,ok})=>`<button class="rgrow rpick" data-relgive="${x.id}" data-rel="${r.n}">${relTile(r.k,40)}<div><span class="rlab ${RELICS[r.k].k}">${REL_KN[RELICS[r.k].k]}</span> <b>${esc(relName(r))}</b>${relRoll(r)!=null?" "+rollBar(r):""}<div class="m ${ok?"rgd":"rwn"}">${ok?esc(relEff(r.k,r)):"Does nothing for him: "+REL_WN[RELICS[r.k].w].toLowerCase()}</div></div></button>`).join("");
+  modal(`<h2>Relic for ${esc(x.name)} ${gl("relics")}</h2>
+   ${x.relic?`<div class="rgrow">${relTile(x.relic.k,40)}<div><b>${esc(relName(x.relic))}</b><div class="m">Carried now. ${esc(relEff(x.relic.k,x.relic))}</div><div class="m rwn">Giving another or taking it back costs him ${R.relTake} morale.</div></div><button class="sm" data-reltake="${x.id}">Take it back</button></div>`:""}
+   <div class="rgive">${rows||`<div class="small mut">The Treasury is empty. Beat a general who carries one, win land, hire a Legendary officer, buy one from the Merchant, or conquer a state to take its Treasury.</div>`}</div>
+   <div class="row"><button data-a="close">Close</button></div>`,"relpick"); }
 function pTreasury(){
   const c=me(), T=c.relics||[], sel=T.find(r=>r.n===UI.relSel), forG=c.generals.find(x=>x.id===UI.relFor);
   const works=(x,k)=>relWorks(x,k), giveRow=(x,r)=>{ const ok=works(x,r.k);
@@ -5682,6 +5691,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Pick relics from the general card","2026-11-14 08:55",["Clicking a general's relic slot opens a list of your Treasury relics","Pick one and he carries it; you stay on the Generals list","Relics that work for him are listed first"]],
 ["A new state view","2026-11-14 08:30",["Clicking a state opens a new view: its colour, flag, alliance and how it feels about you in a badge","Three tabs: Overview (land with rank and a chart, population, army, generals, loyalty, wonders, wars), Relations (why it feels as it does about you, and all its neighbors) and Science (its ten levels against the world average)","Buttons: Show on map, Plan attack, Take over","The map tooltip no longer lists neighbor feelings; they are in the Relations tab"]],
 ["Relic merchant","2026-11-14 08:23",["New Generals → Merchant (key R, before the Treasury, now T): buy relics the way you hire in the Tavern","Three offers: Peddler's sack (600 gold), Merchant's chest (3,000) and Royal coffer (15,000), each with better odds of a rare","Open one and three relics turn over; take one, the rest are packed away. A rare or cursed relic glows before it turns","Each extra one of the same offer that year costs 1.6× more; prices reset every year","Famous relics are never sold","Computer states buy relics too"]],
 ["The Forge","2026-11-14 08:08",["New Forge at the top of Generals → Treasury: melt three relics into one","3 common → 1 rare for 2,000 gold: three of one troop or resource give that family's rare, others a random rare; its roll is the three rolls' average ±15%","3 rare of one family → that rare with a perfect roll (100%) for 6,000 gold","Famous relics can't be forged","The anvil shows what you can get and the roll range before you pay; the new relic appears with a shower of sparks","Treasury tiles show a bar for each relic's roll","Computer states forge their spare relics too"]],
@@ -6032,7 +6042,7 @@ ${gTab(["Post","Every year","Fitting traits"],[["Quartermaster",`Your army eats 
 <li><b>Squeezing too hard backfires:</b> under ${R.loyUnrest} loyalty taxes drop ${gP(R.loyUnrestTax)}, and low loyalty brings revolts (${gl("loyalty")}). Without the Rebellions rule loyalty does nothing, so Ease does nothing either.</li>
 <li><b>Computer states</b> keep their two best attackers and a defender in the field and put the rest on posts: a Governor first when loyalty is low, a Quartermaster when food is short, then Chief of Staff and Drillmaster. They squeeze when loyal but short of gold.</li></ul>`],
 ["relics","Military","🏺","Relics and the Treasury",()=>{ const row=k=>[`${relTile(k,22)} ${RELICS[k].name}`,REL_KN[RELICS[k].k],esc(relEff(k)),REL_WN[RELICS[k].w]];
-  return `<p>Relics are famous objects your generals carry: banners, blades, horns, crowns. Each general carries <b>one</b>, shown under his portrait; the rest wait in the <b>Treasury</b> (Generals → Treasury). Click a relic there to see it and give it to a general, or click the slot on a general's card.</p>
+  return `<p>Relics are famous objects your generals carry: banners, blades, horns, crowns. Each general carries <b>one</b>, shown under his portrait; the rest wait in the <b>Treasury</b> (Generals → Treasury). Click a relic there to see it and give it to a general, or click the slot on a general's card: a list of your Treasury relics pops up, and picking one gives it to him right there.</p>
 ${gTab(["Relic","Kind","Effect","Where it works"],REL_IDS.filter(k=>!RELICS[k].tp&&!RELICS[k].rs).map(row))}
 <h3>Governor relics</h3><p>One for each resource at each kind. They work only while their carrier is your Governor (${gl("staff")}), counted at the end of the year, so only one is ever at work: choose between them, the Seal of Office and the Crown. Famous Governor relics don't start with anyone: they turn up in ruins.</p>
 ${gTab(["Resource","Common","Rare","Famous"],Object.keys(REL_RES).map(rs=>[`${REL_RES[rs][0]} ${REL_RES[rs][1]}`,...[0,1,2].map(lv=>{ const k=REL_IDS.find(x=>RELICS[x].rs===rs&&RELICS[x].lv===lv); return k?`<b>${RELICS[k].name}</b><br><span class="small">+${Math.round(govResVal(RELICS[k])*(1-relSpread(k))*100)}–${Math.round(govResVal(RELICS[k])*(1+relSpread(k))*100)}%</span>`:""; })]))}
@@ -6546,10 +6556,10 @@ document.addEventListener("click",async ev=>{
   if(d.put){ cmd("post",+d.put,d.post); UI.staffOpen=null; save(); render(); return; }
   if(d.unpost){ cmd("post",+d.unpost,null); UI.staffOpen=null; save(); render(); return; }
   if(d.govpol){ cmd("govPol",d.govpol); save(); render(); return; }
-  if(d.relslot){ UI.relFor=+d.relslot; UI.relSel=null; goTab("generals","treasury"); render(); return; }
+  if(d.relslot){ relPickModal(+d.relslot); return; }
   if(d.relfor!=null){ UI.relFor=null; render(); return; }
   if(d.relsel){ UI.relSel=UI.relSel===+d.relsel?null:+d.relsel; UI.relFor=null; render(); return; }
-  if(d.relgive){ cmd("relicGive",+d.relgive,+d.rel); UI.relSel=null; UI.relFor=null; save(); render(); return; }
+  if(d.relgive){ const ok=cmd("relicGive",+d.relgive,+d.rel); if(relPickOpen()){ closeModal(); if(!ok) flash("That relic is no longer in the Treasury."); } UI.relSel=null; UI.relFor=null; save(); render(); return; }
   if(d.meropen){ if(!cmd("merOpen",d.meropen)){ flash("Not enough gold, or relics are still on the table."); render(); return; } const v=merOf(G,me()); UI.merFresh=G.turn+":"+(v.n[d.meropen]||0); save(); render(); merReveal(); return; }
   if(d.mertake!=null){ MER_T.forEach(clearTimeout); const r=cmd("merTake",+d.mertake); UI.merFresh=null; if(r) flash(`${relName(r)} is in your Treasury.`); save(); render(); return; }
   if(d.merskip){ merDone(); return; }
@@ -6559,7 +6569,7 @@ document.addEventListener("click",async ev=>{
   if(d.anvilclear){ UI.forge=[]; UI.forgeRes=null; render(); return; }
   if(d.forgeok){ UI.forgeRes=null; render(); return; }
   if(d.forge){ const r=cmd("forge",UI.forge||[]); if(!r){ flash("The Forge can't make that."); render(); return; } UI.forge=[]; UI.forgeRes=r.n; UI.relSel=null; save(); render(); return; }
-  if(d.reltake){ cmd("relicTake",+d.reltake); UI.relFor=null; save(); render(); return; }
+  if(d.reltake){ cmd("relicTake",+d.reltake); if(relPickOpen()) closeModal(); UI.relFor=null; save(); render(); return; }
   if(d.tavshow){ goTab("generals","tavern"); render(); return; }
   if(d.tavskip){ tavDone(); return; }
   if(d.tavaway){ TAV_T.forEach(clearTimeout); UI.tavFresh=null; cmd("tavAway"); save(); render(); return; }
