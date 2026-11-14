@@ -362,7 +362,7 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .rp-sea{position:absolute;background:linear-gradient(90deg,#1d3550,#24476b,#1d3550)}
 .rp-rock{position:absolute;border-radius:45%;background:radial-gradient(circle,#4a4740,#2e2c28 70%)}
 .rp-tag{position:absolute;font-size:11px;color:rgba(231,233,238,.65);letter-spacing:1px;text-transform:uppercase}
-.rp-clash{position:absolute;width:18.75%;height:50%;border-radius:50%;background:radial-gradient(ellipse,rgba(224,179,84,.45),transparent 70%);opacity:0;pointer-events:none}
+.rp-clash{position:absolute;border-radius:50%;background:radial-gradient(ellipse,rgba(224,179,84,.45),transparent 70%);opacity:0;pointer-events:none}
 .rp-u{--d:color-mix(in srgb,var(--c) 40%,#fff);position:absolute;border:1.5px solid var(--c);border-radius:4px;background-color:color-mix(in srgb,var(--c) 22%,transparent);background-image:radial-gradient(circle,var(--d) 1.4px,transparent 1.8px);background-size:7px 7px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .rp-u[data-k=spear]{background-image:repeating-linear-gradient(90deg,var(--d) 0 1.5px,transparent 1.5px 6px);background-size:auto}
 .rp-u[data-k=pike]{background-image:repeating-linear-gradient(90deg,var(--d) 0 2px,transparent 2px 5px);background-size:auto}
@@ -390,6 +390,30 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .rp-sp{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}.rp-sp button{border:0;border-radius:0}.rp-sp button.on{background:#3a3423;color:var(--acc);font-weight:700}
 .rp-men div{display:flex;align-items:center;gap:6px;margin:2px 0}.rp-men b{margin-left:auto;font-variant-numeric:tabular-nums}
 .rp-loss{width:100%}.rp-loss td,.rp-loss th{padding:2px 4px}.rp-log{max-height:200px;overflow:auto}
+.rp-field.vert{aspect-ratio:auto;width:100%;height:min(50vh,160vw)}
+.rp-field.vert .rp-u.alt .rp-lab{bottom:auto;top:calc(100% + 7px)}
+.rp-field.tight .rp-st{display:none}.rp-field.tight .rp-ic{width:16px;height:16px;font-size:10px}.rp-field.tight .rp-n{font-size:11px}.rp-field.tight .rp-lab{gap:3px;padding:1px 4px 1px 1px}
+.rp-field.tight .rp-g span{display:none}.rp-field.tight .rp-g .pf{width:24px;height:28px}.rp-field.tight .rp-tag{font-size:9px}.rp-field.tight .rp-pop{font-size:12px;padding:4px 9px}
+@media(max-height:520px){ /* a phone on its side */
+  .modal.replay{padding:10px}.modal.replay h2{font-size:16px;margin-bottom:4px}.rp-head{display:none}
+  .rp-field:not(.vert){width:min(100%,calc((100vh - 200px)*960/520));margin:0 auto}
+  .rp-ctl{padding:4px 8px}.modal.replay .rep-foot .small{display:none}.modal.replay .rep-foot{padding-top:6px}
+}
+.rp-field.vert .rp-lab{top:auto;bottom:calc(100% + 2px);padding:1px 4px 1px 1px;gap:3px}.rp-field.vert .rp-st{display:none}
+.rp-field.vert .rp-ic{width:15px;height:15px;font-size:10px}.rp-field.vert .rp-n{font-size:11px}
+.rp-field.vert .rp-g .pf{width:22px;height:26px}.rp-field.vert .rp-g span{display:none}
+.rp-field.vert .rp-pop{font-size:12px;white-space:normal;text-align:center;width:max-content;max-width:88%;padding:5px 9px}
+.rp-field.vert .rp-tag{font-size:9px;white-space:nowrap}.rp-field.vert .rp-hit{font-size:12px}
+@media(max-width:640px){
+  .modal.replay{padding:12px}
+  .rp-head{flex-direction:column;gap:4px;margin-bottom:6px}.rp-side.r{align-items:flex-start;text-align:left}.rp-side.r .rp-gen{flex-direction:row}
+  .rp-side{flex-direction:row;align-items:center;gap:6px;flex-wrap:nowrap;font-size:12px;min-width:0}.rp-nm{flex-wrap:nowrap;min-width:0}.rp-nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rp-nm .bfmode{font-size:10px}
+  .rp-gen{gap:4px;margin-left:auto;flex:none}.rp-gen .pf{width:20px;height:24px}.rp-gen .small{display:none}.rp-gen b{font-size:11px;font-weight:500;color:var(--mut)}.rp-side>.small{margin-left:auto}
+  .rp-ctl{gap:6px;padding:8px}.rp-tl{order:9;flex:1 1 200px}.rp-clock{order:10;flex:none}.rp-long{display:none}
+  .rp-ctl button,.rp-sp button{min-height:36px;min-width:36px}.rp-play{width:44px;height:44px}
+  .rp-card{padding:12px}.rp-card h3{font-size:18px}
+  .modal.replay .rep-foot .small{display:none}.modal.replay .rep-foot{padding-top:8px}.modal.replay h2{font-size:18px}
+}
 /* battles first: your battles with the results hidden, before the year report */
 .bfc{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
 .bfc.on{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
@@ -5738,7 +5762,9 @@ function rpPlan(b,d){
   for(const o of fA){ const x0=110, cx=(gd?dX-6:690)-o.w;
     add(0,o.k,gd?[[0,x0,o.y],[tV,x0+50,o.y],[tC,cx,o.y],[tM,cx+(win?46:-12),o.y],[tE,win&&!noland?cx+190:x0+(noland?150:30),o.y]]
       :[[0,x0,o.y],[tC,cx,o.y],[tE,cx+40,o.y]],o.w,o.h); }
+  fA.forEach((o,i)=>{ U.find(u=>!u.side&&u.k===o.k).alt=i%2; });
   for(const o of fD) add(1,o.k,[[0,dX,o.y],[tC,dX,o.y],[tM,rout?dX+44:dX,o.y],[tE,rout?dX+300:dX-14,o.y]],o.w,o.h);
+  fD.forEach((o,i)=>{ U.find(u=>u.side&&u.k===o.k).alt=i%2; });
   if(tA[1]>0){ const [w,h]=sz(tA[1]); add(0,1,[[0,56,yc+60],[tC,90,yc+60],[tE,win?170:50,yc+60]],w,h); }
   if(dArch){ const [w,h]=sz(tD[1]), x=Math.max(800,dX+wD+120); add(1,1,[[0,x,yc-150],[tM,x,yc-150],[tE,rout?RPW-w+40:x,yc-150]],w,h); }
   if(tA[5]>0){ const [w,h]=sz(tA[5]); add(0,5,gd?[[0,70,18],[tV,140,18],[tC,450,14],[tM,win?740:520,win?56:20],[tE,win?880:110,win?86:18]]:[[0,70,18],[tC,560,18],[tE,700,34]],w,h); }
@@ -5759,8 +5785,8 @@ function rpPlan(b,d){
     if(u.side&&rout){ const m=Math.round(rest*.75); u.seg.push([t0,tM,m],[tM,tE-1,rest-m]); } else u.seg.push([t0,tM,rest]); }
   // generals ride behind their lines
   const gens=[], front=s=>U.find(u=>u.side===s&&u.k!==1&&u.k!==5);
-  if(d.gA){ const f=front(0); gens.push({side:0,g:d.gA,kf:f?f.kf.map(([t,x])=>[t,Math.max(4,x-64),yc-56]):[[0,40,yc-56],[tE,300,yc-56]]}); }
-  if(gd&&d.gD){ gens.push({side:1,g:d.gD,kf:[[0,dX+wD+26,yc-20],[tM,dX+wD+(rout?60:26),yc-20],[tE,rout?RPW-20:dX+wD+26,yc-20]]}); }
+  if(d.gA){ const f=front(0); gens.push({side:0,g:d.gA,kf:f?f.kf.map(([t,x])=>[t,Math.max(4,x-120),yc-56]):[[0,40,yc-56],[tE,300,yc-56]]}); }
+  if(gd&&d.gD){ gens.push({side:1,g:d.gD,kf:[[0,dX+wD+90,yc-20],[tM,dX+wD+(rout?120:90),yc-20],[tE,rout?RPW-40:dX+wD+90,yc-20]]}); }
   // what happened, in words
   const nA=esc(A.name), nD=esc(D.name), gn=g=>g?`Gen. ${esc(g[0])}`:null, E=[], ev=(t,txt,c="",pop=1)=>E.push([t,txt,c,pop]);
   ev(0,`${nA} ${({raid:"raids",kidnap:"comes for the people of",massacre:"falls on the people of"})[mode]||"attacks"} ${nD}.`,"",0);
@@ -5789,14 +5815,17 @@ function rpStatus(P,u,t,hit){
   if(u.k===1) return [t<tC+4?"Shooting":"Fighting","rpi"]; return t<tC?["Holding","mut"]:["Fighting","acc"];
 }
 // terrain: forest and mountains on the defender's side, a narrow pass or a sea crossing at the front
-function rpTerrain(P){
-  const b=P.b, r=rpRng(b.turn*31+b.def), fo=b.front>0?(b.tfo||0)/b.front:0, mt=b.front>0?(b.tmt||0)/b.front:0, pc=(x,y,w,h)=>`left:${x/RPW*100}%;top:${y/RPH*100}%;width:${w/RPW*100}%;height:${h/RPH*100}%`;
+// on a narrow screen the field stands upright: the attacker comes from the bottom (x runs up, y runs across)
+function rpBox(v,x,y,w,h){ return v?{l:y/RPH*100,t:(RPW-x-w)/RPW*100,w:h/RPH*100,h:w/RPW*100}:{l:x/RPW*100,t:y/RPH*100,w:w/RPW*100,h:h/RPH*100}; }
+function rpTerrain(P,v){
+  const b=P.b, r=rpRng(b.turn*31+b.def), fo=b.front>0?(b.tfo||0)/b.front:0, mt=b.front>0?(b.tmt||0)/b.front:0, pc=(x,y,w,h)=>{ const q=rpBox(v,x,y,w,h); return `left:${q.l}%;top:${q.t}%;width:${q.w}%;height:${q.h}%`; };
   let h="";
   for(let i=0,n=Math.round(fo*16);i<n;i++){ const s=40+r()*60; h+=`<div class="rp-tree" style="${pc(640+r()*300,r()*(RPH-s),s,s)}"></div>`; }
   for(let i=0,n=Math.round(mt*8);i<n;i++){ const s=60+r()*70; h+=`<div class="rp-mtn" style="${pc(660+r()*270,r()*(RPH-s),s,s*.8)}"></div>`; }
-  if(b.sea) h+=`<div class="rp-sea" style="${pc(500,0,70,RPH)}"></div><div class="rp-tag" style="left:${505/RPW*100}%;top:2%">Sea crossing</div>`;
-  else if(b.fb>=0.05) h+=`<div class="rp-rock" style="${pc(520,-30,180,150)}"></div><div class="rp-rock" style="${pc(520,RPH-120,180,150)}"></div><div class="rp-tag" style="left:${540/RPW*100}%;top:2%">Narrow front</div>`;
-  if(fo>=0.05||mt>=0.05) h+=`<div class="rp-tag" style="right:1.5%;top:2%">${mt>=fo?"⛰️ Mountains":"🌲 Forest"}: defenders +${Math.round((b.tb||0)*100)}%</div>`;
+  const tag=(x,y,t)=>{ const q=rpBox(v,x,y,0,0); return `<div class="rp-tag" style="left:${q.l}%;top:${q.t}%">${t}</div>`; };
+  if(b.sea) h+=`<div class="rp-sea" style="${pc(500,0,70,RPH)}"></div>`+tag(v?560:505,v?8:34,"Sea crossing");
+  else if(b.fb>=0.05) h+=`<div class="rp-rock" style="${pc(520,-30,180,150)}"></div><div class="rp-rock" style="${pc(520,RPH-120,180,150)}"></div>`+tag(v?690:520,v?8:34,"Narrow front");
+  if(fo>=0.05||mt>=0.05){ const t=`${mt>=fo?"⛰️ Mountains":"🌲 Forest"}: defenders +${Math.round((b.tb||0)*100)}%`; h+=v?tag(RPW-10,8,t):`<div class="rp-tag" style="right:1.5%;top:2%">${t}</div>`; }
   return h;
 }
 function rpHtml(P){
@@ -5808,9 +5837,9 @@ function rpHtml(P){
   <div class="rp-head">${side(A,`Attacker · ${MODE_UI[mi][1]} ${MODE_UI[mi][2]}`,d.gA,0)}${side(D,`Defender${st?" · "+STANCE_KEY[st]:""}`,P.gd?d.gD:null,1)}</div>
   <div class="rp-main">
     <div class="rp-left">
-      <div class="rp-field" id="rpField">${rpTerrain(P)}
+      <div class="rp-field" id="rpField"><div id="rpTer"></div>
         <div class="rp-clash" id="rpClash"></div>
-        ${P.U.map((u,i)=>`<div class="rp-u" data-u="${i}" data-k="${TROOPS[u.k].id}" title="${esc(TROOPS[u.k].name)}" style="--c:${u.side?D.color:A.color}"><div class="rp-lab"><span class="rp-ic">${TROOPS[u.k].icon}</span><b class="rp-n">${fmt(u.n0)}</b><span class="rp-st"></span></div><span class="rp-hp"><i></i></span></div>`).join("")}
+        ${P.U.map((u,i)=>`<div class="rp-u${u.alt?" alt":""}" data-u="${i}" data-k="${TROOPS[u.k].id}" title="${esc(TROOPS[u.k].name)}" style="--c:${u.side?D.color:A.color}"><div class="rp-lab"><span class="rp-ic">${TROOPS[u.k].icon}</span><b class="rp-n">${fmt(u.n0)}</b><span class="rp-st"></span></div><span class="rp-hp"><i></i></span></div>`).join("")}
         ${P.gens.map((g,i)=>`<div class="rp-g" data-g="${i}" style="--c:${g.side?D.color:A.color}" title="Gen. ${esc(g.g[0])}">${genFrame({name:g.g[0],age:g.g[1],morale:g.g[4],face:g.g[8]??0,tier:g.g[9],battles:0,l:0},g.side?D.color:A.color)}<span>${esc(g.g[0])}</span></div>`).join("")}
         <div id="rpShots"></div><div id="rpHits"></div>
         <div class="rp-pop" id="rpPop" hidden></div>
@@ -5823,7 +5852,7 @@ function rpHtml(P){
           <input type="range" id="rpT" min="0" max="${Math.round(P.tE*10)}" value="0" aria-label="Battle time"></div>
         <span class="small mut rp-clock" id="rpClock"></span>
         <div class="rp-sp" role="group" aria-label="Speed">${[.5,1,2,4].map(s=>`<button class="sm" data-rp="sp${s}">${s===.5?"½":s}×</button>`).join("")}</div>
-        <button class="sm" data-rp="skip">Skip to result</button>
+        <button class="sm" data-rp="skip">Skip<span class="rp-long"> to result</span></button>
       </div>
     </div>
     <div class="rp-info">
@@ -5855,32 +5884,35 @@ async function openReplay(ref){
   requestAnimationFrame(loop);
 }
 function rpDraw(S){
-  const {P,el}=S, t=S.t, q=s=>el.querySelector(s), pc=v=>v/RPW*100+"%", pv=v=>v/RPH*100+"%", pos={}, hitNow={};
+  const {P,el}=S, t=S.t, pos={}, hitNow={}, vert=el.parentElement.clientWidth<560;
+  el.classList.toggle("tight",!vert&&el.clientWidth<760); // a small sideways field: compact labels
+  if(vert!==S.vert){ S.vert=vert; el.classList.toggle("vert",vert); $("rpTer").innerHTML=rpTerrain(P,vert); }
+  const put=(e,x,y,w,h)=>{ const q=rpBox(vert,x,y,w,h); e.style.left=q.l+"%"; e.style.top=q.t+"%"; if(w!=null){ e.style.width=q.w+"%"; e.style.height=q.h+"%"; } };
   for(const s of P.shots){ const a=t-(s.t+RP_FLY); if(a>=0&&a<.9) hitNow[P.U.indexOf(s.u)]=a; }
   let mA=0,mD=0;
   P.U.forEach((u,i)=>{ const f=rpAt(u.kf,t), n=rpMen(u,t), sc=Math.sqrt(Math.max(0,n)/Math.max(1,u.n0)), w=Math.max(8,u.w*sc), h=Math.max(8,u.h*sc);
     const x=f[1]+(u.w-w)/2, y=f[2]+(u.h-h)/2, e=el.querySelector(`[data-u="${i}"]`); pos[i]={cx:x+w/2,cy:y+h/2};
     if(u.side) mD+=n; else mA+=n;
-    e.style.left=pc(x); e.style.top=pv(y); e.style.width=pc(w); e.style.height=pv(h);
+    put(e,x,y,w,h);
     e.style.opacity=u.side&&P.rout&&t>P.tM?Math.max(.35,1-(t-P.tM)/P.tE*2.2):n<=0.5?.25:1;
     e.classList.toggle("hit",hitNow[i]!=null);
     e.querySelector(".rp-n").textContent=fmt(Math.round(n)); e.querySelector(".rp-hp i").style.width=Math.round(100*n/Math.max(1,u.n0))+"%";
     const st=rpStatus(P,u,t,hitNow[i]!=null), se=e.querySelector(".rp-st"); se.textContent=st[0]; se.className="rp-st "+st[1];
     const L=$("modal").querySelector(`[data-ul="${i}"]`); if(L){ L.textContent=fmt(Math.round(n)); $("modal").querySelector(`[data-uo="${i}"]`).textContent=fmt(Math.round(u.n0-n)); } });
-  P.gens.forEach((g,i)=>{ const f=rpAt(g.kf,t), e=el.querySelector(`[data-g="${i}"]`); e.style.left=pc(f[1]); e.style.top=pv(f[2]); e.style.opacity=g.side&&P.rout&&t>P.tM+2?.5:1; });
+  P.gens.forEach((g,i)=>{ const f=rpAt(g.kf,t), e=el.querySelector(`[data-g="${i}"]`), q=rpBox(vert,f[1],f[2],vert?30:0,0); e.style.left=q.l+"%"; e.style.top=q.t+"%"; e.style.opacity=g.side&&P.rout&&t>P.tM+2?.5:1; });
   // arrows in flight
   const ar=[...$("rpShots").children]; let ai=0;
   for(const s of P.shots){ const p=(t-s.t)/RP_FLY; if(p<0||p>1) continue; const a=pos[P.U.indexOf(s.from)], b=pos[P.U.indexOf(s.u)]; if(!a||!b) continue;
     for(let j=0;j<6&&ai<ar.length;j++){ const jx=((j*37)%11-5)*5, jy=((j*53)%9-4)*6, x0=a.cx+jx, y0=a.cy+jy, x1=b.cx+jx*1.4, y1=b.cy+jy*1.4;
       const x=x0+(x1-x0)*p, y=y0+(y1-y0)*p-110*4*p*(1-p), ang=Math.atan2((y1-y0)-110*4*(1-2*p),x1-x0)*180/Math.PI, e=ar[ai++];
-      e.hidden=false; e.style.left=pc(x); e.style.top=pv(y); e.style.transform=`rotate(${ang}deg)`; } }
+      e.hidden=false; put(e,x,y); e.style.transform=`rotate(${vert?ang-90:ang}deg)`; } }
   for(;ai<ar.length;ai++) ar[ai].hidden=true;
   const hs=[...$("rpHits").children]; let hi=0;
   for(const s of P.shots){ const a=t-(s.t+RP_FLY), p=pos[P.U.indexOf(s.u)]; if(a<0||a>=.9||!p||!s.n||hi>=hs.length) continue; const e=hs[hi++];
-    e.hidden=false; e.textContent="−"+fmt(s.n); e.style.left=pc(p.cx-14); e.style.top=pv(p.cy-26-a*34); e.style.opacity=1-a/.9; }
+    e.hidden=false; e.textContent="−"+fmt(s.n); put(e,vert?p.cx+20+a*34:p.cx-14,vert?p.cy-14:p.cy-26-a*34); e.style.opacity=1-a/.9; }
   for(;hi<hs.length;hi++) hs[hi].hidden=true;
   const cl=$("rpClash"); cl.style.opacity=P.gd&&t>P.tC-.5&&t<P.tM+.5?(.5+.35*Math.sin(t*7)).toFixed(2):0;
-  const fx=P.U.filter(u=>u.side&&u.k!==1&&u.k!==5).map(u=>rpAt(u.kf,t)[1]); cl.style.left=pc((fx.length?Math.min(...fx):600)-90); cl.style.top=pv(P.yc-130);
+  const fx=P.U.filter(u=>u.side&&u.k!==1&&u.k!==5).map(u=>rpAt(u.kf,t)[1]); put(cl,(fx.length?Math.min(...fx):600)-90,P.yc-130,180,260);
   // event banner and log
   const past=P.E.filter(e=>e[0]<=t), last=past.filter(e=>e[3]).pop(), pop=$("rpPop"), age=last?t-last[0]:99;
   pop.hidden=!(age<2.6&&t<P.tE); if(!pop.hidden){ pop.textContent=last[1].replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'"); pop.className="rp-pop "+last[2]; pop.style.opacity=age>2.1?(2.6-age)/.5:1; }
@@ -5901,6 +5933,7 @@ function rpCtl(a){ const S=UI.rp; if(!S) return;
   else if(a==="skip"){ S.t=S.P.tE; S.playing=false; S.hideEnd=false; }
   else if(a.startsWith("sp")) S.speed=+a.slice(2);
   S.last=performance.now(); rpDraw(S); }
+window.addEventListener("resize",()=>{ if(UI.rp&&UI.rp.el.isConnected) rpDraw(UI.rp); });
 function rpBackGo(){ const bk=UI.rpBack; UI.rpBack=null; UI.rp=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); }
 
 // ---------- battles first ----------
@@ -5970,6 +6003,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Replays on phones","2026-11-14 10:41",["On a phone the replay field stands upright, the attacker coming from the bottom, so it fills the screen","Smaller troop labels and generals on small screens","Compact header and bigger play, speed and skip buttons; the timeline gets its own row","Turning the phone redraws the field"]],
 ["Battle replays","2026-11-14 10:32",["▶ Watch on battle reports and on the Your battles screen plays the battle","Real troops, losses, generals, terrain and result; only the moves are made up","Archers shoot first and men fall only when a volley lands","Each troop is a block sized by its men that shrinks as they fall, with its icon, men left and what it is doing","Generals ride behind their lines with their portrait","Forest, mountains, narrow fronts and sea crossings show on the field","Play, pause, drag to any moment, ½× to 4× speed, skip to the result"]],
 ["Your battles first, no spoilers","2026-11-14 10:24",["After a year with battles involving you, a Your battles screen opens before the year report","Each battle shows who attacked whom, the attack mode and the forces, with the result hidden","Show result reveals one battle; Report opens its full report and Back returns to the list","Go to year report shows everything","The map and header stay hidden until you go on","Tick Don't hide results to skip the screen; a box in the year report turns it back on","Hot-seat: each player sees their own battles after the handover"]],
 ["Back button works","2026-11-14 09:54",["The browser Back button closes the open menu or window","With nothing open, Back returns to the page you were on before","On phones, the Back gesture does the same"]],
@@ -6392,6 +6426,7 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <li><b>Rout</b> or <b>After</b>: if the attacker won, the defenders fall back and some of their losses come in the pursuit; if not, the attacker pulls back. Raids, kidnaps and massacres always end with the attacker going home with what it took.</li>
 <li>The right side lists both sides' men, the losses per troop type and what happened. The end shows the result.</li>
 <li>Play or pause, restart, drag the bar to any moment, change speed (½× to 4×) or skip to the result. ‹ Back (or Esc) returns to where you came from.</li>
+<li>On a narrow screen such as a phone the field stands upright: the attacker comes from the bottom and the defender waits at the top, and labels show just the icon and men left.</li>
 <li>Battles fought before replays were added, and very old news without a full report, can't be watched.</li></ul>`],
 ["stance","Military","🧱","Defense stance",()=>`
 <p>Each year you pick how your guards fight when someone attacks you (War → Wars, under Defense). It applies to every battle on your land that year. Neighbors don't see it, and computer states pick theirs too. A battle report shows the defender's stance.</p>
