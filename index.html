@@ -389,6 +389,7 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .rp-ph{display:flex;gap:4px}.rp-ph>div{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mut);min-width:0}.rp-ph i{display:block;height:5px;border-radius:3px;background:var(--bg);overflow:hidden}.rp-ph b{display:block;height:100%;width:0}.rp-ph .now{color:var(--acc);font-weight:700}
 .rp-sp{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}.rp-sp button{border:0;border-radius:0}.rp-sp button.on{background:#3a3423;color:var(--acc);font-weight:700}
 .rp-men div{display:flex;align-items:center;gap:6px;margin:2px 0}.rp-men b{margin-left:auto;font-variant-numeric:tabular-nums}
+.rp-alt{font-size:12px;color:#9fc6ef;background:#1a2330;border:1px solid #2e4a6b;border-radius:7px;padding:4px 9px;margin:-2px 0 8px}
 .rp-loss{width:100%}.rp-loss td,.rp-loss th{padding:2px 4px}.rp-log{max-height:200px;overflow:auto}
 .rp-field.vert{aspect-ratio:auto;width:100%;height:min(50vh,160vw)}
 .rp-field.vert .rp-u.alt .rp-lab{bottom:auto;top:calc(100% + 7px)}
@@ -5758,6 +5759,12 @@ function neighborsBefore(id){ const {W,cells}=G, tf=G.takenFrom, N=cells.length;
 const RPW=960, RPH=520, RP_FLY=1.2;
 const rpRng=x=>{ let a=x>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; };
 const rpEase=p=>p*p*(3-2*p);
+// two states with near colours: the defender is drawn in a far-off colour for the replay
+const rpRGB=c=>{ const m=/^#?([0-9a-f]{6})$/i.exec(c||""); if(!m) return null; const n=parseInt(m[1],16); return [n>>16&255,n>>8&255,n&255]; };
+const rpDist=(a,b)=>{ const x=rpRGB(a), y=rpRGB(b); if(!x||!y) return 999; const r=(x[0]+y[0])/2, dr=x[0]-y[0], dg=x[1]-y[1], db=x[2]-y[2]; return Math.sqrt((2+r/256)*dr*dr+4*dg*dg+(2+(255-r)/256)*db*db); }; // "redmean": close to how far apart two colours look
+const RP_ALT=[["#5b8fd6","blue"],["#e0b354","gold"],["#5cc98a","green"],["#b07ce0","purple"],["#e8e8e8","white"],["#e96a5a","red"]];
+function rpColors(A,D){ if(rpDist(A.color,D.color)>=140) return {cA:A.color,cD:D.color,alt:null};
+  const [c,nm]=RP_ALT.find(x=>rpDist(A.color,x[0])>=300)||RP_ALT.slice().sort((x,y)=>rpDist(A.color,y[0])-rpDist(A.color,x[0]))[0]; return {cA:A.color,cD:c,alt:nm}; } // blue first, when it is far enough
 function rpAt(k,t){ if(t<=k[0][0]) return k[0]; for(let i=1;i<k.length;i++){ const a=k[i-1], b=k[i]; if(t<=b[0]){ const p=b[0]>a[0]?rpEase((t-a[0])/(b[0]-a[0])):1; return a.map((v,j)=>j?v+(b[j]-v)*p:t); } } return k[k.length-1]; }
 function rpPlan(b,d){
   const C=G.countries, A=C[b.att], D=C[b.def], r=rpRng(b.turn*7919+b.att*131+b.def*17+(b.sent|0));
@@ -5784,13 +5791,20 @@ function rpPlan(b,d){
   fD.forEach((o,i)=>{ U.find(u=>u.side&&u.k===o.k).alt=i%2; });
   if(tA[1]>0){ const [w,h]=sz(tA[1]); add(0,1,[[0,56,yc+60],[tC,90,yc+60],[tE,win?170:50,yc+60]],w,h); }
   if(dArch){ const [w,h]=sz(tD[1]), x=Math.max(800,dX+wD+120); add(1,1,[[0,x,yc-150],[tM,x,yc-150],[tE,rout?RPW-w+40:x,yc-150]],w,h); }
-  // cavalry charge into the main fight: the attacker's round the top into the end of the defenders' line, the defender's into the bottom of the attackers' line
-  const topD=fD.length?Math.min(...fD.map(o=>o.y)):yc-60, botF=Math.max(yc+60,...fA.map(o=>o.y+o.h),...fD.map(o=>o.y+o.h)), arrA=tC+2, arrD=tC+2.5;
-  if(tA[5]>0){ const [w,h]=sz(tA[5]), hx=dX-Math.round(w*.35), hy=Math.max(0,topD-h+4);
-    const u=add(0,5,gd?[[0,70,18],[tV,140,18],[tC,430,Math.max(0,hy-50)],[arrA,hx,hy],[tM,win?hx+50:hx-30,win?hy+14:Math.max(0,hy-24)],[tE,win?hx+260:110,win?hy+30:18]]:[[0,70,18],[tC,560,18],[tE,700,34]],w,h);
-    if(gd) u.arr=arrA; }
-  if(tD[5]>0){ const [w,h]=sz(tD[5]), y0=RPH-18-h, hx=dX-50-w, hy=Math.min(y0,botF-6);
-    add(1,5,[[0,790,y0],[tC,760,y0],[arrD,hx,hy],[tM,rout?hx+30:hx-40,hy],[tE,rout?900:640,y0]],w,h).arr=arrD; }
+  // cavalry charge a target: the enemy's spearmen or pikemen (the bigger troop), else its archers, else its main line; they hit it from behind and stay on it
+  const botF=Math.max(yc+60,...fA.map(o=>o.y+o.h),...fD.map(o=>o.y+o.h));
+  const target=side=>{ const E=U.filter(u=>u.side!==side&&u.k!==5); return E.filter(u=>u.k===0||u.k===3).sort((a,b)=>b.n0-a.n0)[0]||E.find(u=>u.k===1)||E[0]||null; };
+  const hit=(T,t,w,h,fromRight)=>{ const f=rpAt(T.kf,t), x=fromRight?f[1]+T.w-6:f[1]-w+6, y=Math.max(0,Math.min(RPH-h,f[2]+T.h/2-h/2)); return [Math.round(x),Math.round(y)]; };
+  const cavHit=[];
+  if(tA[5]>0){ const [w,h]=sz(tA[5]), T=gd?target(0):null;
+    if(T){ const arr=tC+(T.k===1?3:2.5), rear=T.k!==1, H=t=>hit(T,t,w,h,rear), a=H(arr), m=H(tM), e=H(tE);
+      const u=add(0,5,[[0,70,18],[tV,140,18],[tC,Math.min(RPW-w,a[0]+(rear?40:-60)),8],[arr,...a],[tM,...m],[tE,...(win?e:[110,18])]],w,h); u.arr=arr; cavHit.push([arr,0,T]);
+      if(T.k===1) T.seg0=arr; }
+    else add(0,5,[[0,70,18],[tC,560,18],[tE,700,34]],w,h); }
+  if(tD[5]>0){ const [w,h]=sz(tD[5]), y0=RPH-18-h, T=target(1);
+    if(T){ const arr=tC+3, back=T.k!==1, H=t=>hit(T,t,w,h,!back), a=H(arr), m=H(tM);
+      const u=add(1,5,[[0,790,y0],[tC,760,y0],[arr-1.2,Math.max(0,a[0]+(back?-30:40)),Math.min(RPH-h,botF+8)],[arr,...a],[tM,...m],[tE,...(rout?[900,y0]:m)]],w,h); u.arr=arr; cavHit.push([arr,1,T]);
+      if(T.k===1) T.seg0=arr; } }
   // volleys: archers' share of the strength is the share of the other side's losses that arrows cause
   const raw=(T,st)=>TROOPS.reduce((t,x,k)=>t+(T[k]||0)*x[st],0), shots=[];
   const volley=(from,side,share,t0)=>{ const tg=U.filter(u=>u.side!==side&&u.k!==1&&u.L>0); if(!tg.length||share<=0) return; const ts=[];
@@ -5803,7 +5817,7 @@ function rpPlan(b,d){
   if(shooterA) volley(shooterA,0,Math.min(.4,tA[1]*TROOPS[1].atk/Math.max(1,raw(tA,"atk"))),1.6);
   for(const u of U){ const rest=u.L-u.steps.reduce((t,s)=>t+s[1],0); if(rest<=0) continue;
     if(!gd){ u.seg.push([tC-3,tE-2,rest]); continue; }
-    const t0=u.arr??(u.k===1?tC+4:tC); // cavalry only once they reach the fight
+    const t0=u.arr??u.seg0??(u.k===1?tC+4:tC); // cavalry (and archers they ride down) only once the fight reaches them
     if(u.side&&rout){ const m=Math.round(rest*.75); u.seg.push([t0,tM,m],[tM,tE-1,rest-m]); } else u.seg.push([t0,tM,rest]); }
   // generals ride behind their lines
   const gens=[], front=s=>U.find(u=>u.side===s&&u.k!==1&&u.k!==5);
@@ -5816,10 +5830,11 @@ function rpPlan(b,d){
   if(shooterD) ev(1,`${nD}'s archers open fire.`,"rpi");
   if(shooterA) ev(2.2,shooterD?`${nA}'s archers shoot back.`:`${nA}'s archers open fire.`,"rpi");
   if(gd) ev(tV,`${gn(d.gA)||nA} orders the charge.`);
-  if(gd&&tA[5]>0){ ev(tV+2.2,`${nA}'s cavalry ride round the flank.`,"",0); ev(arrA,`${nA}'s cavalry crash into the flank.`,"acc"); }
-  if(tD[5]>0) ev(arrD,`${nD}'s cavalry counter-charge.`,"rpi");
+  const tn={0:"spearmen",1:"archers",2:"axemen",3:"pikemen",4:"swordsmen"};
+  if(gd&&tA[5]>0) ev(tV+2.2,`${nA}'s cavalry ride round the flank.`,"",0);
+  for(const [t,sd,T] of cavHit) ev(t,sd?`${nD}'s cavalry charge ${nA}'s ${tn[T.k]}.`:`${nA}'s cavalry charge ${nD}'s ${tn[T.k]}.`,sd?"rpi":"acc");
   if(gd) ev(tC,"The lines meet.");
-  if(gd&&tD[3]>0&&tA[5]>0) ev(tC+3,"The pikes brace against the horses.","rpi");
+  for(const [t,sd,T] of cavHit) if(!sd&&T.k===3) ev(t+.8,"The pikes brace against the horses.","rpi");
   if(gd&&d.gD) ev(tC+5.5,`${gn(d.gD)} rallies the centre.`,"rpi",0);
   if(gd) ev(tM-3,win?`${nD}'s line breaks.`:noland?`${nA} fights through to the farms.`:`${nA}'s attack stalls.`,win?"bad":"rpi");
   const gain=d.gain, lt=a=>[["gold",0],["grain",1],["wood",2],["iron",3]].filter(([,k])=>a[k]).map(([n,k])=>`${fmt(a[k])} ${n}`).join(", ")||"nothing";
@@ -5827,7 +5842,8 @@ function rpPlan(b,d){
     :noland?`${nA} pulls back with nothing.`:win&&!gd?`${nA} takes ${fmt(b.taken)} km² unopposed.`:win?`${nD} falls back. ${nA} takes ${fmt(b.taken)} km².`:`${nA} pulls back. ${nD} holds.`;
   ev(tM+.5,endTxt,win||gain?"good":"bad");
   if(b.elim) ev(tM+3,`${nD} is destroyed!`,"bad");
-  return {b,d,A,D,U,gens,shots,E,tV,tC,tM,tE,yc,win,rout,gd,noland,r,cuts:[0,tV,tC,tM,tE]};
+  E.sort((x,y)=>x[0]-y[0]);
+  return {b,d,A,D,...rpColors(A,D),U,gens,shots,E,tV,tC,tM,tE,yc,win,rout,gd,noland,r,cuts:[0,tV,tC,tM,tE]};
 }
 function rpMen(u,t){ let n=u.n0; for(const [ts,a] of u.steps) if(t>=ts) n-=a; for(const [t0,t1,a] of u.seg) n-=a*Math.max(0,Math.min(1,(t-t0)/Math.max(.01,t1-t0))); return Math.max(0,n); }
 function rpStatus(P,u,t,hit){
@@ -5855,16 +5871,17 @@ function rpTerrain(P,v){
 function rpHtml(P){
   const {A,D,b,d}=P, gl1=(g,c)=>g?`<div class="rp-gen">${genFrame({name:g[0],age:g[1],morale:g[4],face:g[8]??0,tier:g[9],battles:0,l:0},c)}<div><b>Gen. ${esc(g[0])}</b><div class="small mut">skill ${g[2]} · morale ${g[4]}</div></div></div>`:`<div class="small mut">No general</div>`;
   const st=d.st?STANCES[d.st[0]]:null, mi=d.md?.[0]??0;
-  const side=(c,role,g,right)=>`<div class="rp-side${right?" r":""}"><div class="rp-nm"><span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}</b><span class="bfmode">${role}</span></div>${gl1(g,c.color)}</div>`;
+  const side=(c,role,g,right)=>`<div class="rp-side${right?" r":""}"><div class="rp-nm"><span class="sw" style="background:${(c===D?P.cD:P.cA)}"></span><b>${esc(c.name)}</b><span class="bfmode">${role}</span></div>${gl1(g,(c===D?P.cD:P.cA))}</div>`;
   return `<h2>▶ Battle replay · Year ${b.turn} ${gl("replay")}</h2>
   <div class="mbody">
   <div class="rp-head">${side(A,`Attacker · ${MODE_UI[mi][1]} ${MODE_UI[mi][2]}`,d.gA,0)}${side(D,`Defender${st?" · "+STANCE_KEY[st]:""}`,P.gd?d.gD:null,1)}</div>
+  ${P.alt?`<div class="rp-alt">${esc(D.name)} is shown in ${P.alt} here: its colour is too close to ${esc(A.name)}'s.</div>`:""}
   <div class="rp-main">
     <div class="rp-left">
       <div class="rp-field" id="rpField"><div id="rpTer"></div>
         <div class="rp-clash" id="rpClash"></div>
-        ${P.U.map((u,i)=>`<div class="rp-u${u.alt?" alt":""}" data-u="${i}" data-k="${TROOPS[u.k].id}" title="${esc(TROOPS[u.k].name)}" style="--c:${u.side?D.color:A.color}"><div class="rp-lab"><span class="rp-ic">${TROOPS[u.k].icon}</span><b class="rp-n">${fmt(u.n0)}</b><span class="rp-st"></span></div><span class="rp-hp"><i></i></span></div>`).join("")}
-        ${P.gens.map((g,i)=>`<div class="rp-g" data-g="${i}" style="--c:${g.side?D.color:A.color}" title="Gen. ${esc(g.g[0])}">${genFrame({name:g.g[0],age:g.g[1],morale:g.g[4],face:g.g[8]??0,tier:g.g[9],battles:0,l:0},g.side?D.color:A.color)}<span>${esc(g.g[0])}</span></div>`).join("")}
+        ${P.U.map((u,i)=>`<div class="rp-u${u.alt?" alt":""}" data-u="${i}" data-k="${TROOPS[u.k].id}" title="${esc(TROOPS[u.k].name)}" style="--c:${u.side?P.cD:P.cA}"><div class="rp-lab"><span class="rp-ic">${TROOPS[u.k].icon}</span><b class="rp-n">${fmt(u.n0)}</b><span class="rp-st"></span></div><span class="rp-hp"><i></i></span></div>`).join("")}
+        ${P.gens.map((g,i)=>`<div class="rp-g" data-g="${i}" style="--c:${g.side?P.cD:P.cA}" title="Gen. ${esc(g.g[0])}">${genFrame({name:g.g[0],age:g.g[1],morale:g.g[4],face:g.g[8]??0,tier:g.g[9],battles:0,l:0},g.side?P.cD:P.cA)}<span>${esc(g.g[0])}</span></div>`).join("")}
         <div id="rpShots"></div><div id="rpHits"></div>
         <div class="rp-pop" id="rpPop" hidden></div>
         <div class="rp-end" id="rpEnd" hidden><div class="rp-card"><div class="small mut" style="letter-spacing:2px">RESULT</div><h3>${P.noland?(d.gain?`${esc(A.name)} gets through`:`${esc(A.name)} gets nothing`):b.win?`${esc(A.name)} wins`:`${esc(D.name)} holds`}</h3><ul class="log">${battleLine(b).replace(/ <button[^>]*data-rep=[^>]*>[^<]*<\/button>/,"")}</ul><div class="row" style="justify-content:center"><button data-rp="again">↺ Watch again</button><button class="pri" data-a="close">‹ Back</button></div></div></div>
@@ -5880,8 +5897,8 @@ function rpHtml(P){
       </div>
     </div>
     <div class="rp-info">
-      <h3>Men</h3><div class="rp-men"><div><span class="sw" style="background:${A.color}"></span>${esc(A.name)} <b id="rpMA"></b></div><div><span class="sw" style="background:${D.color}"></span>${esc(D.name)} <b id="rpMD"></b></div></div>
-      <h3>Losses</h3><table class="small rp-loss"><tr><th>Troop</th><th class="r">Left</th><th class="r">Lost</th></tr>${P.U.map((u,i)=>`<tr><td><span class="sw" style="background:${u.side?D.color:A.color}"></span>${TROOPS[u.k].icon} ${esc(TROOPS[u.k].name)}</td><td class="r" data-ul="${i}"></td><td class="r bad" data-uo="${i}"></td></tr>`).join("")}</table>
+      <h3>Men</h3><div class="rp-men"><div><span class="sw" style="background:${P.cA}"></span>${esc(A.name)} <b id="rpMA"></b></div><div><span class="sw" style="background:${P.cD}"></span>${esc(D.name)} <b id="rpMD"></b></div></div>
+      <h3>Losses</h3><table class="small rp-loss"><tr><th>Troop</th><th class="r">Left</th><th class="r">Lost</th></tr>${P.U.map((u,i)=>`<tr><td><span class="sw" style="background:${u.side?P.cD:P.cA}"></span>${TROOPS[u.k].icon} ${esc(TROOPS[u.k].name)}</td><td class="r" data-ul="${i}"></td><td class="r bad" data-uo="${i}"></td></tr>`).join("")}</table>
       <h3>What happened</h3><ul class="log small rp-log" id="rpLog"></ul>
     </div>
   </div></div>
@@ -6027,6 +6044,8 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Replays: armies of the same colour","2026-11-14 11:21",["When both states in a replay have near colours, the defender is drawn in a far-off colour for that battle","A note under the names says which colour it is shown in"]],
+["Cavalry pick their target","2026-11-14 11:20",["In battle replays, cavalry charge the enemy's spearmen or pikemen; only if it has none, its archers","They hit from behind and stay on their target","The log names what each side's cavalry charged"]],
 ["Cavalry charge in replays","2026-11-14 11:08",["In battle replays, cavalry charge into the main fight: the attacker's into the end of the defenders' line, the defender's into the attackers' flank","Cavalry lose men only once they reach the fight","The log says when each side's cavalry hit"]],
 ["Archers keep shooting","2026-11-14 10:59",["In battle replays, archers keep shooting through the charge and the melee, not just at the start","Their volleys still take men only when they land; total losses are unchanged"]],
 ["Market chart in gold","2026-11-14 10:58",["The World market chart shows prices in gold instead of % of normal","Each normal price is a faint dashed line in its colour","Hover (or touch) the chart to see that year's grain, wood and iron prices"]],
@@ -6449,9 +6468,10 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <ul class="log"><li>The attacker comes from the left, the defender waits on the right. Each troop type is one block in its state's colour; its area is in proportion to its men (very small troops are drawn a little bigger so they stay visible) and it shrinks as men fall, with its own look: spears and pikes in upright rows, swordsmen in tight ranks, axemen loose, archers scattered, cavalry wide apart. A label shows its icon, men left and what it is doing (Charging, Fighting, Under fire, Falling back…); the bar under it shows the share still standing.</li>
 <li>Generals ride behind their lines, with their portrait.</li>
 <li><b>Volleys</b>: archers on either side shoot first, and keep shooting over the charge and the melee until the battle is decided. Their share of their side's strength is the share of the enemy's losses the arrows cause, and each volley takes its men only when it lands: the block flashes red and the number falls.</li>
-<li><b>Charge</b>: the attacker's foot marches on the defenders. The attacker's cavalry ride round the top and crash into the end of the defenders' line; the defender's cavalry counter-charge into the bottom of the attackers' line. Cavalry lose men only once they reach the fight.</li>
+<li><b>Charge</b>: the attacker's foot marches on the defenders. Cavalry pick a target: the enemy's spearmen or pikemen (the bigger of the two), or only if it has neither, its archers, or else its main line. The attacker's cavalry ride round the top, the defender's go under the fight, and both hit their target from behind and stay on it. Cavalry lose men only once they reach it.</li>
 <li><b>Melee</b>: the lines meet and the rest of the losses fall. Defender bonuses show on the field: forest and mountains on the defender's side, a narrow front between rocks, or a sea crossing.</li>
 <li><b>Rout</b> or <b>After</b>: if the attacker won, the defenders fall back and some of their losses come in the pursuit; if not, the attacker pulls back. Raids, kidnaps and massacres always end with the attacker going home with what it took.</li>
+<li>When the two states' colours are too close to tell apart, the replay draws the defender in a far-off colour (blue, gold, green…) for that battle, and a note under the names says so.</li>
 <li>The right side lists both sides' men, the losses per troop type and what happened. The end shows the result.</li>
 <li>Play or pause, restart, drag the bar to any moment, change speed (½× to 4×) or skip to the result. ‹ Back (or Esc) returns to where you came from.</li>
 <li>On a narrow screen such as a phone the field stands upright: the attacker comes from the bottom and the defender waits at the top, and labels show just the icon and men left.</li>
