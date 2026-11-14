@@ -341,7 +341,7 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .pf.empty{border:2px dashed var(--line);background:#0f1114}
 .seat .nm{font:600 14px/1.15 var(--f-name)} .seat .nm.mut{font:italic 13px var(--f-name);color:var(--mut)}
 .seat .eff{font-size:11.5px;line-height:1.3;background:#0f1114;border-radius:5px;padding:4px 5px;width:100%;color:#8fdcae} .seat .eff.none{color:var(--mut)}
-.seat .fit{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:auto}
+.seat .fit{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:auto} .seat .fitl{flex-basis:100%;text-align:center}
 .seat .auto{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--mut)} .seat .auto input{margin:0}
 .pol{display:flex;gap:4px;width:100%} .pol button{flex:1} .pol button.on{border-color:var(--acc);color:var(--acc);background:#2a2620}
 .sprow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:#191c21;border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-top:6px}
@@ -5178,7 +5178,7 @@ function pStaff(){
       ${p.id==="spy"&&h?spySeatOrder(c):""}
       ${p.id==="gov"?`<div class="pol" role="group" aria-label="Governor's policy"><button class="sm${pol==="ease"?" on":""}" data-govpol="ease" title="Ease: loyalty +${R.postEase} a year per Mind">Ease</button><button class="sm${pol==="squeeze"?" on":""}" data-govpol="squeeze" title="Squeeze: taxes +${gPc(R.postSqTax)} and loyalty −${R.postSqLoy} a year per Mind. Below ${R.loyUnrest} loyalty taxes drop ${gPc(R.loyUnrestTax)}, so squeezing too hard backfires.">Squeeze</button></div>`:""}
       <label class="auto small" title="When this general retires or dies (poisoned), the best-fitting free general (not your defender) takes the post and carries his relics"><input type="checkbox" data-autopost="${p.id}"${c.autoPost?.[p.id]?" checked":""}> Auto-replace</label>
-      <div class="fit">${POST_FIT[p.id].slice(0,p.id==="drill"?2:3).map(k=>trChip(k)).join("")}${p.id==="drill"?`<span class="small mut">or any troop trait</span>`:""}</div></div>`; };
+      <div class="fit" title="Generals with these traits do best in this post"><span class="small mut fitl">Best traits for this post</span>${POST_FIT[p.id].slice(0,p.id==="drill"?2:3).map(k=>trChip(k)).join("")}${p.id==="drill"?`<span class="small mut">or any troop trait</span>`:""}</div></div>`; };
   const picker=()=>{ if(!open) return ""; const p=POSTS.find(x=>x.id===open), h=postHolder(c,open);
     const score=x=>postScore(c,x,open);
     const list=c.generals.filter(x=>x!==h).map(x=>({x,fits:postFits(x,open)})).sort((a,b)=>(b.fits-a.fits)||(score(b.x)-score(a.x)));
@@ -6337,6 +6337,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Staff hints labeled","2026-11-14 18:44",["Each staff post now says \"Best traits for this post\" above its trait hints"]],
 ["Map page on phones","2026-11-14 18:40",["On phones the map has its own page: Map, in the main menu after Home","Other pages on phones show without the map","Bigger zoom buttons on phones; map views in a dropdown","Tap a state on the Map page to see its name and a Details button","On phones, Auto and End turn sit top right, next to Menu and the same size"]],
 ["Taking relics back is free","2026-11-14 14:58",["Taking a relic back or swapping it no longer costs the general morale","Only a famous relic still costs 10 morale when it leaves him"]],
 ["Legendary relics at the Merchant","2026-11-14 14:47",["The Merchant can now sell Legendary relics, at a third of the rare chance","Sack 2.7%, chest 9%, coffer 21.3% Legendary a relic; fewer commons instead","A Legendary on the table glows orange as it turns over","Each offer lists its odds one kind per line: common, rare, Legendary, cursed","Rules & guide: the Merchant's odds are a table"]],
