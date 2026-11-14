@@ -306,7 +306,7 @@ button.rslot{cursor:pointer} button.rslot:hover,button.rslot:focus-visible{borde
 .genbar i{display:block;height:100%;background:var(--acc);border-radius:5px;transition:width .25s ease}
 .genbar.mini{height:6px;margin:6px 0 0;max-width:260px}
 /* the year window: a sun circles the year dial while the gold arc fills with the engine's progress */
-.modal.turnwin{width:auto;min-width:260px;max-width:320px}
+.modal.turnwin{width:min(300px,calc(100vw - 32px));min-width:0;max-width:none} /* fixed width: the step text changes without resizing the window */
 .tload{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 18px 4px;animation:tlIn .25s ease .12s both}
 .tload svg{width:150px;height:150px;overflow:visible}
 .tl-track{fill:none;stroke:var(--panel2);stroke-width:7} .tl-tick{stroke:var(--line);stroke-width:2;stroke-linecap:round}
@@ -314,7 +314,7 @@ button.rslot{cursor:pointer} button.rslot:hover,button.rslot:focus-visible{borde
 .tload.ind .tl-arc{stroke-dasharray:22 78;animation:tlSpin 1.4s linear infinite;transition:none}
 .tl-orbit{transform-origin:60px 60px;transition:transform .3s ease} .tload.ind .tl-orbit{animation:tlSpin 2.6s linear infinite} .tl-sun{font-size:15px;transform-box:fill-box;transform-origin:center;transition:transform .3s ease} /* rides the end of the arc; spins when there's no progress to show */
 .tl-yr{fill:var(--txt);font-size:26px;font-weight:700} .tl-lab{fill:var(--mut);font-size:9.5px;letter-spacing:1.5px}
-.tl-step{min-height:1.4em;color:var(--mut);font-size:13px;text-align:center}
+.tl-step{width:100%;min-height:2.8em;line-height:1.4;color:var(--mut);font-size:13px;text-align:center;overflow-wrap:anywhere}
 .tlmini{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid var(--panel2);border-top-color:var(--acc);vertical-align:-1px;margin-right:6px;animation:tlSpin .9s linear infinite}
 @keyframes tlSpin{to{transform:rotate(270deg)}} @keyframes tlIn{from{opacity:0;transform:scale(.96)}}
 @media(prefers-reduced-motion:reduce){.tload.ind .tl-orbit,.tlmini,.tload.ind .tl-arc{animation-duration:6s}}
@@ -4710,7 +4710,7 @@ const postWhat=id=>({qm:`Army eats less grain: ${gPc(R.postQm)} per Mind (at mos
 // one line on what a general gives (or would give) at a post
 function postLine(c,gen,id,pol){ const e=postEff(c,gen,id,pol), dr=hasTr(gen,"drunk")?" (Drunkard: half in bad years)":"";
   if(id==="qm") return `Army eats ${+(e.food*100).toFixed(1)}% less grain${dr}`;
-  if(id==="drill") return `Field generals +${e.skill} skill a year${e.troops.length?`; ${e.troops.map(t=>TROOP_PL[t]).join(", ")} +${gPc(R.postDrillTroop)} in battle`:""}${dr}`;
+  if(id==="drill") return `Field generals +${e.skill} skill a year${e.troops.length?`; ${e.troops.map(t=>TROOP_PL[t]).join(", ").replace(/, ([^,]*)$/," and $1")} fight ${gPc(R.postDrillTroop)} stronger in your battles`:""}${dr}`;
   if(id==="chief") return `Field generals +${e.morale} morale a year${dr}`;
   const rd=RELICS[relK(gen)], rl=rd?.rs&&gen.post==="gov"?`; ${REL_RES[rd.rs][1].toLowerCase()} +${gPc(govResVal(rd))} (relic)`:""; // a Governor relic, once he holds the post
   return (e.tax?`Taxes +${+(e.tax*100).toFixed(1)}%, loyalty ${+e.loy.toFixed(1)} a year${dr}`:`Loyalty +${+e.loy.toFixed(1)} a year${e.revolt<1?" (iron fist: revolts less likely)":""}${dr}`)+rl; }
@@ -5507,6 +5507,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Clearer Drillmaster, steady year window","2026-11-14 00:03",["Drillmaster: \"Archers and Cavalry fight 5% stronger in your battles\" instead of \"+5% in battle\"","The year window keeps the same width while its text changes"]],
 ["Only peasants take up room","2026-11-13 23:58",["Soldiers no longer count toward population capacity: only peasants do","Armies no longer slow births, so states grow bigger and richer","Conquest is slower: more states survive longer","Settings → Food & population can switch back to everyone taking up room"]],
 ["Governor relics","2026-11-13 23:54",["15 new relics for the Governor: a common, a rare and a famous one each for harvest, taxes, wood, iron and research","Common +5%, rare +10%, famous +15% (research +3%, +6%, +10%), every year while their carrier is Governor","Only the Governor's relic counts, so pick one: these, the Seal of Office or the Crown","The five famous ones turn up only in ruins","Computer states post a Governor whenever they have a Governor relic and pick the one they need most","Rules & guide: a Governor relic table"]],
 ["Troop relics","2026-11-13 23:48",["18 new relics: a common, a rare and a famous one for each troop type","Each makes its troop fight better for its share of your army (+5%, +10%, +15%); rare and famous ones add an extra, such as fewer losses, weaker enemy cavalry or more speed","Archer relics work when defending, axe relics when attacking","The six famous troop relics don't start with anyone: they turn up in ruins","Computer states hand out troop relics only when their army has enough of that troop","Rules & guide: a troop relic table"]],
