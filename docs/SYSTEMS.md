@@ -254,7 +254,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - **Intent**: Aggression has memory and reaches beyond the victim: neighbours grow wary, allies hold solidarity, peace slowly builds trust. Revenge is understandable (a strike back counts half). The world should react to the player believably, not randomly. *(inferred from comments)*
 - How each state feels about each other one, as a sum of factors (−100..100): grievance (it attacked us), solidarity (it attacked our ally), wariness (it attacked our neighbour), fear (it is much bigger), trust (years of peace), common enemy. Each has its own build-up and fade (`rg*`, `rs*`, `rw*`, `rf*`, `rt*`, `re*`). A strike back within 5 years counts half.
 - **Reads**: battles (a Butcher general doubles the beaten state's grievance), land sizes, adjacency, alliances.
-- **Writes**: AI threat estimate, army size, home guard, target choice, edge needed, revenge chances, protector attacks; player-facing labels, map view, warnings, and the map tooltip (each state's feelings toward its neighbours and theirs toward it, worst first).
+- **Writes**: AI threat estimate, army size, home guard, target choice, edge needed, revenge chances, protector attacks; player-facing labels, map view, warnings, and the state view's Relations tab (each state's feelings toward its neighbours and theirs toward it, worst first; moved out of the map tooltip).
 - Notes: trust builds on every quiet border and makes the AI pickier; grudges can spiral (damped by revenge clearing grievance, floors and cooldowns).
 
 ### 3.14b Wars
@@ -265,7 +265,7 @@ Each entry: **intent · what it is · key rules · reads · writes · notes**. T
 - No wars during the game's peace years. The player can't declare war; their attacks can start one through the victim's hostility, and computer states can declare on them.
 - **Reads**: relations (all factors), battles (through relations), land and capacity (land hunger), settling (`c.settleT`), army strength, leaders, wonders, revolts (each rebel state starts a war with its parent, `why: "rebels"`).
 - **Writes**: AI target choice (enemies only while at war), relations (declaration hit, reset at peace), news (year report to both sides, and to humans bordering or allied to either side).
-- **Player sees**: War → Wars page (each war, since when, how it started; count of other known wars), ⚔️ on enemies in the neighbors list and in the map tooltip, a "Wars" map view (your enemies red, states at war orange, at peace grey).
+- **Player sees**: War → Wars page (each war, since when, how it started; count of other known wars), ⚔️ on enemies in the neighbors list, "war" tags in the state view's Relations tab and its "At war with" line, a "Wars" map view (your enemies red, states at war orange, at peace grey).
 - Notes: in 60-state games, about 100–120 wars per 150 years; most start from hostility, 3–16 are declared; states are at war ~30% of the time; ~2/3 of battles happen inside wars; 30–50% of wars start mostly from fear (the planned replacement of the coalition mechanic).
 
 ### 3.14c War footing (computer states)
