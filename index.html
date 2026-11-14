@@ -301,6 +301,29 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .stwbd ul.log{margin:2px 0 4px;padding-left:18px}
 .modal.stwin>.stwft{margin:0;padding:12px 18px;border-top:1px solid var(--line);background:#191c21;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .stwft .grow,.stwtabs .grow,.stwfl .grow{flex:1}
+/* news cards: a kind colour on the left, an icon, a headline with the states, small chips */
+.nwy{display:flex;align-items:center;gap:8px;margin:14px 0 5px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut)}.nwy::after{content:"";flex:1;height:1px;background:var(--line)}
+.nw{--k:var(--mut);display:block;padding:6px 9px;margin:4px 0;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--k);border-radius:7px}
+.nw.me{background:color-mix(in srgb,var(--acc) 7%,var(--panel2));border-color:color-mix(in srgb,var(--acc) 30%,var(--line));border-left-color:var(--k)}
+.nwi{flex:none;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font-size:15px;background:color-mix(in srgb,var(--k) 20%,#15171b)}
+.nw>summary,.nws{display:flex;gap:10px;align-items:center;list-style:none;cursor:pointer;min-width:0}.nws{cursor:default}.nw>summary::-webkit-details-marker{display:none}
+.nw>summary:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:5px}
+.nwm{flex:none;margin-left:auto;font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:5px;color:var(--mut);white-space:nowrap}.nwm::after{content:"Details ›"}
+.nw>summary:hover .nwm{color:var(--txt);border-color:var(--mut)}.nw[open] .nwm::after{content:"Less ‹"}
+.nwd{padding:4px 0 2px 38px}.nwd .nwa{margin-top:6px}
+.nwt{flex:1;min-width:0;font-size:13px;line-height:1.45}
+.nwn{font-weight:600}.nwn.me{color:var(--acc)}.nwn.mut{font-weight:400}.nwn .sw{margin-right:4px}
+.nwar{color:var(--mut);margin:0 3px}.nwr{font-weight:600;margin-left:5px;white-space:nowrap}.nwr.g{color:var(--good)}.nwr.b{color:var(--bad)}
+.nwc{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.nwc>span{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;line-height:18px;padding:0 7px;border-radius:9px;background:#16181d;border:1px solid var(--line);color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
+.nwc>.g{color:var(--good);border-color:color-mix(in srgb,var(--good) 35%,var(--line))}.nwc>.b{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--line))}
+.nwc .nwn{font-weight:500;color:var(--txt)}
+.nwa{flex:none;align-self:center}
+.nwg{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:2px 12px;margin-top:6px;padding:5px 8px;background:#16181d;border-radius:6px;font-size:11.5px;font-variant-numeric:tabular-nums}
+.nwg>span{color:var(--mut)}.nwg>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:#aeb4bf}.nwg>i{font-style:normal;color:#aeb4bf}.nwg>.w{color:#fff;font-weight:600}.nwg>b.w .nwn{font-weight:700}
+.nwx{margin-top:4px;font-size:11.5px;color:var(--mut)}.nwx .nwn{margin-right:8px;color:var(--txt);font-weight:500}
+.nw.k-battle,.newsk .k-battle{--k:#d0584a}.nw.k-war,.newsk .k-war{--k:#e0b354}.nw.k-aid,.newsk .k-aid{--k:#5cc98a}.nw.k-spy,.newsk .k-spy{--k:#9a7fe0}.nw.k-rebel,.newsk .k-rebel{--k:#f0873c}.nw.k-famine,.newsk .k-famine{--k:#b8955a}
+.newsk button.on{border-color:var(--k);color:var(--txt);background:color-mix(in srgb,var(--k) 14%,transparent)}.newsk button.off{opacity:.5}.newsk button.off .mut{text-decoration:line-through}
 .stwft button:disabled{opacity:.45}
 .stwcard>.svrb{display:block;width:100%;height:9px}
 @media(max-width:860px){ .stwstrip{grid-template-columns:repeat(3,minmax(0,1fr))} .stwst:nth-child(3){border-right:0} .stwst:nth-child(-n+3){border-bottom:1px solid var(--line)}
@@ -872,6 +895,7 @@ const R = {
   sciWage: 3.5,                    // wage per scientist per year (scientists are peasants set to research in Work)
   foodSpoil: 0.1,                  // share of stored grain that spoils each year
   famineDeath: 0.5,                // share of a food shortfall that dies of famine
+  newsMax: 10000,                  // the News archive keeps at most this many entries; the oldest go first (0 = no limit)
   famineNews: 0.05,                // another state's famine makes the news when at least this share of its people starve
   peasantRoom: true,              // only peasants take up population space (soldiers don't count toward capacity); off = everyone counts
   popPerKm: 3, birthRate: 0.03, armyBirths: 0.5, birthCurve: 24, minPop: 20, // base capacity per km², base birth rate, soldiers count half toward births, birthCurve: how long births stay strong as a state fills (1 = classic, peak at half full; 24 = strong until ~80% full, peak near 87%), a state below minPop collapses
@@ -3762,7 +3786,14 @@ const saveMeta=g=>g?{name:g.hot?`Hot-seat · ${g.hot.ids.length} players`:g.coun
 // Stored in 10-year chunks: "news:00008" (rows of years 80-89) and "newsd:00008" (their reports), plus "news-meta" = {gid}.
 // Each save writes only the chunks that changed; a different game (new gid) clears the old chunks first.
 const NEWS_CH=10, ck=c=>String(c).padStart(5,"0");
-const newsFresh=gid=>({gid,items:[],det:{},dirty:new Set()});
+const newsFresh=gid=>({gid,items:[],det:{},dirty:new Set(),gone:new Set(),trim:0});
+// keep at most R.newsMax rows: past it, the oldest go (down to 90%, so this runs only now and then). Chunks left empty are
+// deleted from storage; a chunk cut in part is rewritten and its dropped reports cleared. Row numbers shift, so TSEEN follows.
+function newsTrim(n){ const max=Math.max(500,Math.round(R.newsMax||0)); if(!R.newsMax||n.items.length<=max) return 0;
+  const k=n.items.length-Math.floor(max*0.9), drop=n.items.splice(0,k), first=n.items.length?Math.floor(n.items[0][0]/NEWS_CH):null;
+  for(const a of drop){ const c=Math.floor(a[0]/NEWS_CH);
+    if(c===first){ n.dirty.add(c); const L=n.det[c]; if(L&&a[11]>=0) L[a[11]]=null; } else { delete n.det[c]; n.dirty.delete(c); if(n.gone) n.gone.add(c); } }
+  n.trim=(n.trim||0)+1; if(TSEEN_GID===n&&TSEEN.newsLen!=null) TSEEN.newsLen=Math.max(0,TSEEN.newsLen-k); return k; }
 let NEWS=newsFresh(null), NEWS_STORED; // NEWS_STORED = gid of the archive in storage
 const oldGid=g=>"old-"+g.seed+"-"+g.countries.length; // games from before game ids
 function newsFor(g){ if(!g.gid) g.gid=oldGid(g); if(NEWS.gid!==g.gid) NEWS=newsFresh(g.gid); return NEWS; }
@@ -3783,6 +3814,7 @@ function saveNews(){
     DB.delRange("news:","news:\uffff").catch(()=>{}); DB.delRange("newsd:","newsd:\uffff").catch(()=>{}); DB.del("news").catch(()=>{});
     DB.put("news-meta",{gid:n.gid,ch:NEWS_CH}).catch(()=>{}); NEWS_STORED=n.gid;
     for(const a of n.items) n.dirty.add(Math.floor(a[0]/NEWS_CH)); }
+  for(const c of n.gone||[]){ DB.del("news:"+ck(c)).catch(()=>{}); DB.del("newsd:"+ck(c)).catch(()=>{}); } n.gone?.clear(); // trimmed away
   for(const c of n.dirty){ const lo=c*NEWS_CH, hi=lo+NEWS_CH, rows=[];
     for(let i=n.items.length-1;i>=0;i--){ const y=n.items[i][0]; if(y<lo) break; if(y<hi) rows.push(n.items[i]); }
     rows.reverse(); DB.put("news:"+ck(c),rows).catch(()=>{}); if(n.det[c]) DB.put("newsd:"+ck(c),n.det[c]).catch(()=>{}); }
@@ -3797,8 +3829,8 @@ async function loadNews(g){
   if(meta&&meta.gid===g.gid){
     try{ const [keys,vals]=await DB.getRange("news:","news:\uffff");
       keys.map((k,i)=>[+String(k).slice(5),vals[i]]).sort((x,y)=>x[0]-y[0]).forEach(([,rows])=>{ for(const r of rows) NEWS.items.push(r); });
-      if(TSEEN_GID===NEWS) TSEEN.newsLen=NEWS.items.length; // battles from the save aren't new
-      const c=Math.floor(g.turn/NEWS_CH), d=await DB.get("newsd:"+ck(c)); if(d) NEWS.det[c]=d; }catch(e){}
+      const c=Math.floor(g.turn/NEWS_CH), d=await DB.get("newsd:"+ck(c)); if(d) NEWS.det[c]=d;
+      newsTrim(NEWS); if(TSEEN_GID===NEWS) TSEEN.newsLen=NEWS.items.length; }catch(e){} // the cap may have been lowered; battles from the save aren't new
     return; }
   // older saves kept the whole archive in one record: bring it over (written in chunks on the next save)
   try{ const o=await DB.get("news"); if(o&&o.key===g.seed+":"+g.countries.length&&Array.isArray(o.items)) for(const a of o.items) newsAdd(NEWS,a.slice(0,11).concat(-1),null); }catch(e){}
@@ -3816,6 +3848,7 @@ function archiveTurn(){
     if(ids){ const v=ids.filter(id=>asPlayer(id,()=>!!evView(row,1))); if(!v.length) continue; row[6]=v; } else if(!evView(row,1)) continue;
     newsAdd(n,row,null); }
   G.events=[];
+  if(newsTrim(n)) render(); // row numbers shifted: redraw what links to them
 }
 // run fn as if `id` were the player (fog of war included)
 function asPlayer(id,fn){ const p=G.player, k=UI.known; G.player=id; UI.known=knownSet(G); try{ return fn(); } finally{ G.player=p; UI.known=k; } }
@@ -3824,13 +3857,14 @@ const newsSeen=a=>{ const v=a[isEv(a)?6:12]; return !v||v.includes(G.player); };
 // a row's kind for the filters: battle, famine (a collapse too), or the event's kind
 const newsKind=a=>isEv(a)?a[1]:a[1]===-1?"famine":"battle";
 const isAwar=a=>a[1]==="war"&&(a[2]==="astart"||a[2]==="aend"); // a and b are alliances
-// how the current player sees an event: "full" (theirs, or watching), "them" (a spy plot on them), "pub" (heard of it), null.
-// live: when filed, so fog of war counts; later only who it was about matters (the row was filed only if it was seen)
-function evView(a,live){ const k=a[1], A=a[3], B=a[4], p=a[5]||{}, P=G.player, kn=id=>id>=0&&(!live||isKnown(id));
-  if(observing()) return "full";
-  if(k==="spy"){ if(A===P) return "full"; if(B===P) return p.seen||p.vis||p.foil?"them":null; return p.seen&&(kn(A)||kn(B))?"pub":null; }
+// how the current player sees an event: "full" (theirs; any non-spy event they can see), and for spy operations "seen" (caught:
+// the culprit is named), "anon" (it worked unseen: the damage shows, not who did it), "foil" (a plot their Spymaster stopped), or null.
+// Only the spying state ever knows it was them when nobody saw. live: when filed, so fog of war counts; later only roles matter.
+function evView(a,live){ const k=a[1], A=a[3], B=a[4], p=a[5]||{}, P=G.player, obs=observing(), kn=id=>id>=0&&(obs||!live||isKnown(id));
+  if(k==="spy"){ if(A===P&&!obs) return "full"; if(p.seen) return B===P||kn(A)||kn(B)?"seen":null;
+    if(p.vis) return B===P||kn(B)?"anon":null; if(p.foil) return B===P||obs?"foil":null; return null; } // quiet operations nobody saw leave no trace
   if(isAwar(a)) return "full"; // alliance wars: everyone hears
-  return A===P||B===P||kn(A)||kn(B)?"full":null; }
+  return obs||A===P||B===P||kn(A)||kn(B)?"full":null; }
 // is the event about this state (or its alliance, for alliance wars)?
 const evAbout=(a,id)=>isAwar(a)?id>=0&&G.countries[id]?.team!=null&&(a[3]===G.countries[id].team||a[4]===G.countries[id].team):a[3]===id||a[4]===id;
 // older saves: start the archive from the recent history they still keep
@@ -3879,7 +3913,7 @@ async function importGame(text){
   if(o.settings&&typeof o.settings==="object") saveSettings(o.settings); // the game's own rules
   NEWS=newsFresh(g.gid); NEWS_STORED=null; // written to storage in full on the next save
   for(const r of o.news?.items||[]) NEWS.items.push(r);
-  for(const c in o.news?.det||{}) NEWS.det[c]=o.news.det[c];
+  for(const c in o.news?.det||{}) NEWS.det[c]=o.news.det[c]; newsTrim(NEWS);
   for(const r of NEWS.items) NEWS.dirty.add(Math.floor(r[0]/NEWS_CH));
   G=g; setAuto(false); UI.sel=null; UI.attackTarget=null; UI.lastPrev=null; UI.fromWelcome=false;
   save(); closeModal(); render(); flash(`Loaded: ${saveMeta(G).name}, year ${G.turn}.`);
@@ -4585,7 +4619,7 @@ const visibleTabs=()=>TABS.filter(([k])=>(!observing()||PUBLIC_TABS.includes(k))
 // badges: what changed since you last opened a tab ("stamps"), plus standing warnings
 var TSEEN={}, TSEEN_GID=null; // var: loadNews may touch these before this line runs
 function tabStamps(){ const c=me(), N=newsFor(G), mine=id=>id===G.player||(G.teams&&c.team!=null&&G.countries[id]?.team===c.team);
-  let n=0; for(let i=N.items.length-1;i>=0&&n<100;i--){ const a=N.items[i]; if(i<(TSEEN.newsLen??N.items.length)) break; if(!newsSeen(a)) continue;
+  let n=0; for(let i=N.items.length-1;i>=0&&n<100;i--){ const a=N.items[i]; if(i<(TSEEN.newsLen??N.items.length)) break; if(!newsSeen(a)||newsHidden().has(newsKind(a))) continue;
     if(isEv(a)?evView(a)&&(evAbout(a,G.player)||newsIds(a).some(id=>id!==G.player&&mine(id))):mine(a[1])||mine(a[2])) n++; }
   return {war:c.defTurn??null, market:c.mkFill??null, science:c.lvTurn??null, news:n}; }
 function seeTab(k){ if(!G) return; const N=newsFor(G); if(TSEEN_GID!==N){ for(const x in TSEEN) delete TSEEN[x]; TSEEN_GID=N; TSEEN.newsLen=N.items.length; } // new game or reloaded archive: start clean
@@ -5803,7 +5837,7 @@ function svLocal(g,id,x0,y0,x1,y1){ const OW=640, OH=360, {W,H,cells}=g, bw=x1-x
     ctx.fillStyle="rgba(10,11,14,0.78)"; ctx.fillRect(px-w/2,py-10,w,20); ctx.fillStyle=j===pl?"#f3d58f":atWar(g,id,j)?"#f3a69b":allied(g,id,j)?"#9cc7f2":"#e7e9ee"; ctx.fillText(nm,px,py+1); }
   return cv.toDataURL(); }
 // battles in the news archive that this state fought (only those you saw), with its record
-function svRecord(id){ const N=newsFor(G), k=`${G.turn}:${id}:${N.items.length}`; if(UI.svRec?.k===k) return UI.svRec;
+function svRecord(id){ const N=newsFor(G), k=`${G.turn}:${id}:${N.items.length}:${N.trim||0}`; if(UI.svRec?.k===k) return UI.svRec;
   const r={k,aw:0,al:0,dw:0,dl:0,took:0,lost:0,rows:[]};
   for(let i=0;i<N.items.length;i++){ const a=N.items[i];
     if(isEv(a)){ if(!isAwar(a)&&newsIds(a).includes(id)&&newsSeen(a)&&evView(a)) r.rows.push(i); continue; } // events: listed, not counted
@@ -5905,11 +5939,11 @@ function stateHtml(c){
      ${AREAS.map(a=>`<div class="stwlv"><span>${SV_IC[a]||""}</span><span>${AREA_NAMES[a]}</span><span class="tr"><i style="width:${(c.lv[a]||0)/mxL*100}%"></i><u style="left:${avg(a)/mxL*100}%" title="World average ${avg(a).toFixed(1)}"></u>${you?`<s style="left:${(pl.lv[a]||0)/mxL*100}%" title="You: ${pl.lv[a]||0}"></s>`:""}</span><b>${c.lv[a]||0}</b></div>`).join("")}
      <div class="stwkey"><span><i style="background:var(--sc)"></i>${self?"You":esc(c.name)}</span><span><i class="ln" style="background:#c9ced8"></i>World average</span>${you?`<span><i class="ln" style="background:var(--acc)"></i>You</span>`:""}<span>Bars are against the highest level any state has.</span></div></div>`; }
   else if(tab==="news"){ const N=newsFor(G), f=["all","att","def","you"].includes(UI.svNf)?UI.svNf:"all", F=[["all","All"],["att","By it"],["def","On it"],...(you?[["you","With you"]]:[])];
-    const L=rec.rows.filter(i=>{ const a=N.items[i], o=isEv(a)?3:1; return f==="all"||(f==="att"?a[o]===c.id:f==="def"?a[o+1]===c.id:(a[o]===G.player||a[o+1]===G.player)); }).reverse(), MAX=80;
-    let h="", yr=null; for(const i of L.slice(0,MAX)){ const a=N.items[i]; if(a[0]!==yr){ if(yr!==null) h+="</ul>"; yr=a[0]; h+=`<div class="stwyr">Year ${yr}</div><ul class="log small">`; }
-      h+=newsLine(a,i,G.countries); }
-    if(yr!==null) h+="</ul>";
+    const hide=newsHidden(), cnt={}, L=rec.rows.filter(i=>{ const a=N.items[i], o=isEv(a)?3:1; if(o===3&&a[1]==="spy"&&a[3]===c.id&&!newsIds(a).includes(c.id)) return false; if(!(f==="all"||(f==="att"?a[o]===c.id:f==="def"?a[o+1]===c.id:(a[o]===G.player||a[o+1]===G.player)))) return false;
+      const kd=newsKind(a); cnt[kd]=(cnt[kd]||0)+1; return !hide.has(kd); }).reverse(), MAX=80;
+    const h=newsCards(N,L.slice(0,MAX));
     body=`<div class="stwfl">${F.map(([k,l])=>`<button class="sm${f===k?" on":""}" data-svnf="${k}">${l}</button>`).join("")}<span class="grow"></span><button class="sm" data-svnews="${c.id}">Open in News ›</button></div>
+     <div style="margin-top:6px">${newsKindBtns(cnt)}</div>
      ${wars.length?`<div class="stwlst" style="margin:8px 0">${wars.map(w=>`<div><span>⚔️ At war with ${svLink(warFoe(w,c.id))}</span><span class="small mut">since year ${w.from}</span></div>`).join("")}</div>`:""}
      ${h||`<div class="stwnote" style="margin-top:8px">No news${f==="all"?"":" of this kind"} yet.</div>`}${L.length>MAX?`<div class="small mut">Showing the latest ${MAX} of ${fmt(L.length)}. Open in News for all of them.</div>`:""}
      ${G.fog?`<div class="small mut" style="margin-top:6px">Fog of war: only news you could see at the time.</div>`:""}`; }
@@ -5927,12 +5961,14 @@ function stateHtml(c){
 function seenBattle(b){ return b.att===G.player||b.def===G.player||isKnown(b.att)||isKnown(b.def); }
 // News tab: every recorded battle and event, newest first, grouped by year, with kind chips, filters, search and pages
 // the states a row is about (for the alliance filter and search); alliance wars: none (see newsTeams)
-function newsIds(a){ if(!isEv(a)) return [a[1],a[2]]; if(isAwar(a)) return []; return [a[3],a[4],...(a[1]==="rebel"?a[5]?.ids||[]:[])]; }
+function newsIds(a){ if(!isEv(a)) return [a[1],a[2]]; if(isAwar(a)) return [];
+  if(a[1]==="spy"){ const v=evView(a); return v==="full"||v==="seen"?[a[3],a[4]]:[a[4]]; } // an unseen spy is never listed under the state that sent him
+  return [a[3],a[4],...(a[1]==="rebel"?a[5]?.ids||[]:[])]; }
 const newsTeams=a=>isAwar(a)?[a[3],a[4]]:[];
 const newsFell=a=>isEv(a)?a[1]==="war"&&a[2]==="end"&&a[5]?.fell>=0:!!a[9]; // a state destroyed (battle, famine collapse, a war that ended with it)
 function pNews(){
   const N=newsFor(G), st=UI.news||(UI.news={f:"all",q:"",page:0}), C=G.countries, PER=100;
-  if(!EV_KINDS.some(x=>x[0]===st.k)) st.k="all";
+  const hide=newsHidden();
   // alliance filter: starts on your own alliance (all alliances for observers or games without them)
   if(!G.teams) st.al="all";
   else if(st.al==null||(st.al!=="all"&&!G.teams[st.al])) st.al=!observing()&&me().team!=null?me().team:"all";
@@ -5948,26 +5984,21 @@ function pNews(){
     if(st.f==="fallen"&&!newsFell(a)) continue;
     if(q&&!ids.some(hit)&&!tms.some(t=>G.teams?.[t]?.name.toLowerCase().includes(q))) continue;
     const kd=newsKind(a); cnt[kd]=(cnt[kd]||0)+1; cnt.all++;
-    if(st.k!=="all"&&kd!==st.k) continue;
+    if(hide.has(kd)) continue;
     rows.push(i); }
   const pages=Math.max(1,Math.ceil(rows.length/PER)); st.page=Math.min(st.page,pages-1);
   const view=rows.slice(st.page*PER,(st.page+1)*PER);
-  let html="", yr=null;
-  for(const i of view){ const a=N.items[i];
-    if(a[0]!==yr){ if(yr!==null) html+="</ul>"; yr=a[0]; html+=`<div class="small" style="margin-top:6px"><b>Year ${yr}</b></div><ul class="log small" style="margin:2px 0 4px;padding-left:18px">`; }
-    html+=newsLine(a,i,C);
-  }
-  if(yr!==null) html+="</ul>";
+  const html=newsCards(N,view);
   const first=N.items.find(newsSeen)?.[0]??null;
-  const alDef=G.teams&&!observing()&&me().team!=null?me().team:"all", filtered=st.f!=="all"||!!st.q||st.al!==alDef||st.k!=="all";
+  const alDef=G.teams&&!observing()&&me().team!=null?me().team:"all", filtered=st.f!=="all"||!!st.q||st.al!==alDef;
   return `<h3>News ${gl("news")}</h3>
   <div class="small mut">${fmt(total)} event${total===1?"":"s"} recorded${first!=null?` since year ${first}`:""}${G.fog?" (only what you could see at the time)":""}.</div>
-  <div class="stwfl newsk" role="group" aria-label="Kind of news">${EV_KINDS.map(([k,l,ic])=>`<button class="sm${st.k===k?" on":""}" data-nk="${k}" aria-pressed="${st.k===k}">${ic} ${l}${cnt[k]?` <span class="mut">${fmtK(cnt[k])}</span>`:""}</button>`).join("")}</div>
+  ${newsKindBtns(cnt)}
   <div class="row"><select id="newsF"><option value="all" ${st.f==="all"?"selected":""}>Everything</option><option value="mine" ${st.f==="mine"?"selected":""}>Involving you</option><option value="fallen" ${st.f==="fallen"?"selected":""}>States destroyed</option></select>
     ${G.teams?`<select id="newsA"><option value="all" ${st.al==="all"?"selected":""}>All alliances</option>${G.teams.map(t=>`<option value="${t.id}" ${st.al===t.id?"selected":""}>${esc(allyTag(G,t.id))} ${!observing()&&me().team===t.id?"★ ":""}${esc(t.name)}</option>`).join("")}</select>`:""}
     <input type="text" id="newsQ" value="${esc(st.q)}" placeholder="Search a state…" style="flex:1;min-width:120px;background:#0f1114;color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit">${filtered?`<button class="sm" data-a="newsClear" title="Show all news again">Clear</button>`:""}</div>
   <div class="small mut">${fmt(rows.length)} match${rows.length===1?"":"es"}</div>
-  ${html||`<div class="mut small" style="margin-top:8px">${total?"Nothing matches.":"Nothing yet. Battles, wars, aid, spy plots, rebellions and famines appear here as the years go by."}</div>`}
+  ${html||`<div class="mut small" style="margin-top:8px">${total?(hide.size===EV_KINDS.length?"Every kind is hidden: turn one on above.":"Nothing matches."):"Nothing yet. Battles, wars, aid, spy plots, rebellions and famines appear here as the years go by."}</div>`}
   ${pages>1?`<div class="row" style="margin-top:8px"><button class="sm" data-npage="${st.page-1}" ${st.page<=0?"disabled":""}>← Newer</button><span class="small">Page ${st.page+1} of ${pages}</span><button class="sm" data-npage="${st.page+1}" ${st.page>=pages-1?"disabled":""}>Older →</button></div>`:""}`;
 }
 function battleLine(b){
@@ -5978,52 +6009,66 @@ function battleLine(b){
     :b.d?.md&&NOLAND[MODES[mi]]?`${MODE_UI[mi][2].toLowerCase()}: got nothing`:b.win?`took <b>${fmt(b.taken)}</b> km²${mi===1?" (assault)":""}`:`was repelled`;
   return `<li class="${you?'acc':''}">${who(b.att)} → ${who(b.def)}: ${res} (${fmt(b.sent)} soldiers vs ${b.guards===0?"no defenders":fmt(b.guards)+" guards"} · lost ${fmt(b.lossA)} vs ${fmt(b.lossD)}${b.fb>=0.05&&b.guards>0?`, ${b.sea?"sea crossing":"narrow front"}: defenders +${Math.round(b.fb*100)}%`:""}${b.tb>=0.05&&b.guards>0?`, ${b.tmt>=b.tfo?"mountains":"forest"}: defenders +${Math.round(b.tb*100)}%`:""})${b.elim?` <b class="bad">${you||isKnown(b.def)?esc(C[b.def].name):"A state"} destroyed!</b>`:""}${ref?` <button class="sm" data-rep="${ref}">Details ›</button>`:""}</li>`;
 }
-// ---------- news events: aid, spies, wars, rebellions, famines ----------
-const EV_KINDS=[["all","All","📰"],["battle","Battles","⚔️"],["war","Wars","🏳️"],["aid","Aid","🎁"],["spy","Spies","🕵️"],["rebel","Rebellions","🔥"],["famine","Famine","🌾"]];
-// what a successful spy operation did (dn: the target's name)
-function spyAct(op,x,dn){
-  if(op==="granary") return `burned ${fmt(x[0])} grain in ${dn}`; if(op==="stores") return `burned ${fmt(x[0])} wood and ${fmt(x[1])} iron in ${dn}`;
-  if(op==="treasury") return `stole ${fmt(x[0])} gold from ${dn}`;
-  if(op==="research") return x?`stole ${fmt(x[1])} ${AREA_NAMES[x[0]]} research points from ${dn}`:`found nothing to learn in ${dn}`;
-  if(op==="unrest") return x&&x[0]>0?`stirred up unrest in ${dn} (loyalty −${x[0]})`:`found ${dn} too restless to stir up more`;
-  if(op==="poison") return x?`poisoned General ${esc(x[0])} of ${dn}: ${["he is dead","he is too sick to fight this year","he pulled through"][x[1]]}`:`found no general to poison in ${dn}`;
-  if(op==="gates") return `bribed the guards of ${dn} to open the gates`; if(op==="scout") return `scouted the army and stores of ${dn}`;
-  if(op==="gens") return `read the files on the generals of ${dn}`; if(op==="court") return `mapped the court of ${dn}`; return `acted in ${dn}`; }
-// a war's end: who won, the land each side took, the soldiers each lost, the battles (st: see warSt0)
-function warEndHtml(a,nA,nB){ const p=a[5]||{}, st=p.st, l1=p.l1||[], aw=isAwar(a), n=aw?"alliance war":"war";
-  const yrs=`${p.y} year${p.y===1?"":"s"}`, net=st?st[2]-st[3]||st[7]-st[8]:0, win=p.fell>=0?(p.fell===a[3]?nB:nA):net?(net>0?nA:nB):null; // more land taken wins; even land: more battles won
-  let h=p.fell>=0?`☠ The ${n} between ${nA} and ${nB} ended after ${yrs}: ${p.fell===a[3]?nA:nB} ${aw?"was beaten":"was destroyed"}.`:`🕊 Peace between ${nA} and ${nB} after ${yrs} of ${n}.`;
-  h+=win?` <b>${win} won.</b>`:st?` <b>No winner.</b>`:"";
-  if(st){ const L=[`${nA} took <b>${fmt(st[2])}</b> km², ${nB} took <b>${fmt(st[3])}</b> km²`,`soldiers lost: ${fmt(st[4])} vs ${fmt(st[5])}`,st[6]?`${fmt(st[6])} battle${st[6]===1?"":"s"} (won ${fmt(st[7])} vs ${fmt(st[8])})`:"no battles"];
-    if(st[0]!=null&&l1.length) L.push(`land ${fmt(st[0])} → ${fmt(l1[0])} km² vs ${fmt(st[1])} → ${fmt(l1[1])} km²`);
-    h+=`<div class="mut">${L.join(" · ")}</div>`; }
-  return h; }
-// one event row of the News tab, as the current player sees it
-function evLine(a){
-  const C=G.countries, k=a[1], s=a[2], A=a[3], B=a[4], p=a[5]||{}, v=evView(a), you=!observing()&&evAbout(a,G.player);
-  const nm=id=>id<0||!C[id]?`<span class="mut">nobody</span>`:you||id===G.player||isKnown(id)?`<span class="sw" style="background:${C[id].color}"></span>${esc(C[id].name)}`:`<span class="sw" style="background:rgb(${FOG})"></span><span class="mut">an unknown state</span>`;
-  const tm=t=>{ const T=G.teams?.[t]; return T?`<span class="sw" style="background:${T.color}"></span>${esc(T.name)}`:"an alliance"; };
-  let h="";
-  if(k==="aid"){ const L=[["🌾",0],["🌲",1],["⛏️",2],["💰",3]].filter(([,i])=>p[i]).map(([ic,i])=>`${ic} ${fmt(p[i])}`).join(" · ");
-    h=`🎁 ${nm(A)} sent aid to ${nm(B)}: ${L||"nothing"}`; }
-  else if(k==="spy"){ const o=SPY[s]||{name:"spy",ic:"🕵️"}, what=o.name.toLowerCase(), dn=nm(B), fr=p.fr>=0?nm(p.fr):null;
-    if(v==="full") h=`${o.ic} ${nm(A)}'s Spymaster ${esc(p.sp||"")} ${p.ok?spyAct(s,p.x,dn):`failed to ${what} in ${dn}`}.${p.seen?` <b class="bad">Caught</b>${fr?` trying to blame ${fr}`:""}.`:p.ok&&fr?` ${dn} blames ${fr}.`:" Nobody saw who did it."}`;
-    else if(v==="them") h=p.seen?`${o.ic} Spies from ${nm(A)} ${p.ok?spyAct(s,p.x,dn):`tried to ${what} in ${dn}`} and were caught${fr?`, made to look like ${fr}`:""}.`
-      :p.vis?`${o.ic} ${fr?`Saboteurs said to be from ${fr}`:"Unknown saboteurs"} ${spyAct(s,p.x,dn)}.`:`${o.ic} ${dn}'s Spymaster foiled a plot to ${what}. Nobody knows who was behind it.`;
-    else h=`${o.ic} Spies from ${nm(A)} ${p.ok?spyAct(s,p.x,dn):`tried to ${what} in ${dn}`} and were caught.`;
-    if(p.kill&&v!=="pub") h+=` ☠️ ${v==="full"?"The trail led back to him: he was killed.":"Their Spymaster was traced and killed."}`; }
-  else if(k==="war"){ const aw=isAwar(a), nA=aw?tm(A):nm(A), nB=aw?tm(B):nm(B);
-    h=s==="end"||s==="aend"?warEndHtml(a,nA,nB):aw?`⚔️ Alliance war: ${nA} went to war with ${nB}. Every member of one is the enemy of every member of the other.`:s==="declared"?`⚔️ ${nA} declared war on ${nB}.`:`⚔️ War broke out between ${nA} and ${nB}.`; }
-  else if(k==="rebel"){ const R_=(p.ids||[]).map(nm).join(", ");
-    h=`🔥 Rebellion in ${nm(A)}: ${R_} broke away with ${fmt(p.land)} km², ${fmt(p.pop)} people and ${fmt(p.sol)} soldiers${p.gen?.length?` (General ${p.gen.map(esc).join(", ")} went with them)`:""}. ${(p.ids||[]).length>1?"They are":"It is"} at war with ${nm(A)}.`; }
-  else if(k==="famine"){ const x=Array.isArray(p)?p:[0,0,0,0];
-    h=`🌾 Famine in ${nm(A)}: ${fmt(x[0])} people starved${x[1]?` (${fmt(x[1])} soldiers among them)`:""}.`; }
-  else h=esc(k);
-  return `<li class="${you?"acc":""}">${h}</li>`; }
-// one archive row (battle, collapse or event)
-function newsLine(a,i,C){ if(isEv(a)) return evLine(a);
-  if(a[1]===-1) return `<li><span class="sw" style="background:${C[a[2]].color}"></span><b>${esc(C[a[2]].name)}</b> collapsed from famine. <span class="mut">Its land became unowned.</span></li>`;
-  return battleLine(Object.assign(unpackBattle(a),a[11]>=0?{ref:"n"+i}:{})); }
+// ---------- news list: one card per battle or event (icon, a short headline with the states, then small chips) ----------
+const EV_KINDS=[["battle","Battles","⚔️"],["war","Wars","🏳️"],["aid","Aid","🎁"],["spy","Spies","🕵️"],["rebel","Rebellions","🔥"],["famine","Famine","🌾"]];
+// kinds hidden in the News tab (remembered in this browser)
+function newsHidden(){ if(!UI.newsHide){ let v=[]; try{ v=JSON.parse(localStorage.getItem("eb.newsHide")||"[]"); }catch(e){} UI.newsHide=new Set(Array.isArray(v)?v:[]); } return UI.newsHide; }
+function newsHideSet(h){ UI.newsHide=h; try{ localStorage.setItem("eb.newsHide",JSON.stringify([...h])); }catch(e){} }
+const nwTok=(id,you)=>{ const c=G.countries[id]; if(id==null||id<0||!c) return `<span class="nwn mut">nobody</span>`; const m=id===G.player&&!observing();
+  return you||m||isKnown(id)?`<span class="nwn${m?" me":""}"><span class="sw" style="background:${c.color}"></span>${esc(c.name)}</span>`:`<span class="nwn mut"><span class="sw" style="background:rgb(${FOG})"></span>an unknown state</span>`; };
+const nwTeam=t=>{ const T=G.teams?.[t]; return T?`<span class="nwn"><span class="sw" style="background:${T.color}"></span>${esc(T.name)}</span>`:"an alliance"; };
+const nwC=(t,c="")=>`<span${c?` class="${c}"`:""}>${t}</span>`;
+const nwArr=`<span class="nwar">→</span>`;
+// collapsed: the kind's icon, the headline and its key fact (o.key: [text, "g"|"b"|""]); Details opens the chips, tables and links
+function nwItem(k,ic,title,chips,o={}){ const key=o.key?` <b class="nwr${o.key[1]?" "+o.key[1]:""}">${o.key[0]}</b>`:"", body=(chips&&chips.length?`<div class="nwc">${chips.join("")}</div>`:"")+(o.more||"")+(o.act||"");
+  const head=`<div class="nwi" aria-hidden="true">${ic}</div><div class="nwt">${title}${key}</div>`;
+  return body?`<details class="nw k-${k}${o.you?" me":""}"><summary>${head}<span class="nwm" aria-hidden="true"></span></summary><div class="nwd">${body}</div></details>`:`<div class="nw k-${k}${o.you?" me":""}"><div class="nws">${head}</div></div>`; }
+function nwBattle(a,i){ const b=unpackBattle(a), P=G.player, you=!observing()&&(b.att===P||b.def===P), t=id=>nwTok(id,you);
+  const good=you?(b.att===P)===b.win:null, rc=good==null?"":good?" g":" b", res=b.win?(b.taken?`took ${fmt(b.taken)} km²`:"broke through"):"held off";
+  const ch=[nwC(`⚔️ ${fmt(b.sent)} vs ${b.guards?`🛡 ${fmt(b.guards)}`:"no guards"}`),nwC(`💀 lost ${fmt(b.lossA)} vs ${fmt(b.lossD)}`)];
+  if(b.fb>=0.05&&b.guards>0) ch.push(nwC(`🏔 defenders +${Math.round(b.fb*100)}%`)); if(b.elim) ch.push(nwC("☠ destroyed","b"));
+  return nwItem("battle",b.elim?"☠️":"⚔️",`${t(b.att)} ${nwArr} ${t(b.def)}`,ch,{you,key:[res+(b.elim?", destroyed":""),rc.trim()],act:a[11]>=0?`<button class="sm nwa" data-rep="n${i}">Battle report ›</button>`:""}); }
+const SPY_HEAD={granary:"Granary burned",stores:"Stores burned",treasury:"Treasury robbed",research:"Research stolen",unrest:"Unrest stirred up",poison:"General poisoned",gates:"Gates bribed open",scout:"Army scouted",gens:"Generals' files read",court:"Court mapped"};
+// what a spy operation did, as chips (cl: colour for the victim's losses)
+function spyFx(op,x,cl){ const c=t=>nwC(t,cl);
+  if(!x) return op==="research"?[nwC("nothing worth stealing")]:op==="poison"?[nwC("no general to poison")]:[];
+  if(op==="granary") return [c(`🌾 −${fmt(x[0])} grain`)]; if(op==="stores") return [c(`🪵 −${fmt(x[0])} wood`),c(`⛏️ −${fmt(x[1])} iron`)];
+  if(op==="treasury") return [c(`💰 −${fmt(x[0])} gold`)]; if(op==="research") return [c(`📚 ${fmt(x[1])} ${AREA_NAMES[x[0]]} points copied`)];
+  if(op==="unrest") return [x[0]>0?c(`❤️ −${x[0]} loyalty`):nwC("too restless to stir more")];
+  if(op==="poison") return [c(`🎖 General ${esc(x[0])} ${["died","too sick to fight","pulled through"][x[1]]}`)]; return []; }
+function nwSpy(a){ const s=a[2], A=a[3], B=a[4], p=a[5]||{}, v=evView(a), P=G.player, you=!observing()&&(v==="full"||B===P), t=id=>nwTok(id,you);
+  const o=SPY[s]||{name:"spy",ic:"🕵️"}, what=o.name.toLowerCase(), hd=SPY_HEAD[s]||o.name, fr=p.fr>=0?t(p.fr):null, vic=B===P&&!observing()?"b":"";
+  if(v==="full") return nwItem("spy",o.ic,p.ok?`${hd} in ${t(B)}`:`Failed: ${what} in ${t(B)}`,
+    [...(p.ok?spyFx(s,p.x,"g"):[]),nwC(`🕵️ ${esc(p.sp||"your Spymaster")}`),p.seen?nwC(`caught${fr?`, tried to blame ${fr}`:""}`,"b"):p.ok&&fr?nwC(`blamed on ${fr}`):nwC("unseen","g"),...(p.kill?[nwC("☠ Spymaster killed","b")]:[])],{you,key:p.seen?["caught","b"]:["unseen","g"]});
+  if(v==="seen") return nwItem("spy",o.ic,p.ok?`${hd} in ${t(B)}`:`Spies caught in ${t(B)}`,
+    [...(p.ok?spyFx(s,p.x,vic):[nwC(`tried to ${what}`)]),nwC(`by ${t(A)}`,"b"),nwC("caught"),...(fr?[nwC(`made to look like ${fr}`)]:[]),...(p.kill?[nwC("☠ their Spymaster killed")]:[])],{you,key:["caught",""]});
+  if(v==="anon") return nwItem("spy",o.ic,`${hd} in ${t(B)}`,[...spyFx(s,p.x,vic),fr?nwC(`blamed on ${fr}`):nwC("culprit unknown")],{you,key:[fr?"blamed on another":"culprit unknown",""]});
+  return nwItem("spy",o.ic,`Plot foiled in ${t(B)}`,[nwC(`tried to ${what}`),nwC("culprit unknown")],{you,key:["culprit unknown",""]}); }
+function nwWar(a){ const s=a[2], A=a[3], B=a[4], p=a[5]||{}, aw=isAwar(a), you=!observing()&&evAbout(a,G.player), t=id=>aw?nwTeam(id):nwTok(id,you), nA=t(A), nB=t(B);
+  if(s==="declared") return nwItem("war","📜",`${nA} declared war on ${nB}`,[],{you});
+  if(s==="hostility") return nwItem("war","⚔️",`War: ${nA} vs ${nB}`,[],{you,key:["hostility boiled over",""]});
+  if(s==="astart") return nwItem("war","⚔️",`Alliance war: ${nA} vs ${nB}`,[],{you,key:["every member is at war",""]});
+  const st=p.st, l1=p.l1||[], net=st?st[2]-st[3]||st[7]-st[8]:0, w=p.fell>=0?(p.fell===A?1:0):net?(net>0?0:1):-1; // 0: A won, 1: B won (more land; even land: more battles; or the one left standing)
+  const mine=aw?me().team:G.player, wc=w<0||observing()?"":([A,B][w]===mine?"g":[A,B][1-w]===mine?"b":"");
+  const ch=[nwC(`${p.y} year${p.y===1?"":"s"} of war`),...(p.fell>=0?[nwC(`☠ ${p.fell===A?nA:nB} ${aw?"beaten":"destroyed"}`)]:[])];
+  let more=""; if(st){ const row=(l,x,y)=>`<span>${l}</span><i${w===0?' class="w"':""}>${x}</i><i${w===1?' class="w"':""}>${y}</i>`;
+    more=`<div class="nwg"><span></span><b${w===0?' class="w"':""}>${nA}</b><b${w===1?' class="w"':""}>${nB}</b>${row("Land taken",fmt(st[2])+" km²",fmt(st[3])+" km²")}${row("Soldiers lost",fmt(st[4]),fmt(st[5]))}${row("Battles won",`${fmt(st[7])} of ${fmt(st[6])}`,`${fmt(st[8])} of ${fmt(st[6])}`)}${st[0]!=null&&l1.length?row("Land",`${fmt(st[0])} → ${fmt(l1[0])}`,`${fmt(st[1])} → ${fmt(l1[1])}`):""}</div>`; }
+  return nwItem("war",p.fell>=0?"☠️":"🕊️",`${aw?"Alliance war over":"Peace"}: ${nA} and ${nB}`,ch,{you,more,key:w>=0?[`🏆 ${w?nB:nA} won`,wc]:["no winner",""]}); }
+// one archive row (battle, famine collapse or event)
+function newsLine(a,i){ const P=G.player, you=!observing()&&evAbout(a,P), t=id=>nwTok(id,you), p=a[5]||{};
+  if(!isEv(a)) return a[1]===-1?nwItem("famine","☠️",`${nwTok(a[2])} collapsed from famine`,[],{you:!observing()&&a[2]===P,key:["its land became unowned",""]}):nwBattle(a,i);
+  const k=a[1], A=a[3], B=a[4];
+  if(k==="spy") return nwSpy(a); if(k==="war") return nwWar(a);
+  if(k==="aid") return nwItem("aid","🎁",`${t(A)} ${nwArr} ${t(B)}`,[["🌾","grain"],["🪵","wood"],["⛏️","iron"],["💰","gold"]].map(([ic,n],j)=>p[j]?nwC(`${ic} ${fmt(p[j])} ${n}`,"g"):"").filter(Boolean),{you,key:[[["🌾",0],["🪵",1],["⛏️",2],["💰",3]].filter(([,j])=>p[j]).map(([ic,j])=>`${ic} ${fmtK(p[j])}`).join(" "),""]});
+  if(k==="rebel"){ const n=(p.ids||[]).length;
+    return nwItem("rebel","🔥",`Rebellion in ${t(A)}`,[nwC(`${n} rebel state${n===1?"":"s"}`,"b"),nwC(`🗺 ${fmt(p.land)} km²`),nwC(`👥 ${fmt(p.pop)} people`),nwC(`⚔️ ${fmt(p.sol)} soldiers`),...(p.gen||[]).map(g=>nwC(`🎖 General ${esc(g)} left`))],
+      {you,key:[`${n} rebel state${n===1?"":"s"} broke away`,"b"],more:n?`<div class="nwx">Broke away: ${p.ids.map(t).join(" ")}</div>`:""}); }
+  if(k==="famine"){ const x=Array.isArray(p)?p:[0,0,0,0]; return nwItem("famine","🌾",`Famine in ${t(A)}`,[nwC(`💀 ${fmt(x[0])} starved`,"b"),...(x[1]?[nwC(`${fmt(x[1])} soldiers among them`)]:[])],{you,key:[`${fmt(x[0])} starved`,"b"]}); }
+  return nwItem(k,"📰",esc(k),[],{you}); }
+// the kind buttons (News tab and state window share what is hidden); cnt: rows of each kind
+function newsKindBtns(cnt){ const hide=newsHidden(); return `<div class="stwfl newsk" role="group" aria-label="Kinds of news shown">${EV_KINDS.map(([k,l,ic])=>`<button class="sm k-${k}${hide.has(k)?" off":" on"}" data-nk="${k}" aria-pressed="${!hide.has(k)}" title="${hide.has(k)?"Show":"Hide"} ${l.toLowerCase()}">${ic} ${l} <span class="mut">${fmtK(cnt[k]||0)}</span></button>`).join("")}<button class="sm" data-nkall="${hide.size?1:0}">${hide.size?"Show all":"Hide all"}</button></div>`; }
+// rows (archive indexes, newest first) as cards under year headings
+function newsCards(N,rows){ let h="", yr=null; for(const i of rows){ const a=N.items[i]; if(a[0]!==yr){ yr=a[0]; h+=`<div class="nwy">Year ${yr}</div>`; } h+=newsLine(a,i); } return h; }
 // ---------- battle reports ----------
 // Recent wars lists the history kept in the save (no reports there): find each battle's news row, which has the report
 function newsRefFor(from){
@@ -6194,7 +6239,8 @@ const LABEL_STYLES=[["atlas","Old atlas lettering + stats"],["classic","Classic 
 const SETTINGS_META=[
   ["Map",[["mapLabels","State names on the map (zoom in to see the style; small states keep classic text)","select"]]],
   ["Start",[["startPeasants","Starting peasants"],["startGrain","Starting grain"],["startMoney","Starting money"],["startWood","Starting wood"],["startIron","Starting iron"]]],
-  ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["famineNews","News: another state's famine is shown from this share starving","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["birthCurve","How long births stay strong as a state fills (1 = slow from half full; 24 = strong until ~80% full)"],["peasantRoom","Only peasants take up population space (soldiers don't count toward capacity)","bool"],["armyBirths","Soldiers count toward births as this share of a peasant","%"],["minPop","A state below this population collapses"]]],
+  ["News",[["newsMax","Most news entries kept (the oldest go first; 0 = no limit)"],["famineNews","Another state's famine is news from this share starving","%"]]],
+  ["Food & population",[["foodPerFarmer","Grain per farmer per year"],["foodSpoil","Stored grain spoiled per year","%"],["famineDeath","Share of a food shortfall that dies","%"],["popPerKm","Base population capacity per km²"],["birthRate","Base birth rate per year","%"],["birthCurve","How long births stay strong as a state fills (1 = slow from half full; 24 = strong until ~80% full)"],["peasantRoom","Only peasants take up population space (soldiers don't count toward capacity)","bool"],["armyBirths","Soldiers count toward births as this share of a peasant","%"],["minPop","A state below this population collapses"]]],
   ["Economy & market",[["taxPerPeasant","Tax per peasant per year"],["sciWage","Scientist wage per year"],["woodPerWorker","Wood per woodcutter per year"],["ironPerWorker","Iron per miner per year"],["woodPrice","Normal wood price"],["ironPrice","Normal iron price"],["priceMean","Normal grain price"]]],
   ["Weather systems (droughts and fertile spells)",[["wsPerStates","One system per this many starting states"],["wsMin","At least this many systems"],["wsMax","At most this many systems"],["wsLifeMin","Shortest life (years)"],["wsLifeMax","Longest life (years)"],["wsQuietMin","Shortest quiet gap before a new one (years)"],["wsQuietMax","Longest quiet gap (years)"],["wsRamp","Share of its life spent building up (and again fading)","%"],["wsRadMin","Smallest radius (state widths)"],["wsRadMax","Largest radius (state widths)"],["wsStrMin","Weakest: harvest change at the centre","%"],["wsStrMax","Strongest: harvest change at the centre","%"],["wsGood","Chance a new system is a fertile spell","%"],["wsDrift","Drift speed (state widths per year)"],["wsTurn","Largest change of direction per year (degrees)"],["wsMerge","Same kinds merge (Great Drought, Golden Harvest)","bool"],["wsMergeDist","Merge when centres are closer than (× radii combined)"],["wsMergeSize","Merged size (× the bigger one)"],["wsMergeStr","Merged strength (× the stronger one)"],["wsMergeLife","Merged: extra years of life"],["wsGreatMax","Two great ones meeting: strongest it can get","%"],["wsGreatLife","Two great ones meeting: extra years of life"],["wsClash","Opposite kinds clash: higher tier wins, equal tiers cancel out","bool"],["wsFloor","Systems build up from and fade down to: share of their lowest strength (0 = from and to nothing)","%"]]],
   ["World market & weather",[["mkMerchSell","Merchants sell at least at (× normal)"],["mkMerchMul","Merchants sell at least at (× market price)"],["mkMerchBuy","Merchants buy wood and iron at (× normal)"],["mkMerchBuyG","Merchants buy grain at (× normal)"],["mkSteep","Merchant sell price rise per world year sold (× 1 = +100%)"],["mkSteepB","Merchant buy price drop per world year bought"],["mkYears","Market price: average over years"],["mkMinMul","Lowest price (× normal)"],["mkMaxMul","Highest price (× normal)"],["wxRegional","Small yearly weather patches: strength"],["wxRegionalOff","Small yearly weather patches: strength with weather systems off"],["wxMax","Largest weather effect on a harvest","%"],["wxClimate","World-wide good and bad years strength"],["aiPriceK","AI: how strongly farming follows the grain price"],["aiPriceStep","AI: largest farming change per year","%"],["aiPriceMin","AI: least farming when grain is cheap (× need)"],["aiPriceMax","AI: most farming when grain is dear (× need)"],["aiBuyPlan","AI: harvest it plans for when buying (× normal)"],["aiSellFrac","AI: share of its grain surplus offered per year","%"],["aiNeedK","AI: how strongly need moves the price it pays or asks"],["aiMargin","AI: how far its orders sit from what it thinks fair","%"]]],
@@ -6643,6 +6689,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["News cards","2026-11-14 21:19",["News is a list of cards: an icon for each kind, the states and the key fact","Details opens the numbers, war tables and battle reports","Turn each kind of news on or off; the choice is remembered","The same in the state window's News tab","Sabotage now shows to everyone as damage with the culprit unknown, unless the spies were caught","The news keeps at most 10,000 entries; the oldest go first (Settings → News)"]],
 ["More kinds of news","2026-11-14 21:05",["News tab: buttons to show one kind of news at a time: Battles, Wars, Aid, Spies, Rebellions, Famine","Wars: a line when a war starts, and a report when it ends: who won, land each side took, soldiers lost, battles won, land before and after","Alliance wars too","Aid between allies, one line per giver and receiver a year","Spy operations: all of yours; against you, what you noticed; others' only when caught","Rebellions: who broke away and with how much","Famines: yours, and big ones elsewhere","State window News tab lists these too","Settings: when another state's famine makes the news"]],
 ["State window","2026-11-14 20:15",["Clicking a state opens a window over the map, the same from the map, its right-click menu, tables and alliance lists","Its outline from the map, alliance, tags and how it feels about you at the top; land, people, army, generals, loyalty and wonders in a strip under it","Overview: a map of it and its neighbors, how it compares with you and a history chart of land, people and soldiers","New tabs: Military (troops, generals, war record), Economy (people, stores, wonders) and News (its battles)","Relations adds its alliance and wars; Science shows you and the world average","Click a neighbor to open it in the same window, ← goes back","Buttons at the bottom match the right-click menu","The World page no longer shows a state at the top"]],
 ["Staff posts one per row on phones","2026-11-14 19:02",["On phones each staff post is one row, portrait on the left","Choosing a post scrolls down to the list of generals","Best traits for a post moved to the ⓘ next to its name"]],
@@ -7033,7 +7080,7 @@ ${gTab(["Post","Every year","Fitting traits"],[["Quartermaster",`Your army eats 
 <p>The map menu shows each operation's chances. Until you have mapped their court you don't know their Spymaster, so it shows your best case (≤ success, ≥ found out, as if they had none).</p>
 ${gTab(["What happens","Not found out","Found out"],[["It works","The effect happens. Nobody knows who did it: no grievance. Quiet operations (research, unrest, intel) leave them no report at all; loud ones (fire, theft) only say \"unknown saboteurs\"",`The effect happens, and they know it was you: grievance −${R.spyGrudge} (−${R.spyGrudgeIntel} for intel)`],["It fails","Nothing happens. If they have a Spymaster, they hear a plot was foiled, but not by whom","Nothing happens, and they know it was you: the same grievance"]])}
 <p>Found out, your network in that state is <b>burned</b>: no more operations there for ${R.spyBurn} years.</p>
-<p>The News tab's Spies button (${gl("news")}) keeps every operation of yours and what you noticed of theirs: caught spies, unknown saboteurs and foiled plots. Other states hear of an operation only when the spies are caught.</p>
+<p>The News tab's Spies button (${gl("news")}) keeps every operation of yours. Sabotage that works shows to everyone who can see the target, as damage with the culprit unknown; the culprit is named only when caught.</p>
 <h3>Operations</h3>
 ${gTab(["Operation","Works (equal skill)","Found out (equal skill)"],SPY_OPS.map(o=>od(o.id)))}
 <ul class="log"><li><b>Burn the granary:</b> ${gP(R.spyGrain)} of their grain burns. Before a lean harvest that can mean famine.</li>
@@ -7298,14 +7345,16 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <li>After a year with battles involving you, the <b>Your battles</b> screen comes first, with the results hidden (see Battles first). Then the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
 <li>The <b>News</b> tab keeps everything that happened, page by page (← Newer / Older). <b>Details ›</b> opens a full battle report.</li>
 <li>War news reaches you when a war starts or ends next to you or in your alliance.</li></ul>
-<h3>Kinds of news</h3><p>The buttons at the top of the News tab show one kind at a time, each with how many there are:</p>
+<h3>Reading the news</h3><p>Each line is a card: an icon for its kind, a coloured edge (red battles, gold wars, green aid, purple spies, orange rebellions, brown famine), the states involved and the key fact (land taken, who won, caught or unseen). <b>Details ›</b> opens the rest: numbers as small tags, a war's table, and the full battle report. Cards about you are tinted gold.</p>
+<h3>Kinds of news</h3><p>The buttons at the top of the News tab (and the state window's News tab) turn each kind on or off, each with how many there are; <b>Hide all</b> then one button shows a single kind. Your choice is remembered in this browser:</p>
 <ul class="log"><li>⚔️ <b>Battles:</b> every attack, with soldiers sent, guards, losses and land taken, and states destroyed in battle.</li>
 <li>🏳️ <b>Wars:</b> a war declared or breaking out, and its end: peace after so many years, or one side destroyed. The end line is the war's report: who won (the side that took more land in the war's battles; with equal land, the one that won more battles; or the one still standing), the land each side took, the soldiers each lost, the battles each won, and each side's land at the start and at the end. Alliance wars get the same lines, with the alliances' total land.</li>
 <li>🎁 <b>Aid:</b> grain, wood, iron and gold sent between allies, one line per giver and receiver a year.</li>
-<li>🕵️ <b>Spies:</b> spy operations. You see all of your own, with the result. Against you, you see what you noticed: caught spies and who sent them, "unknown saboteurs" (or the state they were made to look like) when loud sabotage hit you unseen, and plots your Spymaster foiled. Quiet operations that nobody caught leave no news at all. Other states' operations reach you only when the spies were caught.</li>
+<li>🕵️ <b>Spies:</b> spy operations. You see all of your own, with the result. Everyone else sees the damage (grain or stores burned, gold or research stolen, unrest stirred up, a general poisoned) but not who did it: "culprit unknown", or the state it was made to look like. Only when the spies are caught is the culprit named. Plots a Spymaster foiled show to the state they were aimed at. Scouting, reading generals, mapping a court and bribed gates leave no news unless the spies are caught.</li>
 <li>🔥 <b>Rebellions:</b> the rebel states that broke away, with the land, people and soldiers they took and any general who went with them.</li>
 <li>🌾 <b>Famine:</b> your famines, other states' big famines (at least ${gP(R.famineNews)} of their people starved) and states that collapsed from hunger.</li></ul>
-<p>Next to the buttons: <b>Involving you</b> or <b>States destroyed</b>, an alliance, and a search by state name. <b>Clear</b> shows everything again. Lines about you are highlighted. With fog of war, only what you could see at the time is kept (neighbors and yourself); spy news is secret either way.</p>`],
+<p>Next to the buttons: <b>Involving you</b> or <b>States destroyed</b>, an alliance, and a search by state name. <b>Clear</b> shows everything again. Lines about you are highlighted. With fog of war, only what you could see at the time is kept (neighbors and yourself).</p>
+<p>The archive keeps at most ${fmt(R.newsMax)} entries (Settings → News); when it fills up, the oldest go first.</p>`],
 ["bfirst","Interface","🔒","Battles first (no spoilers)",()=>`
 <p>The year report and the map would give away how your battles went before you look. So after a year with battles involving you, a <b>Your battles</b> screen opens first, over a blank screen.</p>
 <ul class="log"><li>Each battle you attacked in or defended gets a card: who attacked whom, the attack mode, how many soldiers went in on each side, and any narrow front, sea crossing, forest or mountains that helped the defenders. The result is hidden.</li>
@@ -7579,7 +7628,8 @@ document.addEventListener("click",async ev=>{
   if(d.guide){ UI.guideQ=""; helpModal(d.guide); return; }
   if(d.stab){ settingsModal(d.stab); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
   if(d.npage!=null){ UI.news.page=Math.max(0,+d.npage); render(); $("panel").scrollTop=0; return; }
-  if(d.nk!=null){ UI.news.k=d.nk; UI.news.page=0; render(); return; }
+  if(d.nk!=null){ const h=new Set(newsHidden()); if(h.has(d.nk)) h.delete(d.nk); else h.add(d.nk); newsHideSet(h); if(UI.news) UI.news.page=0; render(); return; }
+  if(d.nkall!=null){ newsHideSet(new Set(+d.nkall?[]:EV_KINDS.map(x=>x[0]))); if(UI.news) UI.news.page=0; render(); return; }
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
     else if(d.map==="me"&&G&&me().alive) v.centerOn(G.player,Math.max(v.z,v.focusZoom()));
@@ -7710,7 +7760,7 @@ document.addEventListener("click",async ev=>{
   const a=d.a; if(!a) return;
   const c=G?me():null, num=id=>Math.max(0,Math.floor(+($(id)?.value||0)));
   switch(a){
-    case "newsClear": UI.news={f:"all",q:"",page:0,k:"all"}; break;
+    case "newsClear": UI.news={f:"all",q:"",page:0}; break;
     case "mkNow": { const r=mkR(), n=num("mkAmt"); if(!n){ flash("Type an amount."); return; }
       if(!(cmd(mkSide()==="buy"?"buyRes":"sellRes",r,n))) flash(mkSide()==="buy"?"Not enough gold.":`You have no ${r} to sell.`); break; }
     case "mkPost": { const r=mkR(), n=num("mkAmt"), p=+($("mkP")?.value||0); if(!n||!(p>0)){ flash("Type an amount and a price."); return; }
