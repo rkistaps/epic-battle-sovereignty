@@ -102,6 +102,7 @@ table.atab td.pl,table.atab th.pl{text-align:right;padding-right:8px;color:var(-
 .ctxm>button:hover:not(:disabled),.ctxm>button:focus-visible{background:var(--panel2);outline:none} .ctxm>button:disabled{opacity:.5;cursor:default}
 .ctxm .ci{width:18px;text-align:center;flex:none} .ctxm .cs{margin-left:auto;padding-left:14px;font-size:11px;color:var(--mut)}
 .ctxm hr{border:0;border-top:1px solid var(--line);margin:3px 4px}
+.ctxm .chs{padding:4px 10px 2px;white-space:normal;line-height:1.3} .ctxm.wide{max-width:min(440px,calc(100vw - 16px))}
 #tip{position:fixed;z-index:5;pointer-events:none;background:#000c;border:1px solid var(--line);padding:6px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
 #topnav{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px 0} /* main menu: one button per page, number key on the right */
 #topnav button{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:8px;position:relative}
@@ -795,7 +796,14 @@ const R = {
   // staff posts: a posted general can't attack or defend; each post gives a yearly effect, worked out at the end of the year
   postQm: 0.01, postQmFit: 2.5, postQmMax: 0.15,      // Quartermaster: army eats 1% less grain per Mind (Iron Quartermaster ×2.5), at most 15%
   postDrill: 0.5, postDrillTroop: 0.05,              // Drillmaster: field generals +0.5 skill a year per Mind; his troop traits: that troop +5% in every battle
-  postChief: 2, postChiefFit: 1.5,                   // Chief of Staff: field generals +2 morale a year per Mind (Beloved ×1.5)
+  // Spymaster: one operation a year against a neighbor; skill against skill (the target's Spymaster, 0 with none)
+  spySkill: 0.005, spySkillDt: 0.006, spyMin: 0.05, spyMax: 0.95, // success +0.5% and being found out −0.6% per point of skill over theirs; never under 5% or over 95%
+  spyOkScout: 0.85, spyDtScout: 0.15, spyOkGens: 0.75, spyDtGens: 0.2, spyOkCourt: 0.8, spyDtCourt: 0.15, // intel: base chance to succeed and to be found out (equal skill)
+  spyOkGranary: 0.65, spyDtGranary: 0.35, spyOkStores: 0.65, spyDtStores: 0.35, spyOkTreasury: 0.5, spyDtTreasury: 0.45,
+  spyOkResearch: 0.5, spyDtResearch: 0.3, spyOkUnrest: 0.5, spyDtUnrest: 0.35, spyOkGates: 0.4, spyDtGates: 0.5,
+  spyGrain: 0.15, spyStores: 0.15, spyGold: 0.1, spyRes: 0.25, spyLoy: 8, spyGate: 0.15, // grain burned, wood and iron burned, gold stolen, share of your next level stolen, loyalty lost (never below the revolt line), their defense cut against your attacks this year
+  spyGrudge: 15, spyGrudgeIntel: 5, spyFrame: 12, spyFrameX: 1.5, spyBurn: 3, spyLearn: 1, spyTrait: 0.1, // grievance when found out (sabotage, intel); the framed state's grievance; × when caught framing; years the network is burned; skill per operation; Cautious/Reckless
+  aiSpyRisk: 0.5, aiSpyMin: 0.12, aiSpyAlert: 10, // and years it keeps a Spymaster first after being spied on // computer: how much it fears being found out at peace; least worth to act
   postEase: 0.3, postSqTax: 0.015, postSqLoy: 0.2,   // Governor: Ease loyalty +0.3 a year per Mind; Squeeze taxes +1.5% and loyalty −0.2 a year per Mind
   postGovRevolt: 0.5, postDrunk: 0.5,
   relSpoil: 0.25, relRuin: 0.02, relRuinFamous: 0.2, relAcad: 0.1, relLegRare: 0.5, relTake: 10, relFamous: 6, relCovet: 0.3, // relics: spoils chance, ruins chance (and the share that turns up a lost famous one), hiring, morale for taking one back, famous ones at the start, how much computer states covet them
@@ -1034,7 +1042,7 @@ function tierPrice(gen){ return GTIER(tierOf(gen))?.price||0; }
 // ---------- staff posts ----------
 // A general can hold one post instead of fighting (gen.post). Every post is a yearly flow worked out at the end of the year
 // for whoever holds it then, so swapping someone in for a moment gains nothing; no post makes buying cheaper.
-const POSTS=[{id:"qm",name:"Quartermaster"},{id:"drill",name:"Drillmaster"},{id:"chief",name:"Chief of Staff"},{id:"gov",name:"Governor"}];
+const POSTS=[{id:"qm",name:"Quartermaster"},{id:"drill",name:"Drillmaster"},{id:"spy",name:"Spymaster"},{id:"gov",name:"Governor"}];
 const POST_IDS=POSTS.map(p=>p.id);
 const postHolder=(c,id)=>c?.generals?.find(x=>x.post===id)||null;
 const fieldGens=c=>(c.generals||[]).filter(x=>!x.post);
@@ -1042,7 +1050,7 @@ const fieldGens=c=>(c.generals||[]).filter(x=>!x.post);
 function postEff(c,gen,id,pol){ if(!gen) return null; const m=gen.mind*(hasTr(gen,"drunk")&&gen.hang?R.postDrunk:1), o={}, rm=relPostMul(gen,id); // rm: a relic for this post
   if(id==="qm") o.food=Math.min(R.postQmMax*rm,R.postQm*m*(hasTr(gen,"quarter")?R.postQmFit:1)*rm);
   else if(id==="drill"){ o.skill=+(R.postDrill*m).toFixed(2); o.troops=Object.keys(TROOP_TRAIT).filter(k=>hasTr(gen,k)).map(k=>TROOP_TRAIT[k]); }
-  else if(id==="chief") o.morale=+(R.postChief*m*(hasTr(gen,"beloved")?R.postChiefFit:1)).toFixed(1);
+  else if(id==="spy") o.skill=spySkill(gen);
   else if(id==="gov"){ if((pol||c?.govPol)==="squeeze"){ o.tax=R.postSqTax*m*(hasTr(gen,"greedy")?0.5:1); o.loy=-R.postSqLoy*m*(hasTr(gen,"beloved")?0.5:1); }
     else { o.tax=0; o.loy=R.postEase*m*(hasTr(gen,"beloved")?2:1)*(hasTr(gen,"butcher")?0.5:1); }
     o.tax*=rm; o.loy*=rm; if(relK(gen)==="crown"&&gen.post==="gov") o.loy+=rlv(gen,R.rlCrownLoy);
@@ -1053,6 +1061,74 @@ const postNow=(c,id)=>postEff(c,postHolder(c,id),id)||{};
 function drillMul(c,tr,stat){ const d=postNow(c,"drill"); let m=1; const rows=[], tot=troopSum(tr,stat); if(!d.troops?.length||tot<=0) return {m,rows};
   for(const tp of d.troops){ const sh=(tr[tp]||0)*(TROOP[tp]?.[stat]||0)/tot; if(sh>0){ const v=1+R.postDrillTroop*sh; m*=v; rows.push(["drillP",+v.toFixed(4),+sh.toFixed(3),tp]); } }
   return {m,rows}; }
+// ---------- spies ----------
+// The Spymaster (a staff post) runs one operation a year against a neighbor (allies too): intel or sabotage. Ordered during the
+// turn (c.spy = {op, to, fr}: fr a third state to blame), resolved after the plans and before the battles (spyYear). Two rolls,
+// skill against the target's Spymaster's skill (0 with none): success, and being found out. Unseen leaves no name and no grudge;
+// found out names the culprit (grievance) and burns the network there for a few years. A false flag blames a third state.
+const SPY_OPS=[{id:"scout",name:"Scout their army",ic:"🔭",k:"intel"},{id:"gens",name:"Read their generals",ic:"📜",k:"intel"},{id:"court",name:"Map their court",ic:"🕸️",k:"intel"},
+  {id:"granary",name:"Burn the granary",ic:"🔥",k:"sab",loud:1},{id:"stores",name:"Fire the stores",ic:"🪵",k:"sab",loud:1},{id:"treasury",name:"Rob the treasury",ic:"💰",k:"sab",loud:1},
+  {id:"research",name:"Steal research",ic:"📚",k:"sab"},{id:"unrest",name:"Incite unrest",ic:"📢",k:"sab"},{id:"gates",name:"Open the gates",ic:"🗝️",k:"sab"}];
+const SPY=Object.fromEntries(SPY_OPS.map(o=>[o.id,o])), SPYK=id=>id[0].toUpperCase()+id.slice(1);
+// a Spymaster's skill (a Drunkard's bad year halves it); 0 with none
+function spySkill(gen){ return gen?Math.round(gen.skill*(hasTr(gen,"drunk")&&gen.hang?R.postDrunk:1)):0; }
+// chance to succeed and to be found out; dS: the defender's skill if known otherwise (the UI passes what intel showed)
+function spyOdds(A,D,op,dS){ const sp=postHolder(A,"spy"), s=spySkill(sp), d=dS??spySkill(postHolder(D,"spy")), k=SPYK(op), cl=v=>Math.max(R.spyMin,Math.min(R.spyMax,v));
+  let ok=(R["spyOk"+k]??0.5)+R.spySkill*(s-d), dt=(R["spyDt"+k]??0.3)-R.spySkillDt*(s-d);
+  if(hasTr(sp,"cautious")) dt-=R.spyTrait; if(hasTr(sp,"reckless")){ ok+=R.spyTrait; dt+=R.spyTrait; }
+  ok=cl(ok); dt=cl(dt); const n=spyDice(sp), okE=n>0?1-Math.pow(1-ok,n):Math.pow(ok,-n); // Lucky: best of 2 (Lucky Bastard 3); Jinxed: worst of 2
+  return {ok,dt,okE,s,d}; }
+function spyDice(sp){ return hasTr(sp,"luckyB")?3:hasTr(sp,"lucky")?2:hasTr(sp,"jinx")?-2:1; }
+// third states that can be blamed: the target's other neighbors
+function spyFrames(g,A,D){ return [...adjacency(g)[D.id]].filter(j=>j!==A.id&&g.countries[j].alive); }
+// why an operation can't be ordered ("" if it can)
+function spyCan(g,A,D,op){ const o=SPY[op]; if(!o||!D||!D.alive||D.id===A.id) return "Not possible";
+  if(!postHolder(A,"spy")) return "No Spymaster"; if(!adjacency(g)[A.id].has(D.id)) return "No shared border";
+  if((A.spyBurn?.[D.id]??0)>g.turn) return `Network burned until year ${A.spyBurn[D.id]}`;
+  if(op==="research"&&!AREAS.some(a=>(D.lv[a]||0)>(A.lv[a]||0))) return "Not ahead of you in any research";
+  if(op==="unrest"&&!loyOn(g)) return "Rebellions are off";
+  if(op==="gates"&&inPeace(g)) return `Peace until year ${g.peace+1}`;
+  return ""; }
+// the research area worth stealing: where they're furthest ahead of you
+function spyResArea(A,D){ let b=null, bd=0; for(const a of AREAS){ const d=(D.lv[a]||0)-(A.lv[a]||0); if(d>bd){ bd=d; b=a; } } return b; }
+const spyFmt=n=>Math.round(n).toLocaleString("en-US");
+// the operation's effect: [what the spy's state is told, what the victim sees (null: nothing to see)]
+function spyEffect(g,A,D,op){ const sp=postHolder(A,"spy");
+  if(op==="granary"){ const n=Math.floor(Math.max(0,D.grain)*R.spyGrain); D.grain-=n; return [`burned ${spyFmt(n)} grain in ${D.name}`,`burned ${spyFmt(n)} grain in your granaries`]; }
+  if(op==="stores"){ const w=Math.floor(Math.max(0,D.wood)*R.spyStores), i=Math.floor(Math.max(0,D.iron)*R.spyStores); D.wood-=w; D.iron-=i; return [`burned ${spyFmt(w)} wood and ${spyFmt(i)} iron in ${D.name}`,`burned ${spyFmt(w)} wood and ${spyFmt(i)} iron in your stores`]; }
+  if(op==="treasury"){ const n=Math.floor(Math.max(0,D.money)*R.spyGold), k=hasTr(sp,"greedy")?Math.floor(n/2):n; D.money-=n; A.money+=k; return [`stole ${spyFmt(n)} gold from ${D.name}${k<n?` (your Greedy Spymaster kept ${spyFmt(n-k)})`:""}`,`stole ${spyFmt(n)} gold from your treasury`]; }
+  if(op==="research"){ const a=spyResArea(A,D); if(!a) return [`found nothing to learn in ${D.name}`,null]; const p=Math.round(levelCost(A.lv[a],costParts(g,A,a).mul)*R.spyRes); A.rp[a]+=p; return [`stole ${spyFmt(p)} ${AREA_NAMES[a]} research points from ${D.name}`,`copied your ${AREA_NAMES[a]} research`]; }
+  if(op==="unrest"){ const n=Math.max(0,Math.min(R.spyLoy,loyOf(D)-R.loyRevolt)); D.spyLoy=(D.spyLoy||0)+n; return [n>0?`stirred up unrest in ${D.name}: loyalty −${+n.toFixed(1)}`:`found ${D.name} too restless to stir up more`,n>0?`stirred up unrest: loyalty −${+n.toFixed(1)}`:null]; }
+  if(op==="gates"){ (g._gates||(g._gates={}))[A.id+">"+D.id]=1-R.spyGate; return [`bribed guards in ${D.name}: they open the gates to your attacks this year (their defense −${Math.round(R.spyGate*100)}%)`,null]; }
+  const I=(A.intel||(A.intel={}))[D.id]||(A.intel[D.id]={});
+  if(op==="scout"){ I.scout={t:g.turn,tr:{...troopsOf(D)},st:stanceOf(D),ft:D.ai?+(D.footing??0).toFixed(2):null,money:Math.round(D.money),grain:Math.round(D.grain),wood:Math.round(D.wood),iron:Math.round(D.iron)}; return [`scouted the army and stores of ${D.name}`,null]; }
+  if(op==="gens"){ I.gens={t:g.turn,list:D.generals.map(x=>({name:x.name,mind:x.mind,age:x.age,skill:Math.round(x.skill),morale:Math.round(x.morale),traits:(x.traits||[]).slice(),post:x.post||null,def:D.defGen===x.id,rel:x.relic?.k||null,face:x.face??x.id*7919}))}; return [`read the files on ${D.generals.length} general${D.generals.length===1?"":"s"} of ${D.name}`,null]; }
+  if(op==="court"){ const h=postHolder(D,"spy"); I.court={t:g.turn,sp:h?{name:h.name,skill:spySkill(h),traits:(h.traits||[]).slice()}:null}; return [h?`mapped the court of ${D.name}: their Spymaster ${h.name} has skill ${spySkill(h)}`:`mapped the court of ${D.name}: they have no Spymaster`,null]; }
+  return ["did nothing",null]; }
+// one state's operation for the year
+function spyRun(g,A){ const o=A.spy; A.spy=null; if(!o) return; const C=g.countries, D=C[o.to], op=o.op, def=SPY[op];
+  if(!D||spyCan(g,A,D,op)) return; const sp=postHolder(A,"spy"), od=spyOdds(A,D,op), n=spyDice(sp);
+  let r=R01(g); for(let k=1;k<Math.abs(n);k++){ const r2=R01(g); r=n>0?Math.min(r,r2):Math.max(r,r2); }
+  const ok=r<od.ok, seen=R01(g)<od.dt, fr=def.loud&&o.fr!=null&&spyFrames(g,A,D).includes(+o.fr)?C[+o.fr]:null, St=g.spyStat||(g.spyStat={});
+  St.ops=(St.ops||0)+1; St[op]=(St[op]||0)+1; if(ok) St.ok=(St.ok||0)+1; if(seen) St.seen=(St.seen||0)+1;
+  sp.skill=Math.min(100,sp.skill+R.spyLearn); sp.ops=(sp.ops||0)+1; if(ok) sp.opsOk=(sp.opsOk||0)+1;
+  const [mine,theirs]=ok?spyEffect(g,A,D,op):[null,null], what=def.name.toLowerCase();
+  if(ok&&op!=="research"&&op!=="gates"&&def.k==="sab") D.spyHitT=g.turn; // the computer posts a Spymaster after a hit it noticed
+  if(seen){ D.spyHitT=g.turn; (A.spyBurn||(A.spyBurn={}))[D.id]=g.turn+1+R.spyBurn;
+    const gr=(def.k==="intel"?R.spyGrudgeIntel:R.spyGrudge)*(fr?R.spyFrameX:1)*(hasTr(sp,"butcher")?R.trButcherGrudge:1); rfAdd(g,D,A.id,"g",-gr,-100,0);
+    note(g,A.id,`🕵️ ${ok?`Your Spymaster ${sp.name} ${mine}, but`:`Your Spymaster ${sp.name} failed to ${what} in ${D.name}, and`} his agents were caught${fr?` trying to blame ${fr.name}`:""}. ${D.name} knows it was you (grievance −${Math.round(gr)}); your network there is burned until year ${A.spyBurn[D.id]}.`);
+    note(g,D.id,ok?`🕵️ Spies from ${A.name} ${theirs||`managed to ${what}`}. We caught them${fr?`: they tried to make it look like ${fr.name}`:""}.`:`🕵️ We caught spies from ${A.name} trying to ${what}${fr?`, made to look like ${fr.name}`:""}.`); }
+  else { if(ok&&fr){ rfAdd(g,D,fr.id,"g",-R.spyFrame,-100,0); }
+    note(g,A.id,ok?`🕵️ Your Spymaster ${sp.name} ${mine}${fr?`. ${D.name} blames ${fr.name}`:""}. Nobody saw who did it.`:`🕵️ Your Spymaster ${sp.name} failed to ${what} in ${D.name}. Nobody noticed.`);
+    if(ok&&theirs) note(g,D.id,fr?`🕵️ Saboteurs from ${fr.name} ${theirs}.`:`🕵️ Unknown saboteurs ${theirs}. Nobody knows who sent them.`);
+    else if(!ok&&def.k==="sab"&&postHolder(D,"spy")) note(g,D.id,`🕵️ Your Spymaster foiled a plot to ${what}. Nobody knows who was behind it.`); }
+  if(ok&&op==="gates") (g._gateBy||(g._gateBy={}))[A.id+">"+D.id]=sp.name; }
+// every state's operation, in random order (after the plans, before the battles)
+function spyYear(g){ const C=g.countries, L=C.filter(c=>c.alive&&c.spy); for(let i=L.length-1;i>0;i--){ const j=Math.floor(R01(g)*(i+1)); [L[i],L[j]]=[L[j],L[i]]; }
+  for(const c of C) if(c.spyBurn) for(const k in c.spyBurn) if(c.spyBurn[k]<=g.turn) delete c.spyBurn[k];
+  for(const c of L) if(c.alive) spyRun(g,c); else c.spy=null; }
+// older saves: a Chief of Staff becomes the Spymaster
+function migrateStaff(g){ for(const c of g.countries) for(const x of c.generals||[]) if(x.post==="chief") x.post="spy"; }
 // ---------- relics ----------
 // A relic is an object a general carries ({n id, k kind, src where it came from, t year}); one per general (gen.relic), the rest
 // sit in the state's Treasury (c.relics). k: c common, r rare, x cursed, u famous (one of each in the world). w: where it works.
@@ -2104,6 +2180,9 @@ const CMD={
   govPol:(g,c,p)=>p==="ease"||p==="squeeze"?(c.govPol=p,true):false,
   dismissGeneral:(g,c,id)=>act.dismissGeneral(g,c,+id),
   festival:(g,c,n)=>act.festival(g,c,nat(n)),
+  // the Spymaster's operation for the year: o = {op, to, fr} (fr: a third state to blame, loud sabotage only), null to call it off
+  spy(g,c,o){ if(!o){ c.spy=null; return true; } const D=g.countries[+o.to]; if(!SPY[o.op]||spyCan(g,c,D,o.op)) return false;
+    const fr=SPY[o.op].loud&&o.fr!=null&&spyFrames(g,c,D).includes(+o.fr)?+o.fr:null; c.spy={op:o.op,to:D.id,...(fr!=null?{fr}:{})}; return true; },
   // o: {target, gen, mix:{troop id: n}, mode}; takes only troops still at home; one attack per general
   attack(g,c,o){ if(!o||inPeace(g)) return null; const to=+o.target, gen=+o.gen;
     if(!g.countries[to]||to===c.id||!ownGen(c,gen)||c.generals.find(x=>x.id===gen).post||c.attacks.some(a=>a.gen===gen)) return null;
@@ -2419,11 +2498,28 @@ function aiStaff(g,c){
   const loy=loyOf(c), lo=loyOn(g)&&loy<60, short=foodProduction(c)<foodUse(c);
   c.govPol=loyOn(g)&&loy>72&&c.money<wages(c)*6+3000?"squeeze":"ease";
   const govRel=relAll(c).some(r=>RELICS[r.k]?.w==="gov"); // a Governor relic at hand: post a Governor first
-  const order=[...(lo||govRel?["gov"]:[]),...(short?["qm"]:[]),"chief","drill","qm","gov"].filter((x,k,a)=>a.indexOf(x)===k);
-  const val=(x,id)=>{ const e=postEff(c,x,id); return id==="qm"?e.food*100:id==="drill"?e.skill+e.troops.length:id==="chief"?e.morale/4:Math.abs(e.loy)*5+(e.tax||0)*100+(RELICS[relK(x)]?.w==="gov"?1000:0); };
+  const spied=c.spyHitT!=null&&c.spyHitT>=g.turn-R.aiSpyAlert; // spies were caught or did harm lately: a Spymaster first
+  const order=[...(lo||govRel?["gov"]:[]),...(short?["qm"]:[]),...(spied?["spy"]:[]),"spy","drill","qm","gov"].filter((x,k,a)=>a.indexOf(x)===k);
+  const val=(x,id)=>{ const e=postEff(c,x,id); return id==="qm"?e.food*100:id==="drill"?e.skill+e.troops.length:id==="spy"?e.skill/10+(hasTr(x,"cautious")?1:0):Math.abs(e.loy)*5+(e.tax||0)*100+(RELICS[relK(x)]?.w==="gov"?1000:0); };
   const free=spare.slice(); for(const x of free) x.post=null;
   for(const id of order){ if(!free.length) break; let b=0; free.forEach((x,k)=>{ if(val(x,id)>val(free[b],id)) b=k; }); const x=free.splice(b,1)[0]; x.post=id; if(c.defGen===x.id) c.defGen=null; }
 }
+// computer: the Spymaster picks the operation worth most for its risk. Opens the gates for its biggest attack; at war or with a
+// grudge it burns, robs and stirs unrest; at peace it steals quietly (research, gold when poor) and fears being found out; it
+// leaves friends and allies alone; loud sabotage at peace is often blamed on a neighbor of the target it dislikes.
+function aiSpy(g,c){ c.spy=null; if(!postHolder(c,"spy")) return; const C=g.countries, adj=[...adjacency(g)[c.id]].filter(j=>C[j].alive); if(!adj.length) return;
+  const big=c.attacks.reduce((b,a)=>!b||a.soldiers>b.soldiers?a:b,null), poor=c.money<wages(c)*2+500, sci=c.persona==="sci";
+  let best=null;
+  for(const j of adj){ const D=C[j], rel=relOf(g,c,j), war=atWar(g,c.id,j), foe=war||rel<=-30; if(!foe&&(rel>=20||allied(g,c.id,j))) continue;
+    const want={}; if(big?.target===j&&big.soldiers>=50) want.gates=1;
+    if(AREAS.some(a=>(D.lv[a]||0)>(c.lv[a]||0))) want.research=sci?0.7:0.45;
+    want.treasury=Math.min(1,D.money*R.spyGold/Math.max(300,wages(c)))*(poor?0.9:0.55);
+    if(foe){ want.granary=D.grain<foodUse(D)*1.2?0.6:0.2; want.stores=0.2; if(loyOn(g)&&loyOf(D)<70&&loyOf(D)>R.loyRevolt+2) want.unrest=0.55; }
+    for(const op in want){ if(spyCan(g,c,D,op)) continue; const od=spyOdds(c,D,op), v=want[op]*od.okE*(0.85+0.3*R01(g))-(foe?0.1:R.aiSpyRisk)*od.dt; // a little chance, so the same spy doesn't always pick the same
+      if(v>R.aiSpyMin&&(!best||v>best.v)) best={v,op,to:j,foe}; } }
+  if(!best) return; const o={op:best.op,to:best.to};
+  if(SPY[best.op].loud&&!best.foe&&R01(g)<0.5){ const F=spyFrames(g,c,C[best.to]).filter(k=>relOf(g,c,k)<0).sort((a,b)=>relOf(g,c,a)-relOf(g,c,b))[0]; if(F!=null) o.fr=F; } // a false flag on a state it dislikes
+  c.spy=o; }
 function aiTurn(g,c){
   const d=g.difficulty, t=g.turn, adj=neighbors(g,c.id);
   const eff = [0.8,1,1.15][d];
@@ -2610,6 +2706,7 @@ function aiTurn(g,c){
   const idle=c.generals.filter(x=>!busy.has(x.id)&&!x.post).sort((a,b)=>dv(b)-dv(a));
   const calm=(c.defTurn??-99)<t-R.aiRestCalm; // not attacked lately: a worn general rests to get back in shape for attacking
   c.defGen=idle.length&&genFactor(idle[0])>R.genNoGeneral&&!(calm&&idle[0].morale<R.aiRestMorale)?idle[0].id:null;
+  aiSpy(g,c); // the Spymaster's operation, once the attacks are planned
   // research multiplier for difficulty stored on country
   c.eff=eff;
 }
@@ -2849,10 +2946,11 @@ function loyaltyYear(g){
   if(!loyOn(g)) return;
   const C=g.countries;
   for(const c of C){ if(!c.alive) continue;
+    const sl=c.spyLoy||0; delete c.spyLoy; // unrest stirred up by foreign spies
     const base=Math.max(1,c.land0y??c.land), was=loyOf(c), rec=loyRecOf(g,c), ceil=loyCeil(g,c), gov=postNow(c,"gov").loy||0, rl=relLoy(c); // a Governor: + on Ease, − on Squeeze; relics: Saint's Reliquary +, Black Blade −
-    const lc=R.loyConq*100*((c.gConq||0)+R.loyRetake*(c.gRet||0))/base, ls=R.loyConq*R.loySettle*100*(c.gSet||0)/base, v=was+rec+gov+rl-lc-ls;
+    const lc=R.loyConq*100*((c.gConq||0)+R.loyRetake*(c.gRet||0))/base, ls=R.loyConq*R.loySettle*100*(c.gSet||0)/base, v=was+rec+gov+rl-lc-ls-sl;
     c.loy=+Math.max(0,Math.min(ceil,v)).toFixed(1);
-    c.loyY={was:+was.toFixed(1),rec:+rec.toFixed(1),conq:+lc.toFixed(1),set:+ls.toFixed(1),ceil,cut:v>ceil?1:0,gov:+gov.toFixed(1),rel:+rl.toFixed(1)}; }
+    c.loyY={was:+was.toFixed(1),rec:+rec.toFixed(1),conq:+lc.toFixed(1),set:+ls.toFixed(1),ceil,cut:v>ceil?1:0,gov:+gov.toFixed(1),rel:+rl.toFixed(1),spy:+sl.toFixed(1)}; }
   if(inPeace(g)) return;
   for(const c of C.slice()){ const p=revoltChance(g,c); if(p>0&&R01(g)<p) revolt(g,c); }
 }
@@ -2936,7 +3034,7 @@ function endTurn(g){
   g.log=[]; g.battles=[]; g.collapsed=[];
   C.forEach(c=>{ if(c.ai) delete c.log; else c.log=[]; }); // each human's home news
   if(!g.relSeeded){ g.relSeeded=1; if(!g.relId) relSeed(g); } // older saves: the famous relics appear
-  migrateResearch(g); migrateRelations(g);
+  migrateResearch(g); migrateRelations(g); migrateStaff(g); g.spyStat={}; g._gates={}; g._gateBy={};
   g.avgLv=worldAvgLv(g); g.avgPop=worldAvgPop(g); // research costs compare against the averages at the start of the year
   C.forEach(c=>{ if(c.civ) c.mod=computeMods(civOf(c),leaderOf(c),landOf(c)); }); // settings may have changed
   g.revolts=[]; C.forEach(c=>{ c.gConq=c.gRet=c.gSet=0; c.land0y=c.land; }); // land won this year (loyalty)
@@ -2947,6 +3045,7 @@ function endTurn(g){
   g._own={}; for(const r of MK_RES){ const B=mkBook(g,r), I=g._own[r]={a:new Map(),b:new Map()}; for(const k of ["a","b"]) for(const o of B[k]){ let l=I[k].get(o.s); if(!l) I[k].set(o.s,l=[]); l.push(o); } }
   C.forEach((c,i)=>{ if(!(i&63)) step(0.02,0.45,"Rulers make their plans",i); if(c.alive&&c.ai) aiTurn(g,c); if(!c.ai) c.eff=1; c.lostThis=0; });
   delete g._aliveN; delete g._own;
+  spyYear(g); // spies act before the armies march
   step(0.45,0,"Armies march");
   // battles
   const adjNow=adjacency(g);
@@ -2976,6 +3075,8 @@ function endTurn(g){
   for(const id in defYear){ const y=defYear[id], dg=y.dg; dg.skill=Math.min(100,dg.skill+dg.mind*y.n); dg.morale=Math.max(0,Math.min(100,dg.morale+(y.lost?(rk(dg,"aegis")?0:-R.moraleBroken):R.moraleHeld))); dg.battles+=y.n;
     if(dg.battles>=R.trOldGuardN) earnTrait(g,C[id],dg,"oldguard",`${dg.battles} battles`); oldGuardFloor(dg);
     for(const d of y.reps) if(d.gD){ d.gD[3]=Math.round(dg.skill); d.gD[5]=Math.round(dg.morale); } }
+  for(const k in g._gateBy){ const [a,d]=k.split(">").map(Number); if(!g._gateUsed?.[k]) note(g,a,`🗝️ The gates of ${C[d].name} stood open, but no attack of yours came this year.`); }
+  delete g._gates; delete g._gateBy; delete g._gateUsed;
   C.forEach(c=>c.attacks=[]);
   // economy
   step(0.6,0,"Settlers move and borders settle");
@@ -3062,6 +3163,7 @@ function resolveBattle(g,a,guards,base,defGenOf,defYear,adjNow){
   if(tbE>0&&hasTr(dg,"fox")){ const v=(1+tbE*(1+R.trFox))/(1+tbE); dm*=v; trD.push(["foxD",+v.toFixed(4)]); }
   if(hasTr(dg,"nemesis")&&dg.nem===A.id){ dm*=1+R.trNemesis; trD.push(["nemesis",1+R.trNemesis]); }
   { const d2=drillMul(D,gTr,"def"); dm*=d2.m; trD.push(...d2.rows); } // the defender's Drillmaster
+  { const gk=A.id+">"+D.id, v=g._gates?.[gk]; if(v){ dm*=v; trD.push(["gates",v]); (g._gateUsed||(g._gateUsed={}))[gk]=1; } } // the attacker's spies opened the gates
   { const t=relTroopMul(dg,gTr,"def"); if(t){ dm*=t[1]; trD.push(t); } const e=relCavCut(gen,gTr,"def"); if(e){ dm*=e[1]; trD.push(e); } } // troop relics; the attacker's pike relic
   if(tdf.fo>0&&tdf.b>0&&rk(gen,"mking")){ const bF=tdf.fo*(R.forestDef??0)/Math.max(1,tdf.n), v=(1+Math.max(0,tdf.b-bF))/(1+tdf.b); if(v<1){ dm*=v; trD.push(["rel:mking",+v.toFixed(4)]); } } // Axe of the Mountain King: no forest bonus
   const sDp=[troopSum(gTr,"def"),clashTech(A,D)[1],M(D,"defense"),wonderMul(D,"def"),genFactor(dg),1+R.defenderBonus,1+fb,luckRoll(g,dg),1+tdf.b,dm];
@@ -3270,9 +3372,9 @@ function economy(g,c){
     let cost; while(c.rp[a]>=(cost=levelCost(c.lv[a],costParts(g,c,a).mul))){ c.rp[a]-=cost; c.lv[a]++; c.lvTurn=g.turn; L(`🔬 ${AREA_NAMES[a]} reached level ${c.lv[a]}.`); }
   }
   // generals
-  const dS=postNow(c,"drill").skill||0, cM=postNow(c,"chief").morale||0; // staff: the Drillmaster teaches and the Chief of Staff rests the generals in the field
+  const dS=postNow(c,"drill").skill||0; // staff: the Drillmaster teaches the generals in the field
   for(const gen of c.generals.slice()){
-    if(!gen.post){ gen.skill=Math.min(100,gen.skill+dS); gen.morale=Math.min(100,gen.morale+cM); }
+    if(!gen.post) gen.skill=Math.min(100,gen.skill+dS);
     const dr=hasTr(gen,"drunk"); // Drunkard: half the training, morale swings; Beloved: recovers faster
     gen.age++; gen.skill=Math.min(100,gen.skill+gen.mind*R.genTrainRate*(1-gen.skill/110)*(dr?R.trDrunkTrain:1)); gen.morale=c.defGen===gen.id?Math.max(0,gen.morale-(rk(gen,"aegis")?0:R.moraleDefend)):Math.min(100,gen.morale+(hasTr(gen,"beloved")?R.trBelovedRec:R.moraleRecovery));
     if(rk(gen,"banner")) gen.morale=Math.min(100,gen.morale+Math.round(rlv(gen,R.rlBanner))); // Tattered Banner; the Unbroken Shield: no morale lost defending
@@ -3462,7 +3564,7 @@ function prepSave(g){
   delete g.origin; // no longer used
   if(!g.takenAt) g.takenAt=new Int16Array(g.cells.length);
   if(!g.takenFrom) g.takenFrom=new Int16Array(g.cells.length).fill(-1);
-  migrateResearch(g); migrateRelations(g); if(!g.gid) g.gid=oldGid(g);
+  migrateResearch(g); migrateRelations(g); migrateStaff(g); if(!g.gid) g.gid=oldGid(g);
 }
 // ---------- save files: the whole game (map, news archive, rules) in one .json to carry to another device ----------
 const TA={Int8Array,Uint8Array,Int16Array,Uint16Array,Int32Array,Uint32Array,Float32Array,Float64Array};
@@ -4041,21 +4143,51 @@ function ctxItems(o){ const c=G.countries[o], obs=observing(), self=o===G.player
   else if(!obs&&pl.alive){ const ally=allied(G,pl.id,o), n=pl.attacks.filter(a=>a.target===o), busy=new Set(pl.attacks.map(a=>a.gen));
     if(!ally) it("🗡️",n.length?"Plan another attack…":"Plan attack…","attack",!neighbors(G,pl.id).includes(o)?{off:"No shared border"}:inPeace(G)?{off:`Peace until year ${G.peace+1}`}:!pl.generals.some(g=>!busy.has(g.id))?{off:"No free general"}:{});
     if(n.length) it("✋",n.length>1?"Call off attacks":"Call off attack","calloff",{sub:`${fmt(n.reduce((s,a)=>s+(a.soldiers||0),0))} soldiers`});
-    if(ally) it("🎁","Send aid…","aid",aidReach(G,pl.id,o)?{}:{off:"Not in reach"}); }
+    if(ally) it("🎁","Send aid…","aid",aidReach(G,pl.id,o)?{}:{off:"Not in reach"});
+    if(adjacency(G)[pl.id].has(o)){ const sp=pl.spy?.to===o?SPY[pl.spy.op]:null, burn=pl.spyBurn?.[o]>G.turn?pl.spyBurn[o]:0;
+      it("🕵️","Sabotage…","spy",!postHolder(pl,"spy")?{off:"No Spymaster"}:burn?{off:`Network burned until year ${burn}`}:sp?{sub:`${sp.ic} ordered`}:pl.spy?{sub:"spy busy elsewhere"}:{}); } }
   if(team) it("🤝","View alliance","alliance",{sub:allyTag(G,c.team)});
   it("📰","Battles in the news","news");
   it("🎯","Center map here","center");
   if(!self&&canTakeOver()&&!isHuman(o)){ I.push(null); it("👑","Take over…","take"); }
   return I; }
+// Sabotage submenu: the Spymaster's operations against this state (step "ops"), then whom to blame for loud sabotage (step "frame")
+function spyOddsUI(c,D,op){ const I=c.intel?.[D.id]?.court, od=spyOdds(c,D,op,I?(I.sp?I.sp.skill:0):0); return {...od,known:!!I}; }
+function spyOddsTxt(c,D,op){ const od=spyOddsUI(c,D,op); return `${od.known?"":"≤"}${Math.round(od.okE*100)}% · seen ${od.known?"":"≥"}${Math.round(od.dt*100)}%`; }
+function ctxSpyItems(o){ const pl=me(), D=G.countries[o], st=UI.ctxSpy, I=[], it=(ic,label,act,opt={})=>I.push({ic,label,act,...opt}), cur=pl.spy?.to===o?pl.spy:null;
+  it("←","Back","spy:back");
+  if(st.step==="frame"){ const op=SPY[st.op]; I.push({hd:`${op.ic} ${op.name}: blame someone?`});
+    it("🕶️","Leave no name","spyfr:-1",{sub:"they don't know who"});
+    for(const j of spyFrames(G,pl,D)) it("🎭",`Blame ${isKnown(j)?G.countries[j].name:"an unknown state"}`,"spyfr:"+j,{sub:`their grudge turns on ${j===G.player?"you":"them"}`});
+    return I; }
+  const sp=postHolder(pl,"spy"), I0=pl.intel?.[o]?.court;
+  I.push({hd:`🕵️ ${esc(sp.name)}, skill ${spySkill(sp)} · their Spymaster: ${I0?(I0.sp?`skill ${I0.sp.skill} (year ${I0.t})`:`none (year ${I0.t})`):"unknown"}`});
+  for(const k of ["sab","intel"]){ I.push(null); for(const op of SPY_OPS.filter(x=>x.k===k)){ const why=spyCan(G,pl,D,op.id), on=cur?.op===op.id;
+    it(op.ic,op.name+(on?" ✓":""),"spyop:"+op.id,why?{off:why}:{sub:spyOddsTxt(pl,D,op.id)+(op.id==="gates"&&!pl.attacks.some(a=>a.target===o)?" · no attack planned":"")}); } }
+  if(cur){ I.push(null); it("✋","Call off the operation","spyoff"); }
+  else if(pl.spy){ I.push(null); I.push({hd:`Ordered now: ${SPY[pl.spy.op].name} in ${esc(G.countries[pl.spy.to].name)}. A new order replaces it.`}); }
+  return I; }
 function ctxHead(o){ const c=G.countries[o], obs=observing(), self=o===G.player&&!obs, rel=!obs&&!self?Math.round(relOf(G,c,G.player)):null;
   const tags=[G.teams&&c.team!=null?allyPrefix(c)+esc(G.teams[c.team].name):"", rel!=null?`<span style="color:${inkOnDark(relColor(rel))}">${relFace(rel)} ${relLabel(rel)} (${rel>0?"+":""}${rel})</span>`:"", !obs&&atWar(G,o,G.player)?"⚔️ at war with you":"", !obs&&!self&&allied(G,o,G.player)?"your ally":""].filter(Boolean);
   return `<div class="chd"><div><span class="sw" style="background:${c.color}"></span><b>${self?"★ ":""}${esc(c.name)}</b>${self?' <span class="mut">(you)</span>':""}</div>${tags.length?`<div class="small mut">${tags.join(" · ")}</div>`:""}<div class="small mut">${fmt(c.land)} km² · ${fmtK(popOf(c))} people · ${fmtK(c.soldiers)} soldiers</div></div>`; }
 function openCtx(o,x,y){ closeCtx(); if(!G||UI.busy||o<0||!isKnown(o)||!G.countries[o]?.alive) return;
-  $("tip").style.display="none"; const m=$("ctxMenu");
-  m.innerHTML=ctxHead(o)+ctxItems(o).map(i=>i?`<button role="menuitem" data-ctx="${i.act}"${i.off?` disabled title="${esc(i.off)}"`:""}><span class="ci">${i.ic}</span>${esc(i.label)}${i.off||i.sub?`<span class="cs">${esc(i.off||i.sub)}</span>`:""}</button>`:"<hr>").join("");
-  m.dataset.id=o; m.hidden=false; const w=m.offsetWidth, h=m.offsetHeight;
+  $("tip").style.display="none"; const m=$("ctxMenu"); UI.ctxSpy=null;
+  ctxFill(o); m.dataset.id=o; m.hidden=false; const w=m.offsetWidth, h=m.offsetHeight;
   m.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+"px"; m.style.top=Math.max(8,y+h>innerHeight-8?y-h:y)+"px";
   mainView.menuId=o; mainView.schedule(); m.querySelector("button:not(:disabled)")?.focus({preventScroll:true}); }
+function ctxFill(o){ $("ctxMenu").classList.toggle("wide",!!UI.ctxSpy); $("ctxMenu").innerHTML=ctxHead(o)+(UI.ctxSpy?ctxSpyItems(o):ctxItems(o)).map(i=>!i?"<hr>":i.hd?`<div class="chs small mut">${i.hd}</div>`:`<button role="menuitem" data-ctx="${i.act}"${i.off?` disabled title="${esc(i.off)}"`:""}><span class="ci">${i.ic}</span>${esc(i.label)}${i.off||i.sub?`<span class="cs">${esc(i.off||i.sub)}</span>`:""}</button>`).join(""); }
+// switch the open menu to another page in place (kept on screen)
+function ctxPage(o,st){ const m=$("ctxMenu"); UI.ctxSpy=st; ctxFill(o); const r=m.getBoundingClientRect();
+  if(r.bottom>innerHeight-8) m.style.top=Math.max(8,innerHeight-8-r.height)+"px"; if(r.right>innerWidth-8) m.style.left=Math.max(8,innerWidth-8-r.width)+"px";
+  m.querySelector("button:not(:disabled)")?.focus({preventScroll:true}); }
+// the Sabotage submenu's buttons; true if handled (the menu stays open while choosing)
+function ctxSpyDo(a,o){ const pl=me(), D=G.countries[o];
+  if(a==="spy"){ ctxPage(o,{step:"ops"}); return true; }
+  if(a==="spy:back"){ ctxPage(o,UI.ctxSpy?.step==="frame"?{step:"ops"}:null); return true; }
+  if(a.startsWith("spyop:")){ const op=a.slice(6); if(SPY[op]?.loud&&spyFrames(G,pl,D).length){ ctxPage(o,{step:"frame",op}); return true; } a="spyfr:-1:"+op; }
+  if(a.startsWith("spyfr:")){ const [,j,op0]=a.split(":"), op=op0||UI.ctxSpy?.op; closeCtx(); if(cmd("spy",{op,to:o,...(+j>=0?{fr:+j}:{})})){ const fr=+j>=0?G.countries[+j]:null; flash(`${SPY[op].name} in ${D.name}${fr?`, blamed on ${fr.name}`:""}: your Spymaster acts at the end of the year.`); save(); render(); } return true; }
+  if(a==="spyoff"){ closeCtx(); cmd("spy",null); flash("Operation called off."); save(); render(); return true; }
+  return false; }
 function closeCtx(){ const m=$("ctxMenu"); if(!m||m.hidden) return; m.hidden=true; mainView.menuId=null; mainView.schedule(); }
 function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
   if(a==="pick"){ UI.sel=o; if(UI.tab!=="war"||subOf("war")!=="nbrs"||o===G.player) UI.tab="world"; render(); }
@@ -4067,7 +4199,7 @@ function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
   else if(a==="news"){ UI.news={f:"all",q:c.name,page:0,al:"all"}; UI.tab="news"; render(); $("panel").scrollTop=0; }
   else if(a==="center") mainView.centerOn(o,Math.max(mainView.z,mainView.focusZoom()));
   else if(a==="take"){ UI.sel=o; UI.takeConfirm=o; UI.tab="world"; render(); } }
-$("ctxMenu").addEventListener("click",e=>{ e.stopPropagation(); const b=e.target.closest("button[data-ctx]"); if(!b||b.disabled||UI.busy) return; ctxDo(b.dataset.ctx,+$("ctxMenu").dataset.id); });
+$("ctxMenu").addEventListener("click",e=>{ e.stopPropagation(); const b=e.target.closest("button[data-ctx]"); if(!b||b.disabled||UI.busy) return; const a=b.dataset.ctx, o=+$("ctxMenu").dataset.id; if(a.startsWith("spy")&&ctxSpyDo(a,o)) return; ctxDo(a,o); });
 document.addEventListener("pointerdown",e=>{ if(!e.target.closest?.("#ctxMenu")) closeCtx(); },true);
 document.addEventListener("keydown",e=>{ const m=$("ctxMenu"); if(m.hidden) return;
   if(e.key==="Escape"){ closeCtx(); e.preventDefault(); e.stopPropagation(); return; }
@@ -4263,7 +4395,7 @@ function revoltNext(g,c){ if(inPeace(g)&&g.turn+1<=g.peace) return 0; const v=Ma
 function loyCard(c){
   const v=loyOf(c), ceil=loyCeil(G,c), [st,cls]=loyState(v), rec=loyRecOf(G,c), p=revoltNext(G,c), y=c.loyY, pc=festCost(G,c), room=festRoom(G,c), can=Math.min(room,Math.floor(c.money/pc));
   const card=(l,val,sub)=>`<div class="stat"><span class="mut">${l}</span><b>${val}</b><span style="color:var(--mut)">${sub}</span></div>`, n1=x=>+(+x).toFixed(1);
-  const last=y?[["recovery",+y.rec],["land won",-y.conq],["settling",-y.set],["famine",-(y.fam||0)],["empty treasury",-(y.broke||0)],["revolt",+(y.revolt||0)],["Governor",+(y.gov||0)],["relics",+(y.rel||0)]].filter(x=>Math.abs(x[1])>=0.05).map(([l,x])=>`<span class="${x>0?"good":"bad"}">${x>0?"+":"−"}${n1(Math.abs(x))}</span> ${l}`).join(" · ")+(y.cut?` · held at the ceiling`:""):"";
+  const last=y?[["recovery",+y.rec],["land won",-y.conq],["settling",-y.set],["famine",-(y.fam||0)],["empty treasury",-(y.broke||0)],["revolt",+(y.revolt||0)],["Governor",+(y.gov||0)],["relics",+(y.rel||0)],["unrest stirred by spies",-(y.spy||0)]].filter(x=>Math.abs(x[1])>=0.05).map(([l,x])=>`<span class="${x>0?"good":"bad"}">${x>0?"+":"−"}${n1(Math.abs(x))}</span> ${l}`).join(" · ")+(y.cut?` · held at the ceiling`:""):"";
   const fest=c.festT===G.turn&&c.festN?` · <span class="good">+${c.festN}</span> festivals this year`:"";
   return `<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px">
     ${card(`Loyalty ${gl("loyalty")}`,`<span class="${cls}">${Math.round(v)}</span> <span class="small mut">/ ${ceil}</span>`,`<span class="bar" style="display:block;margin:4px 0 2px"><i style="width:${Math.round(v)}%;background:${loyColor(v)}"></i></span>${st}`)}
@@ -4727,10 +4859,10 @@ const genFrame=(x,civ,cls="",o)=>{ const r=RAR_OF[x.tier||tierOf(x)]; return `<d
 const gPc=v=>Math.round(v*100)+"%";
 function traitText(id,gen){ const t=GTR[id]; if(!t) return "";
   const tp={drill:"Spearmen",bows:"Archers",berserk:"Axemen",pike:"Pikemen",blade:"Swordsmen",horse:"Cavalry"}[id], tb=id==="blade"||id==="horse"?R.trTroopStrong:R.trTroop;
-  return ({lucky:`In his battles luck is rolled ${R.trLuckyDice} times and he keeps the best roll: about ×${+luckMean({traits:["lucky"]}).toFixed(3)} on average instead of ×1.`,
-    luckyB:`Luck is rolled ${R.trLuckyBDice} times and he keeps the best: about ×${+luckMean({traits:["luckyB"]}).toFixed(3)} on average. Rare; also earned by winning ${R.trLuckyEarnWins} battles on a luck roll of ×${R.trLuckyEarnRoll} or better.`,
-    jinx:`Luck is rolled ${R.trJinxDice} times and he keeps the worst: about ×${+luckMean({traits:["jinx"]}).toFixed(3)} on average.`,
-    reckless:`Luck swings ±${gPc(R.trReckless)} instead of ±${gPc(R.battleLuck)}: big wins and bad days.`,
+  return ({lucky:`In his battles luck is rolled ${R.trLuckyDice} times and he keeps the best roll: about ×${+luckMean({traits:["lucky"]}).toFixed(3)} on average instead of ×1. As Spymaster: rolls twice for success and keeps the best.`,
+    luckyB:`Luck is rolled ${R.trLuckyBDice} times and he keeps the best: about ×${+luckMean({traits:["luckyB"]}).toFixed(3)} on average. Rare; also earned by winning ${R.trLuckyEarnWins} battles on a luck roll of ×${R.trLuckyEarnRoll} or better. As Spymaster: rolls three times for success and keeps the best.`,
+    jinx:`Luck is rolled ${R.trJinxDice} times and he keeps the worst: about ×${+luckMean({traits:["jinx"]}).toFixed(3)} on average. As Spymaster: rolls twice for success and keeps the worst.`,
+    reckless:`Luck swings ±${gPc(R.trReckless)} instead of ±${gPc(R.battleLuck)}: big wins and bad days. As Spymaster: ${gPc(R.spyTrait)} more success, but found out ${gPc(R.spyTrait)} more often.`,
     fox:`Attacking: the defender's forest and mountain bonus counts ×${1-R.trFox}. Defending: his own counts ×${1+R.trFox}.`,
     siege:`Attacking: the narrow-front and sea-crossing bonuses count ×${1-R.trSiege}. Rare.`,
     drill:`${tp} he commands +${gPc(tb)} attack and defense, for their share of the army. Spearmen hold ${R.trSpearHold} km² each instead of 1.`,
@@ -4739,12 +4871,12 @@ function traitText(id,gen){ const t=GTR[id]; if(!t) return "";
     pike:`${tp} he commands +${gPc(tb)} defense, for their share of the army. Enemy cavalry fights ${gPc(R.trPikeCav)} weaker against him.`,
     blade:`${tp} he commands +${gPc(tb)} attack and defense, for their share of the army, and are ${gPc(R.trBladeTough)} tougher.`,
     horse:`${tp} he commands +${gPc(tb)} attack and defense, for their share of the army. Speed +${R.trHorseSpeed}: wins can take more land.`,
-    cautious:`When he loses, his troops lose ${gPc(R.trCautiousLoss)} less. His wins take ${gPc(R.trCautiousLand)} less land; as defender a broken border loses ${gPc(R.trCautiousLand)} less.`,
+    cautious:`When he loses, his troops lose ${gPc(R.trCautiousLoss)} less. His wins take ${gPc(R.trCautiousLand)} less land; as defender a broken border loses ${gPc(R.trCautiousLand)} less. As Spymaster: found out ${gPc(R.spyTrait)} less often.`,
     coward:`Attacking: calls the attack off if the enemy looks ${R.trCowardOdds}× stronger (−${R.trCowardMorale} morale). Defending: −${gPc(R.trCowardDef)} when the attacker is stronger.`,
-    butcher:`+${gPc(R.trButcherAtk)} attack. Each win costs ${R.trButcherLoy} loyalty at home and the beaten state's grievance grows ×${R.trButcherGrudge}.`,
+    butcher:`+${gPc(R.trButcherAtk)} attack. Each win costs ${R.trButcherLoy} loyalty at home and the beaten state's grievance grows ×${R.trButcherGrudge}. As Spymaster: a state that catches him holds ×${R.trButcherGrudge} the grievance.`,
     beloved:`Each win gives +${R.trBelovedLoy} loyalty at home (at most +${R.trBelovedMax} a year). His morale recovers ${R.trBelovedRec} a year instead of ${R.moraleRecovery}.`,
-    greedy:`Asks a yearly wage of ${gPc(R.trGreedyWage)} of his tier's price${gen?` (${fmt(Math.round(tierPrice(gen)*R.trGreedyWage))} gold)`:""}.`,
-    drunk:`Each year his morale moves by up to ±${R.trDrunkSwing}, and yearly training gives ×${R.trDrunkTrain} the skill.`,
+    greedy:`Asks a yearly wage of ${gPc(R.trGreedyWage)} of his tier's price${gen?` (${fmt(Math.round(tierPrice(gen)*R.trGreedyWage))} gold)`:""}. As Spymaster: keeps half the gold he steals.`,
+    drunk:`Each year his morale moves by up to ±${R.trDrunkSwing}, and yearly training gives ×${R.trDrunkTrain} the skill. At a post (Spymaster too) half as good in a bad year.`,
     quarter:`Only at the Quartermaster post: its effect ×${R.postQmFit}, so the army eats up to ${gPc(R.postQmMax)} less grain. Nothing in the field.`,
     oldguard:`Earned in his ${R.trOldGuardN}th battle. His morale never drops below ${R.trOldGuardFloor}.`,
     nemesis:`Earned by losing ${R.trNemesisLoss} times to one state. +${gPc(R.trNemesis)} strength against it${gen?.nem!=null&&G?.countries[gen.nem]?`: ${G.countries[gen.nem].name}`:""}.`})[id]||""; }
@@ -4797,20 +4929,24 @@ function pGenerals(){
 const POST_ICON={
   qm:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7c0-2 2-3 5-3s5 1 5 3l2 11c0 2-3 3-7 3s-7-1-7-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 7h8" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M10 13l2-2 2 2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
   drill:`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M19 5l-6 6M19 5h-3M19 5v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
-  chief:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="1.4"/><path d="M6 11l2 2 3-4 3 3 3-2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+  spy:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5c2-1 5.5-1.6 9-1.6s7 .6 9 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 9.4L8.6 4.5h6.8L17 9.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="15.5" r="2.8" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="15.5" r="2.8" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10.8 15.2c.8-.5 1.6-.5 2.4 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
   gov:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3 20h18M4 17.5h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`};
 const SEAT_SIL=`<svg viewBox="0 0 100 120" aria-hidden="true"><rect width="100" height="120" fill="#0f1114"/><circle cx="50" cy="48" r="20" fill="#252931" stroke="#353a44" stroke-width="2" stroke-dasharray="4 3"/><path d="M14 120C16 96 32 84 50 84C68 84 84 96 86 120" fill="#252931" stroke="#353a44" stroke-width="2" stroke-dasharray="4 3"/><text x="50" y="55" text-anchor="middle" font-size="22" fill="#9aa1ad" font-family="system-ui">+</text></svg>`;
 const TROOP_PL={spear:"Spearmen",archer:"Archers",axe:"Axemen",pike:"Pikemen",sword:"Swordsmen",cav:"Cavalry"};
-const POST_FIT={qm:["quarter"],drill:["drill","bows","berserk","pike","blade","horse"],chief:["beloved"],gov:["beloved","greedy","butcher"]};
+const POST_FIT={qm:["quarter"],drill:["drill","bows","berserk","pike","blade","horse"],spy:["cautious","reckless","lucky"],gov:["beloved","greedy","butcher"]};
 const postWhat=id=>({qm:`Army eats less grain: ${gPc(R.postQm)} per Mind (at most ${gPc(R.postQmMax)}).`,drill:`Field generals learn faster: +${R.postDrill} skill a year per Mind.`,
-  chief:`Field generals recover faster: +${R.postChief} morale a year per Mind.`,gov:`Runs the land: ease the people or squeeze them for taxes.`})[id];
+  spy:`One spy operation a year against a neighbor; guards you against theirs. Skill against skill.`,gov:`Runs the land: ease the people or squeeze them for taxes.`})[id];
 // one line on what a general gives (or would give) at a post
 function postLine(c,gen,id,pol){ const e=postEff(c,gen,id,pol), dr=hasTr(gen,"drunk")?" (Drunkard: half in bad years)":"";
   if(id==="qm") return `Army eats ${+(e.food*100).toFixed(1)}% less grain${dr}`;
   if(id==="drill") return `Field generals +${e.skill} skill a year${e.troops.length?`; ${e.troops.map(t=>TROOP_PL[t]).join(", ").replace(/, ([^,]*)$/," and $1")} fight ${gPc(R.postDrillTroop)} stronger in your battles`:""}${dr}`;
-  if(id==="chief") return `Field generals +${e.morale} morale a year${dr}`;
+  if(id==="spy") return `Spy skill ${e.skill}${dr}`;
   const rd=RELICS[relK(gen)], rl=rd?.rs&&gen.post==="gov"?`; ${REL_RES[rd.rs][1].toLowerCase()} +${+(rlv(gen,govResVal(rd))*100).toFixed(1)}% (relic)`:""; // a Governor relic, once he holds the post
   return (e.tax?`Taxes +${+(e.tax*100).toFixed(1)}%, loyalty ${+e.loy.toFixed(1)} a year${dr}`:`Loyalty +${+e.loy.toFixed(1)} a year${e.revolt<1?" (iron fist: revolts less likely)":""}${dr}`)+rl; }
+// the Spymaster's order this year, on his seat
+function spySeatOrder(c){ const o=c.spy; if(!o) return `<div class="small mut">No operation ordered. Right-click a neighbor on the map → Sabotage.</div>`;
+  const D=G.countries[o.to], f=o.fr!=null?G.countries[o.fr]:null;
+  return `<div class="small">${SPY[o.op].ic} ${esc(SPY[o.op].name)} in <b>${esc(D.name)}</b>${f?` · blamed on ${esc(f.name)}`:""}<br><span class="mut">${spyOddsTxt(c,D,o.op)}</span> <button class="lnk" data-spyoff="1">Call off</button></div>`; }
 function pStaff(){
   const c=me(), open=POST_IDS.includes(UI.staffOpen)?UI.staffOpen:null, pol=c.govPol==="squeeze"?"squeeze":"ease";
   const seat=p=>{ const h=postHolder(c,p.id);
@@ -4818,10 +4954,11 @@ function pStaff(){
       <button class="pick" data-staffopen="${p.id}" aria-label="${h?"Change":"Choose"} the ${p.name}">${h?genFrame(h,c.color):`<div class="pf empty">${SEAT_SIL}</div>`}</button>
       ${h?`<b class="nm">${esc(h.name)}</b>`:`<span class="nm mut">Nobody</span>`}
       <div class="eff ${h?"":"none"}">${h?esc(postLine(c,h,p.id)):"No effect this year"}</div>
+      ${p.id==="spy"&&h?spySeatOrder(c):""}
       ${p.id==="gov"?`<div class="pol" role="group" aria-label="Governor's policy"><button class="sm${pol==="ease"?" on":""}" data-govpol="ease" title="Ease: loyalty +${R.postEase} a year per Mind">Ease</button><button class="sm${pol==="squeeze"?" on":""}" data-govpol="squeeze" title="Squeeze: taxes +${gPc(R.postSqTax)} and loyalty −${R.postSqLoy} a year per Mind. Below ${R.loyUnrest} loyalty taxes drop ${gPc(R.loyUnrestTax)}, so squeezing too hard backfires.">Squeeze</button></div>`:""}
       <div class="fit">${POST_FIT[p.id].slice(0,p.id==="drill"?2:3).map(k=>trChip(k)).join("")}${p.id==="drill"?`<span class="small mut">or any troop trait</span>`:""}</div></div>`; };
   const picker=()=>{ if(!open) return ""; const p=POSTS.find(x=>x.id===open), h=postHolder(c,open), fit=POST_FIT[open];
-    const score=x=>{ const e=postEff(c,x,open); return open==="qm"?e.food*100:open==="drill"?e.skill+e.troops.length:open==="chief"?e.morale:Math.abs(e.loy)*5+(e.tax||0)*100; };
+    const score=x=>{ const e=postEff(c,x,open); return open==="qm"?e.food*100:open==="drill"?e.skill+e.troops.length:open==="spy"?e.skill:Math.abs(e.loy)*5+(e.tax||0)*100; };
     const list=c.generals.filter(x=>x!==h).map(x=>({x,fits:x.traits?.some(k=>fit.includes(k)&&!x.hid?.includes(k))})).sort((a,b)=>(b.fits-a.fits)||(score(b.x)-score(a.x)));
     const row=({x,fits})=>{ const atk=c.attacks.find(a=>a.gen===x.id), note=atk?`<span class="warnl">His attack on ${esc(G.countries[atk.target].name)} is called off</span>`:x.post?`<span class="warnl">Leaves the ${POSTS.find(q=>q.id===x.post).name} post</span>`:c.defGen===x.id?`<span class="warnl">Stops defending the border</span>`:"";
       return `<div class="sprow">${genFrame(x,c.color)}<div class="spn"><b>${esc(x.name)}${fits?`<span class="kfit">fits</span>`:""}</b><span class="meta">Mind ${x.mind} · age ${x.age} · skill ${Math.round(x.skill)}</span><span class="pe ${fits?"":"low"}">${esc(postLine(c,x,open))}</span>${note}<div class="gtraits">${genTraits(x)}</div></div><button class="pri sm" data-put="${x.id}" data-post="${open}">Post here</button></div>`; };
@@ -4829,7 +4966,7 @@ function pStaff(){
       ${h?`<div class="sprow cur">${genFrame(h,c.color)}<div class="spn"><b>${esc(h.name)}</b><span class="meta">At this post now</span><span class="pe">${esc(postLine(c,h,open))}</span></div><button class="sm" data-unpost="${h.id}">Take him off</button></div>`:""}
       ${list.length?list.map(row).join(""):`<div class="small mut">No other generals. Hire one in the <button class="sm" data-tab="generals" data-sub="tavern">Tavern</button>.</div>`}
       <div class="small mut" style="margin-top:6px">Shown with what each would give at this post, best first. It counts at the end of the year.</div></div>`; };
-  const q=postNow(c,"qm"), d=postNow(c,"drill"), ch=postNow(c,"chief"), gv=postNow(c,"gov"), nf=fieldGens(c).length, has=id=>!!postHolder(c,id);
+  const q=postNow(c,"qm"), d=postNow(c,"drill"), sp=c.spy&&postHolder(c,"spy")?c.spy:null, gv=postNow(c,"gov"), nf=fieldGens(c).length, has=id=>!!postHolder(c,id);
   const box=(l,on,v,sub)=>`<div><span>${l}</span><b class="${on?"":"z"}">${on?v:"—"}</b><em>${sub}</em></div>`;
   return `<div class="tavern">
    <div class="psec"><h3 class="tvh">Staff posts ${gl("staff")}<span class="grow"></span><span class="rt">${POST_IDS.filter(has).length} of ${POST_IDS.length} filled · ${c.generals.length} of ${R.genMax} generals</span></h3>
@@ -4839,7 +4976,7 @@ function pStaff(){
    <div class="psec"><h3 class="tvh">This year from your staff</h3><div class="stot">
     ${box("Army grain",has("qm"),`−${+(q.food*100).toFixed(1)}%`,has("qm")?"eaten a year":"no Quartermaster")}
     ${box("Field skill",has("drill"),`+${d.skill}`,has("drill")?`a year, ${nf} general${nf===1?"":"s"}`:"no Drillmaster")}
-    ${box("Field morale",has("chief"),`+${ch.morale}`,has("chief")?"a year, on top of rest":"no Chief of Staff")}
+    ${box("Spying",has("spy"),sp?`${SPY[sp.op].ic} ${spyOddsTxt(c,G.countries[sp.to],sp.op).split(" · ")[0]}`:"idle",has("spy")?(sp?`${esc(SPY[sp.op].name)} in ${esc(G.countries[sp.to].name)}`:"right-click a neighbor on the map: Sabotage"):"no Spymaster")}
     ${box(gv.tax?"Taxes · loyalty":"Loyalty",has("gov"),gv.tax?`+${+(gv.tax*100).toFixed(1)}% · ${+gv.loy.toFixed(1)}`:`+${+(gv.loy||0).toFixed(1)}`,has("gov")?(loyOn(G)?"a year":"a year (Rebellions are off: loyalty does nothing)"):"no Governor")}</div></div>
   </div>`; }
 // ---------- Generals → Treasury: relics your generals carry, the ones waiting, and the famous ones ----------
@@ -5260,8 +5397,16 @@ function svNeighbors(id){ const c=G.countries[id], nb=[...adjacency(G)[id]].filt
   const nm=j=>`<span class="sw" style="background:${G.countries[j].color}"></span>${j===G.player?"<b>You</b>":isKnown(j)?esc(G.countries[j].name):'<span class="mut">Unknown state</span>'}${allied(G,id,j)?' <span class="svtag">ally</span>':""}${atWar(G,id,j)?' <span class="svtag war">war</span>':""}`;
   return `<div class="svrt"><div class="svrh"><span></span><span>Its feelings</span><span>Theirs back</span></div>${rows.map(x=>`<div class="svrr${isKnown(x.j)||x.j===G.player?" click":""}" ${isKnown(x.j)||x.j===G.player?`data-pick="${x.j}" title="Open ${esc(G.countries[x.j].name)}"`:""}><span class="nm">${nm(x.j)}</span><span class="cell">${svNum(x.out)}${svBar(x.out)}</span><span class="cell">${svNum(x.inn)}${svBar(x.inn)}</span></div>`).join("")}</div>
    <div class="small mut">Its neighbors, worst first: how ${esc(c.name)} feels about each one, and how they feel back. Click one to open it.</div>`; }
+// state view → Spies: what your Spymaster found out about this state (each report keeps the year it was made)
+function svSpies(c){ const pl=me(), I=pl.intel?.[c.id]||{}, adj=adjacency(G)[pl.id].has(c.id), sp=postHolder(pl,"spy"), yr=t=>`<span class="small mut">year ${t}${G.turn-t>1?` · ${G.turn-t} years old`:""}</span>`;
+  const sc=I.scout, gs=I.gens, ct=I.court, ST={fall:"Fall back",hold:"Hold",stand:"Stand ground"};
+  const head=`<div class="small mut">${sp?`Your Spymaster ${esc(sp.name)} (skill ${spySkill(sp)}). `:"You have no Spymaster (Generals → Staff). "}${adj?"Right-click this state on the map → Sabotage to order an operation.":"It doesn't border you: no operations."}${pl.spyBurn?.[c.id]>G.turn?` <span class="bad">Your network here is burned until year ${pl.spyBurn[c.id]}.</span>`:""} ${gl("spies")}</div>`;
+  const army=sc?`<div class="svt wide"><span>🔭 Army and stores ${yr(sc.t)}</span><b>${fmt(troopCount(sc.tr))} soldiers · ${ST[sc.st]||sc.st}</b><em>${TROOPS.filter(t=>sc.tr[t.id]>0).map(t=>`${t.icon||""} ${fmt(sc.tr[t.id])} ${esc(TROOP_PL[t.id]||t.name)}`).join(" · ")||"no troops"}</em><em>💰 ${fmt(sc.money)} · 🌾 ${fmt(sc.grain)} · 🪵 ${fmt(sc.wood)} · ⛏️ ${fmt(sc.iron)}${sc.ft!=null?` · war footing ${Math.round(sc.ft*100)}%`:""}</em></div>`:"";
+  const court=ct?`<div class="svt wide"><span>🕸️ Court ${yr(ct.t)}</span><b>${ct.sp?`Spymaster ${esc(ct.sp.name)}, skill ${ct.sp.skill}`:"No Spymaster"}</b>${ct.sp?.traits?.length?`<em>${ct.sp.traits.map(k=>GTR[k]?`${GTR[k].icon} ${GTR[k].name}`:"").join(" · ")}</em>`:""}</div>`:"";
+  const gens=gs?`<div class="svt wide"><span>📜 Generals ${yr(gs.t)}</span>${gs.list.length?gs.list.map(x=>`<em><b>${esc(x.name)}</b> · Mind ${x.mind} · skill ${x.skill} · morale ${x.morale} · age ${x.age}${x.post?` · ${POSTS.find(p=>p.id===x.post)?.name||""}`:x.def?" · defender":""}${x.traits.length?" · "+x.traits.map(k=>GTR[k]?`${GTR[k].icon} ${GTR[k].name}`:"").join(", "):""}${x.rel?` · 🏺 ${esc(RELICS[x.rel]?.name||"")}`:""}</em>`).join(""):"<em>No generals</em>"}</div>`:"";
+  return head+(army||court||gens?`<div class="svtiles">${army}${court}${gens}</div>`:`<div class="small mut" style="margin-top:8px">No spy reports yet. Intel operations (scout their army, read their generals, map their court) fill this tab.</div>`); }
 function inspect(c){
-  const pl=me(), self=c.id===G.player, adj=!observing()&&neighbors(G,pl.id).includes(c.id), tab=["ov","rel","sci"].includes(UI.svTab)?UI.svTab:"ov";
+  const pl=me(), self=c.id===G.player, adj=!observing()&&neighbors(G,pl.id).includes(c.id), spyOn=!self&&!observing()&&pl.alive, tab=["ov","rel","sci",...(spyOn?["spy"]:[])].includes(UI.svTab)?UI.svTab:"ov";
   const showRel=!self&&!observing(), rv=showRel?Math.round(relOf(G,c,G.player)):0;
   const head=`<div class="svh"><div class="svflag"><i style="background:${c.color}"></i></div><div class="svid"><b class="svnm">${esc(c.name)}${self?' <span class="small mut">(you)</span>':""}</b>
      ${G.teams&&c.team!=null?`<button class="mlink small" data-alliance="${c.team}" title="Open the alliance">${allyPrefix(c)}${esc(G.teams[c.team].name)}</button>`:""}
@@ -5272,7 +5417,7 @@ function inspect(c){
   const alive=G.countries.filter(x=>x.alive), rank=1+alive.filter(x=>x.land>c.land).length, loy=loyOf(c), wars=warsOf(G,c.id), won=wondersOf(G,c.id), fam=relAll(c).filter(r=>RELICS[r.k]?.k==="u");
   const tb=(id,l)=>`<button class="svtb${tab===id?" on":""}" data-svtab="${id}">${l}</button>`;
   const tot=AREAS.reduce((s,a)=>s+(c.lv[a]||0),0), avg=Math.round(alive.reduce((s,x)=>s+AREAS.reduce((t,a)=>t+(x.lv[a]||0),0),0)/Math.max(1,alive.length)), mxL=Math.max(1,...alive.flatMap(x=>AREAS.map(a=>x.lv[a]||0)));
-  const body=tab==="rel"?`${showRel?`<div class="svyou"><span class="small mut">How it feels about you</span><div class="svbig" style="color:${relColor(rv)}">${rv>0?"+":""}${rv} <span>${relLabel(rv)}</span></div>${svBar(rv)}
+  const body=tab==="spy"?svSpies(c):tab==="rel"?`${showRel?`<div class="svyou"><span class="small mut">How it feels about you</span><div class="svbig" style="color:${relColor(rv)}">${rv>0?"+":""}${rv} <span>${relLabel(rv)}</span></div>${svBar(rv)}
        <div class="svparts">${relParts(G,c,G.player).map(([n,v])=>`<span>${esc(n)} ${svNum(v*3)}</span>`.replace(svNum(v*3),`<b style="color:${relColor(v*3)}">${v>0?"+":""}${v}</b>`)).join("")||'<span class="mut">No strong feelings</span>'}</div></div>`:""}
      ${svNeighbors(c.id)}`
     :tab==="sci"?`<div class="svlvs">${AREAS.map(a=>`<div class="svlv"><span>${SV_IC[a]||""}</span><span class="ln">${AREA_NAMES[a]}</span><b>${c.lv[a]||0}</b><span class="lb"><i style="width:${Math.round((c.lv[a]||0)/mxL*100)}%"></i></span></div>`).join("")}</div>
@@ -5290,7 +5435,7 @@ function inspect(c){
     :canGiveAway()?(UI.giveConfirm
     ?`<div class="row small"><span>Hand <b>${esc(c.name)}</b> to the computer and keep watching? You can take over any state later.</span><button class="sm pri" data-giveaway="1">Yes, hand over</button><button class="sm" data-giveask="0">Cancel</button></div>`
     :`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button><button class="sm" data-giveask="1" title="The computer rules your state from now on; you watch as an observer">Hand to computer</button></div>`):`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button></div>`;
-  return `<div class="sv" style="--sc:${c.color}">${head}<div class="svtabs">${tb("ov","Overview")}${tb("rel","Relations")}${tb("sci","Science")}<span class="grow"></span>${gl("relations")}</div><div class="svbd">${body}</div><div class="svacts">${acts}</div></div>`;
+  return `<div class="sv" style="--sc:${c.color}">${head}<div class="svtabs">${tb("ov","Overview")}${tb("rel","Relations")}${tb("sci","Science")}${spyOn?tb("spy","Spies"):""}<span class="grow"></span>${gl("relations")}</div><div class="svbd">${body}</div><div class="svacts">${acts}</div></div>`;
 }
 // fog of war: show a battle if you can see either side
 function seenBattle(b){ return b.att===G.player||b.def===G.player||isKnown(b.att)||isKnown(b.def); }
@@ -5390,7 +5535,7 @@ function reportHtml(b,d,ref){
   const wonderRow=(area,v)=>v>1?multRow(`${WONDERS[area].icon} ${esc(WONDERS[area].name)}`,v):multRow("🏛 Wonder: none",1);
   // general traits that changed the battle (newer reports): one row each; luck says how it was rolled
   const TRN={spear:"spearmen",archer:"archers",axe:"axemen",pike:"pikemen",sword:"swordsmen",cav:"cavalry"};
-  const trLab=([k,v,sh,tp])=>k.startsWith?.("relE:")?`🏺 Enemy's ${RELICS[k.slice(5)]?.name||"relic"}: cavalry weaker (${Math.round(sh*100)}% of the army)`:k.startsWith?.("rel:")?`🏺 ${RELICS[k.slice(4)]?.name||"Relic"}${k==="rel:hammer"?": no narrow-pass or sea bonus":k==="rel:mking"?": no forest bonus":tp?`: ${TRN[tp]} (${Math.round(sh*100)}% of the army)`:""}`:TROOP_TRAIT[k]?`${GTR[k].icon} ${GTR[k].name}: ${TRN[TROOP_TRAIT[k]]} (${Math.round(sh*100)}% of the army)`:k==="pikeE"?"🔰 Enemy Pike Square: cavalry weaker":k==="siege"?"🏰 Attacker's Siege Breaker: border bonus cut":k==="foxA"?"⛰️ Attacker's Mountain Fox: terrain bonus cut":k==="foxD"?"⛰️ Mountain Fox: terrain bonus raised":k==="coward"?"🏳️ Coward: the attacker looked stronger":k==="drillP"?`🎯 Drillmaster: ${TRN[tp]||""} (${Math.round(sh*100)}% of the army)`:`${GTR[k]?.icon||""} ${GTR[k]?.name||k}`;
+  const trLab=([k,v,sh,tp])=>k.startsWith?.("relE:")?`🏺 Enemy's ${RELICS[k.slice(5)]?.name||"relic"}: cavalry weaker (${Math.round(sh*100)}% of the army)`:k.startsWith?.("rel:")?`🏺 ${RELICS[k.slice(4)]?.name||"Relic"}${k==="rel:hammer"?": no narrow-pass or sea bonus":k==="rel:mking"?": no forest bonus":tp?`: ${TRN[tp]} (${Math.round(sh*100)}% of the army)`:""}`:TROOP_TRAIT[k]?`${GTR[k].icon} ${GTR[k].name}: ${TRN[TROOP_TRAIT[k]]} (${Math.round(sh*100)}% of the army)`:k==="pikeE"?"🔰 Enemy Pike Square: cavalry weaker":k==="siege"?"🏰 Attacker's Siege Breaker: border bonus cut":k==="foxA"?"⛰️ Attacker's Mountain Fox: terrain bonus cut":k==="foxD"?"⛰️ Mountain Fox: terrain bonus raised":k==="coward"?"🏳️ Coward: the attacker looked stronger":k==="gates"?"🗝️ Bribed guards opened the gates":k==="drillP"?`🎯 Drillmaster: ${TRN[tp]||""} (${Math.round(sh*100)}% of the army)`:`${GTR[k]?.icon||""} ${GTR[k]?.name||k}`;
   const trRows=L=>(L||[]).map(e=>multRow(`<span class="acc">${esc(trLab(e))}</span>`,e[1])).join("");
   const luckLab=k=>{ if(!k) return "Battle luck"; const b=[]; if(k.n>1) b.push(k.worst?`🐈‍⬛ worst of ${k.n} rolls`:`🍀 best of ${k.n} rolls`); if(Math.abs(k.w-R.battleLuck)>1e-9) b.push(`🎲 ±${Math.round(k.w*100)}%`); return b.length?`Battle luck <span class="acc">(${b.join(", ")})</span>`:"Battle luck"; };
   const genRow=(g,v)=>multRow(g?`General ${esc(g[0])} (skill ${g[2]}, morale ${g[4]})`:"No general",v,g?`skill ${g[2]} → ${mul(0.4+g[2]*0.008)} · morale ${g[4]} → ${mul(0.5+g[4]/200)}`:"");
@@ -5521,7 +5666,8 @@ const SETTINGS_META=[
   ["Relations (−100 hostile … +100 friendly, the sum of the factors)",[["rgHit","Grievance: when attacked"],["rgHitLand","Grievance: extra per 1% of land taken"],["rgHitFail","Grievance: when they were held off"],["rgFade","Grievance: fades per year","%"],["rgRevWin","Revenge: a winning strike back clears","%"],["rgRevLand","Revenge: extra cleared per 1% of their land taken","%"],["rgRevMax","Revenge: most a win clears","%"],["rgRevFail","Revenge: a failed strike back clears","%"],["rsHit","Solidarity: when an ally is attacked"],["rsHitLand","Solidarity: extra per 1% of the ally's land taken"],["rsMax","Solidarity: at most"],["rsFade","Solidarity: fades per year","%"],["rsRevWin","Solidarity: our winning strike back clears","%"],["rsRevAlly","Solidarity: the ally's winning revenge clears","%"],["rwHit","Wariness: when they attack another neighbor"],["rwNear","Wariness: if that neighbor borders us too"],["rwMax","Wariness: at most"],["rwFade","Wariness: fades per year while they attack nobody","%"],["rfFrom","Fear: starts when they are this many × our size"],["rfPer","Fear: per extra × our size"],["rfMax","Fear: at most"],["rfEase","Fear: moves toward its level per year","%"],["rtYear","Trust: per year of peace on the border"],["rtMax","Trust: at most"],["rtWipe","Trust: share wiped by an attack","%"],["reFoe","Common enemy: grudge needed against the same state"],["reEach","Common enemy: per shared enemy"],["reMax","Common enemy: at most"],["relJustified","Striking back: victim and onlookers take it × (within the years below)"],["relJustYears","Striking back: counts if they attacked you within (years)"],["relFade","Non-neighbors: feelings fade per year","%"],["relNoiseAmp","Random start (new-game option): ± range"],["relScore","Computer: attack priority = −feelings ÷ this (grudges ×1.5)"],["relGuard","Computer: threat from a neighbor ± by its relation","%"],["rvGrievance","Computer: smaller edge needed at full grievance","%"],["rvSolidarity","Computer: smaller edge needed at full solidarity","%"],["rvTrust","Computer: bigger edge needed at full trust","%"],["rvCommon","Computer: bigger edge needed vs a common-enemy partner","%"],["rvFear","Computer: smaller edge at full fear, only while others attack them","%"],["rvWary","Computer: smaller edge at full wariness, vs a neighbor at war last year","%"],["rvWaryChance","Computer: stepping in counts as this × a full grudge for the yearly chance"],["rxShare","Computer exposure: share of an angry neighbor's army it expects could hit","%"],["rxGuard","Computer exposure: home guard × that combined threat"],["rxGuardMax","Computer exposure: guard at most this share of the army","%"],["rxEdge","Computer exposure: bigger edge needed when fully exposed","%"],["rvFloor","Computer: grudges never make it attack below (× defender)"],["rvFloorWar","Computer: same, warlike leaders"],["rvChance","Computer: revenge chance per year, base","%"],["rvChanceK","Computer: revenge chance per year at full grudge, extra","%"],["rvChanceMax","Computer: revenge chance at most","%"],["rvOpen","Computer: extra revenge chance after they fought, lost or starved","%"],["rvCooldown","Computer: years before trying again after a failed revenge"],["rvBold","Computer: a full grudge sends out more troops (as bold)","%"],["rvArmy","Computer: a full grudge grows the army","%"],["rvAway","Computer: a grudge counts this share of the troops a neighbor sent out last year as away","%"]]],
   ["Generals",[["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
   ["Generals: Tavern (tiers: the General tiers tab)",[["genCalls","Calls per tier per year"],["genRise","Each extra call that year costs (×)"],["genCards","Candidates per call"],["genMax","Most generals a state can keep"],["genHide","Rolled traits that start hidden","%"],["genTroopShare","Good trait slots that roll a troop trait","%"]]],
-  ["Generals: staff posts",[["postQm","Quartermaster: less grain eaten by the army per Mind","%"],["postQmFit","Quartermaster: Iron Quartermaster (×)"],["postQmMax","Quartermaster: at most","%"],["postDrill","Drillmaster: skill a year per Mind for generals in the field"],["postDrillTroop","Drillmaster: his troop traits' troops fight better","%"],["postChief","Chief of Staff: morale a year per Mind for generals in the field"],["postChiefFit","Chief of Staff: Beloved (×)"],["postEase","Governor, Ease: loyalty a year per Mind"],["postSqTax","Governor, Squeeze: taxes per Mind","%"],["postSqLoy","Governor, Squeeze: loyalty lost a year per Mind"],["postGovRevolt","Governor: a Butcher's revolt chance (×)"],["postDrunk","A Drunkard at a post in a bad year (×)"]]],
+  ["Generals: staff posts",[["postQm","Quartermaster: less grain eaten by the army per Mind","%"],["postQmFit","Quartermaster: Iron Quartermaster (×)"],["postQmMax","Quartermaster: at most","%"],["postDrill","Drillmaster: skill a year per Mind for generals in the field"],["postDrillTroop","Drillmaster: his troop traits' troops fight better","%"],["postEase","Governor, Ease: loyalty a year per Mind"],["postSqTax","Governor, Squeeze: taxes per Mind","%"],["postSqLoy","Governor, Squeeze: loyalty lost a year per Mind"],["postGovRevolt","Governor: a Butcher's revolt chance (×)"],["postDrunk","A Drunkard at a post in a bad year (×)"]]],
+  ["Generals: Spymaster",[["spySkill","Success: more per point of skill over the target's Spymaster","%"],["spySkillDt","Found out: less per point of skill over theirs","%"],["spyMin","Chances never under","%"],["spyMax","Chances never over","%"],["spyOkScout","Scout their army: chance to succeed at equal skill","%"],["spyDtScout","Scout their army: chance to be found out at equal skill","%"],["spyOkGens","Read their generals: chance to succeed at equal skill","%"],["spyDtGens","Read their generals: chance to be found out at equal skill","%"],["spyOkCourt","Map their court: chance to succeed at equal skill","%"],["spyDtCourt","Map their court: chance to be found out at equal skill","%"],["spyOkGranary","Burn the granary: chance to succeed at equal skill","%"],["spyDtGranary","Burn the granary: chance to be found out at equal skill","%"],["spyOkStores","Fire the stores: chance to succeed at equal skill","%"],["spyDtStores","Fire the stores: chance to be found out at equal skill","%"],["spyOkTreasury","Rob the treasury: chance to succeed at equal skill","%"],["spyDtTreasury","Rob the treasury: chance to be found out at equal skill","%"],["spyOkResearch","Steal research: chance to succeed at equal skill","%"],["spyDtResearch","Steal research: chance to be found out at equal skill","%"],["spyOkUnrest","Incite unrest: chance to succeed at equal skill","%"],["spyDtUnrest","Incite unrest: chance to be found out at equal skill","%"],["spyOkGates","Open the gates: chance to succeed at equal skill","%"],["spyDtGates","Open the gates: chance to be found out at equal skill","%"],["spyGrain","Burn the granary: grain burned","%"],["spyStores","Fire the stores: wood and iron burned","%"],["spyGold","Rob the treasury: gold stolen","%"],["spyRes","Steal research: share of your next level's cost","%"],["spyLoy","Incite unrest: loyalty lost (never below the revolt line)"],["spyGate","Open the gates: their defense cut against your attacks that year","%"],["spyGrudge","Found out (sabotage): grievance"],["spyGrudgeIntel","Found out (intel): grievance"],["spyFrame","False flag: grievance toward the blamed state"],["spyFrameX","Caught framing someone: grievance (×)"],["spyBurn","Found out: years the network there is burned"],["spyLearn","Spymaster skill gained per operation"],["spyTrait","Cautious: less found out; Reckless: more success and more found out","%"],["aiSpyRisk","Computer: fear of being found out at peace (0..1)"],["aiSpyMin","Computer: least worth to act"],["aiSpyAlert","Computer: years it keeps a Spymaster first after being spied on"]]],
   ["Generals: relics",[["relSpoil","Chance to take a beaten general's relic","%"],["relSpreadC","Roll range of common relics: ± share of the value","%"],["merchSack","Merchant: Peddler's sack price"],["merchChest","Merchant: Merchant's chest price"],["merchCoffer","Merchant: Royal coffer price"],["merchRise","Merchant: each extra one of the same that year (×)"],["merchCards","Merchant: relics laid out"],["forgeC","Forge: gold for 3 common → 1 rare"],["forgeR","Forge: gold for 3 rare of one family → 1 perfect rare"],["forgeSpread","Forge: a forged rare's roll = the three rolls' average ± this","%"],["relSpreadR","Roll range of rare and cursed relics","%"],["relSpreadU","Roll range of famous relics","%"],["relRuin","Chance a win that takes land finds a relic","%"],["relRuinFamous","Share of finds that are a lost famous relic","%"],["relAcad","Chance an Academy candidate brings a relic","%"],["relLegRare","Share of Legendary candidates' relics that are rare","%"],["relTake","Morale a general loses when his relic is taken back"],["relFamous","Famous relics handed out at the start"],["relCovet","Computer: war motive per famous relic a neighbor holds"],
     ["rlBlade","Veteran's Blade: skill in battle"],["rlMap","Scout's Map: speed"],["rlAstro","Star Compass: speed"],["rlShield","Iron Shield: fewer losses defending","%"],["rlAegis","Unbroken Shield: fewer losses defending","%"],["rlHorn","War Horn: attack","%"],["rlCursed","Black Blade: attack","%"],["rlCursedLoy","Black Blade: loyalty lost a year"],["rlDragon","Dragon Standard: attack","%"],["rlDragonFloor","Dragon Standard: lowest morale"],["rlSpear","Breaching Spear: more land per win","%"],["rlHammer","Hammer of the Breaker: more land per win","%"],["rlBanner","Tattered Banner: morale a year"],["rlSaint","Saint's Reliquary: loyalty a year"],["rlLedger","Quartermaster's Ledger: Quartermaster effect (×)"],["rlSeal","Seal of Office: Governor effect (×)"],["rlCrown","Crown of the First King: Governor effect (×)"],["rlCrownLoy","Crown of the First King: loyalty a year as Governor"],
     ["rlResC","Governor relics, common: grain, taxes, wood or iron","%"],["rlResR","Governor relics, rare: grain, taxes, wood or iron","%"],["rlResU","Governor relics, famous: grain, taxes, wood or iron","%"],["rlSciC","Governor relics, common: research points","%"],["rlSciR","Governor relics, rare: research points","%"],["rlSciU","Governor relics, famous: research points","%"],
@@ -5696,6 +5842,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Spymaster: spies and sabotage","2026-11-14 11:29",["The Chief of Staff post is now the Spymaster. A Chief of Staff in your saved game becomes your Spymaster","Your Spymaster runs one operation a year against a neighbor: right-click it on the map → Sabotage…","Sabotage: burn the granary, fire the stores, rob the treasury, steal research, incite unrest, open the gates for your attack","Intel: scout their army, read their generals (hidden traits too), map their court. Reports show in the new Spies tab of the state view","Spy against spy: your Spymaster's skill against theirs decides whether it works and whether you're found out","Not found out: no grievance and no name. Found out: they know it was you, and your network there is burned for 3 years","False flag: blame a neighbor of your target for loud sabotage","Cautious, Reckless, Lucky, Jinxed, Greedy, Butcher and Drunkard traits matter for spies","Computer states spy too"]],
 ["Land bonuses in battle reports","2026-11-14 09:04",["The Land taken line in battle reports now shows every land multiplier: Breaching Spear, Hammer, Cautious generals, stance and attack mode","Relic land chips name the relic","Older battles in the news keep these details"]],
 ["Pick relics from the general card","2026-11-14 08:55",["Clicking a general's relic slot opens a list of your Treasury relics","Pick one and he carries it; you stay on the Generals list","Relics that work for him are listed first"]],
 ["A new state view","2026-11-14 08:30",["Clicking a state opens a new view: its colour, flag, alliance and how it feels about you in a badge","Three tabs: Overview (land with rank and a chart, population, army, generals, loyalty, wonders, wars), Relations (why it feels as it does about you, and all its neighbors) and Science (its ten levels against the world average)","Buttons: Show on map, Plan attack, Take over","The map tooltip no longer lists neighbor feelings; they are in the Relations tab"]],
@@ -5883,6 +6030,7 @@ const GUIDE=[
 ["year","Getting started","🔁","The year in order",()=>`
 <p>When the year ends, things happen in this order. It decides what sees this year's values and what sees last year's.</p>
 <ol class="glist"><li><b>Computer states decide</b>: work, market trades, generals, troops, research, attacks, war declarations.</li>
+<li><b>Spies</b> act: every Spymaster's operation, in random order (${gl("spies")}).</li>
 <li><b>Battles</b> are fought, in random order. Land, peasants and grain change hands.</li>
 <li><b>Settling</b> of unowned land.</li>
 <li><b>Loyalty</b> moves (this year's conquests count) and states under ${R.loyRevolt} may revolt; coasts and wonders are recounted.</li>
@@ -5905,7 +6053,8 @@ ${gTab(["System","Feeds","Is fed by"],[
 ["Wood and iron","Troops, market sales","Woodcutters and miners, Forestry and Mining, forest and mountain land, the market"],
 ["Research","Bonuses to almost everything","Scientists (paid in gold)"],
 ["Army and generals","Land (conquest), safety","People, food, wood, iron, gold"],
-["Relations and wars","Who attacks whom, embargoes","Battles, size (fear), years of peace"],
+["Relations and wars","Who attacks whom, embargoes","Battles, spies found out (and false flags), size (fear), years of peace"],
+["Spies","Lost grain, wood, iron, gold, research and loyalty; open gates in battle; intel","A general's skill at the Spymaster post, against the target's Spymaster"],
 ["Loyalty","Taxes (unrest), revolts that split a state into rebel states","Conquest and settling lower it, quiet years and festivals (gold) raise it, size lowers its ceiling"],
 ["Weather","Harvest shocks, market prices","The map; drifts by itself"]])}
 <h3>What snowballs, and what stops it</h3>
@@ -5924,7 +6073,8 @@ ${gTab(["System","Feeds","Is fed by"],[
 <li><b>Peace and war footing:</b> computer states disarm in peace and fill their land, then arm at war and refill losses.</li></ul>
 <h3>Choices that compete</h3>
 <ul class="log"><li>Farmers vs workers vs scientists vs soldiers: the same people.</li>
-<li>Generals in the field vs at staff posts: a Governor or Quartermaster is one general fewer for attacks and defense.</li>
+<li>Generals in the field vs at staff posts: a Governor, Quartermaster or Spymaster is one general fewer for attacks and defense, and a skilled Spymaster is often a general you'd want in the field.</li>
+<li>Spying vs relations: sabotage found out costs as much goodwill as a small attack; unseen it costs nothing, and a false flag turns their grudge on someone else.</li>
 <li>Gold for scientists vs cavalry and generals vs buying goods. Another Tavern call this year costs ${R.genRise}× the last, so chasing a Legendary eats the treasury fast.</li>
 <li>Wood troops (cheap, die fast, need many people) vs iron troops (costly, survive, save people).</li>
 <li>Sending troops vs keeping guards: soldiers sent away don't defend that year.</li>
@@ -6038,15 +6188,38 @@ ${gTab(["Tier","Price","Mind","Speed","Age","Skill","Traits","Flaw a slot","Lege
 <li><b>Computer states</b> call the best tier they can afford with a cushion (a Captain only when they have no general), and hire the candidate worth most in battle over the next years, judged by what they can see.</li></ul>`],
 ["staff","Military","🏛️","Staff posts",()=>`
 <p>Generals → Staff has four posts. A general at a post runs the state instead of fighting: he can't attack or defend that year. Click a post's portrait to choose who sits there; the list shows what each general would give, best first.</p>
-${gTab(["Post","Every year","Fitting traits"],[["Quartermaster",`Your army eats ${gP(R.postQm)} less grain per Mind (at most ${gP(R.postQmMax)})`,`Iron Quartermaster ×${R.postQmFit}`],["Drillmaster",`Every general in the field gains +${R.postDrill} skill per Mind`,`A troop trait: that troop fights +${gP(R.postDrillTroop)} better in all your battles (for its share of the army)`],["Chief of Staff",`Every general in the field recovers +${R.postChief} morale per Mind, on top of resting`,`Beloved ×${R.postChiefFit}`],["Governor",`Ease: loyalty +${R.postEase} per Mind. Squeeze: taxes +${gP(R.postSqTax)} and loyalty −${R.postSqLoy} per Mind`,`Beloved: Ease ×2, Squeeze loses half the loyalty. Greedy: keeps half the extra tax. Butcher: iron fist, revolts half as likely but Ease gives half`]])}
+${gTab(["Post","Every year","Fitting traits"],[["Quartermaster",`Your army eats ${gP(R.postQm)} less grain per Mind (at most ${gP(R.postQmMax)})`,`Iron Quartermaster ×${R.postQmFit}`],["Drillmaster",`Every general in the field gains +${R.postDrill} skill per Mind`,`A troop trait: that troop fights +${gP(R.postDrillTroop)} better in all your battles (for its share of the army)`],["Spymaster",`One spy operation a year against a neighbor, and your guard against theirs (${gl("spies")} Spies). Works by his <b>skill</b>, not Mind`,`Cautious: found out less. Reckless: more success, found out more. Lucky: rolls twice for success`],["Governor",`Ease: loyalty +${R.postEase} per Mind. Squeeze: taxes +${gP(R.postSqTax)} and loyalty −${R.postSqLoy} per Mind`,`Beloved: Ease ×2, Squeeze loses half the loyalty. Greedy: keeps half the extra tax. Butcher: iron fist, revolts half as likely but Ease gives half`]])}
 <ul class="log"><li><b>When it counts:</b> every post is a yearly effect worked out at the end of the year for whoever holds it then. Putting a general on a post for a moment gains nothing, and no post makes buying anything cheaper.</li>
-<li><b>Mind</b> sets how much a general gives at a post, so old, slow but clever generals are worth keeping, and a Coward or Jinxed one does no harm there.</li>
+<li><b>Mind</b> sets how much a general gives at the Quartermaster, Drillmaster and Governor posts (the Spymaster works by skill), so old, slow but clever generals are worth keeping, and a Coward or Jinxed one does no harm there.</li>
 <li>A <b>Drunkard</b> at a post gives only half in about half his years.</li>
 <li><b>Relics</b> ${gl("relics")}: the Quartermaster's Ledger, the Seal of Office and the Crown make a post stronger, and Governor relics raise harvest, taxes, wood, iron or research while their carrier is Governor.</li>
 <li>Putting a general on a post takes him off the border (another idle general defends) and cancels an attack he was ordered to lead.</li>
 <li>Posts count toward the limit of ${R.genMax} generals, so a post is one general fewer in the field.</li>
 <li><b>Squeezing too hard backfires:</b> under ${R.loyUnrest} loyalty taxes drop ${gP(R.loyUnrestTax)}, and low loyalty brings revolts (${gl("loyalty")}). Without the Rebellions rule loyalty does nothing, so Ease does nothing either.</li>
-<li><b>Computer states</b> keep their two best attackers and a defender in the field and put the rest on posts: a Governor first when loyalty is low, a Quartermaster when food is short, then Chief of Staff and Drillmaster. They squeeze when loyal but short of gold.</li></ul>`],
+<li><b>Computer states</b> keep their two best attackers and a defender in the field and put the rest on posts: a Governor first when loyalty is low, a Quartermaster when food is short, a Spymaster first after foreign spies hit them, then Spymaster and Drillmaster. They squeeze when loyal but short of gold.</li></ul>`],
+["spies","Military","🕵️","Spies and sabotage",()=>{ const od=op=>[`${SPY[op].ic} ${SPY[op].name}`,gP(R["spyOk"+SPYK(op)]),gP(R["spyDt"+SPYK(op)])];
+  return `<p>A general at the <b>Spymaster</b> post (${gl("staff")} Staff posts) runs <b>one spy operation a year</b> against a state that borders you (allies too). Right-click it on the map → <b>Sabotage…</b> and pick one. He acts at the end of the year, after every state has made its plans and before the battles. A new order replaces the old one; the Staff page and the map menu let you call it off.</p>
+<h3>Spy against spy</h3><p>Two rolls decide every operation: does it <b>work</b>, and are your agents <b>found out</b>. Both compare your Spymaster's <b>skill</b> with the target's Spymaster's skill (0 if they have none, so a state without one is easy prey). Each point of skill over theirs adds ${+(R.spySkill*100).toFixed(2)}% to success and takes ${+(R.spySkillDt*100).toFixed(2)}% off being found out (and the other way round when theirs is better). Chances never go under ${gP(R.spyMin)} or over ${gP(R.spyMax)}. Your Spymaster gains +${R.spyLearn} skill with every operation, on top of his yearly training. His own Spymaster guards a state even while he runs an operation abroad.</p>
+<p>The map menu shows each operation's chances. Until you have mapped their court you don't know their Spymaster, so it shows your best case (≤ success, ≥ found out, as if they had none).</p>
+${gTab(["What happens","Not found out","Found out"],[["It works","The effect happens. Nobody knows who did it: no grievance. Quiet operations (research, unrest, intel) leave them no report at all; loud ones (fire, theft) only say \"unknown saboteurs\"",`The effect happens, and they know it was you: grievance −${R.spyGrudge} (−${R.spyGrudgeIntel} for intel)`],["It fails","Nothing happens. If they have a Spymaster, they hear a plot was foiled, but not by whom","Nothing happens, and they know it was you: the same grievance"]])}
+<p>Found out, your network in that state is <b>burned</b>: no more operations there for ${R.spyBurn} years.</p>
+<h3>Operations</h3>
+${gTab(["Operation","Works (equal skill)","Found out (equal skill)"],SPY_OPS.map(o=>od(o.id)))}
+<ul class="log"><li><b>Burn the granary:</b> ${gP(R.spyGrain)} of their grain burns. Before a lean harvest that can mean famine.</li>
+<li><b>Fire the stores:</b> ${gP(R.spyStores)} of their wood and iron burns: fewer troops for them.</li>
+<li><b>Rob the treasury:</b> ${gP(R.spyGold)} of their gold comes to you.</li>
+<li><b>Steal research:</b> only where they are ahead of you: you get ${gP(R.spyRes)} of your next level's cost in the area where they lead most. They lose nothing.</li>
+<li><b>Incite unrest:</b> their loyalty drops ${R.spyLoy}, never below ${R.loyRevolt} (the revolt line), so spies alone can't start a revolt but can bring one close (${gl("loyalty")}). Only with the Rebellions rule.</li>
+<li><b>Open the gates:</b> bribed guards cut their defense ${gP(R.spyGate)} in every battle against <i>your</i> attacks that year. Plan an attack on them too, or it's wasted.</li>
+<li><b>Scout their army:</b> their troops by type, defense stance this year, gold, grain, wood, iron and (computer states) war footing.</li>
+<li><b>Read their generals:</b> each one's Mind, skill, morale, age, post, relic and every trait, hidden ones too.</li>
+<li><b>Map their court:</b> whether they have a Spymaster, his skill and traits, so the map menu shows your real chances.</li></ul>
+<p>Intel reports wait in the <b>Spies</b> tab of that state's view (click it on the map), each marked with its year.</p>
+<h3>False flag</h3><p>For loud sabotage (granary, stores, treasury) you can <b>blame a third state</b> that borders the target. If it works and nobody finds you out, their report names that state, and they hold grievance −${R.spyFrame} against it instead of you. If you are caught framing, their grievance against you is ×${R.spyFrameX}.</p>
+<h3>Traits</h3><ul class="log"><li>Cautious: found out ${gP(R.spyTrait)} less. Reckless: ${gP(R.spyTrait)} more success, found out ${gP(R.spyTrait)} more.</li><li>Lucky rolls twice for success and keeps the best (Lucky Bastard three times); Jinxed keeps the worst of two.</li><li>Greedy keeps half the gold he steals. Butcher: a state that catches him holds ×${R.trButcherGrudge} the grievance. Drunkard: half his skill in a bad year.</li></ul>
+<h3>Computer states</h3><ul class="log"><li>They post a Spymaster among their first staff, and put one first after foreign spies hit them.</li>
+<li>They open the gates for their biggest attack. At war or holding a grudge (relation −30 or worse) they burn, rob and stir up unrest. At peace they mostly steal research, or gold when poor, and avoid operations likely to be found out. They leave friends (+20) and allies alone.</li>
+<li>Loud sabotage at peace is often blamed on a neighbor of the target they dislike.</li></ul>`; }],
 ["relics","Military","🏺","Relics and the Treasury",()=>{ const row=k=>[`${relTile(k,22)} ${RELICS[k].name}`,REL_KN[RELICS[k].k],esc(relEff(k)),REL_WN[RELICS[k].w]];
   return `<p>Relics are famous objects your generals carry: banners, blades, horns, crowns. Each general carries <b>one</b>, shown under his portrait; the rest wait in the <b>Treasury</b> (Generals → Treasury). Click a relic there to see it and give it to a general, or click the slot on a general's card: a list of your Treasury relics pops up, and picking one gives it to him right there.</p>
 ${gTab(["Relic","Kind","Effect","Where it works"],REL_IDS.filter(k=>!RELICS[k].tp&&!RELICS[k].rs).map(row))}
@@ -6148,7 +6321,7 @@ ${MODE_PICK.map(([id,ic,nm])=>{ const k=MODE_KEY[id]; return `<tr><td>${ic} ${nm
 ["relations","Diplomacy","💬","Relations",()=>`
 <p>Every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings; hover a relation to see them. War → Neighbors lists your neighbors' feelings; click any state on the map and open its Relations tab to see how it and each of its neighbors feel about each other, both ways.</p>
 ${gTab(["Feeling","Comes from","Fades"],[
-["Grievance",`You attacked them: −${R.rgHit}, plus −${R.rgHitLand} per 1% of their land taken (−${R.rgHitFail} if they held you off); ×${R.trButcherGrudge} when a Butcher general beat them`,`${gP(R.rgFade)} a year; a winning strike back clears most of it`],
+["Grievance",`You attacked them: −${R.rgHit}, plus −${R.rgHitLand} per 1% of their land taken (−${R.rgHitFail} if they held you off); ×${R.trButcherGrudge} when a Butcher general beat them; your spies found out: −${R.spyGrudge} (intel −${R.spyGrudgeIntel}), and a false flag puts −${R.spyFrame} on the state you blamed (${gl("spies")})`,`${gP(R.rgFade)} a year; a winning strike back clears most of it`],
 ["Solidarity",`You attacked their ally: −${R.rsHit} (at most −${R.rsMax})`,`${gP(R.rsFade)} a year`],
 ["Wariness",`You attacked their neighbor: −${R.rwHit}, −${R.rwNear} if it borders them too (at most −${R.rwMax})`,`${gP(R.rwFade)} a year, only while you attack nobody`],
 ["Fear",`You are more than ${R.rfFrom}× their size: −${R.rfPer} per extra × (at most −${R.rfMax})`,"Only when you shrink compared with them"],
@@ -6189,6 +6362,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 ["Every year",`+${R.loyRec} at peace, +${R.loyRecWar} at war; a state bigger than at the start recovers slower (× √(starting land ÷ your land)), but always at least +${R.loyRecMin}`],
 ["Festivals","+1 per point bought (see below)"],
 [`A Governor (${gl("staff")} Staff posts)`,`Ease: +${R.postEase} a year per Mind; Squeeze: −${R.postSqLoy} a year per Mind (his Butcher iron fist halves the revolt chance)`],
+[`Foreign spies (${gl("spies")})`,`Incite unrest: −${R.spyLoy}, never below ${R.loyRevolt}`],
 [`Your generals' wins (${gl("traits")})`,`a Beloved general +${R.trBelovedLoy} a win (at most +${R.trBelovedMax} a year); a Butcher −${R.trButcherLoy} a win`]])}
 <p><b>Ceiling:</b> loyalty can't rise above 100 − ${R.loyCeilMax} × √(your share of the world's land): ${[0.01,0.1,0.25,0.5,1].map(x=>`${gP(x)} of the world → ${Math.round(100-R.loyCeilMax*Math.pow(x,R.loyCeilExp))}`).join(", ")}. Growing pushes it down by itself.</p>
 <h3>What it does</h3>${gTab(["Loyalty","State","Effect"],[["70–100","Loyal","none"],[`${R.loyUnrest}–70`,"Restless","none yet"],[`${R.loyRevolt}–${R.loyUnrest}`,"Unrest",`taxes −${gP(R.loyUnrestTax)}`],[`under ${R.loyRevolt}`,"Revolt possible",`each year a ${gP(R.loyRevoltPer)} chance per point under ${R.loyRevolt} (${gP(Math.min(1,R.loyRevolt*R.loyRevoltPer))} at 0)`]])}
@@ -6219,6 +6393,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li><b>Interior states</b> (only allies around) keep a token army and put their people into research.</li>
 <li>They still attack anyone they can clearly beat, at most two attacks a year, and grow bolder after long quiet years.</li>
 <li>They trade on the market by need, cut jobs whose goods pile up, and help allies at war.</li>
+<li><b>Spies:</b> a Spymaster opens the gates for their biggest attack, sabotages enemies and grudges, steals quietly at peace and leaves friends alone; sabotage at peace is often blamed on someone else (${gl("spies")}).</li>
 <li><b>Harassing a giant:</b> their biggest neighbor, if at least ${R.rfFrom}× their size, feared and too strong to beat, gets raided, kidnapped from or (with a deep grudge) massacred, then left alone for a random ${R.aiHarassGapMin}–${R.aiHarassGapMax} years.</li>
 <li><b>Defense stance:</b> they stand ground once down to ${gP(R.aiLastStand)} of their biggest land or holding a wonder in a war, fall back when outgunned (defense under ${gP(R.aiFallBack)} of the strongest neighbor's attack), and hold otherwise.</li></ul>`],
 
@@ -6233,13 +6408,13 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
 <p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Science, Market, Generals, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
-${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; work sliders; resources: grain, money, wood and iron in store, what comes in and goes out next year, prices"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🎖️ Generals","Q Generals · W Staff · E Tavern · R Merchant · T Treasury","Generals: a card for each general (traits, relic, record), dismiss, rest, pick the defender. Staff: put generals on posts (Quartermaster, Drillmaster, Chief of Staff, Governor). Tavern: call candidates by tier and hire one. Merchant: buy relics. Treasury: the Forge, relics, who carries them, and who holds the famous ones"],["6","🗡️ War","Q Wars · W Neighbors","Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["7","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["8","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["9","📰 News","—","Every report and battle, newest first"]])}
+${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; work sliders; resources: grain, money, wood and iron in store, what comes in and goes out next year, prices"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🎖️ Generals","Q Generals · W Staff · E Tavern · R Merchant · T Treasury","Generals: a card for each general (traits, relic, record), dismiss, rest, pick the defender. Staff: put generals on posts (Quartermaster, Drillmaster, Spymaster, Governor). Tavern: call candidates by tier and hire one. Merchant: buy relics. Treasury: the Forge, relics, who carries them, and who holds the famous ones"],["6","🗡️ War","Q Wars · W Neighbors","Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["7","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["8","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["9","📰 News","—","Every report and battle, newest first"]])}
 <p>Allies shows only in games with alliances; without them News takes key 8.</p>
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
-<li>Click a state to open its view in the side panel (tabs: Overview, Relations with every neighbor both ways, and Science; buttons to show it on the map, plan an attack or take over); click again or press Esc to unselect. Hover a state to raise it off the map, with a short tooltip: alliance, how it feels about you, its people and size.</li>
-<li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
+<li>Click a state to open its view in the side panel (tabs: Overview, Relations with every neighbor both ways, Science, and Spies with your intel reports on it; buttons to show it on the map, plan an attack or take over); click again or press Esc to unselect. Hover a state to raise it off the map, with a short tooltip: alliance, how it feels about you, its people and size.</li>
+<li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>Sabotage…</b> for any state that borders you, when you have a Spymaster: the menu turns into a list of spy operations with their chances, then asks whom to blame for loud sabotage (${gl("spies")}); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
 <li>▨ Striped land was conquered last year (or broke away in a revolt). Grey-brown land is unowned. Dark grey states are rebels.</li>
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
@@ -6560,6 +6735,7 @@ document.addEventListener("click",async ev=>{
     const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; save(); render(); tavReveal(); return; }
   if(d.staffopen!=null){ UI.staffOpen=d.staffopen&&UI.staffOpen!==d.staffopen?d.staffopen:null; render(); return; }
   if(d.put){ cmd("post",+d.put,d.post); UI.staffOpen=null; save(); render(); return; }
+  if(d.spyoff){ cmd("spy",null); save(); render(); return; }
   if(d.unpost){ cmd("post",+d.unpost,null); UI.staffOpen=null; save(); render(); return; }
   if(d.govpol){ cmd("govPol",d.govpol); save(); render(); return; }
   if(d.relslot){ relPickModal(+d.relslot); return; }
