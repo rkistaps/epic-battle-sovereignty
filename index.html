@@ -392,7 +392,7 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .rp-alt{font-size:12px;color:#9fc6ef;background:#1a2330;border:1px solid #2e4a6b;border-radius:7px;padding:4px 9px;margin:-2px 0 8px}
 .rp-loss{width:100%}.rp-loss td,.rp-loss th{padding:2px 4px}.rp-log{max-height:200px;overflow:auto}
 .rp-field.vert{aspect-ratio:auto;width:100%;height:min(50vh,160vw)}
-.rp-field.vert .rp-u.alt .rp-lab{bottom:auto;top:calc(100% + 7px)}
+.rp-field.vert .rp-u.alt .rp-lab,.rp-u.below .rp-lab{bottom:auto;top:calc(100% + 7px)}
 .rp-field.tight .rp-st{display:none}.rp-field.tight .rp-ic{width:16px;height:16px;font-size:10px}.rp-field.tight .rp-n{font-size:11px}.rp-field.tight .rp-lab{gap:3px;padding:1px 4px 1px 1px}
 .rp-field.tight .rp-g span{display:none}.rp-field.tight .rp-g .pf{width:24px;height:28px}.rp-field.tight .rp-tag{font-size:9px}.rp-field.tight .rp-pop{font-size:12px;padding:4px 9px}
 @media(max-height:520px){ /* a phone on its side */
@@ -5796,12 +5796,17 @@ function rpPlan(b,d){
   const target=side=>{ const E=U.filter(u=>u.side!==side&&u.k!==5); return E.filter(u=>u.k===0||u.k===3).sort((a,b)=>b.n0-a.n0)[0]||E.find(u=>u.k===1)||E[0]||null; };
   const hit=(T,t,w,h,fromRight)=>{ const f=rpAt(T.kf,t), x=fromRight?f[1]+T.w-6:f[1]-w+6, y=Math.max(0,Math.min(RPH-h,f[2]+T.h/2-h/2)); return [Math.round(x),Math.round(y)]; };
   const cavHit=[];
-  if(tA[5]>0){ const [w,h]=sz(tA[5]), T=gd?target(0):null;
+  if(gd&&tA[5]>0&&tD[5]>0){ // both have horse: they ride at each other first and clash on the flank in front of the fight
+    const [wa,ha]=sz(tA[5]), [wd,hd]=sz(tD[5]), arr=tC+.5, mx=dX-40, my=30, y0=RPH-18-hd;
+    add(0,5,[[0,70,18],[tV,140,18],[arr,mx-wa+4,my],[tM,win?mx-wa+30:mx-wa-30,my],[tE,...(win?[mx+200,my+20]:[110,18])]],wa,ha).arr=arr;
+    add(1,5,[[0,790,y0],[tV,Math.min(RPW-wd,860),y0],[tC-1,Math.min(RPW-wd,860),my+20],[arr,mx,my],[tM,win?mx+40:mx-20,my],[tE,...(rout?[RPW-wd+30,my]:[mx,my])]],wd,hd); Object.assign(U[U.length-1],{arr,below:1}); // its label below, clear of the attacker's
+    cavHit.push([arr,2,null]); }
+  else if(tA[5]>0){ const [w,h]=sz(tA[5]), T=gd?target(0):null;
     if(T){ const arr=tC+(T.k===1?3:2.5), rear=T.k!==1, H=t=>hit(T,t,w,h,rear), a=H(arr), m=H(tM), e=H(tE);
       const u=add(0,5,[[0,70,18],[tV,140,18],[tC,Math.min(RPW-w,a[0]+(rear?40:-60)),8],[arr,...a],[tM,...m],[tE,...(win?e:[110,18])]],w,h); u.arr=arr; cavHit.push([arr,0,T]);
       if(T.k===1) T.seg0=arr; }
     else add(0,5,[[0,70,18],[tC,560,18],[tE,700,34]],w,h); }
-  if(tD[5]>0){ const [w,h]=sz(tD[5]), y0=RPH-18-h, T=target(1);
+  else if(tD[5]>0){ const [w,h]=sz(tD[5]), y0=RPH-18-h, T=target(1);
     if(T){ const arr=tC+3, back=T.k!==1, H=t=>hit(T,t,w,h,!back), a=H(arr), m=H(tM);
       const u=add(1,5,[[0,790,y0],[tC,760,y0],[arr-1.2,Math.max(0,a[0]+(back?-30:40)),Math.min(RPH-h,botF+8)],[arr,...a],[tM,...m],[tE,...(rout?[900,y0]:m)]],w,h); u.arr=arr; cavHit.push([arr,1,T]);
       if(T.k===1) T.seg0=arr; } }
@@ -5832,9 +5837,9 @@ function rpPlan(b,d){
   if(gd) ev(tV,`${gn(d.gA)||nA} orders the charge.`);
   const tn={0:"spearmen",1:"archers",2:"axemen",3:"pikemen",4:"swordsmen"};
   if(gd&&tA[5]>0) ev(tV+2.2,`${nA}'s cavalry ride round the flank.`,"",0);
-  for(const [t,sd,T] of cavHit) ev(t,sd?`${nD}'s cavalry charge ${nA}'s ${tn[T.k]}.`:`${nA}'s cavalry charge ${nD}'s ${tn[T.k]}.`,sd?"rpi":"acc");
+  for(const [t,sd,T] of cavHit) ev(t,sd===2?"The two sides' cavalry clash on the flank.":sd?`${nD}'s cavalry charge ${nA}'s ${tn[T.k]}.`:`${nA}'s cavalry charge ${nD}'s ${tn[T.k]}.`,sd?"rpi":"acc");
   if(gd) ev(tC,"The lines meet.");
-  for(const [t,sd,T] of cavHit) if(!sd&&T.k===3) ev(t+.8,"The pikes brace against the horses.","rpi");
+  for(const [t,sd,T] of cavHit) if(sd===0&&T.k===3) ev(t+.8,"The pikes brace against the horses.","rpi");
   if(gd&&d.gD) ev(tC+5.5,`${gn(d.gD)} rallies the centre.`,"rpi",0);
   if(gd) ev(tM-3,win?`${nD}'s line breaks.`:noland?`${nA} fights through to the farms.`:`${nA}'s attack stalls.`,win?"bad":"rpi");
   const gain=d.gain, lt=a=>[["gold",0],["grain",1],["wood",2],["iron",3]].filter(([,k])=>a[k]).map(([n,k])=>`${fmt(a[k])} ${n}`).join(", ")||"nothing";
@@ -5880,7 +5885,7 @@ function rpHtml(P){
     <div class="rp-left">
       <div class="rp-field" id="rpField"><div id="rpTer"></div>
         <div class="rp-clash" id="rpClash"></div>
-        ${P.U.map((u,i)=>`<div class="rp-u${u.alt?" alt":""}" data-u="${i}" data-k="${TROOPS[u.k].id}" title="${esc(TROOPS[u.k].name)}" style="--c:${u.side?P.cD:P.cA}"><div class="rp-lab"><span class="rp-ic">${TROOPS[u.k].icon}</span><b class="rp-n">${fmt(u.n0)}</b><span class="rp-st"></span></div><span class="rp-hp"><i></i></span></div>`).join("")}
+        ${P.U.map((u,i)=>`<div class="rp-u${u.alt?" alt":""}${u.below?" below":""}" data-u="${i}" data-k="${TROOPS[u.k].id}" title="${esc(TROOPS[u.k].name)}" style="--c:${u.side?P.cD:P.cA}"><div class="rp-lab"><span class="rp-ic">${TROOPS[u.k].icon}</span><b class="rp-n">${fmt(u.n0)}</b><span class="rp-st"></span></div><span class="rp-hp"><i></i></span></div>`).join("")}
         ${P.gens.map((g,i)=>`<div class="rp-g" data-g="${i}" style="--c:${g.side?P.cD:P.cA}" title="Gen. ${esc(g.g[0])}">${genFrame({name:g.g[0],age:g.g[1],morale:g.g[4],face:g.g[8]??0,tier:g.g[9],battles:0,l:0},g.side?P.cD:P.cA)}<span>${esc(g.g[0])}</span></div>`).join("")}
         <div id="rpShots"></div><div id="rpHits"></div>
         <div class="rp-pop" id="rpPop" hidden></div>
@@ -6044,6 +6049,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Cavalry fight cavalry first","2026-11-14 11:23",["In battle replays, when both sides have cavalry, they ride at each other and clash on the flank first","Only cavalry with no enemy cavalry go for spearmen, pikemen or archers"]],
 ["Replays: armies of the same colour","2026-11-14 11:21",["When both states in a replay have near colours, the defender is drawn in a far-off colour for that battle","A note under the names says which colour it is shown in"]],
 ["Cavalry pick their target","2026-11-14 11:20",["In battle replays, cavalry charge the enemy's spearmen or pikemen; only if it has none, its archers","They hit from behind and stay on their target","The log names what each side's cavalry charged"]],
 ["Cavalry charge in replays","2026-11-14 11:08",["In battle replays, cavalry charge into the main fight: the attacker's into the end of the defenders' line, the defender's into the attackers' flank","Cavalry lose men only once they reach the fight","The log says when each side's cavalry hit"]],
@@ -6468,7 +6474,7 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <ul class="log"><li>The attacker comes from the left, the defender waits on the right. Each troop type is one block in its state's colour; its area is in proportion to its men (very small troops are drawn a little bigger so they stay visible) and it shrinks as men fall, with its own look: spears and pikes in upright rows, swordsmen in tight ranks, axemen loose, archers scattered, cavalry wide apart. A label shows its icon, men left and what it is doing (Charging, Fighting, Under fire, Falling back…); the bar under it shows the share still standing.</li>
 <li>Generals ride behind their lines, with their portrait.</li>
 <li><b>Volleys</b>: archers on either side shoot first, and keep shooting over the charge and the melee until the battle is decided. Their share of their side's strength is the share of the enemy's losses the arrows cause, and each volley takes its men only when it lands: the block flashes red and the number falls.</li>
-<li><b>Charge</b>: the attacker's foot marches on the defenders. Cavalry pick a target: the enemy's spearmen or pikemen (the bigger of the two), or only if it has neither, its archers, or else its main line. The attacker's cavalry ride round the top, the defender's go under the fight, and both hit their target from behind and stay on it. Cavalry lose men only once they reach it.</li>
+<li><b>Charge</b>: the attacker's foot marches on the defenders. When both sides have cavalry, the horsemen ride at each other first and clash on the flank in front of the fight. A side whose enemy has no cavalry picks another target: the enemy's spearmen or pikemen (the bigger of the two), or only if it has neither, its archers, or else its main line. The attacker's cavalry ride round the top, the defender's go under the fight, and both hit their target from behind and stay on it. Cavalry lose men only once they reach it.</li>
 <li><b>Melee</b>: the lines meet and the rest of the losses fall. Defender bonuses show on the field: forest and mountains on the defender's side, a narrow front between rocks, or a sea crossing.</li>
 <li><b>Rout</b> or <b>After</b>: if the attacker won, the defenders fall back and some of their losses come in the pursuit; if not, the attacker pulls back. Raids, kidnaps and massacres always end with the attacker going home with what it took.</li>
 <li>When the two states' colours are too close to tell apart, the replay draws the defender in a far-off colour (blue, gold, green…) for that battle, and a note under the names says so.</li>
