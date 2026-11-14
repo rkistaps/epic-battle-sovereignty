@@ -223,6 +223,33 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .mcard.r{border-top-color:var(--rc-r)} .mcard.x{border-top-color:var(--rc-x)} .mcard b{font:600 13.5px/1.15 var(--f-name)}
 .mcard .eff{font-size:12px;color:#8fdcae;line-height:1.3} .mcard.x .eff{color:#f0a094} .mcard .mroll{font-size:11px;color:var(--mut);display:flex;gap:5px;align-items:center} .mcard button{margin-top:auto}
 .flip.mr.charge .back{box-shadow:0 0 24px 3px var(--rc-r)} .flip.mx.charge .back{box-shadow:0 0 24px 3px var(--rc-x)} .flip.open.mr .front{box-shadow:0 0 14px -2px var(--rc-r)}
+/* the state view: colour header, tabs, tiles; its neighbor relations */
+.sv{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--sc);border-radius:10px;overflow:hidden;container-type:inline-size;margin-bottom:12px}
+.svh{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:start;padding:12px;background:linear-gradient(120deg,color-mix(in srgb,var(--sc) 22%,transparent),transparent 70%)}
+.svflag{width:38px;height:46px;border-radius:4px 4px 12px 12px;background:#0f1114;border:1px solid var(--line);display:grid;place-items:center} .svflag i{width:24px;height:30px;border-radius:3px 3px 10px 10px;display:block}
+.svid{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px} .svnm{font:600 19px/1.15 var(--f-name)}
+.svchips{display:flex;flex-wrap:wrap;gap:4px} .svchips span{font-size:11.5px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:#1b1e24;color:var(--mut)}
+.svrel{display:flex;flex-direction:column;align-items:center;background:#0f1114aa;border:1px solid var(--line);border-radius:8px;padding:5px 9px;min-width:74px;cursor:help} .svrel b{font-size:20px;line-height:1.1}
+.svtabs{display:flex;gap:2px;align-items:center;padding:0 12px;border-bottom:1px solid var(--line)} .svtb{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:7px 10px;color:var(--mut)} .svtb.on{color:var(--txt);border-bottom-color:var(--acc)}
+.svbd{padding:12px;display:flex;flex-direction:column;gap:10px} .svacts{padding:0 12px 12px}
+.svtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.svt{background:#191c21;border:1px solid var(--line);border-radius:8px;padding:7px 9px;display:flex;flex-direction:column;gap:1px;min-width:0} .svt.wide{grid-column:1/-1}
+.svt>span{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)} .svt b{font-size:17px;font-variant-numeric:tabular-nums} .svt b small{font-size:12px;font-weight:500}
+.svt em{font-style:normal;font-size:11.5px;color:var(--mut);display:flex;align-items:center;gap:6px;flex-wrap:wrap} .svspk{width:70px;height:18px}
+.svlb{display:block;height:7px;background:#0f1114;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:3px} .svlb i{display:block;height:100%}
+.svfacts{display:flex;flex-wrap:wrap;gap:6px} .svfacts span{font-size:12px;background:#1b1e24;border:1px solid var(--line);border-radius:7px;padding:3px 8px}
+.svrb{position:relative;display:inline-block;width:56px;height:7px;background:#2a2e36;border-radius:4px;vertical-align:middle;flex:none} .svrb i{position:absolute;top:0;bottom:0;border-radius:4px} .svrb i.z{left:50%;width:1px;background:#6b717c}
+.svyou{background:#191c21;border:1px solid var(--line);border-radius:8px;padding:9px 10px;display:flex;flex-direction:column;gap:4px} .svbig{font-size:22px;font-weight:700} .svbig span{font-size:13px;font-weight:500}
+.svyou .svrb{width:100%;height:9px} .svparts{display:flex;gap:6px;flex-wrap:wrap} .svparts span{font-size:12px;border:1px solid var(--line);border-radius:7px;padding:1px 7px;background:#1b1e24}
+.svrt{display:flex;flex-direction:column;gap:3px}
+.svrh,.svrr{display:grid;grid-template-columns:minmax(0,1fr) 96px 96px;gap:8px;align-items:center;font-size:12.5px}
+.svrh{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px} .svrr{background:#191c21;border:1px solid var(--line);border-radius:7px;padding:4px 7px} .svrr.click{cursor:pointer} .svrr.click:hover{border-color:var(--acc)}
+.svrr .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .svrr .cell{display:flex;gap:5px;align-items:center;justify-content:flex-end} .svrr .cell b{width:26px;text-align:right;font-size:12px}
+.svtag{font-size:10.5px;color:var(--mut);border:1px solid var(--line);border-radius:8px;padding:0 5px} .svtag.war{color:var(--bad);border-color:#6b3a33}
+.svlvs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.svlv{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:2px 6px;align-items:center;background:#191c21;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-size:12.5px}
+.svlv .ln{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .svlv .lb{grid-column:1/-1;height:4px;background:#0f1114;border-radius:2px;overflow:hidden} .svlv .lb i{display:block;height:100%;background:var(--acc)}
+@container (max-width:380px){ .svh{grid-template-columns:auto minmax(0,1fr) auto} .svh .svrel{grid-column:1/-1;flex-direction:row;gap:8px;justify-content:flex-start} .svrh,.svrr{grid-template-columns:minmax(0,1fr) 78px 78px} .svrr .svrb{width:40px} }
 .bgen .rlx{margin-top:3px;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:5px}
 /* Generals → Tavern: a Notice board box of tier cards and a Candidates box where candidates are dealt (in the tab, no window) */
 .tavern{container-type:inline-size;display:flex;flex-direction:column;gap:12px}
@@ -3983,13 +4010,6 @@ class MapView{
     return best; }
   centerOnCell(i,z){ this.mode=null; const g=this.g; if(z) this.z=z; this.ox=i%g.W+0.5-this.cw/this.z/2; this.oy=((i/g.W)|0)+0.5-this.ch/this.z/2; this.clamp(); this.schedule(); }
 }
-// map tooltip: how a state feels about each living neighbor (all of them) and how they feel about it (worst first), as bars from the middle
-function nbRelTip(id){ const c=G.countries[id], nb=[...adjacency(G)[id]].filter(j=>G.countries[j].alive); if(!nb.length) return "";
-  const rows=nb.map(j=>({j,out:relOf(G,c,j),inn:relOf(G,G.countries[j],id)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn));
-  const num=v=>{ const r=Math.round(v); return `<td class="rtn" style="color:${relColor(r)}">${r>0?"+":""}${r}</td>`; };
-  const bar=v=>{ const w=Math.round(Math.min(100,Math.abs(v))/100*26); return `<td><span class="rtb"><i class="rt0"></i><i style="width:${w}px;${v<0?"right:27px":"left:27px"};background:${relColor(v)}"></i></span></td>`; };
-  const nm=j=>`<span class="sw" style="background:${G.countries[j].color}"></span>${j===G.player?"<b>You</b>":isKnown(j)?esc(G.countries[j].name):'<span class="mut">Unknown state</span>'}${allied(G,id,j)?' <span class="mut">ally</span>':""}${atWar(G,id,j)?" ⚔️":""}`;
-  return `<table class="rtip"><tr class="mut"><td></td><td colspan="2">Their feelings</td><td colspan="2">Neighbor's feelings</td></tr>${rows.map(x=>`<tr><td>${nm(x.j)}</td>${num(x.out)}${bar(x.out)}${num(x.inn)}${bar(x.inn)}</tr>`).join("")}</table>`; }
 function conqNote(o,i){ const from=G.takenFrom?.[i]; if(from==null||from<0||from===o||G.takenAt[i]!==G.turn-1) return "";
   const name=isKnown(from)||G.countries[from].alive===false?esc(G.countries[from].name):"an unknown state";
   return `<br><span class="acc">Conquered from ${name} last year</span>`; }
@@ -4008,7 +4028,7 @@ const mainView=new MapView($("map"),{
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
     if(w&&wo>=0&&isKnown(wo)){ tip.innerHTML=`<b>${WONDERS[w.area].icon} ${WONDERS[w.area].name}</b><br>+${wonderPct(w.area)}% ${WONDER_EFFECT[w.area]} for its holder<br><span class="mut">Held by</span> ${esc(G.countries[wo].name)}${wo===G.player?" (you)":""}`;
       placeTip(tip,ev); return; }
-    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${UI.wxView&&c.lastWx!=null?`<br><span style="color:${wxColor(c.lastWx)}">Last harvest ${c.lastWx>=1?"+":"−"}${Math.round(Math.abs(c.lastWx-1)*100)}% (weather)</span>`:""}${UI.wxView&&c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.02?`<br><span style="color:${wxColor(c.wxSys)}">Next harvest: about ${wxPct(c.wxSys)} from weather systems</span>`:""}${UI.wxView?wsTipLines(mainView.lastIdx):""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}${G.feat?.[mainView.lastIdx]===1?`<br>🌲 Forest <span class="mut">· ${c.forest?`+${Math.round(forestBonus(c)*100)}% wood for ${o===G.player?"you":"them"}`:""}</span>`:G.feat?.[mainView.lastIdx]===2?`<br>⛰️ Mountains <span class="mut">· ${c.mtn?`+${Math.round(mtnBonus(c)*100)}% iron for ${o===G.player?"you":"them"}`:""}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}${nbRelTip(o)}`:`<span class="mut">Unexplored land</span>`;
+    tip.innerHTML=o===-1?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Unowned land</b>${G.takenFrom?.[mainView.lastIdx]>=0?`<br><span class="mut">Once part of ${esc(G.countries[G.takenFrom[mainView.lastIdx]].name)}</span>`:""}<br><span class="mut">Bordering states settle it over time.</span>`:`<span class="mut">Unexplored</span>`):o===-2?(waterSeen(G,G.fog?UI.known:null,mainView.lastIdx)?`<b>Water</b><br><span class="mut">Impassable. Shore land gets a harvest bonus.</span>`:`<span class="mut">Unexplored</span>`):isKnown(o)?`<b>${esc(c.name)}</b>${o===G.player?" (you)":""}${UI.wxView&&c.lastWx!=null?`<br><span style="color:${wxColor(c.lastWx)}">Last harvest ${c.lastWx>=1?"+":"−"}${Math.round(Math.abs(c.lastWx-1)*100)}% (weather)</span>`:""}${UI.wxView&&c.wxSys!=null&&Math.abs(c.wxSys-1)>=0.02?`<br><span style="color:${wxColor(c.wxSys)}">Next harvest: about ${wxPct(c.wxSys)} from weather systems</span>`:""}${UI.wxView?wsTipLines(mainView.lastIdx):""}${G.teams&&c.team!=null?`<br><span class="sw" style="background:${G.teams[c.team].color}"></span>${esc(G.teams[c.team].name)} (${allyTag(G,c.team)})${!observing()&&me().team===c.team&&o!==G.player?" · your ally":""}`:""}${!observing()&&o!==G.player?`<br><span class="mut">Relations with you</span> ${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}`:""}${traitName(c)?`<br><span class="mut">${esc(traitName(c))}</span>`:""}${G.feat?.[mainView.lastIdx]===1?`<br>🌲 Forest <span class="mut">· ${c.forest?`+${Math.round(forestBonus(c)*100)}% wood for ${o===G.player?"you":"them"}`:""}</span>`:G.feat?.[mainView.lastIdx]===2?`<br>⛰️ Mountains <span class="mut">· ${c.mtn?`+${Math.round(mtnBonus(c)*100)}% iron for ${o===G.player?"you":"them"}`:""}</span>`:""}<br>${fmt(c.land)} km² · pop ${fmt(popOf(c))} · ${fmt(c.soldiers)} soldiers${conqNote(o,mainView.lastIdx)}<br><span class="mut small"><i>Click for relations and more</i></span>`:`<span class="mut">Unexplored land</span>`;
     placeTip(tip,ev); },
 });
 
@@ -5219,18 +5239,49 @@ function wonderList(){
 }
 // total research levels, with each area in the tooltip
 function researchCell(c){ const tot=AREAS.reduce((s,a)=>s+c.lv[a],0); return `<span title="${AREAS.map(a=>`${AREA_NAMES[a]} ${c.lv[a]}`).join(" · ")}">${tot}</span>`; }
+// the state view (side panel, a state clicked on the map): header with its colour, alliance and how it feels about you; tabs Overview,
+// Relations (its neighbors, moved here from the map tooltip) and Science; actions at the bottom
+const SV_IC={sci:"🔬",agri:"🌾",fin:"💰",dens:"🏘️",grow:"👶",atk:"⚔️",def:"🛡️",wood:"🌲",iron:"⛏️",explore:"🧭"};
+const svBar=v=>`<span class="svrb"><i class="z"></i><i style="width:${Math.min(100,Math.abs(v))/2}%;${v<0?"right:50%":"left:50%"};background:${relColor(v)}"></i></span>`;
+const svNum=v=>{ const r=Math.round(v); return `<b style="color:${relColor(r)}">${r>0?"+":""}${r}</b>`; };
+function svSpark(h){ const a=(h||[]).slice(-40); if(a.length<2) return ""; const W=70,H=18,mx=Math.max(...a),mn=Math.min(...a);
+  return `<svg class="svspk" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${a.map((v,i)=>`${(i/(a.length-1)*W).toFixed(1)},${(H-2-(v-mn)/(mx-mn||1)*(H-4)).toFixed(1)}`).join(" ")}" fill="none" stroke="var(--acc)" stroke-width="1.6" stroke-linejoin="round"/></svg>`; }
+function svNeighbors(id){ const c=G.countries[id], nb=[...adjacency(G)[id]].filter(j=>G.countries[j].alive); if(!nb.length) return `<div class="small mut">No neighbors.</div>`;
+  const rows=nb.map(j=>({j,out:relOf(G,c,j),inn:relOf(G,G.countries[j],id)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn));
+  const nm=j=>`<span class="sw" style="background:${G.countries[j].color}"></span>${j===G.player?"<b>You</b>":isKnown(j)?esc(G.countries[j].name):'<span class="mut">Unknown state</span>'}${allied(G,id,j)?' <span class="svtag">ally</span>':""}${atWar(G,id,j)?' <span class="svtag war">war</span>':""}`;
+  return `<div class="svrt"><div class="svrh"><span></span><span>Its feelings</span><span>Theirs back</span></div>${rows.map(x=>`<div class="svrr${isKnown(x.j)||x.j===G.player?" click":""}" ${isKnown(x.j)||x.j===G.player?`data-pick="${x.j}" title="Open ${esc(G.countries[x.j].name)}"`:""}><span class="nm">${nm(x.j)}</span><span class="cell">${svNum(x.out)}${svBar(x.out)}</span><span class="cell">${svNum(x.inn)}${svBar(x.inn)}</span></div>`).join("")}</div>
+   <div class="small mut">Its neighbors, worst first: how ${esc(c.name)} feels about each one, and how they feel back. Click one to open it.</div>`; }
 function inspect(c){
-  const pl=me(); const adj=!observing()&&neighbors(G,pl.id).includes(c.id);
-  return `<div class="gen sel"><div class="row"><span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}</b>${c.id===G.player?" (you)":""}<span class="grow"></span><button class="sm" data-pick="-1">✕</button></div>
-  ${G.teams&&c.team!=null?`<div class="small" style="margin:2px 0 4px"><button class="mlink" data-alliance="${c.team}" title="Open the alliance">${allyPrefix(c)}${esc(G.teams[c.team].name)}</button></div>`:""}
-  ${c.alive?`<div class="kv small"><span class="mut">Land</span><b>${fmt(c.land)} km²</b><span class="mut">Population</span><b>${fmt(popOf(c))}</b><span class="mut">Soldiers</span><b>${fmt(c.soldiers)} <span class="small mut">(atk ${fmtPow(armyAtk(c))} / def ${fmtPow(armyDef(c))})</span></b><span class="mut">Generals</span><b>${c.generals.length}</b>${loyOn(G)?`<span class="mut">Loyalty</span><b style="color:${loyColor(loyOf(c))}">${Math.round(loyOf(c))} <span class="small mut">(${loyState(loyOf(c))[0].toLowerCase()})</span></b>`:""}${c.rebelOf!=null?`<span class="mut">Rebels</span><b class="small" style="font-weight:500">Broke away from ${esc(G.countries[c.rebelOf]?.name||"?")} in year ${c.born}</b>`:""}${traitName(c)?`<span class="mut">People</span><b>${esc(traitName(c))}</b>`:""}<span class="mut">Science levels</span><b class="small" style="font-weight:500">${AREAS.map(x=>`${AREA_NAMES[x]} ${c.lv[x]}`).join(" · ")}</b>${wondersOf(G,c.id).length?`<span class="mut">Wonders</span><b>${wondersOf(G,c.id).map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", ")}</b>`:""}
-  ${c.id!==G.player&&!observing()?`<span class="mut">Relations with you</span><b>${relCell(relOf(G,c,G.player),relTip(G,c,G.player))}</b><span class="mut">Borders you</span><b>${adj?"yes":"no"}</b>`:""}</div>
-  ${c.id!==G.player?(UI.takeConfirm===c.id
+  const pl=me(), self=c.id===G.player, adj=!observing()&&neighbors(G,pl.id).includes(c.id), tab=["ov","rel","sci"].includes(UI.svTab)?UI.svTab:"ov";
+  const showRel=!self&&!observing(), rv=showRel?Math.round(relOf(G,c,G.player)):0;
+  const head=`<div class="svh"><div class="svflag"><i style="background:${c.color}"></i></div><div class="svid"><b class="svnm">${esc(c.name)}${self?' <span class="small mut">(you)</span>':""}</b>
+     ${G.teams&&c.team!=null?`<button class="mlink small" data-alliance="${c.team}" title="Open the alliance">${allyPrefix(c)}${esc(G.teams[c.team].name)}</button>`:""}
+     ${traitName(c)?`<div class="svchips">${traitName(c).split(" · ").map(x=>`<span>${esc(x)}</span>`).join("")}</div>`:""}</div>
+     ${showRel&&c.alive?`<div class="svrel" title="${esc(relTip(G,c,G.player))}"><span class="small mut">Feels about you</span><b style="color:${relColor(rv)}">${rv>0?"+":""}${rv}</b><span class="small">${relLabel(rv)}</span></div>`:"<span></span>"}
+     <button class="sm" data-pick="-1" aria-label="Close">✕</button></div>`;
+  if(!c.alive) return `<div class="sv" style="--sc:${c.color}">${head}<div class="svbd"><div class="small bad">Destroyed in year ${c.diedTurn}${c.killer!=null?` by ${esc(G.countries[c.killer].name)}`:""}.</div></div></div>`;
+  const alive=G.countries.filter(x=>x.alive), rank=1+alive.filter(x=>x.land>c.land).length, loy=loyOf(c), wars=warsOf(G,c.id), won=wondersOf(G,c.id), fam=relAll(c).filter(r=>RELICS[r.k]?.k==="u");
+  const tb=(id,l)=>`<button class="svtb${tab===id?" on":""}" data-svtab="${id}">${l}</button>`;
+  const tot=AREAS.reduce((s,a)=>s+(c.lv[a]||0),0), avg=Math.round(alive.reduce((s,x)=>s+AREAS.reduce((t,a)=>t+(x.lv[a]||0),0),0)/Math.max(1,alive.length)), mxL=Math.max(1,...alive.flatMap(x=>AREAS.map(a=>x.lv[a]||0)));
+  const body=tab==="rel"?`${showRel?`<div class="svyou"><span class="small mut">How it feels about you</span><div class="svbig" style="color:${relColor(rv)}">${rv>0?"+":""}${rv} <span>${relLabel(rv)}</span></div>${svBar(rv)}
+       <div class="svparts">${relParts(G,c,G.player).map(([n,v])=>`<span>${esc(n)} ${svNum(v*3)}</span>`.replace(svNum(v*3),`<b style="color:${relColor(v*3)}">${v>0?"+":""}${v}</b>`)).join("")||'<span class="mut">No strong feelings</span>'}</div></div>`:""}
+     ${svNeighbors(c.id)}`
+    :tab==="sci"?`<div class="svlvs">${AREAS.map(a=>`<div class="svlv"><span>${SV_IC[a]||""}</span><span class="ln">${AREA_NAMES[a]}</span><b>${c.lv[a]||0}</b><span class="lb"><i style="width:${Math.round((c.lv[a]||0)/mxL*100)}%"></i></span></div>`).join("")}</div>
+     <div class="small mut">Total ${tot} levels · world average ${avg}. Bars are against the highest level any state has.</div>`
+    :`<div class="svtiles">
+       <div class="svt"><span>Land</span><b>${fmt(c.land)} km²</b><em>#${rank} of ${alive.length} ${svSpark(c.history)}</em></div>
+       <div class="svt"><span>Population</span><b>${fmt(popOf(c))}</b><em>${fmt(c.peasants)} peasants · ${fmt(c.sci)} scientists</em></div>
+       <div class="svt"><span>Army</span><b>${fmt(c.soldiers)}</b><em>⚔ ${fmtPow(armyAtk(c))} · 🛡 ${fmtPow(armyDef(c))}</em></div>
+       <div class="svt"><span>Generals</span><b>${c.generals.length}</b><em>${fam.length?`🏺 ${fam.map(r=>esc(relName(r))).join(", ")}`:"no famous relic"}</em></div>
+       ${loyOn(G)?`<div class="svt wide"><span>Loyalty</span><b style="color:${loyColor(loy)}">${Math.round(loy)} <small>${loyState(loy)[0].toLowerCase()}</small></b><span class="svlb"><i style="width:${Math.round(loy)}%;background:${loyColor(loy)}"></i></span></div>`:""}</div>
+     <div class="svfacts"><span>🏛 ${won.length?won.map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", "):"No wonders"}</span><span>⚔️ ${wars.length?"At war with "+wars.map(w=>{ const f=warFoe(w,c.id); return isKnown(f)||f===G.player?esc(G.countries[f].name):"an unknown state"; }).join(", "):"At peace"}</span>${!self&&!observing()?`<span>🧭 ${adj?"Borders you":"Doesn't border you"}</span>`:""}${c.rebelOf!=null?`<span>🔥 Broke away from ${esc(G.countries[c.rebelOf]?.name||"?")} in year ${c.born}</span>`:""}</div>`;
+  const acts=!self?(UI.takeConfirm===c.id
     ?`<div class="row small"><span>Rule <b>${esc(c.name)}</b> from now on?${me().alive?` The computer takes over ${esc(me().name)}.`:""}</span><button class="sm pri" data-takeover="${c.id}">Yes, take over</button><button class="sm" data-takeask="-1">Cancel</button></div>`
-    :`<div class="row">${adj?`<button class="sm" data-target="${c.id}">Plan attack</button>`:""}${canTakeOver()&&!isHuman(c.id)?`<button class="sm" data-takeask="${c.id}" title="${me().alive?"Swap: you rule this state, the computer rules yours":"Rule this state from now on"}">Take over</button>`:""}</div>`)
-  :canGiveAway()?(UI.giveConfirm
+    :`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button>${!observing()?`<button class="sm" data-target="${c.id}" ${adj?"":`disabled title="It doesn't border you"`}>⚔ Plan attack</button>`:""}${canTakeOver()&&!isHuman(c.id)?`<button class="sm" data-takeask="${c.id}" title="${me().alive?"Swap: you rule this state, the computer rules yours":"Rule this state from now on"}">👑 Take over</button>`:""}</div>`)
+    :canGiveAway()?(UI.giveConfirm
     ?`<div class="row small"><span>Hand <b>${esc(c.name)}</b> to the computer and keep watching? You can take over any state later.</span><button class="sm pri" data-giveaway="1">Yes, hand over</button><button class="sm" data-giveask="0">Cancel</button></div>`
-    :`<div class="row"><button class="sm" data-giveask="1" title="The computer rules your state from now on; you watch as an observer">Hand to computer</button></div>`):""}`:`<div class="small bad">Destroyed in year ${c.diedTurn}${c.killer!=null?` by ${esc(G.countries[c.killer].name)}`:""}.</div>`}</div>`;
+    :`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button><button class="sm" data-giveask="1" title="The computer rules your state from now on; you watch as an observer">Hand to computer</button></div>`):`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button></div>`;
+  return `<div class="sv" style="--sc:${c.color}">${head}<div class="svtabs">${tb("ov","Overview")}${tb("rel","Relations")}${tb("sci","Science")}<span class="grow"></span>${gl("relations")}</div><div class="svbd">${body}</div><div class="svacts">${acts}</div></div>`;
 }
 // fog of war: show a battle if you can see either side
 function seenBattle(b){ return b.att===G.player||b.def===G.player||isKnown(b.att)||isKnown(b.def); }
@@ -5631,6 +5682,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["A new state view","2026-11-14 08:30",["Clicking a state opens a new view: its colour, flag, alliance and how it feels about you in a badge","Three tabs: Overview (land with rank and a chart, population, army, generals, loyalty, wonders, wars), Relations (why it feels as it does about you, and all its neighbors) and Science (its ten levels against the world average)","Buttons: Show on map, Plan attack, Take over","The map tooltip no longer lists neighbor feelings; they are in the Relations tab"]],
 ["Relic merchant","2026-11-14 08:23",["New Generals → Merchant (key R, before the Treasury, now T): buy relics the way you hire in the Tavern","Three offers: Peddler's sack (600 gold), Merchant's chest (3,000) and Royal coffer (15,000), each with better odds of a rare","Open one and three relics turn over; take one, the rest are packed away. A rare or cursed relic glows before it turns","Each extra one of the same offer that year costs 1.6× more; prices reset every year","Famous relics are never sold","Computer states buy relics too"]],
 ["The Forge","2026-11-14 08:08",["New Forge at the top of Generals → Treasury: melt three relics into one","3 common → 1 rare for 2,000 gold: three of one troop or resource give that family's rare, others a random rare; its roll is the three rolls' average ±15%","3 rare of one family → that rare with a perfect roll (100%) for 6,000 gold","Famous relics can't be forged","The anvil shows what you can get and the roll range before you pay; the new relic appears with a shower of sparks","Treasury tiles show a bar for each relic's roll","Computer states forge their spare relics too"]],
 ["Relics roll their numbers","2026-11-14 07:47",["Every relic rolls its numbers when it is found: common ones ±40% around the listed value (+3–7% instead of +5%), rare ±20%, famous ±13%","Two relics of the same name can now differ; the Treasury shows each one's numbers and a bar for how good its roll is","Rules & guide and the relic tables show the ranges","Relics from older saves keep the middle value"]],
@@ -6078,7 +6130,7 @@ ${MODE_PICK.map(([id,ic,nm])=>{ const k=MODE_KEY[id]; return `<tr><td>${ic} ${nm
 <p class="mut">All multipliers and caps are in Settings → Attack modes.</p>`],
 
 ["relations","Diplomacy","💬","Relations",()=>`
-<p>Every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings; hover a relation to see them. War → Neighbors lists your neighbors' feelings; the map tooltip shows every neighbor's relations both ways.</p>
+<p>Every state has an opinion of every other, from −100 (hostile) to +100 (friendly). It is the sum of a few feelings; hover a relation to see them. War → Neighbors lists your neighbors' feelings; click any state on the map and open its Relations tab to see how it and each of its neighbors feel about each other, both ways.</p>
 ${gTab(["Feeling","Comes from","Fades"],[
 ["Grievance",`You attacked them: −${R.rgHit}, plus −${R.rgHitLand} per 1% of their land taken (−${R.rgHitFail} if they held you off); ×${R.trButcherGrudge} when a Butcher general beat them`,`${gP(R.rgFade)} a year; a winning strike back clears most of it`],
 ["Solidarity",`You attacked their ally: −${R.rsHit} (at most −${R.rsMax})`,`${gP(R.rsFade)} a year`],
@@ -6170,7 +6222,7 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
-<li>Click a state to inspect it in the side panel; click again or press Esc to unselect. Hover a state to raise it off the map, with a tooltip showing its relations to every neighbor, both ways.</li>
+<li>Click a state to open its view in the side panel (tabs: Overview, Relations with every neighbor both ways, and Science; buttons to show it on the map, plan an attack or take over); click again or press Esc to unselect. Hover a state to raise it off the map, with a short tooltip: alliance, how it feels about you, its people and size.</li>
 <li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
 <li>▨ Striped land was conquered last year (or broke away in a revolt). Grey-brown land is unowned. Dark grey states are rebels.</li>
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
@@ -6468,6 +6520,8 @@ document.addEventListener("click",async ev=>{
     if(d.train){ const got=cmd("hireTroop",id,n)||0; if(got<n) flash(got?`Trained ${got}: not enough resources or peasants for more.`:"Not enough resources or peasants."); }
     else { const k=Math.min(n,troopsOf(me())[id]||0,me().soldiers-committed(me())); if(k>0) UI.untrainAsk={id,n:k}; else flash("None to dismiss."); }
     render(); return; }
+  if(d.svtab){ UI.svTab=d.svtab; render(); return; }
+  if(d.svshow!=null){ mainView.centerOn(+d.svshow,Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.wonder!=null){ const w=G.wonders[+d.wonder]; mainView.centerOnCell(w.cell, Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.alliance!=null&&G?.teams){ allianceModal(+d.alliance); return; }
   if(d.amember!=null){ const id=+d.amember; closeModal(); UI.sel=id; UI.tab="world"; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
