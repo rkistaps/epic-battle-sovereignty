@@ -1241,7 +1241,8 @@ function spyYear(g){ const C=g.countries, L=C.filter(c=>c.alive&&c.spy); for(let
   for(const c of L) if(c.alive) spyRun(g,c); else c.spy=null; }
 // older saves: a Chief of Staff becomes the Spymaster
 function migrateRelics(g){ const fix=x=>{ if(!x) return; if(!Array.isArray(x.rels)) x.rels=x.relic?[x.relic]:[]; delete x.relic; };
-  for(const c of g.countries){ (c.generals||[]).forEach(fix); (c.tav?.pend?.list||[]).forEach(fix); } } // older saves: a general's one relic becomes the first of his list
+  for(const c of g.countries){ (c.generals||[]).forEach(fix); (c.tav?.pend?.list||[]).forEach(fix);
+    for(const x of c.generals||[]){ const F=x.rels.filter(r=>RELICS[r.k]?.k==="u").slice(1); if(F.length){ x.rels=x.rels.filter(r=>!F.includes(r)); relicsOf(c).push(...F); } } } } // one famous relic per general // older saves: a general's one relic becomes the first of his list
 function migrateStaff(g){ for(const c of g.countries) for(const x of c.generals||[]) if(x.post==="chief") x.post="spy"; }
 // ---------- relics ----------
 // A relic is an object a general carries ({n id, k kind, src where it came from, t year, q roll, g 1 if Legendary}); each general
@@ -1280,8 +1281,8 @@ const relTier=r=>r?.g&&RELICS[r.k]?.k!=="u"?"l":RELICS[r?.k]?.k||"c"; // c, r, l
 // a relic's roll: every number it gives × this (q 0..1 rolled when it was made; older relics: the middle), × R.relLegMul if Legendary
 function relScale(r){ if(!r) return 1; const k=RELICS[r.k]?.k, sp=k==="c"?R.relSpreadC:k==="u"?R.relSpreadU:R.relSpreadR; return (r.q==null?1:1+(sp||0)*(2*r.q-1))*(r.g?R.relLegMul:1); }
 const rsc=(gen,k)=>relScale(relGet(gen,k)), rv=(gen,k,v)=>rk(gen,k)?v*rsc(gen,k):0; // relic k's value of a rule, if it works
-// the relic he carries that k would clash with (the same relic, troop or resource), or null
-function relClash(gen,k){ const d=RELICS[k]; return (gen?.rels||[]).find(r=>{ const e=RELICS[r.k]; return r.k===k||(!!d?.tp&&e?.tp===d.tp)||(!!d?.rs&&e?.rs===d.rs); })||null; }
+// the relic he carries that k would clash with (the same relic, troop or resource, or a second famous one), or null
+function relClash(gen,k){ const d=RELICS[k]; return (gen?.rels||[]).find(r=>{ const e=RELICS[r.k]; return r.k===k||(!!d?.tp&&e?.tp===d.tp)||(!!d?.rs&&e?.rs===d.rs)||(d?.k==="u"&&e?.k==="u"); })||null; }
 const relRoom=(gen,k)=>!relClash(gen,k)&&(gen.rels||[]).length<relMax(); // can he take relic k without giving one up?
 function relPostMul(gen,id){ if(gen?.post!==id) return 1; let m=1; for(const [k,b] of id==="qm"?[["ledger",R.rlLedger]]:id==="gov"?[["seal",R.rlSeal],["crown",R.rlCrown]]:[]) if(relGet(gen,k)) m*=1+(b-1)*rsc(gen,k); return m; }
 // attack relics: a row each (War Horn, Black Blade, Dragon Standard) for the battle report
@@ -5230,18 +5231,18 @@ const relRollTxt=r=>relRoll(r)==null?"":relMaxed(r)?"Roll 100% (max)":`Roll ${re
 function relSlot(c,x,cand){ const L=x.rels||[], n=relMax(); if(cand&&!L.length) return "";
   const box=i=>{ const r=L[i]; if(!r) return cand?`<span class="rbox"><span class="emp"></span></span>`:`<button class="rbox" data-relslot="${x.id}" aria-label="Empty relic slot: give him one"><span class="emp">+</span></button>`;
     const d=RELICS[r.k], ok=cand||relWorks(x,r.k), t=relTier(r), tag=cand?"span":"button";
-    const tx=[cand?"Comes with him":REL_WN[d.w],d.tp?`one ${TROOP_PL[d.tp].toLowerCase()} relic per general`:d.rs?`one ${REL_RES[d.rs][1].toLowerCase()} relic per general`:"",relRollTxt(r)].filter(Boolean).join(" · ");
+    const tx=[cand?"Comes with him":REL_WN[d.w],d.k==="u"?"one famous relic per general":"",d.tp?`one ${TROOP_PL[d.tp].toLowerCase()} relic per general`:d.rs?`one ${REL_RES[d.rs][1].toLowerCase()} relic per general`:"",relRollTxt(r)].filter(Boolean).join(" · ");
     return `<${tag} class="rbox ${t}${ok?"":" off"}" data-relslot="${cand?"":x.id}" data-tn="${esc(relName(r))}" data-tk="${REL_KN[t]} relic" data-td="${esc(ok?relEff(r.k,r):"Does nothing here: "+REL_WN[d.w].toLowerCase())}" data-tc="${ok?"ok":"no"}" data-tx="${esc(tx)}" aria-label="${esc(relName(r))}">${relTile(r.k,42,r)}</${tag}>`; };
   return `<div class="rel4">${Array.from({length:n},(_,i)=>box(i)).join("")}</div>`; }
 // the relic picker: a pop-up list of Treasury relics for one general; giving one closes it and leaves you where you were
 const relPickOpen=()=>!$("ov").classList.contains("hidden")&&$("modal").classList.contains("relpick");
 // what giving relic r to general x does: "" (a free slot), the relic it replaces, or why it can't
-function relGiveTxt(x,r){ const out=relClash(x,r.k); if(out) return {out,txt:`Swaps for his ${relName(out)} (−${R.relTake} morale)`};
+function relGiveTxt(x,r){ const out=relClash(x,r.k); if(out) return {out,txt:`Swaps for his ${relName(out).replace(/^The /,"")} (−${R.relTake} morale)`};
   return (x.rels||[]).length>=relMax()?{full:true,txt:`All ${relMax()} slots full: take one back first`}:{txt:""}; }
 function relPickModal(id){ const c=me(), x=c.generals.find(g=>g.id===id); if(!x) return; const T=c.relics||[], L=x.rels||[];
   const rows=T.map(r=>({r,ok:relWorks(x,r.k),gv:relGiveTxt(x,r)})).sort((a,b)=>(a.gv.full-b.gv.full)||(b.ok-a.ok)).map(({r,ok,gv})=>`<button class="rgrow rpick" data-relgive="${x.id}" data-rel="${r.n}" ${gv.full?"disabled":""}>${relTile(r.k,40,r)}<div><span class="rlab ${relTier(r)}">${REL_KN[relTier(r)]}</span> <b>${esc(relName(r))}</b>${relRoll(r)!=null?" "+rollBar(r):""}<div class="m ${ok?"rgd":"rwn"}">${ok?esc(relEff(r.k,r)):"Does nothing for him: "+REL_WN[RELICS[r.k].w].toLowerCase()}</div>${gv.txt?`<div class="m rwn">${esc(gv.txt)}</div>`:""}</div></button>`).join("");
   modal(`<h2>Relics for ${esc(x.name)} ${gl("relics")}</h2>
-   <div class="small mut">He carries ${L.length} of ${relMax()}. Never two of the same relic, troop or resource. Taking one back costs him ${R.relTake} morale.</div>
+   <div class="small mut">He carries ${L.length} of ${relMax()}. Never two of the same relic, troop or resource, and at most one famous relic. Taking one back costs him ${R.relTake} morale.</div>
    ${L.map(r=>`<div class="rgrow">${relTile(r.k,40,r)}<div><span class="rlab ${relTier(r)}">${REL_KN[relTier(r)]}</span> <b>${esc(relName(r))}</b><div class="m ${relWorks(x,r.k)?"rgd":"rwn"}">${esc(relWorks(x,r.k)?relEff(r.k,r):"Does nothing here: "+REL_WN[RELICS[r.k].w].toLowerCase())}</div></div><button class="sm" data-reltake="${x.id}" data-rel="${r.n}" ${relFull(c)?"disabled title=\"Your Treasury is full\"":""}>Take it back</button></div>`).join("")}
    <h3 class="tvh" style="margin-top:10px">From the Treasury</h3>
    <div class="rgive">${rows||`<div class="small mut">The Treasury is empty. Beat a general who carries one, win land, hire a Legendary officer, buy one from the Merchant, or conquer a state to take its Treasury.</div>`}</div>
@@ -5281,7 +5282,7 @@ function pTreasury(){
    ${picker()}
    ${forge}
    <div class="psec"><h3 class="tvh">Treasury ${gl("relics")}<span class="grow"></span><span class="rt${relFull(c)?" bad":""}">${T.length} / ${relStockMax()} waiting · ${nCar} carried</span></h3>${relFull(c)?`<div class="small bad" style="margin-bottom:6px">The Treasury is full. Smelt or forge relics to make room: the Merchant won't sell, generals can't hand relics back, and at the end of the year any relics over ${relStockMax()} are smelted, weakest first.</div>`:""}${vault}${det}</div>
-   ${carried.length?`<div class="psec"><h3 class="tvh">Carried by your generals</h3><div class="rgive">${rows}</div><div class="small mut" style="margin-top:6px">Each general carries up to ${relMax()} relics, never two of the same relic, troop or resource. Giving one is free; taking one back costs him ${R.relTake} morale. A general who leaves hands his relics back.</div></div>`:""}
+   ${carried.length?`<div class="psec"><h3 class="tvh">Carried by your generals</h3><div class="rgive">${rows}</div><div class="small mut" style="margin-top:6px">Each general carries up to ${relMax()} relics, never two of the same relic, troop or resource, and at most one famous one. Giving one is free; taking one back costs him ${R.relTake} morale. A general who leaves hands his relics back.</div></div>`:""}
    <div class="psec"><h3 class="tvh">Famous relics<span class="grow"></span><span class="rt">one of each in the world</span></h3><div class="fam">${fam}</div>
     <div class="small mut" style="margin-top:6px">Computer states covet a famous relic like a wonder: holding one gives them a reason to go to war with you.</div></div>
   </div>`; }
@@ -6302,6 +6303,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["One famous relic per general","2026-11-14 14:00",["A general carries at most one famous relic","Giving him a second one swaps it for the one he has"]],
 ["Treasury limit, smelting and Merge all","2026-11-14 13:59",["The Treasury holds at most 50 relics; over the limit, the weakest are smelted at the end of the year","Smelt a Treasury relic for gold: 150 common, 600 rare or cursed, 2,000 Legendary (famous ones can't be)","Forge: ✨ Auto-select puts the next three worth merging on the anvil","Forge: ⚒ Merge all forges everything that can merge, commons to rares to Legendaries","While the Treasury is full, the Merchant won't sell and generals can't hand relics back"]],
 ["Four relics per general and Legendary relics","2026-11-14 13:55",["Each general carries up to 4 relics, in a 2×2 grid on his card","Hover a relic box to read it: kind, effect, where it works and its roll","Never two of the same relic, troop or resource on one general; giving one that clashes swaps it","New Legendary tier between rare and famous: ×1.25 a rare's numbers, orange frame","Forge: 3 rare of one family → 1 Legendary; 3 Legendary of one family → 1 max Legendary (★, rolled 100%)","A beaten general now loses a relic only 5% of the time (was 25%), and only one, picked at random","Clicking a relic box opens his relics and your Treasury; the list stays open while you give and take back"]],
 ["Auto-replace on staff posts","2026-11-14 12:41",["Each staff post has an Auto-replace box","When its general retires or is poisoned, the best-fitting free general takes the post","The new one carries the old one's relic"]],
@@ -6538,7 +6540,7 @@ ${gTab(["System","Feeds","Is fed by"],[
 <li><b>Grudges → revenge → new grudges.</b> Brakes: a winning strike back clears most of a grudge, striking back counts half, and wars end after ${R.warMin}–${R.warMax} years with grievances forgotten.</li>
 <li><b>Settling unowned land.</b> Brake: the land runs out.</li>
 <li><b>Veteran generals grow better:</b> skill, earned traits (Old Guard, Lucky Bastard). Brakes: they retire at 62–76, lost battles cost morale, and a Nemesis only helps against one state.</li>
-<li><b>Winners collect relics:</b> beaten generals drop them, ruins turn them up and fallen states hand over their Treasury, so a winning army gets stronger. Brakes: each general carries at most ${relMax()} and never two alike, a relic is now and then lost the same way, Legendaries cost a lot of gold and relics at the Forge, and a famous relic makes its holder a target.</li></ul>
+<li><b>Winners collect relics:</b> beaten generals drop them, ruins turn them up and fallen states hand over their Treasury, so a winning army gets stronger. Brakes: each general carries at most ${relMax()}, never two alike and only one famous, a relic is now and then lost the same way, Legendaries cost a lot of gold and relics at the Forge, and a famous relic makes its holder a target.</li></ul>
 <h3>What pulls things back to the middle</h3>
 <ul class="log"><li><b>Catch-up research:</b> states behind the world average pay up to ${gP(R.catchUpMax)} less per level.</li>
 <li><b>The market:</b> shortages raise prices, so states farm more and buy less; gluts lower prices, so states farm less and move people to research. Merchant prices climb while everyone buys from them.</li>
@@ -6700,7 +6702,7 @@ ${gTab(["Operation","Works (equal skill)","Found out (equal skill)"],SPY_OPS.map
 <li>Loud sabotage at peace is often blamed on a neighbor of the target they dislike.</li></ul>`; }],
 ["relics","Military","🏺","Relics and the Treasury",()=>{ const row=k=>[`${relTile(k,22)} ${RELICS[k].name}`,REL_KN[RELICS[k].k],esc(relEff(k)),REL_WN[RELICS[k].w]];
   return `<p>Relics are famous objects your generals carry: banners, blades, horns, crowns. Each general carries <b>up to ${relMax()}</b>, in the boxes under his portrait: hover a box to read the relic (its kind, what it does, where it works and its roll); a greyed one does nothing where he is now, and a dashed <b>+</b> is a free slot. The rest wait in the <b>Treasury</b> (Generals → Treasury). Click a relic there to see it and give it to a general, or click any box on a general's card: his relics and your Treasury pop up, and you can give or take back right there.</p>
-<p><b>Never two alike on one general:</b> not two of the same relic, not two for the same troop (one spearman relic, one archer relic…) and not two for the same resource. Giving one that clashes swaps it for the one he has.</p>
+<p><b>Never two alike on one general:</b> not two of the same relic, not two for the same troop (one spearman relic, one archer relic…), not two for the same resource, and <b>at most one famous relic</b>. Giving one that clashes swaps it for the one he has.</p>
 ${gTab(["Relic","Kind","Effect","Where it works"],REL_IDS.filter(k=>!RELICS[k].tp&&!RELICS[k].rs).map(row))}
 <h3>Governor relics</h3><p>One for each resource at each kind. They work only while their carrier is your Governor (${gl("staff")}), counted at the end of the year. A Governor can carry one for each resource, so harvest, tax, wood, iron and research relics work side by side with the Seal of Office and the Crown, up to ${relMax()} in all. Famous Governor relics don't start with anyone: they turn up in ruins.</p>
 ${gTab(["Resource","Common","Rare","Famous"],Object.keys(REL_RES).map(rs=>[`${REL_RES[rs][0]} ${REL_RES[rs][1]}`,...[0,1,2].map(lv=>{ const k=REL_IDS.find(x=>RELICS[x].rs===rs&&RELICS[x].lv===lv); return k?`<b>${RELICS[k].name}</b><br><span class="small">+${Math.round(govResVal(RELICS[k])*(1-relSpread(k))*100)}–${Math.round(govResVal(RELICS[k])*(1+relSpread(k))*100)}%</span>`:""; })]))}
