@@ -347,6 +347,83 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 #toast{position:fixed;right:16px;bottom:16px;z-index:15;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;box-shadow:0 4px 16px #0008;max-width:calc(100vw - 32px)}
 .overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:14px}
 .overlay.solid{background:var(--bg)} /* hot-seat handover: hides the previous player's screen */
+/* battle replay */
+.modal.replay{max-width:1180px}
+.rp-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.rp-side{display:flex;flex-direction:column;gap:4px}.rp-side.r{align-items:flex-end;text-align:right}
+.rp-nm{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rp-gen{display:flex;align-items:center;gap:8px}.rp-side.r .rp-gen{flex-direction:row-reverse}
+.rp-gen .pf{width:34px;height:40px}.rp-gen .pf svg,.rp-g .pf svg{width:100%;height:100%;display:block}
+.rp-main{display:flex;gap:14px;flex-wrap:wrap}
+.rp-left{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.rp-info{flex:1 1 230px;min-width:0}.rp-info h3{margin:6px 0 4px}
+.rp-field{position:relative;aspect-ratio:960/520;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:radial-gradient(ellipse at 30% 60%,#34402b,#2a3424 45%,#222b1e)}
+.rp-tree{position:absolute;border-radius:50%;background:radial-gradient(circle at 40% 40%,#22351c,#17251a 68%,transparent 71%)}
+.rp-mtn{position:absolute;background:linear-gradient(160deg,#6b6f78,#3d4148 60%);clip-path:polygon(50% 0,100% 100%,0 100%);opacity:.85}
+.rp-sea{position:absolute;background:linear-gradient(90deg,#1d3550,#24476b,#1d3550)}
+.rp-rock{position:absolute;border-radius:45%;background:radial-gradient(circle,#4a4740,#2e2c28 70%)}
+.rp-tag{position:absolute;font-size:11px;color:rgba(231,233,238,.65);letter-spacing:1px;text-transform:uppercase}
+.rp-clash{position:absolute;border-radius:50%;background:radial-gradient(ellipse,rgba(224,179,84,.45),transparent 70%);opacity:0;pointer-events:none}
+.rp-u{--d:color-mix(in srgb,var(--c) 40%,#fff);position:absolute;border:1.5px solid var(--c);border-radius:4px;background-color:color-mix(in srgb,var(--c) 22%,transparent);background-image:radial-gradient(circle,var(--d) 1.4px,transparent 1.8px);background-size:7px 7px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.rp-u[data-k=spear]{background-image:repeating-linear-gradient(90deg,var(--d) 0 1.5px,transparent 1.5px 6px);background-size:auto}
+.rp-u[data-k=pike]{background-image:repeating-linear-gradient(90deg,var(--d) 0 2px,transparent 2px 5px);background-size:auto}
+.rp-u[data-k=axe]{background-size:9px 8px}.rp-u[data-k=archer]{background-size:6px 6px}
+.rp-u[data-k=cav]{background-image:radial-gradient(ellipse 3px 1.8px,var(--d) 100%,transparent 110%);background-size:11px 8px}
+.rp-u.hit{box-shadow:0 0 0 2px rgba(233,106,90,.9),0 0 16px rgba(233,106,90,.6)}
+.rp-lab{position:absolute;left:50%;top:-13px;transform:translateX(-50%);display:flex;align-items:center;gap:5px;background:rgba(15,17,20,.92);border:1px solid var(--c);border-radius:7px;padding:1px 7px 1px 1px;white-space:nowrap;font-size:11px;z-index:2;line-height:1.1}
+.rp-ic{width:20px;height:20px;border-radius:5px;background:var(--c);display:grid;place-items:center;font-size:12px}
+.rp-n{font-size:13px;font-variant-numeric:tabular-nums}.rp-st{font-size:10px;font-weight:600}
+.rp-hp{position:absolute;left:0;right:0;bottom:-6px;height:3px;background:rgba(0,0,0,.55);border-radius:2px;overflow:hidden}.rp-hp i{display:block;height:100%;background:var(--c)}
+.rp-g{position:absolute;display:flex;flex-direction:column;align-items:center;gap:2px;z-index:3}.rp-g .pf{width:30px;height:36px}
+.rp-g span{font-size:10px;background:rgba(15,17,20,.9);border:1px solid var(--c);border-radius:5px;padding:0 4px;white-space:nowrap}
+.rp-arrow{position:absolute;width:8px;height:2px;background:#cfe2f7;border-radius:1px;box-shadow:0 0 4px rgba(106,169,233,.8);z-index:4}
+.rp-hit{position:absolute;font-size:14px;font-weight:800;color:#ff8a7a;text-shadow:0 1px 3px #000;z-index:5;pointer-events:none}
+.rp-pop{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(15,17,20,.94);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-weight:600;white-space:nowrap;z-index:6;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.rp-pop.rpi,.rp-log .rpi,.rp-st.rpi{color:#9fc6ef}.rp-pop.rpi{border-color:#2e4a6b}.rp-pop.acc{border-color:#6b5a2e}.rp-pop.good{border-color:#2f5a40}.rp-pop.bad{border-color:#6b3a33}
+.rp-field [hidden]{display:none!important}
+.rp-end{position:absolute;inset:0;background:rgba(11,12,15,.55);display:grid;place-items:center;z-index:7}
+.rp-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;max-width:86%;text-align:center;box-shadow:0 16px 50px rgba(0,0,0,.55)}
+.rp-card h3{margin:4px 0 8px;font-size:22px;color:var(--acc);text-transform:none;letter-spacing:0}.rp-card .log{text-align:left}
+.rp-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.rp-play{width:40px;height:40px;border-radius:50%;padding:0}
+.rp-tl{flex:1 1 220px;min-width:160px;display:flex;flex-direction:column;gap:4px}.rp-tl input{width:100%;margin:0;accent-color:var(--acc)}
+.rp-ph{display:flex;gap:4px}.rp-ph>div{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mut);min-width:0}.rp-ph i{display:block;height:5px;border-radius:3px;background:var(--bg);overflow:hidden}.rp-ph b{display:block;height:100%;width:0}.rp-ph .now{color:var(--acc);font-weight:700}
+.rp-sp{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}.rp-sp button{border:0;border-radius:0}.rp-sp button.on{background:#3a3423;color:var(--acc);font-weight:700}
+.rp-men div{display:flex;align-items:center;gap:6px;margin:2px 0}.rp-men b{margin-left:auto;font-variant-numeric:tabular-nums}
+.rp-alt{font-size:12px;color:#9fc6ef;background:#1a2330;border:1px solid #2e4a6b;border-radius:7px;padding:4px 9px;margin:-2px 0 8px}
+.rp-loss{width:100%}.rp-loss td,.rp-loss th{padding:2px 4px}.rp-log{max-height:200px;overflow:auto}
+.rp-field.vert{aspect-ratio:auto;width:100%;height:min(50vh,160vw)}
+.rp-field.vert .rp-u.alt .rp-lab,.rp-u.below .rp-lab{bottom:auto;top:calc(100% + 7px)}
+.rp-field.tight .rp-st{display:none}.rp-field.tight .rp-ic{width:16px;height:16px;font-size:10px}.rp-field.tight .rp-n{font-size:11px}.rp-field.tight .rp-lab{gap:3px;padding:1px 4px 1px 1px}
+.rp-field.tight .rp-g span{display:none}.rp-field.tight .rp-g .pf{width:24px;height:28px}.rp-field.tight .rp-tag{font-size:9px}.rp-field.tight .rp-pop{font-size:12px;padding:4px 9px}
+@media(max-height:520px){ /* a phone on its side */
+  .modal.replay{padding:10px}.modal.replay h2{font-size:16px;margin-bottom:4px}.rp-head{display:none}
+  .rp-field:not(.vert){width:min(100%,calc((100vh - 200px)*960/520));margin:0 auto}
+  .rp-ctl{padding:4px 8px}.modal.replay .rep-foot .small{display:none}.modal.replay .rep-foot{padding-top:6px}
+}
+.rp-field.vert .rp-lab{top:auto;bottom:calc(100% + 2px);padding:1px 4px 1px 1px;gap:3px}.rp-field.vert .rp-st{display:none}
+.rp-field.vert .rp-ic{width:15px;height:15px;font-size:10px}.rp-field.vert .rp-n{font-size:11px}
+.rp-field.vert .rp-g .pf{width:22px;height:26px}.rp-field.vert .rp-g span{display:none}
+.rp-field.vert .rp-pop{font-size:12px;white-space:normal;text-align:center;width:max-content;max-width:88%;padding:5px 9px}
+.rp-field.vert .rp-tag{font-size:9px;white-space:nowrap}.rp-field.vert .rp-hit{font-size:12px}
+@media(max-width:640px){
+  .modal.replay{padding:12px}
+  .rp-head{flex-direction:column;gap:4px;margin-bottom:6px}.rp-side.r{align-items:flex-start;text-align:left}.rp-side.r .rp-gen{flex-direction:row}
+  .rp-side{flex-direction:row;align-items:center;gap:6px;flex-wrap:nowrap;font-size:12px;min-width:0}.rp-nm{flex-wrap:nowrap;min-width:0}.rp-nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rp-nm .bfmode{font-size:10px}
+  .rp-gen{gap:4px;margin-left:auto;flex:none}.rp-gen .pf{width:20px;height:24px}.rp-gen .small{display:none}.rp-gen b{font-size:11px;font-weight:500;color:var(--mut)}.rp-side>.small{margin-left:auto}
+  .rp-ctl{gap:6px;padding:8px}.rp-tl{order:9;flex:1 1 200px}.rp-clock{order:10;flex:none}.rp-long{display:none}
+  .rp-ctl button,.rp-sp button{min-height:36px;min-width:36px}.rp-play{width:44px;height:44px}
+  .rp-card{padding:12px}.rp-card h3{font-size:18px}
+  .modal.replay .rep-foot .small{display:none}.modal.replay .rep-foot{padding-top:8px}.modal.replay h2{font-size:18px}
+}
+/* battles first: your battles with the results hidden, before the year report */
+.bfc{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
+.bfc.on{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.bfi{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;font-size:18px;flex:none;background:#2b1c1a}.bfi.def{background:#1a2330}
+.bfm{flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px}.bft{font-weight:600}.bfm .log{margin:2px 0 0}
+.bfmode{font-size:11px;font-weight:400;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:4px;white-space:nowrap}
+.bfb{display:flex;flex-direction:column;gap:6px;flex:none}
+@media(max-width:560px){.bfb{flex-direction:row;width:100%}}
 .handover h2{display:flex;align-items:center;justify-content:center;gap:10px}
 .hsw{width:22px;height:22px;border-radius:6px;display:inline-block;flex:none}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:hidden;padding:18px;display:flex;flex-direction:column}
@@ -559,6 +636,8 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .wout{display:block;font-size:11px;color:var(--mut);white-space:nowrap}
 .wgrid .wout{grid-column:1/3;margin:-4px 0 6px;overflow:hidden;text-overflow:ellipsis} /* its own row under the job, so changing numbers never move the sliders */
 .spark{display:block;width:100%;height:26px;margin:4px 0 2px} .spark .sp0{stroke:#535a66;stroke-dasharray:3 3;stroke-width:1}
+.mcwrap{position:relative}.mchart{display:block;width:100%;height:auto;margin:4px 0;touch-action:pan-y} .mchart .cgn{stroke-dasharray:3 3;stroke-width:1;opacity:.45} .mchart .mhv{stroke:var(--mut);stroke-width:1;stroke-dasharray:2 2}
+.mtip{position:absolute;top:6px;background:rgba(15,17,20,.95);border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:5} .mtip i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px} .mtip b{font-variant-numeric:tabular-nums}
 .mchart{display:block;width:100%;height:auto;margin:4px 0} .mchart text{fill:var(--mut);font-size:9px} .mchart .cg{stroke:#353a44;stroke-width:1} .mchart .cg1{stroke:#6b7280;stroke-dasharray:4 3;stroke-width:1}
 .mleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin:2px 0 8px} .mleg i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px}
 .mwhy td,.mwhy th{white-space:nowrap}
@@ -4309,7 +4388,7 @@ const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
   renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,generals:pGenPage,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
-  mainView.setGame(G); mainView.refresh();
+  mainView.setGame(G); mainView.refresh(); navTrack();
 }
 
 // each top-level heading in a tab starts a boxed section, so the parts of a tab stand apart
@@ -4480,15 +4559,30 @@ function mktTrend(r){ const m=mkOf(G)[r], p=m.price, lp=m.prev; return lp==null|
 function mktSpark(r){ const h=mkOf(G)[r].hist.slice(-30), b=mkBase(r), W=120, H=26; if(h.length<2) return "";
   const hi=Math.max(b*1.6,...h), y=v=>(H-2-(H-4)*Math.min(v,hi)/hi).toFixed(1), x=i=>(W*i/(h.length-1)).toFixed(1);
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${y(b)}" y2="${y(b)}" class="sp0"/><polyline fill="none" stroke="${MKT[r][5]}" stroke-width="1.6" points="${h.map((v,i)=>x(i)+","+y(v)).join(" ")}"/></svg>`; }
-// price history: all three resources as a share of their normal price
+// price history: what grain, wood and iron cost in gold each year; each normal price dashed; hover for the numbers
 function mktChart(){ const M=mkOf(G), n=Math.max(...MK_RES.map(r=>M[r].hist.length)); if(n<2) return '<div class="small mut">The chart fills in as the years go by.</div>';
-  const W=400, H=150, L=34, B=18, T=6, yr0=G.turn-n, max=Math.max(200,...MK_RES.flatMap(r=>M[r].hist.map(v=>100*v/mkBase(r)))), top=Math.min(300,Math.ceil(max/50)*50);
-  const X=i=>(L+(W-L-4)*i/(n-1)).toFixed(1), Y=p=>(T+(H-T-B)*(1-Math.min(p,top)/top)).toFixed(1);
-  const grid=[0,100,top/2===100?null:top/2,top].filter(v=>v!=null).map(v=>`<line x1="${L}" x2="${W-4}" y1="${Y(v)}" y2="${Y(v)}" class="${v===100?"cg1":"cg"}"/><text x="${L-4}" y="${+Y(v)+3}" text-anchor="end">${v}%</text>`).join("");
-  const step=Math.max(1,Math.ceil(n/6/5)*5), xs=[]; for(let i=0;i<n;i+=step) xs.push(`<text x="${X(i)}" y="${H-4}" text-anchor="middle">${yr0+i+1}</text>`);
-  const lines=MK_RES.map(r=>{ const h=M[r].hist, off=n-h.length; return `<polyline fill="none" stroke="${MKT[r][5]}" stroke-width="1.8" points="${h.map((v,i)=>X(i+off)+","+Y(100*v/mkBase(r))).join(" ")}"><title>${MKT[r][1]}</title></polyline>`; }).join("");
-  return `<svg class="mchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prices over time, as a share of each normal price">${grid}${xs.join("")}${lines}</svg>
-  <div class="mleg">${MK_RES.map(r=>`<span><i style="background:${MKT[r][5]}"></i>${MKT[r][1]}</span>`).join("")}<span class="mut">100% = normal price</span></div>`; }
+  const W=400, H=150, L=34, B=18, T=6, yr0=G.turn-n, max=Math.max(...MK_RES.flatMap(r=>[mkBase(r),...M[r].hist]))*1.08;
+  const step=[.25,.5,1,2,5,10,20,50].find(s=>max/s<=5)||100, top=Math.ceil(max/step)*step;
+  const X=i=>(L+(W-L-4)*i/(n-1)).toFixed(1), Y=v=>(T+(H-T-B)*(1-Math.min(v,top)/top)).toFixed(1), lab=v=>+v.toFixed(2);
+  let grid=""; for(let v=0;v<=top+1e-9;v+=step) grid+=`<line x1="${L}" x2="${W-4}" y1="${Y(v)}" y2="${Y(v)}" class="cg"/><text x="${L-4}" y="${+Y(v)+3}" text-anchor="end">${lab(v)}</text>`;
+  const norm=MK_RES.map(r=>`<line x1="${L}" x2="${W-4}" y1="${Y(mkBase(r))}" y2="${Y(mkBase(r))}" class="cgn" stroke="${MKT[r][5]}"/>`).join("");
+  const xstep=Math.max(1,Math.ceil(n/6/5)*5), xs=[]; for(let i=0;i<n;i+=xstep) xs.push(`<text x="${X(i)}" y="${H-4}" text-anchor="middle">${yr0+i+1}</text>`);
+  const lines=MK_RES.map(r=>{ const h=M[r].hist, off=n-h.length; return `<polyline fill="none" stroke="${MKT[r][5]}" stroke-width="1.8" points="${h.map((v,i)=>X(i+off)+","+Y(v)).join(" ")}"/>`; }).join("");
+  const data={n,yr0,L,W,T,H:H-B,top,s:MK_RES.map(r=>({nm:MKT[r][1],ic:MKT[r][0],c:MKT[r][5],b:mkBase(r),h:M[r].hist,off:n-M[r].hist.length}))};
+  return `<div class="mcwrap"><svg class="mchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prices in gold over time" data-mc="${esc(JSON.stringify(data))}">${grid}${norm}${xs.join("")}${lines}<line class="mhv" x1="0" x2="0" y1="${T}" y2="${H-B}" visibility="hidden"/>${MK_RES.map(r=>`<circle class="mhd" r="3" fill="${MKT[r][5]}" visibility="hidden"/>`).join("")}</svg><div class="mtip" hidden></div></div>
+  <div class="mleg">${MK_RES.map(r=>`<span><i style="background:${MKT[r][5]}"></i>${MKT[r][1]}</span>`).join("")}<span class="mut">Price in gold · dashed = normal price · hover for numbers</span></div>`; }
+// hover (or touch) the price chart: a line at that year and every price then
+function mktHover(e){ const sv=e.target.closest?.(".mchart[data-mc]"); if(!sv) return;
+  const D=JSON.parse(sv.dataset.mc), rc=sv.getBoundingClientRect(), vx=(e.clientX-rc.left)/rc.width*D.W, i=Math.max(0,Math.min(D.n-1,Math.round((vx-D.L)/(D.W-D.L-4)*(D.n-1))));
+  const x=D.L+(D.W-D.L-4)*i/(D.n-1), Y=v=>D.T+(D.H-D.T)*(1-Math.min(v,D.top)/D.top), hv=sv.querySelector(".mhv"), dots=sv.querySelectorAll(".mhd"), tip=sv.parentElement.querySelector(".mtip");
+  hv.setAttribute("x1",x); hv.setAttribute("x2",x); hv.setAttribute("visibility","visible");
+  const rows=D.s.map((s,k)=>{ const v=s.h[i-s.off], d=dots[k]; if(v==null){ d.setAttribute("visibility","hidden"); return ""; }
+    d.setAttribute("cx",x); d.setAttribute("cy",Y(v)); d.setAttribute("visibility","visible");
+    const k2=v/s.b; return `<div><i style="background:${s.c}"></i>${s.ic} ${s.nm} <b>${px2(v)}</b> <span class="mut">${k2<0.85?"low":k2>1.15?"high":"normal"}</span></div>`; }).join("");
+  tip.innerHTML=`<div class="mut">Year ${D.yr0+i+1}</div>${rows}`; tip.hidden=false;
+  const px=x/D.W*rc.width, w=tip.offsetWidth; tip.style.left=Math.max(0,Math.min(rc.width-w,px+(px>rc.width/2?-w-10:10)))+"px"; }
+function mktHoverOff(e){ const sv=e.target.closest?.(".mchart[data-mc]"); if(!sv) return; sv.querySelectorAll(".mhv,.mhd").forEach(x=>x.setAttribute("visibility","hidden")); const t=sv.parentElement.querySelector(".mtip"); if(t) t.hidden=true; }
+document.addEventListener("pointermove",mktHover); document.addEventListener("pointerdown",mktHover); document.addEventListener("pointerout",e=>{ if(e.target.closest?.(".mchart[data-mc]")&&!e.relatedTarget?.closest?.(".mchart[data-mc]")) mktHoverOff(e); });
 // last year's trade: how much changed hands and how much of it went through merchants
 function mktWhy(){ const M=mkOf(G);
   return `<table class="tight mwhy"><tr><th></th><th class="r">Price</th><th class="r" title="All trades last year, between states and with merchants">Traded</th><th class="r" title="Bought from merchants last year: states ran out of sellers">From merchants</th><th class="r" title="Sold to merchants last year: no state wanted it at a better price">To merchants</th></tr>
@@ -5634,7 +5728,8 @@ function reportHtml(b,d,ref){
     <div class="bcalc small">${landTxt}</div>
     ${chips.length?`<div class="bchips">${chips.map(c=>`<span>${c}</span>`).join("")}</div>`:""}
     <div class="rep-foot">
-      ${UI.repBack?`<button data-repback="1">‹ Back to year report</button>`:""}
+      ${UI.repBack?`<button data-repback="1">‹ Back to ${/\bbfirst\b/.test(UI.repBack.cls)?"your battles":"year report"}</button>`:""}
+      ${d.tA?`<button data-replay="${ref}">▶ Watch</button>`:""}
       ${vis(mapId)?`<button data-repmap="${mapId}">🗺 Show on map</button>`:""}
       <button data-rep="${prev||""}" ${prev?"":"disabled"}>‹ Previous battle</button><button data-rep="${next||""}" ${next?"":"disabled"}>Next battle ›</button>
       <span class="small mut" title="Attack research ÷ defense research. In battle, one side's research counts at most ${R.techEdgeMax}× the other's.">Research edge: ${edge>=1?"attacker":"defender"} ${(edge>=1?edge:1/edge).toFixed(2)}× (cap ${R.techEdgeMax}×)</span>
@@ -5789,8 +5884,8 @@ function modal(html,cls){ const m=$("modal"), c="modal"+(cls?" "+cls:""), ov=$("
     if(j>i&&k[j-1].matches(".row,.rep-foot,.acts")&&k[j-1].querySelector("button")) j--;
     if(j>i){ const b=document.createElement("div"); b.className="mbody"; m.insertBefore(b,k[j]||null); k.slice(i,j).forEach(e=>b.appendChild(e)); } }
   const f=m.lastElementChild; if(f&&f.matches(".row,.rep-foot,.acts")&&f.querySelector("button")) f.classList.add("mfoot");
-  const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.toggle("solid",/\bhandover\b/.test(c)); ov.classList.remove("hidden"); }
-function closeModal(){ $("ov").classList.add("hidden"); }
+  const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.toggle("solid",/\bhandover\b/.test(c)||!!UI.bf); ov.classList.remove("hidden"); }
+function closeModal(){ UI.bf=null; $("ov").classList.add("hidden"); }
 
 // prev = your state's numbers before the turn: {land, money, grain, pop}
 function snapshot(c){ return {land:c.land,money:c.money,grain:c.grain,pop:popOf(c)}; }
@@ -5805,6 +5900,264 @@ function neighborsBefore(id){ const {W,cells}=G, tf=G.takenFrom, N=cells.length;
   for(let i=0;i<N;i++){ if(tf[i]!==id||cells[i]!==-1) continue; const x=i%W;
     if((x>0&&cells[i-1]===G.player)||(x<W-1&&cells[i+1]===G.player)||(i>=W&&cells[i-W]===G.player)||(i+W<N&&cells[i+W]===G.player)) return true; }
   return false; }
+// ---------- battle replay ----------
+// Drawn from the battle report: the same troops, losses, generals, terrain and result. Only the moves are made up.
+const RPW=960, RPH=520, RP_FLY=1.2;
+const rpRng=x=>{ let a=x>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; };
+const rpEase=p=>p*p*(3-2*p);
+// two states with near colours: the defender is drawn in a far-off colour for the replay
+const rpRGB=c=>{ const m=/^#?([0-9a-f]{6})$/i.exec(c||""); if(!m) return null; const n=parseInt(m[1],16); return [n>>16&255,n>>8&255,n&255]; };
+const rpDist=(a,b)=>{ const x=rpRGB(a), y=rpRGB(b); if(!x||!y) return 999; const r=(x[0]+y[0])/2, dr=x[0]-y[0], dg=x[1]-y[1], db=x[2]-y[2]; return Math.sqrt((2+r/256)*dr*dr+4*dg*dg+(2+(255-r)/256)*db*db); }; // "redmean": close to how far apart two colours look
+const RP_ALT=[["#5b8fd6","blue"],["#e0b354","gold"],["#5cc98a","green"],["#b07ce0","purple"],["#e8e8e8","white"],["#e96a5a","red"]];
+function rpColors(A,D){ if(rpDist(A.color,D.color)>=140) return {cA:A.color,cD:D.color,alt:null};
+  const [c,nm]=RP_ALT.find(x=>rpDist(A.color,x[0])>=300)||RP_ALT.slice().sort((x,y)=>rpDist(A.color,y[0])-rpDist(A.color,x[0]))[0]; return {cA:A.color,cD:c,alt:nm}; } // blue first, when it is far enough
+function rpAt(k,t){ if(t<=k[0][0]) return k[0]; for(let i=1;i<k.length;i++){ const a=k[i-1], b=k[i]; if(t<=b[0]){ const p=b[0]>a[0]?rpEase((t-a[0])/(b[0]-a[0])):1; return a.map((v,j)=>j?v+(b[j]-v)*p:t); } } return k[k.length-1]; }
+function rpPlan(b,d){
+  const C=G.countries, A=C[b.att], D=C[b.def], r=rpRng(b.turn*7919+b.att*131+b.def*17+(b.sent|0));
+  const mi=d.md?.[0]??0, mode=MODES[mi]||"normal", noland=!!NOLAND[mode];
+  const tA=d.tA||[], lA=d.lA||[], gd=(b.guards|0)>0&&(d.tD||[]).some(x=>x>0), tD=gd?d.tD:[], lD=gd?(d.lD||[]):[];
+  const win=!!b.win&&!noland, rout=gd&&win, sum=a=>a.reduce((x,y)=>x+(y||0),0);
+  const aArch=gd&&tA[1]>0, dArch=tD[1]>0;
+  const tV=aArch||dArch?6:2, tC=tV+(gd?6:7), tM=gd?tC+12:tC+1, tE=tM+6, yc=255;
+  // block area ∝ men, one scale for the whole battle (squeezed so the bigger front line fits), with a small floor so tiny troops stay visible
+  const mx=Math.max(1,...tA,...tD), base=n=>{ const s=Math.sqrt(n/mx); return [104*s,86*s]; };
+  const FA=[2,4,0,3].filter(k=>tA[k]>0), FD=gd?[3,0,4,2].filter(k=>tD[k]>0):[];
+  const colH=(T,ks)=>ks.reduce((t,k)=>t+base(T[k])[1],0)+16*Math.max(0,ks.length-1), fz=Math.min(1,330/Math.max(1,colH(tA,FA),colH(tD,FD)));
+  const sz=n=>base(n).map((v,i)=>Math.max(i?10:14,Math.round(v*fz)));
+  const U=[];
+  const add=(side,k,kf,w,h)=>{ const T=side?tD:tA, L=side?lD:lA; U.push({side,k,n0:T[k],L:Math.min(T[k],L[k]||0),kf,w,h,steps:[],seg:[]}); return U[U.length-1]; };
+  const stack=(T,ks)=>{ const S=ks.map(k=>sz(T[k])), H=S.reduce((t,s)=>t+s[1],0)+16*fz*Math.max(0,ks.length-1); let y=yc-H/2;
+    return ks.map((k,i)=>{ const o={k,w:S[i][0],h:S[i][1],y:Math.round(y)}; y+=S[i][1]+16*fz; return o; }); };
+  const fA=stack(tA,FA), fD=stack(tD,FD), dX=604, wD=Math.max(0,...fD.map(o=>o.w));
+  for(const o of fA){ const x0=110, cx=(gd?dX-6:690)-o.w;
+    add(0,o.k,gd?[[0,x0,o.y],[tV,x0+50,o.y],[tC,cx,o.y],[tM,cx+(win?46:-12),o.y],[tE,win&&!noland?cx+190:x0+(noland?150:30),o.y]]
+      :[[0,x0,o.y],[tC,cx,o.y],[tE,cx+40,o.y]],o.w,o.h); }
+  fA.forEach((o,i)=>{ U.find(u=>!u.side&&u.k===o.k).alt=i%2; });
+  for(const o of fD) add(1,o.k,[[0,dX,o.y],[tC,dX,o.y],[tM,rout?dX+44:dX,o.y],[tE,rout?dX+300:dX-14,o.y]],o.w,o.h);
+  fD.forEach((o,i)=>{ U.find(u=>u.side&&u.k===o.k).alt=i%2; });
+  if(tA[1]>0){ const [w,h]=sz(tA[1]); add(0,1,[[0,56,yc+60],[tC,90,yc+60],[tE,win?170:50,yc+60]],w,h); }
+  if(dArch){ const [w,h]=sz(tD[1]), x=Math.max(800,dX+wD+120); add(1,1,[[0,x,yc-150],[tM,x,yc-150],[tE,rout?RPW-w+40:x,yc-150]],w,h); }
+  // cavalry charge a target: the enemy's spearmen or pikemen (the bigger troop), else its archers, else its main line; they hit it from behind and stay on it
+  const botF=Math.max(yc+60,...fA.map(o=>o.y+o.h),...fD.map(o=>o.y+o.h));
+  const target=side=>{ const E=U.filter(u=>u.side!==side&&u.k!==5); return E.filter(u=>u.k===0||u.k===3).sort((a,b)=>b.n0-a.n0)[0]||E.find(u=>u.k===1)||E[0]||null; };
+  const hit=(T,t,w,h,fromRight)=>{ const f=rpAt(T.kf,t), x=fromRight?f[1]+T.w-6:f[1]-w+6, y=Math.max(0,Math.min(RPH-h,f[2]+T.h/2-h/2)); return [Math.round(x),Math.round(y)]; };
+  const cavHit=[];
+  if(gd&&tA[5]>0&&tD[5]>0){ // both have horse: they ride at each other first and clash on the flank in front of the fight
+    const [wa,ha]=sz(tA[5]), [wd,hd]=sz(tD[5]), arr=tC+.5, mx=dX-40, my=30, y0=RPH-18-hd;
+    add(0,5,[[0,70,18],[tV,140,18],[arr,mx-wa+4,my],[tM,win?mx-wa+30:mx-wa-30,my],[tE,...(win?[mx+200,my+20]:[110,18])]],wa,ha).arr=arr;
+    add(1,5,[[0,790,y0],[tV,Math.min(RPW-wd,860),y0],[tC-1,Math.min(RPW-wd,860),my+20],[arr,mx,my],[tM,win?mx+40:mx-20,my],[tE,...(rout?[RPW-wd+30,my]:[mx,my])]],wd,hd); Object.assign(U[U.length-1],{arr,below:1}); // its label below, clear of the attacker's
+    cavHit.push([arr,2,null]); }
+  else if(tA[5]>0){ const [w,h]=sz(tA[5]), T=gd?target(0):null;
+    if(T){ const arr=tC+(T.k===1?3:2.5), rear=T.k!==1, H=t=>hit(T,t,w,h,rear), a=H(arr), m=H(tM), e=H(tE);
+      const u=add(0,5,[[0,70,18],[tV,140,18],[tC,Math.min(RPW-w,a[0]+(rear?40:-60)),8],[arr,...a],[tM,...m],[tE,...(win?e:[110,18])]],w,h); u.arr=arr; cavHit.push([arr,0,T]);
+      if(T.k===1) T.seg0=arr; }
+    else add(0,5,[[0,70,18],[tC,560,18],[tE,700,34]],w,h); }
+  else if(tD[5]>0){ const [w,h]=sz(tD[5]), y0=RPH-18-h, T=target(1);
+    if(T){ const arr=tC+3, back=T.k!==1, H=t=>hit(T,t,w,h,!back), a=H(arr), m=H(tM);
+      const u=add(1,5,[[0,790,y0],[tC,760,y0],[arr-1.2,Math.max(0,a[0]+(back?-30:40)),Math.min(RPH-h,botF+8)],[arr,...a],[tM,...m],[tE,...(rout?[900,y0]:m)]],w,h); u.arr=arr; cavHit.push([arr,1,T]);
+      if(T.k===1) T.seg0=arr; } }
+  // volleys: archers' share of the strength is the share of the other side's losses that arrows cause
+  const raw=(T,st)=>TROOPS.reduce((t,x,k)=>t+(T[k]||0)*x[st],0), shots=[];
+  const volley=(from,side,share,t0)=>{ const tg=U.filter(u=>u.side!==side&&u.k!==1&&u.L>0); if(!tg.length||share<=0) return; const ts=[];
+    for(let t=t0;t<tM-RP_FLY;t+=1.5) ts.push(t); // archers keep shooting through the charge and the melee
+    ts.forEach((t,i)=>{ const u=tg[i%tg.length]; shots.push({t,from,u}); });
+    for(const u of tg){ const mine=shots.filter(s=>s.u===u&&s.from===from), tot=Math.round(u.L*share); let left=tot;
+      mine.forEach((s,i)=>{ const a=i===mine.length-1?left:Math.round(tot/mine.length); left-=a; s.n=a; u.steps.push([s.t+RP_FLY,a]); }); } };
+  const shooterA=U.find(u=>!u.side&&u.k===1), shooterD=U.find(u=>u.side&&u.k===1);
+  if(shooterD) volley(shooterD,1,Math.min(.4,tD[1]*TROOPS[1].def/Math.max(1,raw(tD,"def"))),1);
+  if(shooterA) volley(shooterA,0,Math.min(.4,tA[1]*TROOPS[1].atk/Math.max(1,raw(tA,"atk"))),1.6);
+  for(const u of U){ const rest=u.L-u.steps.reduce((t,s)=>t+s[1],0); if(rest<=0) continue;
+    if(!gd){ u.seg.push([tC-3,tE-2,rest]); continue; }
+    const t0=u.arr??u.seg0??(u.k===1?tC+4:tC); // cavalry (and archers they ride down) only once the fight reaches them
+    if(u.side&&rout){ const m=Math.round(rest*.75); u.seg.push([t0,tM,m],[tM,tE-1,rest-m]); } else u.seg.push([t0,tM,rest]); }
+  // generals ride behind their lines
+  const gens=[], front=s=>U.find(u=>u.side===s&&u.k!==1&&u.k!==5);
+  if(d.gA){ const f=front(0); gens.push({side:0,g:d.gA,kf:f?f.kf.map(([t,x])=>[t,Math.max(4,x-120),yc-56]):[[0,40,yc-56],[tE,300,yc-56]]}); }
+  if(gd&&d.gD){ gens.push({side:1,g:d.gD,kf:[[0,dX+wD+90,yc-20],[tM,dX+wD+(rout?120:90),yc-20],[tE,rout?RPW-40:dX+wD+90,yc-20]]}); }
+  // what happened, in words
+  const nA=esc(A.name), nD=esc(D.name), gn=g=>g?`Gen. ${esc(g[0])}`:null, E=[], ev=(t,txt,c="",pop=1)=>E.push([t,txt,c,pop]);
+  ev(0,`${nA} ${({raid:"raids",kidnap:"comes for the people of",massacre:"falls on the people of"})[mode]||"attacks"} ${nD}.`,"",0);
+  if(!gd) ev(1.5,`No one guards the border. ${nA} marches in.`,"acc");
+  if(shooterD) ev(1,`${nD}'s archers open fire.`,"rpi");
+  if(shooterA) ev(2.2,shooterD?`${nA}'s archers shoot back.`:`${nA}'s archers open fire.`,"rpi");
+  if(gd) ev(tV,`${gn(d.gA)||nA} orders the charge.`);
+  const tn={0:"spearmen",1:"archers",2:"axemen",3:"pikemen",4:"swordsmen"};
+  if(gd&&tA[5]>0) ev(tV+2.2,`${nA}'s cavalry ride round the flank.`,"",0);
+  for(const [t,sd,T] of cavHit) ev(t,sd===2?"The two sides' cavalry clash on the flank.":sd?`${nD}'s cavalry charge ${nA}'s ${tn[T.k]}.`:`${nA}'s cavalry charge ${nD}'s ${tn[T.k]}.`,sd?"rpi":"acc");
+  if(gd) ev(tC,"The lines meet.");
+  for(const [t,sd,T] of cavHit) if(sd===0&&T.k===3) ev(t+.8,"The pikes brace against the horses.","rpi");
+  if(gd&&d.gD) ev(tC+5.5,`${gn(d.gD)} rallies the centre.`,"rpi",0);
+  if(gd) ev(tM-3,win?`${nD}'s line breaks.`:noland?`${nA} fights through to the farms.`:`${nA}'s attack stalls.`,win?"bad":"rpi");
+  const gain=d.gain, lt=a=>[["gold",0],["grain",1],["wood",2],["iron",3]].filter(([,k])=>a[k]).map(([n,k])=>`${fmt(a[k])} ${n}`).join(", ")||"nothing";
+  const endTxt=gain?(gain.loot?`${nA} carries off ${lt(gain.loot)}.`:gain.kid!=null?`${nA} takes ${fmt(gain.kid)} peasants away.`:`${nA} kills ${fmt(gain.kill)} peasants.`)
+    :noland?`${nA} pulls back with nothing.`:win&&!gd?`${nA} takes ${fmt(b.taken)} km² unopposed.`:win?`${nD} falls back. ${nA} takes ${fmt(b.taken)} km².`:`${nA} pulls back. ${nD} holds.`;
+  ev(tM+.5,endTxt,win||gain?"good":"bad");
+  if(b.elim) ev(tM+3,`${nD} is destroyed!`,"bad");
+  E.sort((x,y)=>x[0]-y[0]);
+  return {b,d,A,D,...rpColors(A,D),U,gens,shots,E,tV,tC,tM,tE,yc,win,rout,gd,noland,r,cuts:[0,tV,tC,tM,tE]};
+}
+function rpMen(u,t){ let n=u.n0; for(const [ts,a] of u.steps) if(t>=ts) n-=a; for(const [t0,t1,a] of u.seg) n-=a*Math.max(0,Math.min(1,(t-t0)/Math.max(.01,t1-t0))); return Math.max(0,n); }
+function rpStatus(P,u,t,hit){
+  if(hit) return ["Under fire","bad"]; const {tV,tC,tM}=P;
+  if(u.arr&&t>=tC&&t<u.arr) return ["Charging","acc"];
+  if(!u.side){ if(t<tV) return ["Forming up","mut"]; if(t<tC) return [u.k===1?"Shooting":u.k===5?"Riding round":"Charging","acc"];
+    if(t<tM) return [u.k===1?"Shooting":"Fighting","acc"]; return P.win?["Pursuing","good"]:["Pulling back","bad"]; }
+  if(t>=tM) return P.rout?["Falling back","bad"]:["Holding","good"];
+  if(u.k===1) return ["Shooting","rpi"]; return t<tC?["Holding","mut"]:["Fighting","acc"];
+}
+// terrain: forest and mountains on the defender's side, a narrow pass or a sea crossing at the front
+// on a narrow screen the field stands upright: the attacker comes from the bottom (x runs up, y runs across)
+function rpBox(v,x,y,w,h){ return v?{l:y/RPH*100,t:(RPW-x-w)/RPW*100,w:h/RPH*100,h:w/RPW*100}:{l:x/RPW*100,t:y/RPH*100,w:w/RPW*100,h:h/RPH*100}; }
+function rpTerrain(P,v){
+  const b=P.b, r=rpRng(b.turn*31+b.def), fo=b.front>0?(b.tfo||0)/b.front:0, mt=b.front>0?(b.tmt||0)/b.front:0, pc=(x,y,w,h)=>{ const q=rpBox(v,x,y,w,h); return `left:${q.l}%;top:${q.t}%;width:${q.w}%;height:${q.h}%`; };
+  let h="";
+  for(let i=0,n=Math.round(fo*16);i<n;i++){ const s=40+r()*60; h+=`<div class="rp-tree" style="${pc(640+r()*300,r()*(RPH-s),s,s)}"></div>`; }
+  for(let i=0,n=Math.round(mt*8);i<n;i++){ const s=60+r()*70; h+=`<div class="rp-mtn" style="${pc(660+r()*270,r()*(RPH-s),s,s*.8)}"></div>`; }
+  const tag=(x,y,t)=>{ const q=rpBox(v,x,y,0,0); return `<div class="rp-tag" style="left:${q.l}%;top:${q.t}%">${t}</div>`; };
+  if(b.sea) h+=`<div class="rp-sea" style="${pc(500,0,70,RPH)}"></div>`+tag(v?560:505,v?8:34,"Sea crossing");
+  else if(b.fb>=0.05) h+=`<div class="rp-rock" style="${pc(520,-30,180,150)}"></div><div class="rp-rock" style="${pc(520,RPH-120,180,150)}"></div>`+tag(v?690:520,v?8:34,"Narrow front");
+  if(fo>=0.05||mt>=0.05){ const t=`${mt>=fo?"⛰️ Mountains":"🌲 Forest"}: defenders +${Math.round((b.tb||0)*100)}%`; h+=v?tag(RPW-10,8,t):`<div class="rp-tag" style="right:1.5%;top:2%">${t}</div>`; }
+  return h;
+}
+function rpHtml(P){
+  const {A,D,b,d}=P, gl1=(g,c)=>g?`<div class="rp-gen">${genFrame({name:g[0],age:g[1],morale:g[4],face:g[8]??0,tier:g[9],battles:0,l:0},c)}<div><b>Gen. ${esc(g[0])}</b><div class="small mut">skill ${g[2]} · morale ${g[4]}</div></div></div>`:`<div class="small mut">No general</div>`;
+  const st=d.st?STANCES[d.st[0]]:null, mi=d.md?.[0]??0;
+  const side=(c,role,g,right)=>`<div class="rp-side${right?" r":""}"><div class="rp-nm"><span class="sw" style="background:${(c===D?P.cD:P.cA)}"></span><b>${esc(c.name)}</b><span class="bfmode">${role}</span></div>${gl1(g,(c===D?P.cD:P.cA))}</div>`;
+  return `<h2>▶ Battle replay · Year ${b.turn} ${gl("replay")}</h2>
+  <div class="mbody">
+  <div class="rp-head">${side(A,`Attacker · ${MODE_UI[mi][1]} ${MODE_UI[mi][2]}`,d.gA,0)}${side(D,`Defender${st?" · "+STANCE_KEY[st]:""}`,P.gd?d.gD:null,1)}</div>
+  ${P.alt?`<div class="rp-alt">${esc(D.name)} is shown in ${P.alt} here: its colour is too close to ${esc(A.name)}'s.</div>`:""}
+  <div class="rp-main">
+    <div class="rp-left">
+      <div class="rp-field" id="rpField"><div id="rpTer"></div>
+        <div class="rp-clash" id="rpClash"></div>
+        ${P.U.map((u,i)=>`<div class="rp-u${u.alt?" alt":""}${u.below?" below":""}" data-u="${i}" data-k="${TROOPS[u.k].id}" title="${esc(TROOPS[u.k].name)}" style="--c:${u.side?P.cD:P.cA}"><div class="rp-lab"><span class="rp-ic">${TROOPS[u.k].icon}</span><b class="rp-n">${fmt(u.n0)}</b><span class="rp-st"></span></div><span class="rp-hp"><i></i></span></div>`).join("")}
+        ${P.gens.map((g,i)=>`<div class="rp-g" data-g="${i}" style="--c:${g.side?P.cD:P.cA}" title="Gen. ${esc(g.g[0])}">${genFrame({name:g.g[0],age:g.g[1],morale:g.g[4],face:g.g[8]??0,tier:g.g[9],battles:0,l:0},g.side?P.cD:P.cA)}<span>${esc(g.g[0])}</span></div>`).join("")}
+        <div id="rpShots"></div><div id="rpHits"></div>
+        <div class="rp-pop" id="rpPop" hidden></div>
+        <div class="rp-end" id="rpEnd" hidden><div class="rp-card"><div class="small mut" style="letter-spacing:2px">RESULT</div><h3>${P.noland?(d.gain?`${esc(A.name)} gets through`:`${esc(A.name)} gets nothing`):b.win?`${esc(A.name)} wins`:`${esc(D.name)} holds`}</h3><ul class="log">${battleLine(b).replace(/ <button[^>]*data-rep=[^>]*>[^<]*<\/button>/,"")}</ul><div class="row" style="justify-content:center"><button data-rp="again">↺ Watch again</button><button class="pri" data-a="close">‹ Back</button></div></div></div>
+      </div>
+      <div class="rp-ctl">
+        <button class="sm" data-rp="again" title="Restart" aria-label="Restart">↺</button>
+        <button class="pri rp-play" data-rp="play" aria-label="Pause">❚❚</button>
+        <div class="rp-tl"><div class="rp-ph">${["Volleys","Charge","Melee",P.rout?"Rout":"After"].map((n,i)=>`<div style="flex:${Math.max(.6,P.cuts[i+1]-P.cuts[i])}"><i><b style="background:${["var(--info)","var(--bad)","var(--acc)","var(--good)"][i]}"></b></i><span>${n}</span></div>`).join("")}</div>
+          <input type="range" id="rpT" min="0" max="${Math.round(P.tE*10)}" value="0" aria-label="Battle time"></div>
+        <span class="small mut rp-clock" id="rpClock"></span>
+        <div class="rp-sp" role="group" aria-label="Speed">${[.5,1,2,4].map(s=>`<button class="sm" data-rp="sp${s}">${s===.5?"½":s}×</button>`).join("")}</div>
+        <button class="sm" data-rp="skip">Skip<span class="rp-long"> to result</span></button>
+      </div>
+    </div>
+    <div class="rp-info">
+      <h3>Men</h3><div class="rp-men"><div><span class="sw" style="background:${P.cA}"></span>${esc(A.name)} <b id="rpMA"></b></div><div><span class="sw" style="background:${P.cD}"></span>${esc(D.name)} <b id="rpMD"></b></div></div>
+      <h3>Losses</h3><table class="small rp-loss"><tr><th>Troop</th><th class="r">Left</th><th class="r">Lost</th></tr>${P.U.map((u,i)=>`<tr><td><span class="sw" style="background:${u.side?P.cD:P.cA}"></span>${TROOPS[u.k].icon} ${esc(TROOPS[u.k].name)}</td><td class="r" data-ul="${i}"></td><td class="r bad" data-uo="${i}"></td></tr>`).join("")}</table>
+      <h3>What happened</h3><ul class="log small rp-log" id="rpLog"></ul>
+    </div>
+  </div></div>
+  <div class="rep-foot"><button data-a="close">‹ Back</button><span class="small mut">A replay of a battle already fought: the troops, losses and result are the real ones.</span></div>`;
+}
+async function openReplay(ref){
+  let b=null,d=null;
+  if(ref[0]==="c"){ b=G.battles[+ref.slice(1)]; d=b?.d; } else { const a=NEWS.items[+ref.slice(1)]; if(a){ b=unpackBattle(a); d=await newsDetail(a); } }
+  if(!b||!d||!d.tA){ flash("This battle can't be replayed."); return; }
+  const ov=$("ov"), m=$("modal");
+  if(!m.classList.contains("replay")||ov.classList.contains("hidden")) UI.rpBack=ov.classList.contains("hidden")?null:{html:m.innerHTML,cls:m.className}; // a replay restarted from itself keeps its way back
+  const P=rpPlan(b,d); modal(rpHtml(P),"replay");
+  const el=$("rpField"), S={P,t:0,playing:true,speed:1,last:performance.now(),logN:-1,el};
+  UI.rp=S; m.querySelector(".mbody").scrollTop=0;
+  const shots=$("rpShots"), hits=$("rpHits");
+  for(let i=0;i<48;i++) shots.insertAdjacentHTML("beforeend",`<i class="rp-arrow" hidden></i>`);
+  for(let i=0;i<8;i++) hits.insertAdjacentHTML("beforeend",`<b class="rp-hit" hidden></b>`);
+  $("rpT").addEventListener("input",e=>{ S.t=+e.target.value/10; rpDraw(S); });
+  rpDraw(S);
+  const loop=now=>{ if(!el.isConnected){ if(UI.rp===S) UI.rp=null; return; }
+    const dt=Math.min(.1,(now-S.last)/1000); S.last=now;
+    if(S.playing){ S.t=Math.min(P.tE,S.t+dt*S.speed); if(S.t>=P.tE) S.playing=false; rpDraw(S); }
+    requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+function rpDraw(S){
+  const {P,el}=S, t=S.t, pos={}, hitNow={}, vert=el.parentElement.clientWidth<560;
+  el.classList.toggle("tight",!vert&&el.clientWidth<760); // a small sideways field: compact labels
+  if(vert!==S.vert){ S.vert=vert; el.classList.toggle("vert",vert); $("rpTer").innerHTML=rpTerrain(P,vert); }
+  const put=(e,x,y,w,h)=>{ const q=rpBox(vert,x,y,w,h); e.style.left=q.l+"%"; e.style.top=q.t+"%"; if(w!=null){ e.style.width=q.w+"%"; e.style.height=q.h+"%"; } };
+  for(const s of P.shots){ const a=t-(s.t+RP_FLY); if(a>=0&&a<.9) hitNow[P.U.indexOf(s.u)]=a; }
+  let mA=0,mD=0;
+  P.U.forEach((u,i)=>{ const f=rpAt(u.kf,t), n=rpMen(u,t), sc=Math.sqrt(Math.max(0,n)/Math.max(1,u.n0)), w=Math.max(8,u.w*sc), h=Math.max(8,u.h*sc);
+    const x=f[1]+(u.w-w)/2, y=f[2]+(u.h-h)/2, e=el.querySelector(`[data-u="${i}"]`); pos[i]={cx:x+w/2,cy:y+h/2};
+    if(u.side) mD+=n; else mA+=n;
+    put(e,x,y,w,h);
+    e.style.opacity=u.side&&P.rout&&t>P.tM?Math.max(.35,1-(t-P.tM)/P.tE*2.2):n<=0.5?.25:1;
+    e.classList.toggle("hit",hitNow[i]!=null);
+    e.querySelector(".rp-n").textContent=fmt(Math.round(n)); e.querySelector(".rp-hp i").style.width=Math.round(100*n/Math.max(1,u.n0))+"%";
+    const st=rpStatus(P,u,t,hitNow[i]!=null), se=e.querySelector(".rp-st"); se.textContent=st[0]; se.className="rp-st "+st[1];
+    const L=$("modal").querySelector(`[data-ul="${i}"]`); if(L){ L.textContent=fmt(Math.round(n)); $("modal").querySelector(`[data-uo="${i}"]`).textContent=fmt(Math.round(u.n0-n)); } });
+  P.gens.forEach((g,i)=>{ const f=rpAt(g.kf,t), e=el.querySelector(`[data-g="${i}"]`), q=rpBox(vert,f[1],f[2],vert?30:0,0); e.style.left=q.l+"%"; e.style.top=q.t+"%"; e.style.opacity=g.side&&P.rout&&t>P.tM+2?.5:1; });
+  // arrows in flight
+  const ar=[...$("rpShots").children]; let ai=0;
+  for(const s of P.shots){ const p=(t-s.t)/RP_FLY; if(p<0||p>1) continue; const a=pos[P.U.indexOf(s.from)], b=pos[P.U.indexOf(s.u)]; if(!a||!b) continue;
+    for(let j=0;j<6&&ai<ar.length;j++){ const jx=((j*37)%11-5)*5, jy=((j*53)%9-4)*6, x0=a.cx+jx, y0=a.cy+jy, x1=b.cx+jx*1.4, y1=b.cy+jy*1.4;
+      const x=x0+(x1-x0)*p, y=y0+(y1-y0)*p-110*4*p*(1-p), ang=Math.atan2((y1-y0)-110*4*(1-2*p),x1-x0)*180/Math.PI, e=ar[ai++];
+      e.hidden=false; put(e,x,y); e.style.transform=`rotate(${vert?ang-90:ang}deg)`; } }
+  for(;ai<ar.length;ai++) ar[ai].hidden=true;
+  const hs=[...$("rpHits").children]; let hi=0;
+  for(const s of P.shots){ const a=t-(s.t+RP_FLY), p=pos[P.U.indexOf(s.u)]; if(a<0||a>=.9||!p||!s.n||hi>=hs.length) continue; const e=hs[hi++];
+    e.hidden=false; e.textContent="−"+fmt(s.n); put(e,vert?p.cx+20+a*34:p.cx-14,vert?p.cy-14:p.cy-26-a*34); e.style.opacity=1-a/.9; }
+  for(;hi<hs.length;hi++) hs[hi].hidden=true;
+  const cl=$("rpClash"); cl.style.opacity=P.gd&&t>P.tC-.5&&t<P.tM+.5?(.5+.35*Math.sin(t*7)).toFixed(2):0;
+  const fx=P.U.filter(u=>u.side&&u.k!==1&&u.k!==5).map(u=>rpAt(u.kf,t)[1]); put(cl,(fx.length?Math.min(...fx):600)-90,P.yc-130,180,260);
+  // event banner and log
+  const past=P.E.filter(e=>e[0]<=t), last=past.filter(e=>e[3]).pop(), pop=$("rpPop"), age=last?t-last[0]:99;
+  pop.hidden=!(age<2.6&&t<P.tE); if(!pop.hidden){ pop.textContent=last[1].replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'"); pop.className="rp-pop "+last[2]; pop.style.opacity=age>2.1?(2.6-age)/.5:1; }
+  if(past.length!==S.logN){ S.logN=past.length; const lg=$("rpLog"); lg.innerHTML=past.slice().reverse().map(e=>`<li class="${e[2]}"><span class="mut">${rpClock(e[0])}</span> ${e[1]}</li>`).join(""); }
+  $("rpMA").textContent=fmt(Math.round(mA)); $("rpMD").textContent=P.gd?fmt(Math.round(mD)):"no guards";
+  // controls
+  $("rpEnd").hidden=!(t>=P.tE&&!S.hideEnd);
+  const pl=$("modal").querySelector(".rp-play"); pl.textContent=S.playing?"❚❚":"▶"; pl.setAttribute("aria-label",S.playing?"Pause":"Play");
+  $("modal").querySelectorAll(".rp-sp button").forEach(x=>x.classList.toggle("on",x.dataset.rp==="sp"+S.speed));
+  $("modal").querySelectorAll(".rp-ph>div").forEach((x,i)=>{ const a=P.cuts[i], c=P.cuts[i+1], now=t>=a&&(t<c||i===3); x.querySelector("b").style.width=Math.round(100*Math.max(0,Math.min(1,(t-a)/Math.max(.01,c-a))))+"%"; x.classList.toggle("now",now); });
+  const rg=$("rpT"); if(document.activeElement!==rg) rg.value=Math.round(t*10);
+  $("rpClock").textContent=`${rpClock(t)} / ${rpClock(P.tE)}`;
+}
+const rpClock=t=>{ const s=Math.floor(t); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+function rpCtl(a){ const S=UI.rp; if(!S) return;
+  if(a==="play"){ if(S.t>=S.P.tE){ S.t=0; S.hideEnd=false; } S.playing=!S.playing; }
+  else if(a==="again"){ S.t=0; S.playing=true; S.hideEnd=false; }
+  else if(a==="skip"){ S.t=S.P.tE; S.playing=false; S.hideEnd=false; }
+  else if(a.startsWith("sp")) S.speed=+a.slice(2);
+  S.last=performance.now(); rpDraw(S); }
+window.addEventListener("resize",()=>{ if(UI.rp&&UI.rp.el.isConnected) rpDraw(UI.rp); });
+function rpBackGo(){ const bk=UI.rpBack; UI.rpBack=null; UI.rp=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); }
+
+// ---------- battles first ----------
+// After a year with battles involving you, list them with the results hidden; the year report comes after.
+const noHide=()=>{ try{ return localStorage.getItem("eb.noHide")==="1"; }catch(e){ return false; } };
+function battlesFirst(prev){
+  const list=G.battles.map((b,i)=>b.att===G.player||b.def===G.player?i:-1).filter(i=>i>=0);
+  if(!list.length||noHide()||observing()){ turnReport(prev); return; }
+  UI.bf={prev,list,shown:{}}; battlesModal();
+}
+function battlesModal(){
+  const f=UI.bf, C=G.countries, nm=id=>`<span class="sw" style="background:${C[id].color}"></span><b>${esc(C[id].name)}</b>`;
+  const others=G.battles.filter(b=>!(b.att===G.player||b.def===G.player)&&seenBattle(b)).length;
+  const cards=f.list.map(i=>{ const b=G.battles[i], att=b.att===G.player, mo=MODE_UI[b.d?.md?.[0]??0]||MODE_UI[0], ref=battleRef(b), on=!!f.shown[i];
+    const edge=(b.guards>0&&b.fb>=0.05?` · ${b.sea?"sea crossing":"narrow front"}: defenders +${Math.round(b.fb*100)}%`:"")+(b.guards>0&&b.tb>=0.05?` · ${b.tmt>=b.tfo?"mountains":"forest"}: defenders +${Math.round(b.tb*100)}%`:"");
+    const forces=att?`You sent ${fmt(b.sent)} soldiers · ${b.guards?`they had ${fmt(b.guards)} guards`:"no defenders"}`:`${fmt(b.sent)} attackers · ${b.guards?`your ${fmt(b.guards)} guards`:"your border was empty"}`;
+    return `<div class="bfc${on?" on":""}"><div class="bfi ${att?"att":"def"}" aria-hidden="true">${att?"⚔️":"🛡️"}</div>
+      <div class="bfm"><div class="bft">${att?`You attacked ${nm(b.def)}`:`${nm(b.att)} attacked you`}<span class="bfmode">${mo[1]} ${mo[2]}</span></div>
+      <div class="small mut">${forces}${edge}</div>
+      ${on?`<ul class="log">${battleLine(b)}</ul>`:`<div class="small mut">🔒 Result hidden</div>`}</div>
+      <div class="bfb">${ref&&b.d?.tA?`<button class="sm pri" data-bfwatch="${i}">▶ Watch</button>`:""}${on?"":`<button class="sm" data-bfshow="${i}">Show result</button>`}${ref?`<button class="sm" data-bfrep="${i}">Report ›</button>`:""}</div></div>`; }).join("");
+  const n=f.list.length;
+  modal(`<h2>⚔️ Year ${G.turn-1}: ${n} battle${n>1?"s":""} involving you ${gl("bfirst")}</h2>
+  <div class="mbody"><p class="small mut">The results are hidden. Watch a battle, show its result or open its report to see how it went. The year report shows everything.</p>
+  ${cards}
+  ${others?`<div class="small mut">🌍 ${fmt(others)} more battle${others>1?"s":""} elsewhere: they are in the year report and the News tab.</div>`:""}</div>
+  <div class="rep-foot"><label class="small mut" style="flex:1;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="bfNoHide" ${noHide()?"checked":""}> Don't hide results (skip this screen)</label><button class="pri" data-a="close">Go to year report</button></div>`,"bfirst");
+  $("modal").querySelector(".rep-foot .pri")?.focus({preventScroll:true});
+}
+function bfDone(){ const p=UI.bf.prev; UI.bf=null; turnReport(p); }
+document.addEventListener("change",e=>{ const id=e.target.id; if(id==="bfNoHide"||id==="bfHide") try{ localStorage.setItem("eb.noHide",e.target.checked===(id==="bfNoHide")?"1":"0"); }catch(err){} });
+
 function turnReport(prev){
   const c=me(), now=snapshot(c);
   const mine=G.battles.filter(b=>b.att===G.player||b.def===G.player);
@@ -5829,7 +6182,7 @@ function turnReport(prev){
   <div class="mbody">
     ${observing()?`<div class="small mut">${fmt(G.countries.filter(x=>x.alive).length)} states remain · grain price next year: <b>${G.price}</b></div>`:`<div class="stats">${stat("Land","land"," km²")}${stat("Money","money")}${stat("Grain","grain")}${stat("Population","pop")}</div>
     <div class="small mut">Grain price next year: <b>${G.price}</b></div>
-    ${mine.length?`<h3>Your battles</h3><ul class="log">${mine.map(battleLine).join("")}</ul>`:""}
+    ${mine.length?`<h3>Your battles</h3><ul class="log">${mine.map(battleLine).join("")}</ul><label class="small mut" style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="bfHide" ${noHide()?"":"checked"}> Show my battles first with the results hidden</label>`:""}
     <h3>Home</h3><ul class="log">${(c.log||G.log||[]).map(l=>`<li>${esc(l)}</li>`).join("")||"<li class='mut'>Quiet year.</li>"}</ul>`}
     ${wonderNews()}
     <h3>Elsewhere${others.length||collapsed.length?` <span class="mut small" style="text-transform:none;letter-spacing:0">· ${fmt(others.length)} battle${others.length!==1?"s":""}${fallen?`, ${fallen} state${fallen>1?"s":""} destroyed`:""}</span>`:""}</h3>
@@ -5843,6 +6196,16 @@ function turnReport(prev){
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
 ["Spymaster: spies and sabotage","2026-11-14 11:29",["The Chief of Staff post is now the Spymaster. A Chief of Staff in your saved game becomes your Spymaster","Your Spymaster runs one operation a year against a neighbor: right-click it on the map → Sabotage…","Sabotage: burn the granary, fire the stores, rob the treasury, steal research, incite unrest, open the gates for your attack","Intel: scout their army, read their generals (hidden traits too), map their court. Reports show in the new Spies tab of the state view","Spy against spy: your Spymaster's skill against theirs decides whether it works and whether you're found out","Not found out: no grievance and no name. Found out: they know it was you, and your network there is burned for 3 years","False flag: blame a neighbor of your target for loud sabotage","Cautious, Reckless, Lucky, Jinxed, Greedy, Butcher and Drunkard traits matter for spies","Computer states spy too"]],
+["Cavalry fight cavalry first","2026-11-14 11:23",["In battle replays, when both sides have cavalry, they ride at each other and clash on the flank first","Only cavalry with no enemy cavalry go for spearmen, pikemen or archers"]],
+["Replays: armies of the same colour","2026-11-14 11:21",["When both states in a replay have near colours, the defender is drawn in a far-off colour for that battle","A note under the names says which colour it is shown in"]],
+["Cavalry pick their target","2026-11-14 11:20",["In battle replays, cavalry charge the enemy's spearmen or pikemen; only if it has none, its archers","They hit from behind and stay on their target","The log names what each side's cavalry charged"]],
+["Cavalry charge in replays","2026-11-14 11:08",["In battle replays, cavalry charge into the main fight: the attacker's into the end of the defenders' line, the defender's into the attackers' flank","Cavalry lose men only once they reach the fight","The log says when each side's cavalry hit"]],
+["Archers keep shooting","2026-11-14 10:59",["In battle replays, archers keep shooting through the charge and the melee, not just at the start","Their volleys still take men only when they land; total losses are unchanged"]],
+["Market chart in gold","2026-11-14 10:58",["The World market chart shows prices in gold instead of % of normal","Each normal price is a faint dashed line in its colour","Hover (or touch) the chart to see that year's grain, wood and iron prices"]],
+["Replays on phones","2026-11-14 10:41",["On a phone the replay field stands upright, the attacker coming from the bottom, so it fills the screen","Smaller troop labels and generals on small screens","Compact header and bigger play, speed and skip buttons; the timeline gets its own row","Turning the phone redraws the field"]],
+["Battle replays","2026-11-14 10:32",["▶ Watch on battle reports and on the Your battles screen plays the battle","Real troops, losses, generals, terrain and result; only the moves are made up","Archers shoot first and men fall only when a volley lands","Each troop is a block sized by its men that shrinks as they fall, with its icon, men left and what it is doing","Generals ride behind their lines with their portrait","Forest, mountains, narrow fronts and sea crossings show on the field","Play, pause, drag to any moment, ½× to 4× speed, skip to the result"]],
+["Your battles first, no spoilers","2026-11-14 10:24",["After a year with battles involving you, a Your battles screen opens before the year report","Each battle shows who attacked whom, the attack mode and the forces, with the result hidden","Show result reveals one battle; Report opens its full report and Back returns to the list","Go to year report shows everything","The map and header stay hidden until you go on","Tick Don't hide results to skip the screen; a box in the year report turns it back on","Hot-seat: each player sees their own battles after the handover"]],
+["Back button works","2026-11-14 09:54",["The browser Back button closes the open menu or window","With nothing open, Back returns to the page you were on before","On phones, the Back gesture does the same"]],
 ["Land bonuses in battle reports","2026-11-14 09:04",["The Land taken line in battle reports now shows every land multiplier: Breaching Spear, Hammer, Cautious generals, stance and attack mode","Relic land chips name the relic","Older battles in the news keep these details"]],
 ["Pick relics from the general card","2026-11-14 08:55",["Clicking a general's relic slot opens a list of your Treasury relics","Pick one and he carries it; you stay on the Generals list","Relics that work for him are listed first"]],
 ["A new state view","2026-11-14 08:30",["Clicking a state opens a new view: its colour, flag, alliance and how it feels about you in a badge","Three tabs: Overview (land with rank and a chart, population, army, generals, loyalty, wonders, wars), Relations (why it feels as it does about you, and all its neighbors) and Science (its ten levels against the world average)","Buttons: Show on map, Plan attack, Take over","The map tooltip no longer lists neighbor feelings; they are in the Relations tab"]],
@@ -6119,6 +6482,7 @@ ${gTab(["Job","Makes per worker per year","Notes"],[["Farmer",`${R.foodPerFarmer
 <li>Normal prices: wood ${R.woodPrice}, iron ${R.ironPrice} gold. Merchants pay half of that, so selling a big surplus earns little: better to make less and move hands to research.</li></ul>`],
 ["market","Your state","⚖️","World market",()=>`
 <p>Grain, wood and iron each have an <b>order book</b>: a list of what states want to sell (asks) and buy (bids), and at what price. Open it under Market → Trade.</p>
+<p>The <b>World market</b> chart shows what each costs in gold, year by year, with its normal price as a faint dashed line. Hover over it (or touch it) to see that year's three prices and whether each was low, normal or high.</p>
 <h3>Trading</h3>
 <ul class="log"><li><b>Trade now:</b> buy from the cheapest sellers or sell to the highest buyers right away. The preview shows the average price before you confirm.</li>
 <li><b>Post an order:</b> pick your own price and how long it stands: 1, 5, 10 or 50 years, or no end. Its gold (for a buy) or goods (for a sale) are held until it fills, runs out of time or you cancel it. Grain held for sale still spoils.</li>
@@ -6277,7 +6641,20 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <p>Wiping a state out pays: the winner takes all its remaining people (scientists join as peasants) and all its gold, grain, wood and iron. Its soldiers are lost. Taking its last land hands over everyone, since no one has to be squeezed out first.</p>`
 :`<p>The share of land taken brings the same share of the defender's peasants (${gP(R.capturedPeasants)} arrive) and ${gP(R.lootGrain)} of that share of its grain. Gold, wood and iron are never looted. When a state is wiped out, half its peasants join the winner and its stocks vanish.</p>`}
 <p class="mut">Settings → Battle → "Beaten states keep their people and grain" switches between the two rules.</p>
-<p>Press <b>Details</b> on any battle in the News tab or year report to see both sides' troops, losses and how each strength adds up.</p>`],
+<p>Press <b>Details</b> on any battle in the News tab or year report to see both sides' troops, losses and how each strength adds up. <b>▶ Watch</b> on a report plays the battle (see Battle replay).</p>`],
+["replay","Military","▶️","Battle replay",()=>`
+<p>Any battle with a full report can be watched: press <b>▶ Watch</b> on a battle report or on the Your battles screen. The replay is made from the report: the same troops on each side, the same losses per troop type, the same generals, terrain and result. Only the moves on the field are made up.</p>
+<ul class="log"><li>The attacker comes from the left, the defender waits on the right. Each troop type is one block in its state's colour; its area is in proportion to its men (very small troops are drawn a little bigger so they stay visible) and it shrinks as men fall, with its own look: spears and pikes in upright rows, swordsmen in tight ranks, axemen loose, archers scattered, cavalry wide apart. A label shows its icon, men left and what it is doing (Charging, Fighting, Under fire, Falling back…); the bar under it shows the share still standing.</li>
+<li>Generals ride behind their lines, with their portrait.</li>
+<li><b>Volleys</b>: archers on either side shoot first, and keep shooting over the charge and the melee until the battle is decided. Their share of their side's strength is the share of the enemy's losses the arrows cause, and each volley takes its men only when it lands: the block flashes red and the number falls.</li>
+<li><b>Charge</b>: the attacker's foot marches on the defenders. When both sides have cavalry, the horsemen ride at each other first and clash on the flank in front of the fight. A side whose enemy has no cavalry picks another target: the enemy's spearmen or pikemen (the bigger of the two), or only if it has neither, its archers, or else its main line. The attacker's cavalry ride round the top, the defender's go under the fight, and both hit their target from behind and stay on it. Cavalry lose men only once they reach it.</li>
+<li><b>Melee</b>: the lines meet and the rest of the losses fall. Defender bonuses show on the field: forest and mountains on the defender's side, a narrow front between rocks, or a sea crossing.</li>
+<li><b>Rout</b> or <b>After</b>: if the attacker won, the defenders fall back and some of their losses come in the pursuit; if not, the attacker pulls back. Raids, kidnaps and massacres always end with the attacker going home with what it took.</li>
+<li>When the two states' colours are too close to tell apart, the replay draws the defender in a far-off colour (blue, gold, green…) for that battle, and a note under the names says so.</li>
+<li>The right side lists both sides' men, the losses per troop type and what happened. The end shows the result.</li>
+<li>Play or pause, restart, drag the bar to any moment, change speed (½× to 4×) or skip to the result. ‹ Back (or Esc) returns to where you came from.</li>
+<li>On a narrow screen such as a phone the field stands upright: the attacker comes from the bottom and the defender waits at the top, and labels show just the icon and men left.</li>
+<li>Battles fought before replays were added, and very old news without a full report, can't be watched.</li></ul>`],
 ["stance","Military","🧱","Defense stance",()=>`
 <p>Each year you pick how your guards fight when someone attacks you (War → Wars, under Defense). It applies to every battle on your land that year. Neighbors don't see it, and computer states pick theirs too. A battle report shows the defender's stance.</p>
 <table><tr><th>Stance</th><th class="r">Both sides' losses</th><th class="r">Land the attacker takes</th></tr>
@@ -6420,9 +6797,19 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
 ["news","Interface","📰","News and reports",()=>`
 <ul class="log"><li>While a year runs, a dial shows it passing: the gold ring fills with the sun riding its tip, and a line says what the world is doing (plans, battles, harvest, markets, envoys). During auto-run a small spinner sits in the corner instead.</li>
-<li>After each year the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
+<li>After a year with battles involving you, the <b>Your battles</b> screen comes first, with the results hidden (see Battles first). Then the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
 <li>The <b>News</b> tab keeps every report, page by page (← Newer / Older). <b>Details ›</b> opens a full battle report.</li>
 <li>War news reaches you when a war starts or ends next to you or in your alliance.</li></ul>`],
+["bfirst","Interface","🔒","Battles first (no spoilers)",()=>`
+<p>The year report and the map would give away how your battles went before you look. So after a year with battles involving you, a <b>Your battles</b> screen opens first, over a blank screen.</p>
+<ul class="log"><li>Each battle you attacked in or defended gets a card: who attacked whom, the attack mode, how many soldiers went in on each side, and any narrow front, sea crossing, forest or mountains that helped the defenders. The result is hidden.</li>
+<li><b>▶ Watch</b> plays the battle (see Battle replay); it counts as seen and comes back to this list.</li>
+<li><b>Show result</b> reveals that battle on its card: land taken or lost, goods carried off, people kidnapped or killed, and both sides' losses.</li>
+<li><b>Report ›</b> opens the full battle report. <b>‹ Back to your battles</b> returns to the list.</li>
+<li>How many other battles you could see this year is listed below; they are in the year report and the News tab.</li>
+<li><b>Go to year report</b> (or Esc or Back) opens the year report, which shows everything.</li>
+<li>Tick <b>Don't hide results</b> to skip this screen from now on. To bring it back, tick <b>Show my battles first with the results hidden</b> under Your battles in the year report.</li>
+<li>In hot-seat games each player sees their own battles after their handover. During auto-run the screen shows when auto-run stops for an attack; the small year note while it runs still names your land change.</li></ul>`],
 ["modes","Interface","🎮","Game modes",()=>`
 <ul class="log"><li><b>Solo:</b> you against the computer.</li>
 <li><b>Hot-seat:</b> several players share this device. Each takes a turn behind a handover screen, and the last one's End turn runs the year. Everyone sees their own report and fog of war. Orders like training and trading happen at once, so with <i>Rotate turn order</i> on, who goes first changes every year. Humans can be in one alliance or free for all. Auto-run is off with two or more players.</li>
@@ -6444,7 +6831,7 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 <h3>State names</h3><p>A new game gives each state a name from the list in Settings → State names (${fmt(NAMES.length)} names now). When a map has more states than the list, the rest get <b>invented names</b>: a title with a made-up place in it, like "Kingdom of Korvalia" or "Korvalian Empire". The place is built from a start, sometimes a middle, and an end; the title from a pattern where {N} is the place and {A} a word made from it. With the current parts there are about ${fmt(nameCombos(NAME_GEN))} different names. Set <b>Invented share</b> above 0 to give that share of states an invented name even when the list has enough. Rebel states get invented places too ("Rebels of Korvalia").</p>
 <h3>Saves</h3><p>The game saves itself in this browser every year. When you open the page again you can continue where you left off.</p>
 <p><b>Save to file</b> (Menu) downloads the whole game as one .json file: the map, every state, the news archive and the rules from Settings. <b>Load from file</b> (Menu, or the first window) opens it, also on another computer or browser, and you play on from that year. Loading replaces the game saved in this browser and its Settings, so save that one to a file first if you want to keep it.</p>
-<h3>Keys</h3>${gTab(["Key","Does"],[["X","End turn"],["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
+<h3>Keys</h3>${gTab(["Key","Does"],[["X","End turn"],["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Browser Back","Close a menu or window; with none open, go back to the page you were on"],["Enter","Close the year report"]])}
 <p>Menu → Change log lists what changed in each update.</p>`],
 
 ["strategy","Strategy","💡","Strategy tips",()=>`
@@ -6697,8 +7084,13 @@ document.addEventListener("click",async ev=>{
     else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
     return; }
   if(d.rep){ openReport(d.rep); return; }
+  if(d.replay){ openReplay(d.replay); return; }
+  if(d.rp&&UI.rp){ rpCtl(d.rp); return; }
+  if(d.bfwatch!=null&&UI.bf){ const i=+d.bfwatch; UI.bf.shown[i]=1; battlesModal(); openReplay(battleRef(G.battles[i])); return; }
+  if(d.bfshow!=null&&UI.bf){ UI.bf.shown[+d.bfshow]=1; battlesModal(); return; }
+  if(d.bfrep!=null&&UI.bf){ const i=+d.bfrep; UI.bf.shown[i]=1; battlesModal(); openReport(battleRef(G.battles[i])); return; }
   if(d.repback!=null){ const bk=UI.repBack; UI.repBack=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); return; }
-  if(d.repclose!=null){ UI.repBack=null; closeModal(); return; }
+  if(d.repclose!=null){ UI.repBack=null; if(UI.bf) battlesModal(); else closeModal(); return; }
   if(d.repmap!=null){ const id=+d.repmap; UI.repBack=null; closeModal(); UI.sel=id; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
@@ -6802,7 +7194,7 @@ document.addEventListener("click",async ev=>{
       if(!cmd("attack",{target:UI.attackTarget,gen,mix,mode:atkModeNow()})){ flash("That attack can't be ordered."); return; } UI.atkMix=null;
       UI.attackTarget=null; break; }
     case "closeAttack": UI.attackTarget=null; break;
-    case "close": UI.sdraft=null; closeModal(); return;
+    case "close": if($("modal").classList.contains("replay")){ rpBackGo(); return; } if(UI.bf&&$("modal").classList.contains("bfirst")){ bfDone(); return; } UI.sdraft=null; closeModal(); return;
     case "pickTakeover": closeModal(); UI.tab="world"; render(); flash("Click a state on the map, then press Take over."); return;
     case "settingsSave": saveSettings(diffSettings(UI.sdraft)); UI.sdraft=currentValues(); settingsModal(); if(G) render(); flash("Settings saved and applied."); return;
     case "settingsResetTab": { const t=UI.stab, d=JSON.parse(JSON.stringify(DEFAULTS)); if(t==="general") UI.sdraft.R=d.R; else UI.sdraft[t]=d[t]; if(t==="names") UI.sdraft.ngen=d.ngen; settingsModal(); return; }
@@ -6818,7 +7210,7 @@ document.addEventListener("click",async ev=>{
     case "continue": { const g=await loadSave(); if(!g){ flash("Saved game not found."); return; } G=g; setAuto(false); closeModal(); UI.sel=null; render(); if(G.hot&&!G.over) hotHandover(); return; }
     case "hotBegin": hotBegin(); return;
     case "hotLeave": closeModal(); hotRemove(G.player); return;
-    case "soloBegin": { const r=UI.soloRep; UI.soloRep=null; UI.sel=null; UI.attackTarget=null; UI.tab=me().alive?"economy":"world"; closeModal(); render(); if(me().alive) mainView.centerOn(G.player,Math.max(mainView.z,mainView.focusZoom())); if(r) turnReport(r); return; }
+    case "soloBegin": { const r=UI.soloRep; UI.soloRep=null; UI.sel=null; UI.attackTarget=null; UI.tab=me().alive?"economy":"world"; closeModal(); render(); if(me().alive) mainView.centerOn(G.player,Math.max(mainView.z,mainView.focusZoom())); if(r) battlesFirst(r); return; }
     case "report": if(G&&UI.lastPrev!=null) turnReport(UI.lastPrev); return;
     case "reroll": UI.setup.preview=null; setupModal(); return;
     case "start": {
@@ -6945,9 +7337,9 @@ async function endTurnNow(){
   UI.busy=false; UI.attackTarget=null; UI.lastPrev=prev; AUTO.left=AUTO.sec*1000; render(); archiveTurn(); save();
   const attacked=G.battles.some(b=>b.def===G.player);
   const justDied=G.over==="lose"&&me().diedTurn===G.turn-1;
-  if(AUTO.on && (!canPlay() || justDied || (AUTO.stop&&attacked&&me().alive))){ setAuto(false); turnReport(prev); if(attacked&&!G.over) flash("Auto-run stopped: you were attacked."); }
+  if(AUTO.on && (!canPlay() || justDied || (AUTO.stop&&attacked&&me().alive))){ setAuto(false); battlesFirst(prev); if(attacked&&!G.over) flash("Auto-run stopped: you were attacked."); }
   else if(AUTO.on) toastReport(prev);
-  else turnReport(prev);
+  else battlesFirst(prev);
 }
 $("end").addEventListener("click",()=>{ if(G?.hot&&!hotLast()&&canPlay()&&!UI.busy) hotDone(); else endTurnNow(); });
 
@@ -6968,7 +7360,7 @@ function hotBegin(){
   const h=G.hot, id=h.order[h.at], c=G.countries[id];
   G.player=id; UI.sel=null; UI.attackTarget=null; UI.takeConfirm=null; UI.giveConfirm=false; UI.news=null; UI.repBack=null; UI.tab=c.alive?"economy":"world";
   closeModal(); render(); if(c.alive) mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom()));
-  if(h.rep.includes(id)){ h.rep=h.rep.filter(x=>x!==id); save(); turnReport(h.prev[id]); }
+  if(h.rep.includes(id)){ h.rep=h.rep.filter(x=>x!==id); save(); battlesFirst(h.prev[id]); }
 }
 function hotDone(){ G.hot.at++; save(); hotHandover(); }
 // after the year: next year's order (rotated if on), and everyone still has to see their report
@@ -7015,6 +7407,26 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape"||(report&&e.key==="Enter"&&canPlay())){
     const close=m.querySelector('[data-a="close"]'); if(close){ e.preventDefault(); close.click(); }
   }
+});
+
+// browser Back button: closes the open menu or dialog, else returns to the page you were on before
+const NAV={stack:[],at:null,gid:null,skip:false};
+function navTrack(){ if(!G) return; const k=UI.tab+"/"+(subOf(UI.tab)||"");
+  if(NAV.gid!==G.gid){ NAV.gid=G.gid; NAV.stack=[]; NAV.at=k; return; }
+  if(k!==NAV.at){ if(NAV.at&&!NAV.skip){ NAV.stack.push(NAV.at); if(NAV.stack.length>50) NAV.stack.shift(); } NAV.at=k; } NAV.skip=false; }
+// history entries only count when added after a click or key press, so the extra entry is added then
+function navArm(){ if(history.state?.eb!=="top") try{ history.pushState({eb:"top"},""); }catch(e){} }
+try{ if(!history.state?.eb) history.replaceState({eb:"base"},""); }catch(e){}
+document.addEventListener("pointerdown",navArm,true); document.addEventListener("keydown",navArm,true);
+window.addEventListener("popstate",()=>{
+  if(!$("ctxMenu").hidden){ closeCtx(); return; }
+  if(document.querySelector(".pop:not([hidden])")){ closePops(); return; }
+  if(UI.busy) return;
+  if(!$("ov").classList.contains("hidden")){ const m=$("modal"); (m.querySelector("[data-repback]")||m.querySelector('[data-a="close"]')||m.querySelector("[data-repclose]"))?.click(); return; }
+  if(!G) return;
+  const k=NAV.stack.pop();
+  if(k){ const [t,sub]=k.split("/"); NAV.skip=true; goTab(t,sub||null); UI.untrainAsk=null; render(); return; }
+  if(UI.sel!=null){ UI.sel=null; render(); }
 });
 
 // ---------- auto-run ----------
