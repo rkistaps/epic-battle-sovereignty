@@ -4177,7 +4177,7 @@ const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
   renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,generals:pGenPage,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
-  mainView.setGame(G); mainView.refresh();
+  mainView.setGame(G); mainView.refresh(); navTrack();
 }
 
 // each top-level heading in a tab starts a boxed section, so the parts of a tab stand apart
@@ -5696,6 +5696,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Back button works","2026-11-14 09:54",["The browser Back button closes the open menu or window","With nothing open, Back returns to the page you were on before","On phones, the Back gesture does the same"]],
 ["Land bonuses in battle reports","2026-11-14 09:04",["The Land taken line in battle reports now shows every land multiplier: Breaching Spear, Hammer, Cautious generals, stance and attack mode","Relic land chips name the relic","Older battles in the news keep these details"]],
 ["Pick relics from the general card","2026-11-14 08:55",["Clicking a general's relic slot opens a list of your Treasury relics","Pick one and he carries it; you stay on the Generals list","Relics that work for him are listed first"]],
 ["A new state view","2026-11-14 08:30",["Clicking a state opens a new view: its colour, flag, alliance and how it feels about you in a badge","Three tabs: Overview (land with rank and a chart, population, army, generals, loyalty, wonders, wars), Relations (why it feels as it does about you, and all its neighbors) and Science (its ten levels against the world average)","Buttons: Show on map, Plan attack, Take over","The map tooltip no longer lists neighbor feelings; they are in the Relations tab"]],
@@ -6269,7 +6270,7 @@ ${gTab(["Rule","What it does"],SETUP_RULES.map(([,,l,,f])=>[l,typeof f==="functi
 <h3>State names</h3><p>A new game gives each state a name from the list in Settings → State names (${fmt(NAMES.length)} names now). When a map has more states than the list, the rest get <b>invented names</b>: a title with a made-up place in it, like "Kingdom of Korvalia" or "Korvalian Empire". The place is built from a start, sometimes a middle, and an end; the title from a pattern where {N} is the place and {A} a word made from it. With the current parts there are about ${fmt(nameCombos(NAME_GEN))} different names. Set <b>Invented share</b> above 0 to give that share of states an invented name even when the list has enough. Rebel states get invented places too ("Rebels of Korvalia").</p>
 <h3>Saves</h3><p>The game saves itself in this browser every year. When you open the page again you can continue where you left off.</p>
 <p><b>Save to file</b> (Menu) downloads the whole game as one .json file: the map, every state, the news archive and the rules from Settings. <b>Load from file</b> (Menu, or the first window) opens it, also on another computer or browser, and you play on from that year. Loading replaces the game saved in this browser and its Settings, so save that one to a file first if you want to keep it.</p>
-<h3>Keys</h3>${gTab(["Key","Does"],[["X","End turn"],["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Enter","Close the year report"]])}
+<h3>Keys</h3>${gTab(["Key","Does"],[["X","End turn"],["1–9","Switch pages (main menu)"],["Q W E R T","Switch the parts of a page (second menu)"],["Esc","Close a window, unselect a state"],["Browser Back","Close a menu or window; with none open, go back to the page you were on"],["Enter","Close the year report"]])}
 <p>Menu → Change log lists what changed in each update.</p>`],
 
 ["strategy","Strategy","💡","Strategy tips",()=>`
@@ -6839,6 +6840,26 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape"||(report&&e.key==="Enter"&&canPlay())){
     const close=m.querySelector('[data-a="close"]'); if(close){ e.preventDefault(); close.click(); }
   }
+});
+
+// browser Back button: closes the open menu or dialog, else returns to the page you were on before
+const NAV={stack:[],at:null,gid:null,skip:false};
+function navTrack(){ if(!G) return; const k=UI.tab+"/"+(subOf(UI.tab)||"");
+  if(NAV.gid!==G.gid){ NAV.gid=G.gid; NAV.stack=[]; NAV.at=k; return; }
+  if(k!==NAV.at){ if(NAV.at&&!NAV.skip){ NAV.stack.push(NAV.at); if(NAV.stack.length>50) NAV.stack.shift(); } NAV.at=k; } NAV.skip=false; }
+// history entries only count when added after a click or key press, so the extra entry is added then
+function navArm(){ if(history.state?.eb!=="top") try{ history.pushState({eb:"top"},""); }catch(e){} }
+try{ if(!history.state?.eb) history.replaceState({eb:"base"},""); }catch(e){}
+document.addEventListener("pointerdown",navArm,true); document.addEventListener("keydown",navArm,true);
+window.addEventListener("popstate",()=>{
+  if(!$("ctxMenu").hidden){ closeCtx(); return; }
+  if(document.querySelector(".pop:not([hidden])")){ closePops(); return; }
+  if(UI.busy) return;
+  if(!$("ov").classList.contains("hidden")){ const m=$("modal"); (m.querySelector("[data-repback]")||m.querySelector('[data-a="close"]')||m.querySelector("[data-repclose]"))?.click(); return; }
+  if(!G) return;
+  const k=NAV.stack.pop();
+  if(k){ const [t,sub]=k.split("/"); NAV.skip=true; goTab(t,sub||null); UI.untrainAsk=null; render(); return; }
+  if(UI.sel!=null){ UI.sel=null; render(); }
 });
 
 // ---------- auto-run ----------
