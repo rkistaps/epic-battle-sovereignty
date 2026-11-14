@@ -346,6 +346,14 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 #toast{position:fixed;right:16px;bottom:16px;z-index:15;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;box-shadow:0 4px 16px #0008;max-width:calc(100vw - 32px)}
 .overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:20;padding:14px}
 .overlay.solid{background:var(--bg)} /* hot-seat handover: hides the previous player's screen */
+/* battles first: your battles with the results hidden, before the year report */
+.bfc{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
+.bfc.on{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.bfi{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;font-size:18px;flex:none;background:#2b1c1a}.bfi.def{background:#1a2330}
+.bfm{flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px}.bft{font-weight:600}.bfm .log{margin:2px 0 0}
+.bfmode{font-size:11px;font-weight:400;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:4px;white-space:nowrap}
+.bfb{display:flex;flex-direction:column;gap:6px;flex:none}
+@media(max-width:560px){.bfb{flex-direction:row;width:100%}}
 .handover h2{display:flex;align-items:center;justify-content:center;gap:10px}
 .hsw{width:22px;height:22px;border-radius:6px;display:inline-block;flex:none}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:720px;width:100%;max-height:90vh;overflow:hidden;padding:18px;display:flex;flex-direction:column}
@@ -5489,7 +5497,7 @@ function reportHtml(b,d,ref){
     <div class="bcalc small">${landTxt}</div>
     ${chips.length?`<div class="bchips">${chips.map(c=>`<span>${c}</span>`).join("")}</div>`:""}
     <div class="rep-foot">
-      ${UI.repBack?`<button data-repback="1">‹ Back to year report</button>`:""}
+      ${UI.repBack?`<button data-repback="1">‹ Back to ${/\bbfirst\b/.test(UI.repBack.cls)?"your battles":"year report"}</button>`:""}
       ${vis(mapId)?`<button data-repmap="${mapId}">🗺 Show on map</button>`:""}
       <button data-rep="${prev||""}" ${prev?"":"disabled"}>‹ Previous battle</button><button data-rep="${next||""}" ${next?"":"disabled"}>Next battle ›</button>
       <span class="small mut" title="Attack research ÷ defense research. In battle, one side's research counts at most ${R.techEdgeMax}× the other's.">Research edge: ${edge>=1?"attacker":"defender"} ${(edge>=1?edge:1/edge).toFixed(2)}× (cap ${R.techEdgeMax}×)</span>
@@ -5643,8 +5651,8 @@ function modal(html,cls){ const m=$("modal"), c="modal"+(cls?" "+cls:""), ov=$("
     if(j>i&&k[j-1].matches(".row,.rep-foot,.acts")&&k[j-1].querySelector("button")) j--;
     if(j>i){ const b=document.createElement("div"); b.className="mbody"; m.insertBefore(b,k[j]||null); k.slice(i,j).forEach(e=>b.appendChild(e)); } }
   const f=m.lastElementChild; if(f&&f.matches(".row,.rep-foot,.acts")&&f.querySelector("button")) f.classList.add("mfoot");
-  const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.toggle("solid",/\bhandover\b/.test(c)); ov.classList.remove("hidden"); }
-function closeModal(){ $("ov").classList.add("hidden"); }
+  const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.toggle("solid",/\bhandover\b/.test(c)||!!UI.bf); ov.classList.remove("hidden"); }
+function closeModal(){ UI.bf=null; $("ov").classList.add("hidden"); }
 
 // prev = your state's numbers before the turn: {land, money, grain, pop}
 function snapshot(c){ return {land:c.land,money:c.money,grain:c.grain,pop:popOf(c)}; }
@@ -5659,6 +5667,36 @@ function neighborsBefore(id){ const {W,cells}=G, tf=G.takenFrom, N=cells.length;
   for(let i=0;i<N;i++){ if(tf[i]!==id||cells[i]!==-1) continue; const x=i%W;
     if((x>0&&cells[i-1]===G.player)||(x<W-1&&cells[i+1]===G.player)||(i>=W&&cells[i-W]===G.player)||(i+W<N&&cells[i+W]===G.player)) return true; }
   return false; }
+// ---------- battles first ----------
+// After a year with battles involving you, list them with the results hidden; the year report comes after.
+const noHide=()=>{ try{ return localStorage.getItem("eb.noHide")==="1"; }catch(e){ return false; } };
+function battlesFirst(prev){
+  const list=G.battles.map((b,i)=>b.att===G.player||b.def===G.player?i:-1).filter(i=>i>=0);
+  if(!list.length||noHide()||observing()){ turnReport(prev); return; }
+  UI.bf={prev,list,shown:{}}; battlesModal();
+}
+function battlesModal(){
+  const f=UI.bf, C=G.countries, nm=id=>`<span class="sw" style="background:${C[id].color}"></span><b>${esc(C[id].name)}</b>`;
+  const others=G.battles.filter(b=>!(b.att===G.player||b.def===G.player)&&seenBattle(b)).length;
+  const cards=f.list.map(i=>{ const b=G.battles[i], att=b.att===G.player, mo=MODE_UI[b.d?.md?.[0]??0]||MODE_UI[0], ref=battleRef(b), on=!!f.shown[i];
+    const edge=(b.guards>0&&b.fb>=0.05?` · ${b.sea?"sea crossing":"narrow front"}: defenders +${Math.round(b.fb*100)}%`:"")+(b.guards>0&&b.tb>=0.05?` · ${b.tmt>=b.tfo?"mountains":"forest"}: defenders +${Math.round(b.tb*100)}%`:"");
+    const forces=att?`You sent ${fmt(b.sent)} soldiers · ${b.guards?`they had ${fmt(b.guards)} guards`:"no defenders"}`:`${fmt(b.sent)} attackers · ${b.guards?`your ${fmt(b.guards)} guards`:"your border was empty"}`;
+    return `<div class="bfc${on?" on":""}"><div class="bfi ${att?"att":"def"}" aria-hidden="true">${att?"⚔️":"🛡️"}</div>
+      <div class="bfm"><div class="bft">${att?`You attacked ${nm(b.def)}`:`${nm(b.att)} attacked you`}<span class="bfmode">${mo[1]} ${mo[2]}</span></div>
+      <div class="small mut">${forces}${edge}</div>
+      ${on?`<ul class="log">${battleLine(b)}</ul>`:`<div class="small mut">🔒 Result hidden</div>`}</div>
+      <div class="bfb">${on?"":`<button class="sm" data-bfshow="${i}">Show result</button>`}${ref?`<button class="sm" data-bfrep="${i}">Report ›</button>`:""}</div></div>`; }).join("");
+  const n=f.list.length;
+  modal(`<h2>⚔️ Year ${G.turn-1}: ${n} battle${n>1?"s":""} involving you ${gl("bfirst")}</h2>
+  <div class="mbody"><p class="small mut">The results are hidden. Show a result or open its report to see how it went. The year report shows everything.</p>
+  ${cards}
+  ${others?`<div class="small mut">🌍 ${fmt(others)} more battle${others>1?"s":""} elsewhere: they are in the year report and the News tab.</div>`:""}</div>
+  <div class="rep-foot"><label class="small mut" style="flex:1;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="bfNoHide" ${noHide()?"checked":""}> Don't hide results (skip this screen)</label><button class="pri" data-a="close">Go to year report</button></div>`,"bfirst");
+  $("modal").querySelector(".rep-foot .pri")?.focus({preventScroll:true});
+}
+function bfDone(){ const p=UI.bf.prev; UI.bf=null; turnReport(p); }
+document.addEventListener("change",e=>{ const id=e.target.id; if(id==="bfNoHide"||id==="bfHide") try{ localStorage.setItem("eb.noHide",e.target.checked===(id==="bfNoHide")?"1":"0"); }catch(err){} });
+
 function turnReport(prev){
   const c=me(), now=snapshot(c);
   const mine=G.battles.filter(b=>b.att===G.player||b.def===G.player);
@@ -5683,7 +5721,7 @@ function turnReport(prev){
   <div class="mbody">
     ${observing()?`<div class="small mut">${fmt(G.countries.filter(x=>x.alive).length)} states remain · grain price next year: <b>${G.price}</b></div>`:`<div class="stats">${stat("Land","land"," km²")}${stat("Money","money")}${stat("Grain","grain")}${stat("Population","pop")}</div>
     <div class="small mut">Grain price next year: <b>${G.price}</b></div>
-    ${mine.length?`<h3>Your battles</h3><ul class="log">${mine.map(battleLine).join("")}</ul>`:""}
+    ${mine.length?`<h3>Your battles</h3><ul class="log">${mine.map(battleLine).join("")}</ul><label class="small mut" style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="bfHide" ${noHide()?"":"checked"}> Show my battles first with the results hidden</label>`:""}
     <h3>Home</h3><ul class="log">${(c.log||G.log||[]).map(l=>`<li>${esc(l)}</li>`).join("")||"<li class='mut'>Quiet year.</li>"}</ul>`}
     ${wonderNews()}
     <h3>Elsewhere${others.length||collapsed.length?` <span class="mut small" style="text-transform:none;letter-spacing:0">· ${fmt(others.length)} battle${others.length!==1?"s":""}${fallen?`, ${fallen} state${fallen>1?"s":""} destroyed`:""}</span>`:""}</h3>
@@ -5696,6 +5734,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Your battles first, no spoilers","2026-11-14 10:24",["After a year with battles involving you, a Your battles screen opens before the year report","Each battle shows who attacked whom, the attack mode and the forces, with the result hidden","Show result reveals one battle; Report opens its full report and Back returns to the list","Go to year report shows everything","The map and header stay hidden until you go on","Tick Don't hide results to skip the screen; a box in the year report turns it back on","Hot-seat: each player sees their own battles after the handover"]],
 ["Back button works","2026-11-14 09:54",["The browser Back button closes the open menu or window","With nothing open, Back returns to the page you were on before","On phones, the Back gesture does the same"]],
 ["Land bonuses in battle reports","2026-11-14 09:04",["The Land taken line in battle reports now shows every land multiplier: Breaching Spear, Hammer, Cautious generals, stance and attack mode","Relic land chips name the relic","Older battles in the news keep these details"]],
 ["Pick relics from the general card","2026-11-14 08:55",["Clicking a general's relic slot opens a list of your Treasury relics","Pick one and he carries it; you stay on the Generals list","Relics that work for him are listed first"]],
@@ -6246,9 +6285,18 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
 ["news","Interface","📰","News and reports",()=>`
 <ul class="log"><li>While a year runs, a dial shows it passing: the gold ring fills with the sun riding its tip, and a line says what the world is doing (plans, battles, harvest, markets, envoys). During auto-run a small spinner sits in the corner instead.</li>
-<li>After each year the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
+<li>After a year with battles involving you, the <b>Your battles</b> screen comes first, with the results hidden (see Battles first). Then the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
 <li>The <b>News</b> tab keeps every report, page by page (← Newer / Older). <b>Details ›</b> opens a full battle report.</li>
 <li>War news reaches you when a war starts or ends next to you or in your alliance.</li></ul>`],
+["bfirst","Interface","🔒","Battles first (no spoilers)",()=>`
+<p>The year report and the map would give away how your battles went before you look. So after a year with battles involving you, a <b>Your battles</b> screen opens first, over a blank screen.</p>
+<ul class="log"><li>Each battle you attacked in or defended gets a card: who attacked whom, the attack mode, how many soldiers went in on each side, and any narrow front, sea crossing, forest or mountains that helped the defenders. The result is hidden.</li>
+<li><b>Show result</b> reveals that battle on its card: land taken or lost, goods carried off, people kidnapped or killed, and both sides' losses.</li>
+<li><b>Report ›</b> opens the full battle report. <b>‹ Back to your battles</b> returns to the list.</li>
+<li>How many other battles you could see this year is listed below; they are in the year report and the News tab.</li>
+<li><b>Go to year report</b> (or Esc or Back) opens the year report, which shows everything.</li>
+<li>Tick <b>Don't hide results</b> to skip this screen from now on. To bring it back, tick <b>Show my battles first with the results hidden</b> under Your battles in the year report.</li>
+<li>In hot-seat games each player sees their own battles after their handover. During auto-run the screen shows when auto-run stops for an attack; the small year note while it runs still names your land change.</li></ul>`],
 ["modes","Interface","🎮","Game modes",()=>`
 <ul class="log"><li><b>Solo:</b> you against the computer.</li>
 <li><b>Hot-seat:</b> several players share this device. Each takes a turn behind a handover screen, and the last one's End turn runs the year. Everyone sees their own report and fog of war. Orders like training and trading happen at once, so with <i>Rotate turn order</i> on, who goes first changes every year. Humans can be in one alliance or free for all. Auto-run is off with two or more players.</li>
@@ -6523,8 +6571,10 @@ document.addEventListener("click",async ev=>{
     else if(d.map==="wx"){ UI.wxView=!UI.wxView; if(UI.wxView) UI.allyView=UI.relView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
     return; }
   if(d.rep){ openReport(d.rep); return; }
+  if(d.bfshow!=null&&UI.bf){ UI.bf.shown[+d.bfshow]=1; battlesModal(); return; }
+  if(d.bfrep!=null&&UI.bf){ const i=+d.bfrep; UI.bf.shown[i]=1; battlesModal(); openReport(battleRef(G.battles[i])); return; }
   if(d.repback!=null){ const bk=UI.repBack; UI.repBack=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); return; }
-  if(d.repclose!=null){ UI.repBack=null; closeModal(); return; }
+  if(d.repclose!=null){ UI.repBack=null; if(UI.bf) battlesModal(); else closeModal(); return; }
   if(d.repmap!=null){ const id=+d.repmap; UI.repBack=null; closeModal(); UI.sel=id; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
@@ -6627,7 +6677,7 @@ document.addEventListener("click",async ev=>{
       if(!cmd("attack",{target:UI.attackTarget,gen,mix,mode:atkModeNow()})){ flash("That attack can't be ordered."); return; } UI.atkMix=null;
       UI.attackTarget=null; break; }
     case "closeAttack": UI.attackTarget=null; break;
-    case "close": UI.sdraft=null; closeModal(); return;
+    case "close": if(UI.bf&&$("modal").classList.contains("bfirst")){ bfDone(); return; } UI.sdraft=null; closeModal(); return;
     case "pickTakeover": closeModal(); UI.tab="world"; render(); flash("Click a state on the map, then press Take over."); return;
     case "settingsSave": saveSettings(diffSettings(UI.sdraft)); UI.sdraft=currentValues(); settingsModal(); if(G) render(); flash("Settings saved and applied."); return;
     case "settingsResetTab": { const t=UI.stab, d=JSON.parse(JSON.stringify(DEFAULTS)); if(t==="general") UI.sdraft.R=d.R; else UI.sdraft[t]=d[t]; if(t==="names") UI.sdraft.ngen=d.ngen; settingsModal(); return; }
@@ -6643,7 +6693,7 @@ document.addEventListener("click",async ev=>{
     case "continue": { const g=await loadSave(); if(!g){ flash("Saved game not found."); return; } G=g; setAuto(false); closeModal(); UI.sel=null; render(); if(G.hot&&!G.over) hotHandover(); return; }
     case "hotBegin": hotBegin(); return;
     case "hotLeave": closeModal(); hotRemove(G.player); return;
-    case "soloBegin": { const r=UI.soloRep; UI.soloRep=null; UI.sel=null; UI.attackTarget=null; UI.tab=me().alive?"economy":"world"; closeModal(); render(); if(me().alive) mainView.centerOn(G.player,Math.max(mainView.z,mainView.focusZoom())); if(r) turnReport(r); return; }
+    case "soloBegin": { const r=UI.soloRep; UI.soloRep=null; UI.sel=null; UI.attackTarget=null; UI.tab=me().alive?"economy":"world"; closeModal(); render(); if(me().alive) mainView.centerOn(G.player,Math.max(mainView.z,mainView.focusZoom())); if(r) battlesFirst(r); return; }
     case "report": if(G&&UI.lastPrev!=null) turnReport(UI.lastPrev); return;
     case "reroll": UI.setup.preview=null; setupModal(); return;
     case "start": {
@@ -6770,9 +6820,9 @@ async function endTurnNow(){
   UI.busy=false; UI.attackTarget=null; UI.lastPrev=prev; AUTO.left=AUTO.sec*1000; render(); archiveTurn(); save();
   const attacked=G.battles.some(b=>b.def===G.player);
   const justDied=G.over==="lose"&&me().diedTurn===G.turn-1;
-  if(AUTO.on && (!canPlay() || justDied || (AUTO.stop&&attacked&&me().alive))){ setAuto(false); turnReport(prev); if(attacked&&!G.over) flash("Auto-run stopped: you were attacked."); }
+  if(AUTO.on && (!canPlay() || justDied || (AUTO.stop&&attacked&&me().alive))){ setAuto(false); battlesFirst(prev); if(attacked&&!G.over) flash("Auto-run stopped: you were attacked."); }
   else if(AUTO.on) toastReport(prev);
-  else turnReport(prev);
+  else battlesFirst(prev);
 }
 $("end").addEventListener("click",()=>{ if(G?.hot&&!hotLast()&&canPlay()&&!UI.busy) hotDone(); else endTurnNow(); });
 
@@ -6793,7 +6843,7 @@ function hotBegin(){
   const h=G.hot, id=h.order[h.at], c=G.countries[id];
   G.player=id; UI.sel=null; UI.attackTarget=null; UI.takeConfirm=null; UI.giveConfirm=false; UI.news=null; UI.repBack=null; UI.tab=c.alive?"economy":"world";
   closeModal(); render(); if(c.alive) mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom()));
-  if(h.rep.includes(id)){ h.rep=h.rep.filter(x=>x!==id); save(); turnReport(h.prev[id]); }
+  if(h.rep.includes(id)){ h.rep=h.rep.filter(x=>x!==id); save(); battlesFirst(h.prev[id]); }
 }
 function hotDone(){ G.hot.at++; save(); hotHandover(); }
 // after the year: next year's order (rotated if on), and everyone still has to see their report
