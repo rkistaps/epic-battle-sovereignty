@@ -634,6 +634,8 @@ input.chg{border-color:var(--acc);background:#2b2618}
 .wout{display:block;font-size:11px;color:var(--mut);white-space:nowrap}
 .wgrid .wout{grid-column:1/3;margin:-4px 0 6px;overflow:hidden;text-overflow:ellipsis} /* its own row under the job, so changing numbers never move the sliders */
 .spark{display:block;width:100%;height:26px;margin:4px 0 2px} .spark .sp0{stroke:#535a66;stroke-dasharray:3 3;stroke-width:1}
+.mcwrap{position:relative}.mchart{display:block;width:100%;height:auto;margin:4px 0;touch-action:pan-y} .mchart .cgn{stroke-dasharray:3 3;stroke-width:1;opacity:.45} .mchart .mhv{stroke:var(--mut);stroke-width:1;stroke-dasharray:2 2}
+.mtip{position:absolute;top:6px;background:rgba(15,17,20,.95);border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:5} .mtip i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px} .mtip b{font-variant-numeric:tabular-nums}
 .mchart{display:block;width:100%;height:auto;margin:4px 0} .mchart text{fill:var(--mut);font-size:9px} .mchart .cg{stroke:#353a44;stroke-width:1} .mchart .cg1{stroke:#6b7280;stroke-dasharray:4 3;stroke-width:1}
 .mleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin:2px 0 8px} .mleg i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px}
 .mwhy td,.mwhy th{white-space:nowrap}
@@ -4424,15 +4426,30 @@ function mktTrend(r){ const m=mkOf(G)[r], p=m.price, lp=m.prev; return lp==null|
 function mktSpark(r){ const h=mkOf(G)[r].hist.slice(-30), b=mkBase(r), W=120, H=26; if(h.length<2) return "";
   const hi=Math.max(b*1.6,...h), y=v=>(H-2-(H-4)*Math.min(v,hi)/hi).toFixed(1), x=i=>(W*i/(h.length-1)).toFixed(1);
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${y(b)}" y2="${y(b)}" class="sp0"/><polyline fill="none" stroke="${MKT[r][5]}" stroke-width="1.6" points="${h.map((v,i)=>x(i)+","+y(v)).join(" ")}"/></svg>`; }
-// price history: all three resources as a share of their normal price
+// price history: what grain, wood and iron cost in gold each year; each normal price dashed; hover for the numbers
 function mktChart(){ const M=mkOf(G), n=Math.max(...MK_RES.map(r=>M[r].hist.length)); if(n<2) return '<div class="small mut">The chart fills in as the years go by.</div>';
-  const W=400, H=150, L=34, B=18, T=6, yr0=G.turn-n, max=Math.max(200,...MK_RES.flatMap(r=>M[r].hist.map(v=>100*v/mkBase(r)))), top=Math.min(300,Math.ceil(max/50)*50);
-  const X=i=>(L+(W-L-4)*i/(n-1)).toFixed(1), Y=p=>(T+(H-T-B)*(1-Math.min(p,top)/top)).toFixed(1);
-  const grid=[0,100,top/2===100?null:top/2,top].filter(v=>v!=null).map(v=>`<line x1="${L}" x2="${W-4}" y1="${Y(v)}" y2="${Y(v)}" class="${v===100?"cg1":"cg"}"/><text x="${L-4}" y="${+Y(v)+3}" text-anchor="end">${v}%</text>`).join("");
-  const step=Math.max(1,Math.ceil(n/6/5)*5), xs=[]; for(let i=0;i<n;i+=step) xs.push(`<text x="${X(i)}" y="${H-4}" text-anchor="middle">${yr0+i+1}</text>`);
-  const lines=MK_RES.map(r=>{ const h=M[r].hist, off=n-h.length; return `<polyline fill="none" stroke="${MKT[r][5]}" stroke-width="1.8" points="${h.map((v,i)=>X(i+off)+","+Y(100*v/mkBase(r))).join(" ")}"><title>${MKT[r][1]}</title></polyline>`; }).join("");
-  return `<svg class="mchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prices over time, as a share of each normal price">${grid}${xs.join("")}${lines}</svg>
-  <div class="mleg">${MK_RES.map(r=>`<span><i style="background:${MKT[r][5]}"></i>${MKT[r][1]}</span>`).join("")}<span class="mut">100% = normal price</span></div>`; }
+  const W=400, H=150, L=34, B=18, T=6, yr0=G.turn-n, max=Math.max(...MK_RES.flatMap(r=>[mkBase(r),...M[r].hist]))*1.08;
+  const step=[.25,.5,1,2,5,10,20,50].find(s=>max/s<=5)||100, top=Math.ceil(max/step)*step;
+  const X=i=>(L+(W-L-4)*i/(n-1)).toFixed(1), Y=v=>(T+(H-T-B)*(1-Math.min(v,top)/top)).toFixed(1), lab=v=>+v.toFixed(2);
+  let grid=""; for(let v=0;v<=top+1e-9;v+=step) grid+=`<line x1="${L}" x2="${W-4}" y1="${Y(v)}" y2="${Y(v)}" class="cg"/><text x="${L-4}" y="${+Y(v)+3}" text-anchor="end">${lab(v)}</text>`;
+  const norm=MK_RES.map(r=>`<line x1="${L}" x2="${W-4}" y1="${Y(mkBase(r))}" y2="${Y(mkBase(r))}" class="cgn" stroke="${MKT[r][5]}"/>`).join("");
+  const xstep=Math.max(1,Math.ceil(n/6/5)*5), xs=[]; for(let i=0;i<n;i+=xstep) xs.push(`<text x="${X(i)}" y="${H-4}" text-anchor="middle">${yr0+i+1}</text>`);
+  const lines=MK_RES.map(r=>{ const h=M[r].hist, off=n-h.length; return `<polyline fill="none" stroke="${MKT[r][5]}" stroke-width="1.8" points="${h.map((v,i)=>X(i+off)+","+Y(v)).join(" ")}"/>`; }).join("");
+  const data={n,yr0,L,W,T,H:H-B,top,s:MK_RES.map(r=>({nm:MKT[r][1],ic:MKT[r][0],c:MKT[r][5],b:mkBase(r),h:M[r].hist,off:n-M[r].hist.length}))};
+  return `<div class="mcwrap"><svg class="mchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Prices in gold over time" data-mc="${esc(JSON.stringify(data))}">${grid}${norm}${xs.join("")}${lines}<line class="mhv" x1="0" x2="0" y1="${T}" y2="${H-B}" visibility="hidden"/>${MK_RES.map(r=>`<circle class="mhd" r="3" fill="${MKT[r][5]}" visibility="hidden"/>`).join("")}</svg><div class="mtip" hidden></div></div>
+  <div class="mleg">${MK_RES.map(r=>`<span><i style="background:${MKT[r][5]}"></i>${MKT[r][1]}</span>`).join("")}<span class="mut">Price in gold · dashed = normal price · hover for numbers</span></div>`; }
+// hover (or touch) the price chart: a line at that year and every price then
+function mktHover(e){ const sv=e.target.closest?.(".mchart[data-mc]"); if(!sv) return;
+  const D=JSON.parse(sv.dataset.mc), rc=sv.getBoundingClientRect(), vx=(e.clientX-rc.left)/rc.width*D.W, i=Math.max(0,Math.min(D.n-1,Math.round((vx-D.L)/(D.W-D.L-4)*(D.n-1))));
+  const x=D.L+(D.W-D.L-4)*i/(D.n-1), Y=v=>D.T+(D.H-D.T)*(1-Math.min(v,D.top)/D.top), hv=sv.querySelector(".mhv"), dots=sv.querySelectorAll(".mhd"), tip=sv.parentElement.querySelector(".mtip");
+  hv.setAttribute("x1",x); hv.setAttribute("x2",x); hv.setAttribute("visibility","visible");
+  const rows=D.s.map((s,k)=>{ const v=s.h[i-s.off], d=dots[k]; if(v==null){ d.setAttribute("visibility","hidden"); return ""; }
+    d.setAttribute("cx",x); d.setAttribute("cy",Y(v)); d.setAttribute("visibility","visible");
+    const k2=v/s.b; return `<div><i style="background:${s.c}"></i>${s.ic} ${s.nm} <b>${px2(v)}</b> <span class="mut">${k2<0.85?"low":k2>1.15?"high":"normal"}</span></div>`; }).join("");
+  tip.innerHTML=`<div class="mut">Year ${D.yr0+i+1}</div>${rows}`; tip.hidden=false;
+  const px=x/D.W*rc.width, w=tip.offsetWidth; tip.style.left=Math.max(0,Math.min(rc.width-w,px+(px>rc.width/2?-w-10:10)))+"px"; }
+function mktHoverOff(e){ const sv=e.target.closest?.(".mchart[data-mc]"); if(!sv) return; sv.querySelectorAll(".mhv,.mhd").forEach(x=>x.setAttribute("visibility","hidden")); const t=sv.parentElement.querySelector(".mtip"); if(t) t.hidden=true; }
+document.addEventListener("pointermove",mktHover); document.addEventListener("pointerdown",mktHover); document.addEventListener("pointerout",e=>{ if(e.target.closest?.(".mchart[data-mc]")&&!e.relatedTarget?.closest?.(".mchart[data-mc]")) mktHoverOff(e); });
 // last year's trade: how much changed hands and how much of it went through merchants
 function mktWhy(){ const M=mkOf(G);
   return `<table class="tight mwhy"><tr><th></th><th class="r">Price</th><th class="r" title="All trades last year, between states and with merchants">Traded</th><th class="r" title="Bought from merchants last year: states ran out of sellers">From merchants</th><th class="r" title="Sold to merchants last year: no state wanted it at a better price">To merchants</th></tr>
@@ -6003,6 +6020,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Market chart in gold","2026-11-14 10:58",["The World market chart shows prices in gold instead of % of normal","Each normal price is a faint dashed line in its colour","Hover (or touch) the chart to see that year's grain, wood and iron prices"]],
 ["Replays on phones","2026-11-14 10:41",["On a phone the replay field stands upright, the attacker coming from the bottom, so it fills the screen","Smaller troop labels and generals on small screens","Compact header and bigger play, speed and skip buttons; the timeline gets its own row","Turning the phone redraws the field"]],
 ["Battle replays","2026-11-14 10:32",["▶ Watch on battle reports and on the Your battles screen plays the battle","Real troops, losses, generals, terrain and result; only the moves are made up","Archers shoot first and men fall only when a volley lands","Each troop is a block sized by its men that shrinks as they fall, with its icon, men left and what it is doing","Generals ride behind their lines with their portrait","Forest, mountains, narrow fronts and sea crossings show on the field","Play, pause, drag to any moment, ½× to 4× speed, skip to the result"]],
 ["Your battles first, no spoilers","2026-11-14 10:24",["After a year with battles involving you, a Your battles screen opens before the year report","Each battle shows who attacked whom, the attack mode and the forces, with the result hidden","Show result reveals one battle; Report opens its full report and Back returns to the list","Go to year report shows everything","The map and header stay hidden until you go on","Tick Don't hide results to skip the screen; a box in the year report turns it back on","Hot-seat: each player sees their own battles after the handover"]],
@@ -6280,6 +6298,7 @@ ${gTab(["Job","Makes per worker per year","Notes"],[["Farmer",`${R.foodPerFarmer
 <li>Normal prices: wood ${R.woodPrice}, iron ${R.ironPrice} gold. Merchants pay half of that, so selling a big surplus earns little: better to make less and move hands to research.</li></ul>`],
 ["market","Your state","⚖️","World market",()=>`
 <p>Grain, wood and iron each have an <b>order book</b>: a list of what states want to sell (asks) and buy (bids), and at what price. Open it under Market → Trade.</p>
+<p>The <b>World market</b> chart shows what each costs in gold, year by year, with its normal price as a faint dashed line. Hover over it (or touch it) to see that year's three prices and whether each was low, normal or high.</p>
 <h3>Trading</h3>
 <ul class="log"><li><b>Trade now:</b> buy from the cheapest sellers or sell to the highest buyers right away. The preview shows the average price before you confirm.</li>
 <li><b>Post an order:</b> pick your own price and how long it stands: 1, 5, 10 or 50 years, or no end. Its gold (for a buy) or goods (for a sale) are held until it fills, runs out of time or you cancel it. Grain held for sale still spoils.</li>
