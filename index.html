@@ -5784,8 +5784,13 @@ function rpPlan(b,d){
   fD.forEach((o,i)=>{ U.find(u=>u.side&&u.k===o.k).alt=i%2; });
   if(tA[1]>0){ const [w,h]=sz(tA[1]); add(0,1,[[0,56,yc+60],[tC,90,yc+60],[tE,win?170:50,yc+60]],w,h); }
   if(dArch){ const [w,h]=sz(tD[1]), x=Math.max(800,dX+wD+120); add(1,1,[[0,x,yc-150],[tM,x,yc-150],[tE,rout?RPW-w+40:x,yc-150]],w,h); }
-  if(tA[5]>0){ const [w,h]=sz(tA[5]); add(0,5,gd?[[0,70,18],[tV,140,18],[tC,450,14],[tM,win?740:520,win?56:20],[tE,win?880:110,win?86:18]]:[[0,70,18],[tC,560,18],[tE,700,34]],w,h); }
-  if(tD[5]>0){ const [w,h]=sz(tD[5]), y=RPH-18-h; add(1,5,[[0,790,y],[tC,770,y],[tM,560,y-8],[tE,rout?900:640,y]],w,h); }
+  // cavalry charge into the main fight: the attacker's round the top into the end of the defenders' line, the defender's into the bottom of the attackers' line
+  const topD=fD.length?Math.min(...fD.map(o=>o.y)):yc-60, botF=Math.max(yc+60,...fA.map(o=>o.y+o.h),...fD.map(o=>o.y+o.h)), arrA=tC+2, arrD=tC+2.5;
+  if(tA[5]>0){ const [w,h]=sz(tA[5]), hx=dX-Math.round(w*.35), hy=Math.max(0,topD-h+4);
+    const u=add(0,5,gd?[[0,70,18],[tV,140,18],[tC,430,Math.max(0,hy-50)],[arrA,hx,hy],[tM,win?hx+50:hx-30,win?hy+14:Math.max(0,hy-24)],[tE,win?hx+260:110,win?hy+30:18]]:[[0,70,18],[tC,560,18],[tE,700,34]],w,h);
+    if(gd) u.arr=arrA; }
+  if(tD[5]>0){ const [w,h]=sz(tD[5]), y0=RPH-18-h, hx=dX-50-w, hy=Math.min(y0,botF-6);
+    add(1,5,[[0,790,y0],[tC,760,y0],[arrD,hx,hy],[tM,rout?hx+30:hx-40,hy],[tE,rout?900:640,y0]],w,h).arr=arrD; }
   // volleys: archers' share of the strength is the share of the other side's losses that arrows cause
   const raw=(T,st)=>TROOPS.reduce((t,x,k)=>t+(T[k]||0)*x[st],0), shots=[];
   const volley=(from,side,share,t0)=>{ const tg=U.filter(u=>u.side!==side&&u.k!==1&&u.L>0); if(!tg.length||share<=0) return; const ts=[];
@@ -5798,7 +5803,7 @@ function rpPlan(b,d){
   if(shooterA) volley(shooterA,0,Math.min(.4,tA[1]*TROOPS[1].atk/Math.max(1,raw(tA,"atk"))),1.6);
   for(const u of U){ const rest=u.L-u.steps.reduce((t,s)=>t+s[1],0); if(rest<=0) continue;
     if(!gd){ u.seg.push([tC-3,tE-2,rest]); continue; }
-    const t0=u.k===5&&!u.side?tC+2:u.k===1?tC+4:tC;
+    const t0=u.arr??(u.k===1?tC+4:tC); // cavalry only once they reach the fight
     if(u.side&&rout){ const m=Math.round(rest*.75); u.seg.push([t0,tM,m],[tM,tE-1,rest-m]); } else u.seg.push([t0,tM,rest]); }
   // generals ride behind their lines
   const gens=[], front=s=>U.find(u=>u.side===s&&u.k!==1&&u.k!==5);
@@ -5811,7 +5816,8 @@ function rpPlan(b,d){
   if(shooterD) ev(1,`${nD}'s archers open fire.`,"rpi");
   if(shooterA) ev(2.2,shooterD?`${nA}'s archers shoot back.`:`${nA}'s archers open fire.`,"rpi");
   if(gd) ev(tV,`${gn(d.gA)||nA} orders the charge.`);
-  if(gd&&tA[5]>0) ev(tV+2.2,`${nA}'s cavalry ride round the flank.`,"",0);
+  if(gd&&tA[5]>0){ ev(tV+2.2,`${nA}'s cavalry ride round the flank.`,"",0); ev(arrA,`${nA}'s cavalry crash into the flank.`,"acc"); }
+  if(tD[5]>0) ev(arrD,`${nD}'s cavalry counter-charge.`,"rpi");
   if(gd) ev(tC,"The lines meet.");
   if(gd&&tD[3]>0&&tA[5]>0) ev(tC+3,"The pikes brace against the horses.","rpi");
   if(gd&&d.gD) ev(tC+5.5,`${gn(d.gD)} rallies the centre.`,"rpi",0);
@@ -5826,6 +5832,7 @@ function rpPlan(b,d){
 function rpMen(u,t){ let n=u.n0; for(const [ts,a] of u.steps) if(t>=ts) n-=a; for(const [t0,t1,a] of u.seg) n-=a*Math.max(0,Math.min(1,(t-t0)/Math.max(.01,t1-t0))); return Math.max(0,n); }
 function rpStatus(P,u,t,hit){
   if(hit) return ["Under fire","bad"]; const {tV,tC,tM}=P;
+  if(u.arr&&t>=tC&&t<u.arr) return ["Charging","acc"];
   if(!u.side){ if(t<tV) return ["Forming up","mut"]; if(t<tC) return [u.k===1?"Shooting":u.k===5?"Riding round":"Charging","acc"];
     if(t<tM) return [u.k===1?"Shooting":"Fighting","acc"]; return P.win?["Pursuing","good"]:["Pulling back","bad"]; }
   if(t>=tM) return P.rout?["Falling back","bad"]:["Holding","good"];
@@ -6020,6 +6027,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Cavalry charge in replays","2026-11-14 11:08",["In battle replays, cavalry charge into the main fight: the attacker's into the end of the defenders' line, the defender's into the attackers' flank","Cavalry lose men only once they reach the fight","The log says when each side's cavalry hit"]],
 ["Archers keep shooting","2026-11-14 10:59",["In battle replays, archers keep shooting through the charge and the melee, not just at the start","Their volleys still take men only when they land; total losses are unchanged"]],
 ["Market chart in gold","2026-11-14 10:58",["The World market chart shows prices in gold instead of % of normal","Each normal price is a faint dashed line in its colour","Hover (or touch) the chart to see that year's grain, wood and iron prices"]],
 ["Replays on phones","2026-11-14 10:41",["On a phone the replay field stands upright, the attacker coming from the bottom, so it fills the screen","Smaller troop labels and generals on small screens","Compact header and bigger play, speed and skip buttons; the timeline gets its own row","Turning the phone redraws the field"]],
@@ -6441,7 +6449,7 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <ul class="log"><li>The attacker comes from the left, the defender waits on the right. Each troop type is one block in its state's colour; its area is in proportion to its men (very small troops are drawn a little bigger so they stay visible) and it shrinks as men fall, with its own look: spears and pikes in upright rows, swordsmen in tight ranks, axemen loose, archers scattered, cavalry wide apart. A label shows its icon, men left and what it is doing (Charging, Fighting, Under fire, Falling back…); the bar under it shows the share still standing.</li>
 <li>Generals ride behind their lines, with their portrait.</li>
 <li><b>Volleys</b>: archers on either side shoot first, and keep shooting over the charge and the melee until the battle is decided. Their share of their side's strength is the share of the enemy's losses the arrows cause, and each volley takes its men only when it lands: the block flashes red and the number falls.</li>
-<li><b>Charge</b>: the attacker's foot marches on the defenders; cavalry ride round the flank.</li>
+<li><b>Charge</b>: the attacker's foot marches on the defenders. The attacker's cavalry ride round the top and crash into the end of the defenders' line; the defender's cavalry counter-charge into the bottom of the attackers' line. Cavalry lose men only once they reach the fight.</li>
 <li><b>Melee</b>: the lines meet and the rest of the losses fall. Defender bonuses show on the field: forest and mountains on the defender's side, a narrow front between rocks, or a sea crossing.</li>
 <li><b>Rout</b> or <b>After</b>: if the attacker won, the defenders fall back and some of their losses come in the pursuit; if not, the attacker pulls back. Raids, kidnaps and massacres always end with the attacker going home with what it took.</li>
 <li>The right side lists both sides' men, the losses per troop type and what happened. The end shows the result.</li>
