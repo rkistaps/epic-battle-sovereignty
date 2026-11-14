@@ -200,6 +200,23 @@ button.rslot{cursor:pointer} button.rslot:hover,button.rslot:focus-visible{borde
 .spoil .ri{--s:52px;animation:reldrop .9s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes reldrop{0%{transform:translateY(-14px) rotate(-25deg) scale(.6);opacity:0}100%{transform:none;opacity:1}}
 .spoil .t{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--acc);font-weight:700} .spoil b{font:600 15px var(--f-name)} .spoil p{margin:2px 0 0;font-size:12.5px;color:var(--mut)}
+/* the Forge: an anvil with three slots, a preview, a reveal with sparks */
+.forge{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;background:radial-gradient(ellipse at 15% 60%,#3a2412 0%,#191c21 60%);border:1px solid #5a3f22;border-radius:8px;padding:12px}
+.anvil{width:60px;height:60px;color:#c98a4a;display:grid;place-items:center} .anvil svg{width:100%;height:100%}
+.fslots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.fslot{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;background:#0f1114aa;border:1px dashed var(--line);border-radius:8px;padding:8px 4px;min-height:100px;justify-content:center;font:inherit;color:inherit;min-width:0}
+button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:focus-visible{border-color:var(--bad)} .fslot b{font:600 11.5px/1.15 var(--f-name)}
+.fprev{margin-top:10px;display:flex;flex-direction:column;gap:6px} .fopts{display:flex;flex-wrap:wrap;gap:5px}
+.fopt{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:#191c21;border:1px solid var(--line);border-radius:7px;padding:3px 7px 3px 3px}
+.fbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.vt.onanvil{opacity:.45} .vt .rbar{width:60%}
+.freveal{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;margin-top:10px;background:linear-gradient(90deg,#2a2416,#191c21 70%);border:1px solid #6b5a2e;border-radius:8px;padding:12px;overflow:hidden;animation:fpop .5s cubic-bezier(.2,1.4,.4,1) both}
+.freveal h4{margin:2px 0;font:600 17px var(--f-name)} .freveal .eff{color:#8fdcae;font-size:13px} .freveal .roll{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--mut);margin-top:3px}
+@keyframes fpop{0%{transform:scale(.85);opacity:0}100%{transform:none;opacity:1}}
+.sparks{position:absolute;left:46px;top:50%;pointer-events:none} .sparks i{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffcf7a;box-shadow:0 0 6px #ff9d3a;animation:fspark .8s ease-out both}
+.sparks i:nth-child(1){--x:70px;--y:0px;animation-delay:0ms}.sparks i:nth-child(2){--x:63px;--y:21px;animation-delay:15ms}.sparks i:nth-child(3){--x:43px;--y:39px;animation-delay:30ms}.sparks i:nth-child(4){--x:15px;--y:48px;animation-delay:45ms}.sparks i:nth-child(5){--x:-15px;--y:48px;animation-delay:60ms}.sparks i:nth-child(6){--x:-43px;--y:39px;animation-delay:75ms}.sparks i:nth-child(7){--x:-63px;--y:21px;animation-delay:90ms}.sparks i:nth-child(8){--x:-70px;--y:0px;animation-delay:105ms}.sparks i:nth-child(9){--x:-63px;--y:-21px;animation-delay:120ms}.sparks i:nth-child(10){--x:-43px;--y:-39px;animation-delay:135ms}.sparks i:nth-child(11){--x:-15px;--y:-48px;animation-delay:150ms}.sparks i:nth-child(12){--x:15px;--y:-48px;animation-delay:165ms}.sparks i:nth-child(13){--x:43px;--y:-39px;animation-delay:180ms}.sparks i:nth-child(14){--x:63px;--y:-21px;animation-delay:195ms}
+@keyframes fspark{0%{transform:translate(0,0);opacity:1}100%{transform:translate(var(--x),var(--y));opacity:0}}
+@media(prefers-reduced-motion:reduce){.freveal,.sparks i{animation:none}}
 .bgen .rlx{margin-top:3px;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:5px}
 /* Generals → Tavern: a Notice board box of tier cards and a Candidates box where candidates are dealt (in the tab, no window) */
 .tavern{container-type:inline-size;display:flex;flex-direction:column;gap:12px}
@@ -750,6 +767,7 @@ const R = {
   relSpoil: 0.25, relRuin: 0.02, relRuinFamous: 0.2, relAcad: 0.1, relLegRare: 0.5, relTake: 10, relFamous: 6, relCovet: 0.3, // relics: spoils chance, ruins chance (and the share that turns up a lost famous one), hiring, morale for taking one back, famous ones at the start, how much computer states covet them
   rlBlade: 3, rlMap: 10, rlAstro: 25, rlShield: 0.1, rlAegis: 0.2, rlHorn: 0.06, rlCursed: 0.12, rlCursedLoy: 0.5, rlDragon: 0.08, rlDragonFloor: 60, rlSpear: 0.15, rlHammer: 0.2, rlBanner: 5, rlSaint: 1, rlLedger: 1.5, rlSeal: 1.5, rlCrown: 2, rlCrownLoy: 1,
   relSpreadC: 0.4, relSpreadR: 0.2, relSpreadU: 0.1333, // each relic rolls its numbers when it's made: × 1 ± this (common 0.6–1.4, rare and cursed 0.8–1.2, famous 0.87–1.13, so +15% rolls 13–17%)
+  forgeC: 2000, forgeR: 6000, forgeSpread: 0.15,    // the Forge: gold for 3 common → 1 rare, and for 3 rare of one family → 1 perfect rare; a forged rare's roll = the 3 rolls' average ± this
   rlResC: 0.05, rlResR: 0.1, rlResU: 0.15, rlSciC: 0.03, rlSciR: 0.06, rlSciU: 0.1, // Governor relics: grain, taxes, wood or iron (common, rare, famous); research points
   rlTroopC: 0.05, rlTroopR: 0.1, rlTroopU: 0.15, // troop relics: that troop fights better (common, rare, famous), for its share of the army
   rlSpearLossR: 0.1, rlSpearLossU: 0.2, rlSpearHoldU: 2, rlArcherR: 0.05, rlArcherU: 0.15, rlAxeLossR: 0.1, rlPikeCavR: 0.1, rlPikeCavU: 0.25, rlSwordTough: 0.1, rlSwordLossU: 0.25, rlCavSpeedR: 10, rlCavSpeedU: 25,                // a Butcher governor halves the revolt chance (and Ease); a Drunkard at a post gives half in half his years         // share of rolled traits that start hidden; share of good trait slots that roll a troop trait
@@ -1079,6 +1097,24 @@ function relForCand(g,tier){ if(tier!=="leg"&&!(tier==="acad"&&R01(g)<R.relAcad)
 // the famous relics start with computer states, one each
 function relSeed(g){ const n=Math.min(REL_FAMOUS.length,Math.max(0,Math.round(R.relFamous))), pool=g.countries.filter(c=>c.ai&&c.alive);
   for(let i=0;i<n&&pool.length;i++){ const c=pool.splice(Math.floor(R01(g)*pool.length),1)[0]; relicsOf(c).push(newRelic(g,REL_FAMOUS[i],"Held since the founding")); } }
+// ---------- the Forge: 3 common → 1 rare (same family: that family's rare; mixed: a random rare), 3 rare of one family → that rare, rolled 100% ----------
+// a family: a troop's relics, a resource's relics, or (for the others) the relic itself; famous relics never go on the anvil
+const relFam=k=>{ const d=RELICS[k]; return d?.tp?"t:"+d.tp:d?.rs?"r:"+d.rs:k; };
+const REL_FORGE_RARE=REL_IDS.filter(k=>RELICS[k].k==="r"&&!RELICS[k].tp&&!RELICS[k].rs); // what mixed or plain commons can become (no cursed)
+function forgePlan(c,ns){ const T=c.relics||[], A=(ns||[]).map(n=>T.find(r=>r.n===n));
+  if(A.length!==3||A.some(r=>!r)||new Set(ns).size!==3) return {err:"Put three relics from the Treasury on the anvil."};
+  const kd=r=>RELICS[r.k]?.k==="x"?"r":RELICS[r.k]?.k; if(A.some(r=>kd(r)==="u")) return {err:"Famous relics can't be forged."};
+  if(A.some(r=>kd(r)!==kd(A[0]))) return {err:"Three of the same kind: three common or three rare."};
+  const fam=relFam(A[0].k), same=A.every(r=>relFam(r.k)===fam), qa=A.reduce((x,r)=>x+(r.q??0.5),0)/3;
+  if(kd(A[0])==="r"){ if(!same) return {err:"Three rare relics of the same family: all one troop, all one resource, or three of the same relic."};
+    const pool=REL_IDS.filter(k=>(RELICS[k].k==="r"||RELICS[k].k==="x")&&relFam(k)===fam); return {pool,perfect:true,cost:R.forgeR,q0:1,q1:1}; }
+  const fr=same?REL_IDS.filter(k=>RELICS[k].k==="r"&&relFam(k)===fam):[], pool=fr.length?fr:REL_FORGE_RARE;
+  return {pool,same:!!fr.length,cost:R.forgeC,q0:Math.max(0,qa-R.forgeSpread),q1:Math.min(1,qa+R.forgeSpread)}; }
+// computer: forge spare relics when it has the gold (rares of one family first, then its three weakest commons)
+function aiForge(g,c){ const T=c.relics||[]; if(T.length<3) return; const cush=wages(c)*4+3000;
+  const by={}; for(const r of T){ const d=RELICS[r.k]; if(!d||d.k==="u") continue; const key=(d.k==="c"?"c|":"r|")+relFam(r.k); (by[key]||(by[key]=[])).push(r); }
+  for(const key in by) if(key.startsWith("r|")&&by[key].length>=3&&c.money>=R.forgeR+cush){ const L=by[key].sort((a,b)=>(a.q??.5)-(b.q??.5)).slice(0,3); if(act.forge(g,c,L.map(r=>r.n))) return; }
+  const C=T.filter(r=>RELICS[r.k]?.k==="c"); if(C.length>=4&&c.money>=R.forgeC+cush){ const L=C.sort((a,b)=>(a.q??.5)-(b.q??.5)).slice(0,3); act.forge(g,c,L.map(r=>r.n)); } }
 // computer: hand Treasury relics to generals with none: post relics to that post, battle relics to the best field generals first
 // which resource a computer state's Governor relic should raise: grain when short, wood or iron when low, research for science leaders, else gold
 function aiGovNeed(c){ if(foodProduction(c)<foodUse(c)) return "grain"; const pr=production(c);
@@ -1969,6 +2005,10 @@ const act = {
   // relics: give one from the Treasury (his old one goes back and he loses morale), or take his back
   relicGive(g,c,genId,n){ const gen=c.generals.find(x=>x.id===genId), T=relicsOf(c), r=T.find(x=>x.n===n); if(!gen||!r) return false;
     T.splice(T.indexOf(r),1); if(gen.relic){ T.push(gen.relic); gen.morale=Math.max(0,gen.morale-R.relTake); oldGuardFloor(gen); } gen.relic=r; return true; },
+  // the Forge: melt three Treasury relics into one (see forgePlan); returns the new relic
+  forge(g,c,ns){ const P=forgePlan(c,ns); if(P.err||c.money<P.cost) return null; const T=relicsOf(c), A=ns.map(n=>T.find(r=>r.n===n));
+    c.money-=P.cost; c.relics=T.filter(r=>!ns.includes(r.n)); const k=P.pool[Math.floor(R01(g)*P.pool.length)];
+    const r=newRelic(g,k,`Forged from ${A.map(relName).join(", ")}, year ${g.turn}`,P.perfect?1:rr(g,P.q0,P.q1)); c.relics.push(r); return r; },
   relicTake(g,c,genId){ const gen=c.generals.find(x=>x.id===genId); if(!gen?.relic) return false; relBack(c,gen); gen.morale=Math.max(0,gen.morale-R.relTake); oldGuardFloor(gen); return true; },
   // staff posts: put a general on a post (id null: take him off). He stops defending; an attack order he leads is cancelled.
   post(g,c,genId,id){ const gen=c.generals.find(x=>x.id===genId); if(!gen) return false;
@@ -2002,6 +2042,7 @@ const CMD={
   tavAway:(g,c)=>act.tavAway(g,c),
   relicGive:(g,c,genId,n)=>act.relicGive(g,c,+genId,+n),
   relicTake:(g,c,genId)=>act.relicTake(g,c,+genId),
+  forge:(g,c,ns)=>Array.isArray(ns)?act.forge(g,c,ns.slice(0,3).map(Number)):null,
   post:(g,c,genId,id)=>act.post(g,c,+genId,id==null||id===""?null:String(id)),
   govPol:(g,c,p)=>p==="ease"||p==="squeeze"?(c.govPol=p,true):false,
   dismissGeneral:(g,c,id)=>act.dismissGeneral(g,c,+id),
@@ -2379,7 +2420,7 @@ function aiTurn(g,c){
   // generals
   const wantGen = t<(c.persona==="mil"?8:24)-d*2 ? 0 : Math.min(6,R.genMax,1+Math.floor(t/22)); // up to 4 for the field, the rest for staff posts
   if(c.generals.length<wantGen) aiTavern(g,c,t);
-  aiStaff(g,c); aiRelics(g,c);
+  aiStaff(g,c); aiRelics(g,c); aiForge(g,c);
   // army target
   const pop=popOf(c);
   const mil0=c.persona==="mil", foot=c.footing??0;
@@ -4820,16 +4861,31 @@ function pTreasury(){
     return `<div class="psec"><h3 class="tvh">Relic for ${esc(x.name)}<span class="grow"></span><button class="lnk" data-relfor="">Close</button></h3>
      ${x.relic?`<div class="rgrow">${relTile(x.relic.k,40)}<div><b>${esc(relName(x.relic))}</b><div class="m">Carried now. ${esc(relEff(x.relic.k,x.relic))}</div></div><button class="sm" data-reltake="${x.id}">Take it back</button></div><div class="small mut" style="margin:4px 0 8px">Taking it back costs him ${R.relTake} morale.</div>`:""}
      <div class="rgive">${T.length?T.map(r=>{ const ok=works(x,r.k); return `<div class="rgrow">${relTile(r.k,40)}<div><b>${esc(relName(r))}</b><div class="m ${ok?"rgd":"rwn"}">${ok?esc(relEff(r.k,r)):"Does nothing for him: "+REL_WN[RELICS[r.k].w].toLowerCase()}</div></div><button class="sm${ok?" pri":""}" data-relgive="${x.id}" data-rel="${r.n}">Give</button></div>`; }).join(""):`<div class="small mut">The Treasury is empty.</div>`}</div></div>`; };
-  const vault=T.length?`<div class="vault">${T.map(r=>`<button class="vt${sel===r?" sel":""}" data-relsel="${r.n}">${relTile(r.k,44)}<span class="rlab ${RELICS[r.k].k}">${REL_KN[RELICS[r.k].k]}</span><b>${esc(relName(r))}</b></button>`).join("")}</div>`
+  const vault=T.length?`<div class="vault">${T.map(r=>`<button class="vt${sel===r?" sel":""}${(UI.forge||[]).includes(r.n)?" onanvil":""}" data-relsel="${r.n}">${relTile(r.k,44)}<span class="rlab ${RELICS[r.k].k}">${REL_KN[RELICS[r.k].k]}</span><b>${esc(relName(r))}</b>${relRoll(r)!=null?rollBar(r):""}</button>`).join("")}</div>`
     :`<div class="small mut">No relics waiting. Beat a general who carries one (1 in ${Math.round(1/Math.max(0.01,R.relSpoil))} chance to take it), win land (a ${gPc(R.relRuin)} chance to find one in the ruins), hire a Legendary officer, or conquer a state to take its Treasury.</div>`;
-  const det=sel?(()=>{ const k=sel.k, d=RELICS[k]; return `<div class="rdet">${relTile(k,64)}<div><span class="rlab ${d.k}">${REL_KN[d.k]} relic · ${REL_WN[d.w]}</span><h4>${esc(d.name)}</h4><div class="eff${d.k==="x"?" x":""}">${esc(relEff(k,sel))}</div>${relRoll(sel)!=null?`<div class="roll">${rollBar(sel)} Rolled ${relRoll(sel)}% of its range</div><div class="roll">Range: ${esc(relEff(k))}</div>`:""}<div class="lore">“${esc(REL_LORE[k]||"")}”</div><div class="prov">${esc(sel.src||"")}</div>
+  const det=sel?(()=>{ const k=sel.k, d=RELICS[k]; return `<div class="rdet">${relTile(k,64)}<div><span class="rlab ${d.k}">${REL_KN[d.k]} relic · ${REL_WN[d.w]}</span><h4>${esc(d.name)}</h4><div class="eff${d.k==="x"?" x":""}">${esc(relEff(k,sel))}</div>${relRoll(sel)!=null?`<div class="roll">${rollBar(sel)} Rolled ${relRoll(sel)}% of its range</div><div class="roll">Range: ${esc(relEff(k))}</div>`:""}<div class="lore">“${esc(REL_LORE[k]||"")}”</div><div class="prov">${esc(sel.src||"")}</div>${d.k!=="u"?`<div class="fbtns" style="margin-top:6px">${(UI.forge||[]).includes(sel.n)?`<button class="sm" data-anvilout="${sel.n}">Take it off the anvil</button>`:`<button class="sm" data-anvil="${sel.n}" ${(UI.forge||[]).length>=3?"disabled":""}>⚒ Put on the anvil</button>`}</div>`:""}
      <div class="rgive">${c.generals.length?c.generals.map(x=>giveRow(x,sel)).join(""):`<div class="small mut">You have no generals to carry it.</div>`}</div></div></div>`; })():T.length?`<div class="small mut" style="margin-top:8px">Click a relic to see it and give it to a general.</div>`:"";
   const carried=c.generals.filter(x=>x.relic), rows=carried.map(x=>{ const ok=relWorks(x); return `<div class="rgrow">${genFrame(x,c.color)}<div><b>${esc(x.name)}</b><div class="m">${relTile(x.relic.k,20)} ${esc(relName(x.relic))}</div><div class="m ${ok?"rgd":"rwn"}">${ok?esc(relEff(x.relic.k,x.relic)):"Does nothing here: "+REL_WN[RELICS[x.relic.k].w].toLowerCase()}</div></div><button class="sm" data-relslot="${x.id}">Change</button></div>`; }).join("");
   const hold={}; G.countries.forEach(o=>{ if(!o.alive) return; (o.relics||[]).forEach(r=>{ if(RELICS[r.k]?.k==="u") hold[r.k]=[o,null]; }); (o.generals||[]).forEach(x=>{ if(RELICS[x.relic?.k]?.k==="u") hold[x.relic.k]=[o,x]; }); });
   const fam=REL_FAMOUS.map(k=>{ const h=hold[k], o=h?.[0], mine=o&&o.id===c.id;
     return `<div class="frow">${relTile(k,40)}<div><b>${esc(RELICS[k].name)}</b><div class="m">${esc(relEff(k))}</div></div><div class="who${mine?" me":o?"":" unk"}">${o?`${mine?"You":`<span class="flagdot" style="background:${o.color}"></span>${esc(o.name)}`}<div class="m">${h[1]?"General "+esc(h[1].name):"in the Treasury"}</div>`:`Not held<div class="m">may turn up in ruins</div>`}</div></div>`; }).join("");
+  const forge=(()=>{ const F=(UI.forge||[]).filter(n=>T.some(r=>r.n===n)); UI.forge=F; const P=F.length===3?forgePlan(c,F):null, res=T.find(r=>r.n===UI.forgeRes);
+    const slots=[0,1,2].map(i=>{ const r=T.find(x=>x.n===F[i]); return r?`<button class="fslot" data-anvilout="${r.n}" title="Take it off the anvil">${relTile(r.k,46)}<b>${esc(relName(r))}</b>${relRoll(r)!=null?rollBar(r):""}</button>`:`<div class="fslot"><span class="ri none" style="--s:46px">${RS_(`<path d="M12 7v10M7 12h10"/>`)}</span><span class="small mut">Empty</span></div>`; }).join("");
+    const famN=k=>({"t:spear":"spear","t:archer":"archer","t:axe":"axe","t:pike":"pike","t:sword":"sword","t:cav":"cavalry","r:grain":"harvest","r:gold":"tax","r:wood":"wood","r:iron":"iron","r:sci":"research"})[k];
+    const prev=res?`<div class="freveal"><div class="sparks">${"<i></i>".repeat(14)}</div>${relTile(res.k,68)}<div><span class="rlab ${RELICS[res.k].k}">${res.q>=1?"Perfect rare relic forged":"Rare relic forged"}</span><h4>${esc(relName(res))}</h4><div class="eff">${esc(relEff(res.k,res))}</div>${relRoll(res)!=null?`<div class="roll">${rollBar(res)} Rolled ${relRoll(res)}% of its range${res.q>=1?": the top value":""}</div>`:""}<div class="small mut">In your Treasury.</div></div></div>`
+      :!P?`<div class="small mut" style="margin-top:8px">Pick a relic below and press <b>Put on the anvil</b>. <b>3 common → 1 rare</b> (💰 ${fmt(R.forgeC)}): three of one troop or resource give that family's rare, others a random rare. <b>3 rare of one family → the same rare, rolled 100%</b> (💰 ${fmt(R.forgeR)}). Famous relics can't be forged.</div>`
+      :P.err?`<div class="small bad" style="margin-top:8px">${esc(P.err)}</div>`
+      :`<div class="fprev"><span class="rlab r">Makes ${P.perfect?"a perfect rare relic":"a rare relic"}</span><div class="fopts">${P.pool.map(k=>`<span class="fopt" title="${esc(relEff(k))}">${relTile(k,28)} ${esc(RELICS[k].name)}</span>`).join("")}</div>
+        <div class="small mut">${P.perfect?"Rolled 100%: the top of its range.":`${P.same?`All three are ${famN(relFam(T.find(r=>r.n===F[0]).k))} relics: you get that family's rare.`:"One of these at random."} Its roll: the three rolls' average ±${gPc(R.forgeSpread)}, so <b>${Math.round(P.q0*100)}–${Math.round(P.q1*100)}%</b>.`}</div></div>`;
+    const can=P&&!P.err&&c.money>=P.cost;
+    return `<div class="psec"><h3 class="tvh">Forge ${gl("relics")}<span class="grow"></span><span class="rt">💰 ${fmt(c.money)}</span></h3>
+      <div class="forge"><div class="anvil"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 8h13c0 2 2 3 5 3v1c-3 0-4 1-5 2H9l-1 3h3v2H5v-2h1l1-3C5 13 3 11 3 8z"/></svg></div><div class="fslots">${slots}</div></div>
+      ${prev}
+      <div class="fbtns"><button class="pri" data-forge="1" ${can?"":"disabled"} title="${P&&!P.err&&c.money<P.cost?"Not enough gold":""}">🔨 Forge${P&&!P.err?` · 💰 ${fmt(P.cost)}`:""}</button>${F.length?`<button class="sm" data-anvilclear="1">Clear the anvil</button>`:""}${res?`<button class="sm" data-forgeok="1">Done</button>`:""}</div>
+      <div class="small mut" style="margin-top:6px">The three relics are melted for good. Only relics in the Treasury go on the anvil, not ones a general carries.</div></div>`; })();
   return `<div class="tavern">
    ${picker()}
+   ${forge}
    <div class="psec"><h3 class="tvh">Treasury ${gl("relics")}<span class="grow"></span><span class="rt">${T.length} relic${T.length===1?"":"s"} waiting · ${carried.length} carried</span></h3>${vault}${det}</div>
    ${carried.length?`<div class="psec"><h3 class="tvh">Carried by your generals</h3><div class="rgive">${rows}</div><div class="small mut" style="margin-top:6px">Each general carries one relic. Giving one is free; taking it back costs him ${R.relTake} morale. A general who leaves hands his relic back.</div></div>`:""}
    <div class="psec"><h3 class="tvh">Famous relics<span class="grow"></span><span class="rt">one of each in the world</span></h3><div class="fam">${fam}</div>
@@ -5345,7 +5401,7 @@ const SETTINGS_META=[
   ["Generals",[["speedBase","Speed limit: base (km²)"],["speedPerPoint","Speed limit per Speed point (km²)"],["genNoGeneral","Strength factor with no general"],["genTrainRate","Skill training per year (× Mind)"],["moraleRecovery","Morale recovery per year (resting or attacking)"],["moraleDefend","Morale lost per year by the defending general"],["moraleWin","Morale lost by an attacking general who wins"],["moraleLoss","Morale lost by an attacking general who loses"],["moraleHeld","Morale gained by the defender in a year he holds"],["moraleBroken","Morale lost by the defender in a year attackers break through"],["aiRestMorale","Computer: rests a defender below this morale when calm"],["aiRestCalm","Computer: calm = not attacked for this many years"]]],
   ["Generals: Tavern (tiers: the General tiers tab)",[["genCalls","Calls per tier per year"],["genRise","Each extra call that year costs (×)"],["genCards","Candidates per call"],["genMax","Most generals a state can keep"],["genHide","Rolled traits that start hidden","%"],["genTroopShare","Good trait slots that roll a troop trait","%"]]],
   ["Generals: staff posts",[["postQm","Quartermaster: less grain eaten by the army per Mind","%"],["postQmFit","Quartermaster: Iron Quartermaster (×)"],["postQmMax","Quartermaster: at most","%"],["postDrill","Drillmaster: skill a year per Mind for generals in the field"],["postDrillTroop","Drillmaster: his troop traits' troops fight better","%"],["postChief","Chief of Staff: morale a year per Mind for generals in the field"],["postChiefFit","Chief of Staff: Beloved (×)"],["postEase","Governor, Ease: loyalty a year per Mind"],["postSqTax","Governor, Squeeze: taxes per Mind","%"],["postSqLoy","Governor, Squeeze: loyalty lost a year per Mind"],["postGovRevolt","Governor: a Butcher's revolt chance (×)"],["postDrunk","A Drunkard at a post in a bad year (×)"]]],
-  ["Generals: relics",[["relSpoil","Chance to take a beaten general's relic","%"],["relSpreadC","Roll range of common relics: ± share of the value","%"],["relSpreadR","Roll range of rare and cursed relics","%"],["relSpreadU","Roll range of famous relics","%"],["relRuin","Chance a win that takes land finds a relic","%"],["relRuinFamous","Share of finds that are a lost famous relic","%"],["relAcad","Chance an Academy candidate brings a relic","%"],["relLegRare","Share of Legendary candidates' relics that are rare","%"],["relTake","Morale a general loses when his relic is taken back"],["relFamous","Famous relics handed out at the start"],["relCovet","Computer: war motive per famous relic a neighbor holds"],
+  ["Generals: relics",[["relSpoil","Chance to take a beaten general's relic","%"],["relSpreadC","Roll range of common relics: ± share of the value","%"],["forgeC","Forge: gold for 3 common → 1 rare"],["forgeR","Forge: gold for 3 rare of one family → 1 perfect rare"],["forgeSpread","Forge: a forged rare's roll = the three rolls' average ± this","%"],["relSpreadR","Roll range of rare and cursed relics","%"],["relSpreadU","Roll range of famous relics","%"],["relRuin","Chance a win that takes land finds a relic","%"],["relRuinFamous","Share of finds that are a lost famous relic","%"],["relAcad","Chance an Academy candidate brings a relic","%"],["relLegRare","Share of Legendary candidates' relics that are rare","%"],["relTake","Morale a general loses when his relic is taken back"],["relFamous","Famous relics handed out at the start"],["relCovet","Computer: war motive per famous relic a neighbor holds"],
     ["rlBlade","Veteran's Blade: skill in battle"],["rlMap","Scout's Map: speed"],["rlAstro","Star Compass: speed"],["rlShield","Iron Shield: fewer losses defending","%"],["rlAegis","Unbroken Shield: fewer losses defending","%"],["rlHorn","War Horn: attack","%"],["rlCursed","Black Blade: attack","%"],["rlCursedLoy","Black Blade: loyalty lost a year"],["rlDragon","Dragon Standard: attack","%"],["rlDragonFloor","Dragon Standard: lowest morale"],["rlSpear","Breaching Spear: more land per win","%"],["rlHammer","Hammer of the Breaker: more land per win","%"],["rlBanner","Tattered Banner: morale a year"],["rlSaint","Saint's Reliquary: loyalty a year"],["rlLedger","Quartermaster's Ledger: Quartermaster effect (×)"],["rlSeal","Seal of Office: Governor effect (×)"],["rlCrown","Crown of the First King: Governor effect (×)"],["rlCrownLoy","Crown of the First King: loyalty a year as Governor"],
     ["rlResC","Governor relics, common: grain, taxes, wood or iron","%"],["rlResR","Governor relics, rare: grain, taxes, wood or iron","%"],["rlResU","Governor relics, famous: grain, taxes, wood or iron","%"],["rlSciC","Governor relics, common: research points","%"],["rlSciR","Governor relics, rare: research points","%"],["rlSciU","Governor relics, famous: research points","%"],
     ["rlTroopC","Troop relics, common: that troop fights better (for its share)","%"],["rlTroopR","Troop relics, rare: that troop fights better","%"],["rlTroopU","Troop relics, famous: that troop fights better","%"],["rlSpearLossR","Phalanx Standard: spearmen lose fewer","%"],["rlSpearLossU","Spear of the First Legion: spearmen lose fewer","%"],["rlSpearHoldU","Spear of the First Legion: land a spearman holds (×)"],["rlArcherR","Yew Longbow: attackers lose more","%"],["rlArcherU","Bow of the Hunter Queen: attackers lose more","%"],["rlAxeLossR","Berserker's Totem: axemen lose fewer","%"],["rlPikeCavR","Hedgehog Banner: enemy cavalry weaker","%"],["rlPikeCavU","Wall of Pikes: enemy cavalry weaker","%"],["rlSwordTough","Duelist's Gauntlet: swordsmen tougher","%"],["rlSwordLossU","Blade of Kings: swordsmen lose fewer","%"],["rlCavSpeedR","Saddle of the Steppe: speed"],["rlCavSpeedU","Banner of the Thousand Riders: speed"]]],
@@ -5519,6 +5575,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["The Forge","2026-11-14 08:08",["New Forge at the top of Generals → Treasury: melt three relics into one","3 common → 1 rare for 2,000 gold: three of one troop or resource give that family's rare, others a random rare; its roll is the three rolls' average ±15%","3 rare of one family → that rare with a perfect roll (100%) for 6,000 gold","Famous relics can't be forged","The anvil shows what you can get and the roll range before you pay; the new relic appears with a shower of sparks","Treasury tiles show a bar for each relic's roll","Computer states forge their spare relics too"]],
 ["Relics roll their numbers","2026-11-14 07:47",["Every relic rolls its numbers when it is found: common ones ±40% around the listed value (+3–7% instead of +5%), rare ±20%, famous ±13%","Two relics of the same name can now differ; the Treasury shows each one's numbers and a bar for how good its roll is","Rules & guide and the relic tables show the ranges","Relics from older saves keep the middle value"]],
 ["Clearer Drillmaster, steady year window","2026-11-14 00:03",["Drillmaster: \"Archers and Cavalry fight 5% stronger in your battles\" instead of \"+5% in battle\"","The year window keeps the same width while its text changes"]],
 ["Only peasants take up room","2026-11-13 23:58",["Soldiers no longer count toward population capacity: only peasants do","Armies no longer slow births, so states grow bigger and richer","Conquest is slower: more states survive longer","Settings → Food & population can switch back to everyone taking up room"]],
@@ -5874,6 +5931,11 @@ ${gTab(["Resource","Common","Rare","Famous"],Object.keys(REL_RES).map(rs=>[`${RE
 ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t.id]}`,...[0,1,2].map(lv=>{ const k=REL_IDS.find(x=>RELICS[x].tp===t.id&&RELICS[x].lv===lv); return k?`<b>${RELICS[k].name}</b><br><span class="small">${esc(relEff(k))}</span>`:""; })]))}
 <h3>Rolls</h3><ul class="log"><li>Every relic rolls its numbers when it is made (found, brought by a candidate or handed out at the start), inside a range by kind: common ±${gPc(R.relSpreadC)} of the listed middle value, rare and cursed ±${gPc(R.relSpreadR)}, famous ±${gPc(R.relSpreadU)}. So two War Horns can differ. The tables show each relic's range; a relic's card shows its own numbers and how good its roll is.</li>
 <li>Switches don't roll: one more luck roll, ignoring a border bonus, never lost in battle. The Lucky Coin has nothing else, so all Lucky Coins are the same. The Black Blade's loyalty price doesn't roll either.</li></ul>
+<h3>The Forge</h3><ul class="log"><li>At the top of Generals → Treasury. Pick a relic, press <b>Put on the anvil</b>, do the same for two more, then <b>Forge</b>. The three are melted for good; only relics in the Treasury can go on the anvil.</li>
+<li><b>3 common → 1 rare</b> for ${fmt(R.forgeC)} gold. Three common relics of one troop or one resource give that family's rare (three Iron Horseshoes give a Saddle of the Steppe); any other three give a random rare (War Horn, Breaching Spear, Quartermaster's Ledger or Seal of Office). Its roll is the three rolls' average ±${gPc(R.forgeSpread)}, so good relics make good relics.</li>
+<li><b>3 rare of one family → that rare, rolled 100%</b> (the top of its range) for ${fmt(R.forgeR)} gold. A family is one troop, one resource, or three of the same relic (three War Horns make a perfect War Horn). The Black Blade counts as rare.</li>
+<li><b>Famous relics can't be forged.</b> The anvil shows what you can get and the roll range before you pay.</li>
+<li>Computer states forge too, when they have gold to spare: three rares of one family first, then their three weakest commons.</li></ul>
 <h3>Carrying</h3><ul class="log"><li>Most relics work <b>in his battles</b>, attacking or as your defender. Post relics work only at that staff post (${gl("staff")}); a few work anywhere. A relic that does nothing where he is now shows in orange.</li>
 <li>Giving a relic is free. <b>Taking one back costs him ${R.relTake} morale</b>, also when a new relic replaces it.</li>
 <li>A general who retires or is dismissed hands his relic back to the Treasury.</li></ul>
@@ -6372,6 +6434,11 @@ document.addEventListener("click",async ev=>{
   if(d.relfor!=null){ UI.relFor=null; render(); return; }
   if(d.relsel){ UI.relSel=UI.relSel===+d.relsel?null:+d.relsel; UI.relFor=null; render(); return; }
   if(d.relgive){ cmd("relicGive",+d.relgive,+d.rel); UI.relSel=null; UI.relFor=null; save(); render(); return; }
+  if(d.anvil){ const F=UI.forge||(UI.forge=[]); if(F.length<3&&!F.includes(+d.anvil)) F.push(+d.anvil); UI.forgeRes=null; UI.relSel=null; render(); return; }
+  if(d.anvilout){ UI.forge=(UI.forge||[]).filter(n=>n!==+d.anvilout); render(); return; }
+  if(d.anvilclear){ UI.forge=[]; UI.forgeRes=null; render(); return; }
+  if(d.forgeok){ UI.forgeRes=null; render(); return; }
+  if(d.forge){ const r=cmd("forge",UI.forge||[]); if(!r){ flash("The Forge can't make that."); render(); return; } UI.forge=[]; UI.forgeRes=r.n; UI.relSel=null; save(); render(); return; }
   if(d.reltake){ cmd("relicTake",+d.reltake); UI.relFor=null; save(); render(); return; }
   if(d.tavshow){ goTab("generals","tavern"); render(); return; }
   if(d.tavskip){ tavDone(); return; }
