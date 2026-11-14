@@ -3396,8 +3396,8 @@ function newsFor(g){ if(!g.gid) g.gid=oldGid(g); if(NEWS.gid!==g.gid) NEWS=newsF
 function newsAdd(n,row,det){ const c=Math.floor(row[0]/NEWS_CH); if(det){ const L=n.det[c]||(n.det[c]=[]); row[11]=L.length; L.push(det); } n.items.push(row); n.dirty.add(c); }
 const packBattle=b=>[b.turn,b.att,b.def,b.sent,b.guards,b.lossA,b.lossD,b.taken,b.win?1:0,b.elim?1:0,+(b.fb||0).toFixed(2),-1];
 const r4=a=>a?a.map(v=>typeof v==="number"?+v.toFixed(4):v):null;
-const packDetail=d=>[1,d.tA,d.lA,d.tD,d.lD,d.home,d.share,d.nOn,d.gA,d.gD,r4(d.sA),r4(d.sD),r4(d.raw),d.lv,r4(d.land),d.who,d.aft,d.front,d.sea];
-const unpackDetail=x=>({tA:x[1],lA:x[2],tD:x[3],lD:x[4],home:x[5],share:x[6],nOn:x[7],gA:x[8],gD:x[9],sA:x[10],sD:x[11],raw:x[12],lv:x[13],land:x[14],who:x[15],aft:x[16],front:x[17],sea:x[18]});
+const packDetail=d=>[1,d.tA,d.lA,d.tD,d.lD,d.home,d.share,d.nOn,d.gA,d.gD,r4(d.sA),r4(d.sD),r4(d.raw),d.lv,r4(d.land),d.who,d.aft,d.front,d.sea,d.cl??null,d.rlL??null,r4(d.st),r4(d.md)];
+const unpackDetail=x=>({tA:x[1],lA:x[2],tD:x[3],lD:x[4],home:x[5],share:x[6],nOn:x[7],gA:x[8],gD:x[9],sA:x[10],sD:x[11],raw:x[12],lv:x[13],land:x[14],who:x[15],aft:x[16],front:x[17],sea:x[18],cl:x[19],rlL:x[20],st:x[21],md:x[22]});
 // a news row's report: from memory, or read its chunk back from storage
 async function newsDetail(a){
   const c=Math.floor(a[0]/NEWS_CH), k=a[11]??-1; if(k<0) return null;
@@ -5448,9 +5448,14 @@ function reportHtml(b,d,ref){
   const bar=d.sD?`<div class="sbar2"><i style="width:${100*strA/(strA+strD)}%;background:${A.color}"></i><i style="width:${100*strD/(strA+strD)}%;background:${D.color}"></i></div>
     <div class="small mut" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:12px"><span>${plain(b.att)} ${pct(strA,strA+strD)}</span><span>Winning at twice the defender's strength takes the full gain</span><span>${plain(b.def)} ${pct(strD,strA+strD)}</span></div>`:"";
   // land and aftermath
-  const pot=(reach+army)*ex*dec;
+  const pot=(reach+army)*ex*dec, cauT=g=>(g?.[7]||[]).includes("cautious"), landMults=[]; // what turns the formula into the land taken
+  if(d.md&&d.md[2]!==1) landMults.push([`${MODE_UI[d.md[0]][2]} mode`,d.md[2]]);
+  if(d.st&&d.st[2]!==1) landMults.push([`${plain(b.def)}'s stance`,d.st[2]]);
+  if(d.cl){ if(cauT(d.gA)) landMults.push([`Cautious ${esc(d.gA[0])}`,1-R.trCautiousLand]); if(cauT(d.gD)) landMults.push([`Cautious ${esc(d.gD[0])}`,1-R.trCautiousLand]); }
+  if(d.rlL) landMults.push([`🏺 ${RELICS[d.gA?.[11]]?.name||"relic"}`,d.rlL]);
   const landCalc=b.win?`<b>Land taken:</b> (general's reach ${fmt(reach)} + army ${fmt(army)} <span class="mut">[${R.armyLand} × √${fmt(surv)} survivors]</span>) × Expansion ${mul(ex)} <span class="mut">[level ${d.lv[1]}, with civilization/leader/land]</span> × ${dec>=1?"full gain":`narrow win ${Math.round(dec*100)}%`} = ${fmt(pot)} km²
-      <span class="mut">· the survivors could hold up to ${fmt(hold)} km² (cavalry hold 2 each) · ${plain(b.def)} had ${fmt(landD0)} km²</span> → <b>${fmt(b.taken)} km²</b>`
+      <span class="mut">· the survivors could hold up to ${fmt(hold)} km² (cavalry hold 2 each)</span>${hold<pot?`, so ${fmt(hold)} km²`:""}${landMults.length?` ${landMults.map(([l,v])=>`× ${l} <span class="${v>1.0005?"good":"bad"}">×${v.toFixed(2)}</span>`).join(" ")}`:""}
+      <span class="mut">· ${plain(b.def)} had ${fmt(landD0)} km²</span> → <b>${fmt(b.taken)} km²</b>`
     :`<b>No land changed hands.</b> <span class="mut">The attack was beaten back.</span>`;
   const landTxt=(d.md&&NOLAND[MODES[d.md[0]]])?`<b>No land changed hands:</b> <span class="mut">a ${MODE_UI[d.md[0]][2].toLowerCase()} takes no land. What it gets scales with the attacker's share of the battle strength and its surviving soldiers.</span>`:landCalc;
   const chips=[];
@@ -5469,7 +5474,7 @@ function reportHtml(b,d,ref){
   if(aft[7]) chips.push(`👀 ${aft[7]} neighbor${aft[7]>1?"s":""} of both: wariness −${+(R.rwNear*aft[9]).toFixed(1)}`);
   if(aft[8]) chips.push(`👀 ${aft[8]} other neighbor${aft[8]>1?"s":""} of ${plain(b.att)}: wariness −${+(R.rwHit*aft[9]).toFixed(1)}`);
   if(aft[9]<1) chips.push(`⚖ Striking back: ${plain(b.def)} and onlookers take it ${Math.round((1-aft[9])*100)}% less harshly`);
-  if(d.rlL&&b.taken) chips.push(`🏺 ${plain(b.att)}'s ${RELICS[d.rel?.[2]]?.name||"relic"}: land ×${+d.rlL.toFixed(2)}`);
+  if(d.rlL&&b.taken) chips.push(`🏺 ${plain(b.att)}'s ${RELICS[d.gA?.[11]]?.name||"relic"}: land ×${+d.rlL.toFixed(2)}`);
   if(b.elim) chips.push(`☠ ${plain(b.def)} was destroyed: ${fmt(aft[10])} of its people joined ${plain(b.att)}${lootTxt(aft[16])?`, with its stocks ${lootTxt(aft[16])}`:""}`);
   // footer: back, map, previous/next, research edge
   const list=reportList(ref), at=list.indexOf(ref), prev=at>0?list[at-1]:null, next=at>=0&&at<list.length-1?list[at+1]:null;
@@ -5691,6 +5696,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Land bonuses in battle reports","2026-11-14 09:04",["The Land taken line in battle reports now shows every land multiplier: Breaching Spear, Hammer, Cautious generals, stance and attack mode","Relic land chips name the relic","Older battles in the news keep these details"]],
 ["Pick relics from the general card","2026-11-14 08:55",["Clicking a general's relic slot opens a list of your Treasury relics","Pick one and he carries it; you stay on the Generals list","Relics that work for him are listed first"]],
 ["A new state view","2026-11-14 08:30",["Clicking a state opens a new view: its colour, flag, alliance and how it feels about you in a badge","Three tabs: Overview (land with rank and a chart, population, army, generals, loyalty, wonders, wars), Relations (why it feels as it does about you, and all its neighbors) and Science (its ten levels against the world average)","Buttons: Show on map, Plan attack, Take over","The map tooltip no longer lists neighbor feelings; they are in the Relations tab"]],
 ["Relic merchant","2026-11-14 08:23",["New Generals → Merchant (key R, before the Treasury, now T): buy relics the way you hire in the Tavern","Three offers: Peddler's sack (600 gold), Merchant's chest (3,000) and Royal coffer (15,000), each with better odds of a rare","Open one and three relics turn over; take one, the rest are packed away. A rare or cursed relic glows before it turns","Each extra one of the same offer that year costs 1.6× more; prices reset every year","Famous relics are never sold","Computer states buy relics too"]],
@@ -6093,7 +6099,7 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <li><b>Defense</b> = guards' defense × Defense research × general × bonuses × ${1+R.defenderBonus} (defender bonus) × narrow-front or sea bonus × forest and mountain border bonus (up to +${gP(R.forestDef)} / +${gP(R.mtnDef)}, see ${gl("fronts")}) × luck. Guards are split between several attackers by their strength.</li>
 <li>The attacker wins only if stronger. Ties go to the defender.</li></ul>
 <h3>Losses</h3><p>Each side loses up to ${gP(R.battleLoss)} of its troops, more the stronger the enemy, divided by toughness. A beaten attacker loses ${R.loserPenalty}× more. Against no guards the attacker loses only ${gP(R.raidLoss)}. The defender's stance scales both sides' losses (see ${gl("stance")} Defense stance); the attack mode scales them too (see ${gl("attack")} Attack mode).</p>
-<h3>Land taken</h3><p>The winner takes (general's speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness, times Expansion research. Decisiveness runs from ${gP(R.narrowWinShare)} for a narrow win to 100% at twice the defender's strength (or no defenders). Each survivor can hold ${R.occupy} km² (cavalry 2). A defender standing ground loses only ×${R.stLandStand} of it.</p>
+<h3>Land taken</h3><p>The winner takes (general's speed limit + ${R.armyLand}×√surviving soldiers) × decisiveness, times Expansion research. Decisiveness runs from ${gP(R.narrowWinShare)} for a narrow win to 100% at twice the defender's strength (or no defenders). Each survivor can hold ${R.occupy} km² (cavalry 2). A defender standing ground loses only ×${R.stLandStand} of it. Then come the general's land bonuses: a Cautious general on either side ×${(1-R.trCautiousLand).toFixed(2)}, a Breaching Spear up to +${Math.round(R.rlSpear*100)}%, a Hammer up to +${Math.round(R.rlHammer*100)}%. The battle report's <b>Land taken</b> line shows each step.</p>
 <h3>Spoils</h3>${R.keepPeople?`<p>A win brings land only. The beaten state keeps its people, scientists, grain, gold, wood and iron: the people on the taken land move to the land it has left. If that land can't hold them all (more people than its capacity), the extra peasants and scientists are lost. Soldiers are never cut this way${R.peasantRoom?" (and they don't take up room, so only peasants above capacity are lost)":", so a state whose army fills most of its land can be left with too few peasants and fall on the spot"}. So a beaten state shrinks but isn't stripped, and a winner has to grow people on its new land.</p>
 <p>Wiping a state out pays: the winner takes all its remaining people (scientists join as peasants) and all its gold, grain, wood and iron. Its soldiers are lost. Taking its last land hands over everyone, since no one has to be squeezed out first.</p>`
 :`<p>The share of land taken brings the same share of the defender's peasants (${gP(R.capturedPeasants)} arrive) and ${gP(R.lootGrain)} of that share of its grain. Gold, wood and iron are never looted. When a state is wiped out, half its peasants join the winner and its stocks vanish.</p>`}
