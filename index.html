@@ -318,6 +318,7 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .seat .nm{font:600 14px/1.15 var(--f-name)} .seat .nm.mut{font:italic 13px var(--f-name);color:var(--mut)}
 .seat .eff{font-size:11.5px;line-height:1.3;background:#0f1114;border-radius:5px;padding:4px 5px;width:100%;color:#8fdcae} .seat .eff.none{color:var(--mut)}
 .seat .fit{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:auto}
+.seat .auto{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--mut)} .seat .auto input{margin:0}
 .pol{display:flex;gap:4px;width:100%} .pol button{flex:1} .pol button.on{border-color:var(--acc);color:var(--acc);background:#2a2620}
 .sprow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:#191c21;border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-top:6px}
 .sprow:first-of-type{margin-top:0} .sprow .pf{width:48px} .sprow.cur{border-color:var(--info)}
@@ -1128,6 +1129,16 @@ function postEff(c,gen,id,pol){ if(!gen) return null; const m=gen.mind*(hasTr(ge
     o.revolt=hasTr(gen,"butcher")?R.postGovRevolt:1; }
   return o; }
 const postNow=(c,id)=>postEff(c,postHolder(c,id),id)||{};
+const POST_FIT={qm:["quarter"],drill:["drill","bows","berserk","pike","blade","horse"],chief:["beloved"],gov:["beloved","greedy","butcher"]}; // traits that suit each post
+const postFits=(x,id)=>!!x.traits?.some(k=>POST_FIT[id].includes(k)&&!x.hid?.includes(k));
+function postScore(c,x,id){ const e=postEff(c,x,id); return id==="qm"?e.food*100:id==="drill"?e.skill+e.troops.length:id==="chief"?e.morale:Math.abs(e.loy)*5+(e.tax||0)*100; } // how much he'd give there
+// auto-replace (a box per post, c.autoPost[id]): when the holder retires, the best-fitting free general (no post, not the defender)
+// takes the post and picks up the old holder's relic (his own goes to the Treasury)
+function postRefill(g,c,id,relic,L){ const free=(c.generals||[]).filter(x=>!x.post&&x.id!==c.defGen); if(!free.length) return null;
+  const x=free.sort((a,b)=>(postFits(b,id)-postFits(a,id))||(postScore(c,b,id)-postScore(c,a,id)))[0];
+  x.post=id; c.attacks=(c.attacks||[]).filter(a=>a.gen!==x.id);
+  if(relic){ if(x.relic) relicsOf(c).push(x.relic); x.relic=relic; }
+  L(`General ${x.name} takes over as ${POSTS.find(p=>p.id===id).name}${relic?` and carries the ${relName(relic)}`:""}.`); return x; }
 // the Drillmaster's troop traits: those troops +5% in every battle of his state (for their share of the army)
 function drillMul(c,tr,stat){ const d=postNow(c,"drill"); let m=1; const rows=[], tot=troopSum(tr,stat); if(!d.troops?.length||tot<=0) return {m,rows};
   for(const tp of d.troops){ const sh=(tr[tp]||0)*(TROOP[tp]?.[stat]||0)/tot; if(sh>0){ const v=1+R.postDrillTroop*sh; m*=v; rows.push(["drillP",+v.toFixed(4),+sh.toFixed(3),tp]); } }
@@ -2181,6 +2192,7 @@ const CMD={
   forge:(g,c,ns)=>Array.isArray(ns)?act.forge(g,c,ns.slice(0,3).map(Number)):null,
   post:(g,c,genId,id)=>act.post(g,c,+genId,id==null||id===""?null:String(id)),
   govPol:(g,c,p)=>p==="ease"||p==="squeeze"?(c.govPol=p,true):false,
+  autoPost:(g,c,id,on)=>POST_IDS.includes(id)?((c.autoPost||(c.autoPost={}))[id]=!!on,true):false,
   dismissGeneral:(g,c,id)=>act.dismissGeneral(g,c,+id),
   festival:(g,c,n)=>act.festival(g,c,nat(n)),
   // o: {target, gen, mix:{troop id: n}, mode}; takes only troops still at home; one attack per general
@@ -3357,7 +3369,9 @@ function economy(g,c){
     if(rk(gen,"banner")) gen.morale=Math.min(100,gen.morale+Math.round(rlv(gen,R.rlBanner))); // Tattered Banner; the Unbroken Shield: no morale lost defending
     if(dr) gen.morale=Math.round(Math.max(0,Math.min(100,gen.morale+rr(g,-R.trDrunkSwing,R.trDrunkSwing)))); oldGuardFloor(gen); gen.morale=Math.round(gen.morale);
     if(dr&&gen.post) gen.hang=R01(g)<0.5; else delete gen.hang; // a Drunkard at a post: next year may be a bad one
-    if(gen.age>=gen.maxAge){ relBack(c,gen); c.generals=c.generals.filter(x=>x!==gen); if(c.defGen===gen.id)c.defGen=null; L(`General ${gen.name} retired at age ${gen.age}.`); }
+    if(gen.age>=gen.maxAge){ const pid=gen.post, auto=pid&&c.autoPost?.[pid], rel=auto?gen.relic:null; if(rel) gen.relic=null;
+      relBack(c,gen); c.generals=c.generals.filter(x=>x!==gen); if(c.defGen===gen.id)c.defGen=null; L(`General ${gen.name} retired at age ${gen.age}.`);
+      if(auto&&!postRefill(g,c,pid,rel,L)&&rel) relicsOf(c).push(rel); } // auto-replace; nobody free: the relic goes to the Treasury
   }
   if(popOf(c)<R.minPop && c.alive){ eliminate(g,c,null); }
 }
@@ -4895,7 +4909,6 @@ const POST_ICON={
   gov:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3 20h18M4 17.5h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`};
 const SEAT_SIL=`<svg viewBox="0 0 100 120" aria-hidden="true"><rect width="100" height="120" fill="#0f1114"/><circle cx="50" cy="48" r="20" fill="#252931" stroke="#353a44" stroke-width="2" stroke-dasharray="4 3"/><path d="M14 120C16 96 32 84 50 84C68 84 84 96 86 120" fill="#252931" stroke="#353a44" stroke-width="2" stroke-dasharray="4 3"/><text x="50" y="55" text-anchor="middle" font-size="22" fill="#9aa1ad" font-family="system-ui">+</text></svg>`;
 const TROOP_PL={spear:"Spearmen",archer:"Archers",axe:"Axemen",pike:"Pikemen",sword:"Swordsmen",cav:"Cavalry"};
-const POST_FIT={qm:["quarter"],drill:["drill","bows","berserk","pike","blade","horse"],chief:["beloved"],gov:["beloved","greedy","butcher"]};
 const postWhat=id=>({qm:`Army eats less grain: ${gPc(R.postQm)} per Mind (at most ${gPc(R.postQmMax)}).`,drill:`Field generals learn faster: +${R.postDrill} skill a year per Mind.`,
   chief:`Field generals recover faster: +${R.postChief} morale a year per Mind.`,gov:`Runs the land: ease the people or squeeze them for taxes.`})[id];
 // one line on what a general gives (or would give) at a post
@@ -4913,10 +4926,11 @@ function pStaff(){
       ${h?`<b class="nm">${esc(h.name)}</b>`:`<span class="nm mut">Nobody</span>`}
       <div class="eff ${h?"":"none"}">${h?esc(postLine(c,h,p.id)):"No effect this year"}</div>
       ${p.id==="gov"?`<div class="pol" role="group" aria-label="Governor's policy"><button class="sm${pol==="ease"?" on":""}" data-govpol="ease" title="Ease: loyalty +${R.postEase} a year per Mind">Ease</button><button class="sm${pol==="squeeze"?" on":""}" data-govpol="squeeze" title="Squeeze: taxes +${gPc(R.postSqTax)} and loyalty −${R.postSqLoy} a year per Mind. Below ${R.loyUnrest} loyalty taxes drop ${gPc(R.loyUnrestTax)}, so squeezing too hard backfires.">Squeeze</button></div>`:""}
+      <label class="auto small" title="When this general retires, the best-fitting free general (not your defender) takes the post and carries his relic"><input type="checkbox" data-autopost="${p.id}"${c.autoPost?.[p.id]?" checked":""}> Auto-replace</label>
       <div class="fit">${POST_FIT[p.id].slice(0,p.id==="drill"?2:3).map(k=>trChip(k)).join("")}${p.id==="drill"?`<span class="small mut">or any troop trait</span>`:""}</div></div>`; };
-  const picker=()=>{ if(!open) return ""; const p=POSTS.find(x=>x.id===open), h=postHolder(c,open), fit=POST_FIT[open];
-    const score=x=>{ const e=postEff(c,x,open); return open==="qm"?e.food*100:open==="drill"?e.skill+e.troops.length:open==="chief"?e.morale:Math.abs(e.loy)*5+(e.tax||0)*100; };
-    const list=c.generals.filter(x=>x!==h).map(x=>({x,fits:x.traits?.some(k=>fit.includes(k)&&!x.hid?.includes(k))})).sort((a,b)=>(b.fits-a.fits)||(score(b.x)-score(a.x)));
+  const picker=()=>{ if(!open) return ""; const p=POSTS.find(x=>x.id===open), h=postHolder(c,open);
+    const score=x=>postScore(c,x,open);
+    const list=c.generals.filter(x=>x!==h).map(x=>({x,fits:postFits(x,open)})).sort((a,b)=>(b.fits-a.fits)||(score(b.x)-score(a.x)));
     const row=({x,fits})=>{ const atk=c.attacks.find(a=>a.gen===x.id), note=atk?`<span class="warnl">His attack on ${esc(G.countries[atk.target].name)} is called off</span>`:x.post?`<span class="warnl">Leaves the ${POSTS.find(q=>q.id===x.post).name} post</span>`:c.defGen===x.id?`<span class="warnl">Stops defending the border</span>`:"";
       return `<div class="sprow">${genFrame(x,c.color)}<div class="spn"><b>${esc(x.name)}${fits?`<span class="kfit">fits</span>`:""}</b><span class="meta">Mind ${x.mind} · age ${x.age} · skill ${Math.round(x.skill)}</span><span class="pe ${fits?"":"low"}">${esc(postLine(c,x,open))}</span>${note}<div class="gtraits">${genTraits(x)}</div></div><button class="pri sm" data-put="${x.id}" data-post="${open}">Post here</button></div>`; };
     return `<div class="psec"><h3 class="tvh">Choose a ${p.name}<span class="grow"></span><button class="lnk" data-staffopen="">Close</button></h3>
@@ -6049,6 +6063,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Auto-replace on staff posts","2026-11-14 12:38",["Each staff post has an Auto-replace box","When its general retires, the best-fitting free general takes the post","The new one carries the old one's relic"]],
 ["Cavalry fight cavalry first","2026-11-14 11:23",["In battle replays, when both sides have cavalry, they ride at each other and clash on the flank first","Only cavalry with no enemy cavalry go for spearmen, pikemen or archers"]],
 ["Replays: armies of the same colour","2026-11-14 11:21",["When both states in a replay have near colours, the defender is drawn in a far-off colour for that battle","A note under the names says which colour it is shown in"]],
 ["Cavalry pick their target","2026-11-14 11:20",["In battle replays, cavalry charge the enemy's spearmen or pikemen; only if it has none, its archers","They hit from behind and stay on their target","The log names what each side's cavalry charged"]],
@@ -6407,6 +6422,7 @@ ${gTab(["Post","Every year","Fitting traits"],[["Quartermaster",`Your army eats 
 <li><b>Mind</b> sets how much a general gives at a post, so old, slow but clever generals are worth keeping, and a Coward or Jinxed one does no harm there.</li>
 <li>A <b>Drunkard</b> at a post gives only half in about half his years.</li>
 <li><b>Relics</b> ${gl("relics")}: the Quartermaster's Ledger, the Seal of Office and the Crown make a post stronger, and Governor relics raise harvest, taxes, wood, iron or research while their carrier is Governor.</li>
+<li><b>Auto-replace:</b> each post has its own box. Ticked, when the general there retires the best-fitting free general takes his place: one with a fitting trait first, then the one who gives most there. Generals on other posts and your defender are never moved. The new one picks up the old one's relic (his own goes to the Treasury). With nobody free the post stays empty and the relic goes to the Treasury.</li>
 <li>Putting a general on a post takes him off the border (another idle general defends) and cancels an attack he was ordered to lead.</li>
 <li>Posts count toward the limit of ${R.genMax} generals, so a post is one general fewer in the field.</li>
 <li><b>Squeezing too hard backfires:</b> under ${R.loyUnrest} loyalty taxes drop ${gP(R.loyUnrestTax)}, and low loyalty brings revolts (${gl("loyalty")}). Without the Rebellions rule loyalty does nothing, so Ease does nothing either.</li>
@@ -6431,7 +6447,7 @@ ${gTab(["Troop","Common","Rare","Famous"],TROOPS.map(t=>[`${t.icon} ${TROOP_PL[t
 <li>Computer states forge too, when they have gold to spare: three rares of one family first, then their three weakest commons.</li></ul>
 <h3>Carrying</h3><ul class="log"><li>Most relics work <b>in his battles</b>, attacking or as your defender. Post relics work only at that staff post (${gl("staff")}); a few work anywhere. A relic that does nothing where he is now shows in orange.</li>
 <li>Giving a relic is free. <b>Taking one back costs him ${R.relTake} morale</b>, also when a new relic replaces it.</li>
-<li>A general who retires or is dismissed hands his relic back to the Treasury.</li></ul>
+<li>A general who retires or is dismissed hands his relic back to the Treasury, unless he retires from a post with Auto-replace ticked: then his successor there carries it (${gl("staff")}).</li></ul>
 <h3>Finding</h3><ul class="log"><li><b>Spoils:</b> when your general (or your defender) beats a general who carries a relic, there's a ${gP(R.relSpoil)} chance to take it. Lose, and yours can be taken the same way. The Saint's Reliquary is never lost in battle.</li>
 <li><b>Ruins:</b> a win that takes land has a ${gP(R.relRuin)} chance to turn up a common relic, and ${gP(R.relRuinFamous)} of those finds are a lost famous relic, if one is lost.</li>
 <li><b>Hiring:</b> Legendary candidates always bring a relic (${gP(R.relLegRare)} of them rare); Academy candidates bring one ${gP(R.relAcad)} of the time. It shows on their card.</li>
@@ -7099,6 +7115,7 @@ document.addEventListener("change",ev=>{
   if(t.dataset.work){ UI.farmBase=null; render(); return; } // refresh the Food section after a slider is released
   if(t.id==="wLandRank"||t.id==="wAllyCol"){ const k=t.id; UI[k]=t.checked; try{ localStorage.setItem("eb."+k,t.checked?"1":"0"); }catch{} render(); return; }
   if(t.id==="autoSell"){ cmd("autoSell",t.checked); save(); return; }
+  if(t.dataset.autopost){ cmd("autoPost",t.dataset.autopost,t.checked); save(); return; }
   if(t.id==="newsF"||t.id==="newsQ"||t.id==="newsA"){ const st=UI.news; if(t.id==="newsF") st.f=t.value; else if(t.id==="newsA") st.al=t.value==="all"?"all":+t.value; else st.q=t.value; st.page=0; render(); return; }
   if(t.id==="settingsFile"&&t.files&&t.files[0]){ const f=t.files[0]; f.text().then(importSettings); t.value=""; return; }
   if(t.dataset.workpct){ planEdit(x=>setShare(x,t.dataset.workpct,t.value)); render(); return; }
