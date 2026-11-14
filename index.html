@@ -72,6 +72,21 @@ table.btab.mchain td:nth-child(2),table.btab.mchain th:nth-child(2){background:n
 .mapseg{display:flex} .mapseg button{border-radius:0;margin-left:-1px} .mapseg button:not(.hidden){border-radius:0}
 .mapseg button.on{position:relative;z-index:1;background:#2b2618} .mapseg button:hover,.mapseg button:focus-visible{position:relative;z-index:2}
 .mapseg .first{border-radius:6px 0 0 6px} .mapseg .last{border-radius:0 6px 6px 0}
+.mapctl .mvbtn,#mapSel{display:none}
+/* phones and narrow windows (body.mob): the map is its own page in the main menu; map views sit in a dropdown */
+body.mob:not(.onmap) #mapwrap,body.mob.onmap #side{display:none}
+body.mob .mapctl{left:8px;justify-content:flex-end;flex-wrap:wrap}
+body.mob .mapctl>button:not(.glink){min-width:38px;height:38px;font-size:16px;padding:0 9px}
+body.mob .mapctl .mvbtn{display:inline-block;font-size:14px;margin-left:4px}
+body.mob .mapctl .mvbtn.hidden{display:none}
+body.mob .mapseg{display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:3;flex-direction:column;gap:2px;min-width:160px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+body.mob .mapseg.open{display:flex}
+body.mob .mapseg button:not(.glink){margin:0;border-radius:6px!important;text-align:left;font-size:15px;padding:8px 12px;background:none;border-color:transparent}
+body.mob .mapseg button.on{background:#2b2618;border-color:var(--acc);color:var(--acc)}
+body.mob .mapseg .glink{align-self:flex-end;margin:4px 4px 2px}
+body.mob #mapSel:not([hidden]){display:flex;align-items:center;gap:8px;margin-top:8px} body.mob #mapSel b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mob header .menu{order:-2} body.mob header .auto{order:-1;margin-left:auto} body.mob header h1{flex-basis:100%} body.mob header .grow{display:none}
+body.mob #end{font-size:inherit;padding:5px 10px}
 #allyLegend{position:absolute;left:8px;bottom:8px;background:#000c;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;max-height:45%;display:flex;flex-direction:column;max-width:60%}
 #allyLegend .lgbody{overflow:auto;margin-top:4px}
 #allyLegend .lgbody div{white-space:nowrap}
@@ -729,7 +744,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
 </header>
 <nav id="topnav" aria-label="Main menu"></nav>
 <main>
-  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="loy" id="loyBtn" title="Color states by loyalty: red = revolt possible, green = loyal">Loyalty</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
+  <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><button class="sm mvbtn" data-map="views" id="mvBtn" aria-haspopup="true" aria-expanded="false" title="Map view">States ▾</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="loy" id="loyBtn" title="Color states by loyalty: red = revolt possible, green = loyal">Loyalty</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="mapSel" hidden></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
     <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. Right-click (or press and hold) a state for actions. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
@@ -4299,7 +4314,7 @@ const mainView=new MapView($("map"),{
   sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView, war:()=>!!UI.warView, loy:()=>!!UI.loyView,
   height:()=>Math.max(320, window.innerHeight-($("mapbox").getBoundingClientRect().top+window.scrollY+$("mapwrap").scrollTop)-72), // fill the window below the map's top edge (ignores scrolling)
   focus:g=>g.fog?g.player:null,
-  onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="war"||subOf("war")!=="nbrs") UI.tab="world"; render(); },
+  onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="map"&&(UI.tab!=="war"||subOf("war")!=="nbrs")) UI.tab="world"; render(); },
   lift:o=>!!G&&isKnown(o), onMenu:(o,x,y)=>openCtx(o,x,y),
   onHover:(o,ev)=>{ const tip=$("tip"); if(!G||o===-9||!$("ctxMenu").hidden){ tip.style.display="none"; return; } const c=G.countries[o];
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
@@ -4378,7 +4393,7 @@ function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
   else if(a==="aid"){ if(o!==G.player) UI.aidTo=o; allianceModal(me().team); const n=$("aidN"); if(n){ n.scrollIntoView({block:"nearest"}); n.focus(); } }
   else if(a==="alliance") allianceModal(c.team);
   else if(a==="news"){ UI.news={f:"all",q:c.name,page:0,al:"all"}; UI.tab="news"; render(); $("panel").scrollTop=0; }
-  else if(a==="center") mainView.centerOn(o,Math.max(mainView.z,mainView.focusZoom()));
+  else if(a==="center"){ if(UI.mob&&UI.tab!=="map"){ UI.tab="map"; render(); } mainView.centerOn(o,Math.max(mainView.z,mainView.focusZoom())); }
   else if(a==="take"){ UI.sel=o; UI.takeConfirm=o; UI.tab="world"; render(); } }
 $("ctxMenu").addEventListener("click",e=>{ e.stopPropagation(); const b=e.target.closest("button[data-ctx]"); if(!b||b.disabled||UI.busy) return; const a=b.dataset.ctx, o=+$("ctxMenu").dataset.id; if(a.startsWith("spy")&&ctxSpyDo(a,o)) return; ctxDo(a,o); });
 document.addEventListener("pointerdown",e=>{ if(!e.target.closest?.("#ctxMenu")) closeCtx(); },true);
@@ -4403,6 +4418,7 @@ function renderAllyMap(){
   const st=$("stBtn"), shown=[st,b,rb,xb,lb,wb].filter(x=>x!==st&&!x.classList.contains("hidden")); st.classList.toggle("hidden",!shown.length); st.classList.toggle("on",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView&&!UI.loyView);
   const vis=[st,b,rb,xb,lb,wb].filter(x=>!x.classList.contains("hidden")); vis.forEach((x,i)=>{ x.classList.toggle("first",i===0); x.classList.toggle("last",i===vis.length-1); x.setAttribute("aria-pressed",x.classList.contains("on")); });
   lg.classList.toggle("hidden",!UI.allyView&&!UI.relView&&!UI.wxView&&!UI.warView&&!UI.loyView);
+  { const mv=$("mvBtn"), cur=vis.find(x=>x.classList.contains("on"))||st; mv.textContent=cur.textContent+" ▾"; mv.classList.toggle("hidden",st.classList.contains("hidden")); }
   if(UI.loyView){ const open=legendOpen(), A=G.countries.filter(c=>c.alive), rb_=A.filter(c=>c.team!=null&&G.teams?.[c.team]?.rebel).length;
     lg.innerHTML=`<button class="lghead" data-legend="1" title="${open?"Hide":"Show"} the list">Loyalty <span class="sarr">${open?"▾":"▸"}</span></button>`+(!open?"":`<div class="lgbody">${[[100,"Loyal 100"],[70,"Restless 70"],[R.loyUnrest,`Unrest ${R.loyUnrest}`],[R.loyRevolt-1,`Revolt possible <${R.loyRevolt}`],[0,"0"]].map(([v,l])=>`<div><span class="sw" style="background:${loyColor(v)}"></span>${l}</div>`).join("")}<div class="mut">Rebel states: ${fmt(rb_)}</div></div>`); return; }
   if(UI.warView){ const open=legendOpen(), n=(G.wars||[]).length, me_=!observing()&&me();
@@ -4440,7 +4456,7 @@ function renderHeader(){
 
 // ---------- tabs ----------
 // main menu above the map: [key, short name, icon, full name]
-const TABS=[["economy","Home","🏰","Home: your state"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["generals","Generals","🎖️","Generals: your generals, staff posts and the Tavern"],["war","War","🗡️","War: wars, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
+const TABS=[["economy","Home","🏰","Home: your state"],["map","Map","🗺️","Map: the world map"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["generals","Generals","🎖️","Generals: your generals, staff posts and the Tavern"],["war","War","🗡️","War: wars, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
 // second menu at the top of the side panel, for pages split in parts (keys Q W E …)
 const SUBS={science:[["research","Research","🔬","Research: split your points"],["bonus","Bonuses","✨","Total bonuses: where every bonus comes from"]],
   market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
@@ -4451,10 +4467,11 @@ const SUBKEYS="qwertyuiop";
 const subsOf=k=>SUBS[k]?.filter(x=>x[0]!=="wonders"||G?.wonders); // Wonders only in games with wonders
 const subOf=k=>{ const S=subsOf(k); if(!S) return null; const s=UI.sub?.[k]; return S.some(x=>x[0]===s)?s:S[0][0]; };
 function goTab(t,sub){ UI.tab=t; if(sub) (UI.sub||(UI.sub={}))[t]=sub; }
-const PUBLIC_TABS=["world","alliances","news"]; // what an observer (or a fallen player) can look at
+const PUBLIC_TABS=["map","world","alliances","news"]; // what an observer (or a fallen player) can look at
 function renderTabs(){
   if(UI.tab==="war"&&(UI.sub?.war==="generals"||UI.sub?.war==="tavern")){ goTab("generals",UI.sub.war==="generals"?"list":"tavern"); UI.sub.war="wars"; } // generals moved to their own page
   if(UI.tab==="alliances"&&!G.teams) UI.tab="world";
+  if(UI.tab==="map"&&!UI.mob) UI.tab="world"; // the Map page only exists on phones
   if(observing()&&!PUBLIC_TABS.includes(UI.tab)) UI.tab="world"; // an observer has no economy, army or science of its own
   const T=visibleTabs(), bdg=b=>b?`<span class="tbdg ${b.cls||""}">${b.n??""}</span>`:""; seeTab(UI.tab);
   $("topnav").innerHTML=T.map(([k,l,ic,full],i)=>{ const b=tabBadge(k), tip=full+(i<9?` · key ${i+1}`:"")+(b?.tip?` · ${b.tip}`:"");
@@ -4464,7 +4481,7 @@ function renderTabs(){
   el.style.gridTemplateColumns=`repeat(${S.length},1fr)`;
   el.innerHTML=S.map(([k,l,ic,full],i)=>{ const b=subBadge(UI.tab,k), tip=full+` · key ${SUBKEYS[i].toUpperCase()}`+(b?.tip?` · ${b.tip}`:"");
     return `<button data-tab="${UI.tab}" data-sub="${k}" class="${cur===k?'on':''}" title="${esc(tip)}" aria-label="${esc(tip)}">${ic}<span class="tl">${l}</span><span class="kk">${SUBKEYS[i]}</span>${bdg(b)}</button>`; }).join(""); }
-const visibleTabs=()=>TABS.filter(([k])=>(!observing()||PUBLIC_TABS.includes(k))&&(k!=="alliances"||G.teams));
+const visibleTabs=()=>TABS.filter(([k])=>(!observing()||PUBLIC_TABS.includes(k))&&(k!=="alliances"||G.teams)&&(k!=="map"||UI.mob));
 // badges: what changed since you last opened a tab ("stamps"), plus standing warnings
 var TSEEN={}, TSEEN_GID=null; // var: loadNews may touch these before this line runs
 function tabStamps(){ const c=me(), N=newsFor(G), mine=id=>id===G.player||(G.teams&&c.team!=null&&G.countries[id]?.team===c.team);
@@ -4487,9 +4504,17 @@ function badgeFor(k){
 const tabBadge=k=>badgeFor(k);
 const SUB_BADGE={science:{research:"science"},war:{wars:"war"},generals:{list:"generals"},market:{trade:"market"}}; // which badge each part of a page shows
 const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
+// phones and narrow windows: the map gets its own page (Map) in the main menu
+const MOBQ=matchMedia("(max-width:980px)");
+function setMob(){ UI.mob=MOBQ.matches; document.body.classList.toggle("mob",UI.mob); if(!UI.mob) document.body.classList.remove("onmap"); }
+setMob(); MOBQ.addEventListener?.("change",()=>{ setMob(); if(G) render(); });
+document.addEventListener("pointerdown",e=>{ if(!e.target.closest("#mapSeg,#mvBtn")){ $("mapSeg").classList.remove("open"); $("mvBtn").setAttribute("aria-expanded",false); } });
+// on the Map page: the picked state, with a button to its details
+function renderMapSel(){ const el=$("mapSel"), o=UI.sel, c=o!=null&&G?.countries[o]; el.hidden=!(UI.mob&&UI.tab==="map"&&c);
+  if(!el.hidden) el.innerHTML=`<span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}${o===G.player&&!observing()?" (you)":""}</b><button data-tab="world">Details ›</button>`; }
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
-  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,generals:pGenPage,world:pWorld,alliances:pAlliances,news:pNews}[UI.tab]; $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
+  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,generals:pGenPage,world:pWorld,alliances:pAlliances,news:pNews,map:()=>""}[UI.tab]; document.body.classList.toggle("onmap",UI.mob&&UI.tab==="map"); renderMapSel(); $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
   mainView.setGame(G); mainView.refresh(); navTrack();
 }
 
@@ -6312,6 +6337,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Map page on phones","2026-11-14 18:40",["On phones the map has its own page: Map, in the main menu after Home","Other pages on phones show without the map","Bigger zoom buttons on phones; map views in a dropdown","Tap a state on the Map page to see its name and a Details button","On phones, Auto and End turn sit top right, next to Menu and the same size"]],
 ["Taking relics back is free","2026-11-14 14:58",["Taking a relic back or swapping it no longer costs the general morale","Only a famous relic still costs 10 morale when it leaves him"]],
 ["Legendary relics at the Merchant","2026-11-14 14:47",["The Merchant can now sell Legendary relics, at a third of the rare chance","Sack 2.7%, chest 9%, coffer 21.3% Legendary a relic; fewer commons instead","A Legendary on the table glows orange as it turns over","Each offer lists its odds one kind per line: common, rare, Legendary, cursed","Rules & guide: the Merchant's odds are a table"]],
 ["One famous relic per general","2026-11-14 14:00",["A general carries at most one famous relic","Giving him a second one swaps it for the one he has"]],
@@ -6916,15 +6942,18 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li>❤️ Your <b>loyalty</b> (with Rebellions on): green loyal, amber restless, red unrest or revolt possible. Click it for the Home tab.</li>
 <li><b>▶ Auto</b> ends turns by itself; ▾ sets seconds per turn and whether to stop when you are attacked. It pauses while a window is open or you're typing.</li>
 <li><b>End turn ▶</b> runs the year.</li></ul>
-<p>Under the header is the main menu: Home, Science, Army, Market, War, World, Allies and News (see Menus).</p>
+<p>On a phone, ☰ Menu sits top left and ▶ Auto and End turn top right, all the same size.</p>
+<p>Under the header is the main menu: Home, Science, Army, Market, War, World, Allies and News, plus Map on a phone (see Menus).</p>
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
 <p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Science, Market, Generals, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
 ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; work sliders; resources: grain, money, wood and iron in store, what comes in and goes out next year, prices"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🎖️ Generals","Q Generals · W Staff · E Tavern · R Merchant · T Treasury","Generals: a card for each general (traits, relic, record), dismiss, rest, pick the defender. Staff: put generals on posts (Quartermaster, Drillmaster, Spymaster, Governor). Tavern: call candidates by tier and hire one. Merchant: buy relics. Treasury: the Forge, relics, who carries them, and who holds the famous ones"],["6","🗡️ War","Q Wars · W Neighbors","Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["7","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["8","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["9","📰 News","—","Every report and battle, newest first"]])}
 <p>Allies shows only in games with alliances; without them News takes key 8.</p>
+<p>On a phone (or a narrow window) the map gets its own page, <b>🗺️ Map</b>, right after Home, and the other pages show without the map.</p>
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
+<li>On a phone the map is its own page (🗺️ Map in the main menu). The map views are in a dropdown next to ★. Tap a state to pick it: its name shows under the map with a <b>Details ›</b> button for its view on the World page.</li>
 <li>Click a state to open its view in the side panel (tabs: Overview, Relations with every neighbor both ways, Science, and Spies with your intel reports on it; buttons to show it on the map, plan an attack or take over); click again or press Esc to unselect. Hover a state to raise it off the map, with a short tooltip: alliance, how it feels about you, its people and size.</li>
 <li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>Sabotage…</b> for any state that borders you, when you have a Spymaster: the menu turns into a list of spy operations with their chances, then (for a poisoning) which general, then whom to blame for loud sabotage (${gl("spies")}); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
 <li>▨ Striped land was conquered last year (or broke away in a revolt). Grey-brown land is unowned. Dark grey states are rebels.</li>
@@ -7211,7 +7240,9 @@ document.addEventListener("click",async ev=>{
   if(d.map){ const v=t.closest(".mapbox")?._view; if(!v||!v.g) return;
     if(d.map==="in") v.zoomBy(1.6); else if(d.map==="out") v.zoomBy(1/1.6); else if(d.map==="fit"){ v.fit(); v.schedule(); }
     else if(d.map==="me"&&G&&me().alive) v.centerOn(G.player,Math.max(v.z,v.focusZoom()));
-    else if(d.map==="states"){ UI.allyView=UI.relView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
+    else if(d.map==="views"){ const sg=$("mapSeg"), o=!sg.classList.contains("open"); sg.classList.toggle("open",o); t.setAttribute("aria-expanded",o); return; }
+    if(d.map!=="in"&&d.map!=="out"){ $("mapSeg").classList.remove("open"); $("mvBtn").setAttribute("aria-expanded",false); }
+    if(d.map==="states"){ UI.allyView=UI.relView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
     else if(d.map==="ally"){ UI.allyView=!UI.allyView; if(UI.allyView) UI.relView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
     else if(d.map==="rel"){ UI.relView=!UI.relView; if(UI.relView) UI.allyView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); v.refresh(); }
     else if(d.map==="war"){ UI.warView=!UI.warView; if(UI.warView) UI.allyView=UI.relView=UI.wxView=UI.loyView=false; renderAllyMap(); v.refresh(); }
