@@ -347,14 +347,12 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .pf.empty{border:2px dashed var(--line);background:#0f1114}
 .seat .nm{font:600 14px/1.15 var(--f-name)} .seat .nm.mut{font:italic 13px var(--f-name);color:var(--mut)}
 .seat .eff{font-size:11.5px;line-height:1.3;background:#0f1114;border-radius:5px;padding:4px 5px;width:100%;color:#8fdcae} .seat .eff.none{color:var(--mut)}
-.seat .fit{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:auto} .seat .fitl{flex-basis:100%;text-align:center}
 .seat .auto{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--mut)} .seat .auto input{margin:0}
 @media(max-width:640px){ /* phones: one post per row, portrait on the left */
   .seats{grid-template-columns:1fr}
   .seat{display:grid;grid-template-columns:78px minmax(0,1fr);column-gap:12px;row-gap:0;align-items:start;justify-items:start;text-align:left;padding:10px 12px}
   .seat>*{grid-column:2;margin-bottom:5px} .seat>:last-child{margin-bottom:0}
   .seat .pick{grid-column:1;grid-row:1/span 9;width:78px} .seat .what{min-height:0}
-  .seat .fit{justify-content:flex-start;margin-top:0} .seat .fitl{text-align:left}
 }
 .pol{display:flex;gap:4px;width:100%} .pol button{flex:1} .pol button.on{border-color:var(--acc);color:var(--acc);background:#2a2620}
 .sprow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:#191c21;border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-top:6px}
@@ -5185,14 +5183,14 @@ function spySeatOrder(c){ const o=c.spy; if(!o) return `<div class="small mut">N
 function pStaff(){
   const c=me(), open=POST_IDS.includes(UI.staffOpen)?UI.staffOpen:null, pol=c.govPol==="squeeze"?"squeeze":"ease";
   const seat=p=>{ const h=postHolder(c,p.id);
-    return `<div class="seat ${h?"on":""} ${open===p.id?"sel":""}"><div class="ph">${POST_ICON[p.id]} ${p.name}</div><div class="what">${postWhat(p.id)}</div>
+    return `<div class="seat ${h?"on":""} ${open===p.id?"sel":""}"><div class="ph">${POST_ICON[p.id]} ${p.name} ${info("Best traits",`Best traits for this post: ${POST_FIT[p.id].slice(0,p.id==="drill"?2:3).map(k=>GTR[k]?GTR[k].icon+" "+GTR[k].name:"").filter(Boolean).join(", ")}${p.id==="drill"?", or any troop trait":""}.`)}</div><div class="what">${postWhat(p.id)}</div>
       <button class="pick" data-staffopen="${p.id}" aria-label="${h?"Change":"Choose"} the ${p.name}">${h?genFrame(h,c.color):`<div class="pf empty">${SEAT_SIL}</div>`}</button>
       ${h?`<b class="nm">${esc(h.name)}</b>`:`<span class="nm mut">Nobody</span>`}
       <div class="eff ${h?"":"none"}">${h?esc(postLine(c,h,p.id)):"No effect this year"}</div>
       ${p.id==="spy"&&h?spySeatOrder(c):""}
       ${p.id==="gov"?`<div class="pol" role="group" aria-label="Governor's policy"><button class="sm${pol==="ease"?" on":""}" data-govpol="ease" title="Ease: loyalty +${R.postEase} a year per Mind">Ease</button><button class="sm${pol==="squeeze"?" on":""}" data-govpol="squeeze" title="Squeeze: taxes +${gPc(R.postSqTax)} and loyalty −${R.postSqLoy} a year per Mind. Below ${R.loyUnrest} loyalty taxes drop ${gPc(R.loyUnrestTax)}, so squeezing too hard backfires.">Squeeze</button></div>`:""}
       <label class="auto small" title="When this general retires or dies (poisoned), the best-fitting free general (not your defender) takes the post and carries his relics"><input type="checkbox" data-autopost="${p.id}"${c.autoPost?.[p.id]?" checked":""}> Auto-replace</label>
-      <div class="fit" title="Generals with these traits do best in this post"><span class="small mut fitl">Best traits for this post</span>${POST_FIT[p.id].slice(0,p.id==="drill"?2:3).map(k=>trChip(k)).join("")}${p.id==="drill"?`<span class="small mut">or any troop trait</span>`:""}</div></div>`; };
+</div>`; };
   const picker=()=>{ if(!open) return ""; const p=POSTS.find(x=>x.id===open), h=postHolder(c,open);
     const score=x=>postScore(c,x,open);
     const list=c.generals.filter(x=>x!==h).map(x=>({x,fits:postFits(x,open)})).sort((a,b)=>(b.fits-a.fits)||(score(b.x)-score(a.x)));
@@ -6361,7 +6359,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
-["Staff posts one per row on phones","2026-11-14 19:02",["On phones each staff post is one row, portrait on the left","Choosing a post scrolls down to the list of generals"]],
+["Staff posts one per row on phones","2026-11-14 19:02",["On phones each staff post is one row, portrait on the left","Choosing a post scrolls down to the list of generals","Best traits for a post moved to the ⓘ next to its name"]],
 ["Resources one per row on phones","2026-11-14 18:59",["On phones the Grain, Money, Wood and Iron boxes on Home sit one per row"]],
 ["Draws scroll into view","2026-11-14 18:50",["Pinning a notice or opening a Merchant offer scrolls down to the cards before they are dealt"]],
 ["Tavern and Merchant rows on phones","2026-11-14 18:49",["On phones the Tavern notices and Merchant offers sit one per row, left to right"]],
