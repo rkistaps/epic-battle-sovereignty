@@ -398,7 +398,7 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 |---|---|
 | States alive at year 30 | 59–60 |
 | States alive at year 90 | 44–54 (`peasantRoom` off: 38–52; Rebellions off: 35–48; old spoils rule: 3–36) |
-| States alive at year 150 | 15–26 since the Spymaster (was 21–31; `peasantRoom` off: 6–35, earlier 8–18; Rebellions off: 5–20; old spoils rule: 1–9) |
+| States alive at year 150 | 11–26 since the Spymaster (was 21–31; `peasantRoom` off: 6–35, earlier 8–18; Rebellions off: 5–20; old spoils rule: 1–9) |
 | Biggest state's share of world land at year 150 | 13–19% (`peasantRoom` off: 12–28%; Rebellions off: 14–40%; old spoils rule: 37–100%) |
 | Year 300 (seeds 11–16) | 2–5 states left, biggest 48–83% (seeds 11–13; `peasantRoom` off: 2–3 left, biggest 37–80%): games still end (Rebellions off, seeds 11–12: 2–4 left, biggest 59–64%) |
 | Battles by mode (per game) | normal ~400, raid ~120–150, massacre ~13–15, kidnap ~3 |
@@ -423,6 +423,7 @@ Numbers to compare against after any change (all-computer games, 60 states, land
 | Relics (seeds 11–16, 150 years) | 74–85 relics in the world at year 150, 25–56 carried (the rest wait in Treasuries); all 6 famous ones still held. States alive at year 150: 6–35 (avg 20, unchanged); battles per game 441–660; revolts 1–5. Year 300 (seeds 11–13): 3–4 left, biggest 30–75% |
 | Staff posts (seeds 11–16, 150 years) | computer states fill 1–2 posts each by year 90 (mostly Chief of Staff and Drillmaster, Quartermaster when food is short, Governor rarely); 207–245 generals in the world at year 90. States alive: year 90 43–50 (unchanged), year 150 12–30 (avg 20, was 17.5 before posts: field skill and morale help defenders most); battles per game 476–688 (was 540–668); revolts 1–10 per game (was 4–15). Year 300 (seeds 11–13): 2–3 left, biggest 54–80%. Capping computer states at 5 generals instead of 6 changed nothing |
 | Spymaster (seeds 11–16, 150 years; replaced the Chief of Staff, 2026-11-14) | 34–43 Spymasters posted at year 90, 14–25 at year 150 (Spymaster and Governor are now the usual posts, Drillmaster 6–12). 1,020–1,240 operations per game (~7 a year in the world): granary ~45%, research ~35%, gates ~10%, treasury ~5%, unrest and stores rare; ~63% succeed, ~29% found out. States alive: year 90 43–54 (avg 49, was 50.5 with the Chief of Staff), year 150 15–26 (avg 18, was 24); battles 505–692 (avg 570, was 543); revolts 0–4. With computer spying off (`aiSpyMin` 99): year 150 14–21 (avg 16.7), so the drop comes from losing the Chief of Staff's morale for field generals, not from spies |
+| Poison a general (seeds 11–16, 150 years; 2026-11-14) | 55–77 poisonings per game (~6% of 980–1,160 operations), mostly against the defender of the computer's attack target; gates fell to 65–115. States alive: year 90 47–51, year 150 11–23 (avg 17, was 18); battles 511–760; revolts 0–10 |
 | Starting land (any map up to 300 states) | every state within ±2% of the median |
 | Creating a 1000-state world map | about 14 s |
 

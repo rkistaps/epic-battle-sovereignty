@@ -2602,7 +2602,7 @@ function aiSpy(g,c){ c.spy=null; if(!postHolder(c,"spy")) return; const C=g.coun
   for(const j of adj){ const D=C[j], rel=relOf(g,c,j), war=atWar(g,c.id,j), foe=war||rel<=-30; if(!foe&&(rel>=20||allied(g,c.id,j))) continue;
     const want={}; if(big?.target===j&&big.soldiers>=50) want.gates=1;
     if(AREAS.some(a=>(D.lv[a]||0)>(c.lv[a]||0))) want.research=sci?0.7:0.45;
-    if(foe&&D.generals.length){ const dg=D.generals.find(x=>x.id===D.defGen); want.poison=(big?.target===j&&dg?0.55:war?0.3:0.15)*(dg?Math.min(1.3,0.5+dg.skill/100):0.6); } // their defender before an attack
+    if(foe&&D.generals.length){ const dg=D.generals.find(x=>x.id===D.defGen); want.poison=(big?.target===j&&dg?1:war?0.55:0.3)*(dg?Math.min(1.6,0.6+dg.skill/80):0.5); } // their defender before an attack, more for a good one
     want.treasury=Math.min(1,D.money*R.spyGold/Math.max(300,wages(c)))*(poor?0.9:0.55);
     if(foe){ want.granary=D.grain<foodUse(D)*1.2?0.6:0.2; want.stores=0.2; if(loyOn(g)&&loyOf(D)<70&&loyOf(D)>R.loyRevolt+2) want.unrest=0.55; }
     for(const op in want){ if(spyCan(g,c,D,op)) continue; const od=spyOdds(c,D,op), v=want[op]*od.okE*(0.85+0.3*R01(g))-(foe?0.1:R.aiSpyRisk)*od.dt; // a little chance, so the same spy doesn't always pick the same
