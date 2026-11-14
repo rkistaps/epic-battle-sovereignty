@@ -305,7 +305,7 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .deal{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,118px),1fr));gap:8px}
 @container (min-width:620px){ .deal{grid-template-columns:repeat(auto-fit,minmax(0,210px));justify-content:center;gap:12px} }
 .flip{position:relative;perspective:900px;min-width:0;display:grid}
-.flip.dealt{animation:deal .5s cubic-bezier(.2,.8,.2,1) backwards} .flip.dealt:nth-child(2){animation-delay:.1s} .flip.dealt:nth-child(3){animation-delay:.2s} .flip.dealt:nth-child(4){animation-delay:.3s}
+.deal.wait .flip{animation-play-state:paused} .flip.dealt{animation:deal .5s cubic-bezier(.2,.8,.2,1) backwards} .flip.dealt:nth-child(2){animation-delay:.1s} .flip.dealt:nth-child(3){animation-delay:.2s} .flip.dealt:nth-child(4){animation-delay:.3s}
 @keyframes deal{from{transform:translate(30px,-30px) rotate(10deg);opacity:0}}
 .flip .inner{position:relative;display:grid;transition:transform .65s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
 .flip.open .inner{transform:rotateY(180deg)}
@@ -5347,12 +5347,19 @@ function pMerchant(){ const c=me(), v=merOf(G,c), pend=v.pend, fresh=UI.merFresh
       :`<div class="tvempty">${MER_CREST.chest}<span>Nothing on the table. Open a sack, chest or coffer and ${nC} relics are laid out. The gold is spent either way.</span></div>`}</div>
   </div>`; }
 let MER_T=[];
+// a fresh draw (Tavern candidates, Merchant relics): scroll it into view first, then deal the cards
+function toDraw(id,go){ const d=$(id), s=d?.closest(".psec")||d; if(!s) return go();
+  const top=UI.mob?document.querySelector("header").getBoundingClientRect().bottom:$("side").getBoundingClientRect().top, r=s.getBoundingClientRect();
+  if(r.top>=top-2&&r.top<innerHeight*0.45) return go();
+  d.classList.add("wait");
+  let done=false; const fin=()=>{ if(done) return; done=true; removeEventListener("scrollend",fin,true); d.classList.remove("wait"); go(); };
+  addEventListener("scrollend",fin,true); setTimeout(fin,700); (UI.mob?window:$("side")).scrollBy({top:r.top-top-8,behavior:"smooth"}); }
 function merReveal(){ MER_T.forEach(clearTimeout); MER_T=[]; const fl=[...document.querySelectorAll("#merDraw .flip")]; let t=600;
   if(!fl.length||matchMedia("(prefers-reduced-motion: reduce)").matches) return merDone();
   fl.forEach((f,i)=>{ if(f.classList.contains("mr")||f.classList.contains("mx")){ MER_T.push(setTimeout(()=>{ document.querySelectorAll("#merDraw .flip")[i]?.classList.add("charge"); },t)); t+=900; }
     MER_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#merDraw .flip")[i]; x?.classList.remove("charge"); x?.classList.add("open"); },t)); t+=500; });
   MER_T.push(setTimeout(merDone,t+150)); }
-function merDone(){ MER_T.forEach(clearTimeout); MER_T=[]; UI.merFresh=null; const d=$("merDraw"); if(!d) return; d.querySelectorAll(".flip").forEach(f=>{ f.classList.remove("charge"); f.classList.add("open"); }); d.classList.add("ready"); }
+function merDone(){ MER_T.forEach(clearTimeout); MER_T=[]; UI.merFresh=null; const d=$("merDraw"); if(!d) return; d.classList.remove("wait"); d.querySelectorAll(".flip").forEach(f=>{ f.classList.remove("charge"); f.classList.add("open"); }); d.classList.add("ready"); }
 // battle report: a relic taken from the beaten general, or found in the ruins
 // the attacker's land relics in a battle report (older reports kept one key)
 const relLandName=gA=>[].concat(gA?.[11]||[]).filter(k=>k==="spear"||k==="hammer").map(k=>RELICS[k].name).join(" and ")||"relic";
@@ -5408,7 +5415,7 @@ function tavReveal(){ TAV_T.forEach(clearTimeout); TAV_T=[]; const fl=[...docume
   fl.forEach((f,i)=>{ if(f.classList.contains("leg")){ TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.add("charge"); },t)); t+=1300; }
     TAV_T.push(setTimeout(()=>{ const x=document.querySelectorAll("#tavDraw .flip")[i]; x?.classList.remove("charge"); x?.classList.add("open"); },t)); t+=600; });
   TAV_T.push(setTimeout(tavDone,t+150)); }
-function tavDone(){ TAV_T.forEach(clearTimeout); TAV_T=[]; UI.tavFresh=null; const d=$("tavDraw"); if(!d) return;
+function tavDone(){ TAV_T.forEach(clearTimeout); TAV_T=[]; UI.tavFresh=null; const d=$("tavDraw"); if(!d) return; d.classList.remove("wait");
   d.querySelectorAll(".flip").forEach(f=>{ f.classList.remove("charge"); f.classList.add("open"); }); d.classList.add("ready"); }
 // War tab: the wars you are in, and how many are going on among the states you know
 function warsPanel(c){ const mine=warsOf(G,c.id), known=(G.wars||[]).filter(w=>w.a!==c.id&&w.b!==c.id&&isKnown(w.a)&&isKnown(w.b)).length;
@@ -6343,6 +6350,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Draws scroll into view","2026-11-14 18:50",["Pinning a notice or opening a Merchant offer scrolls down to the cards before they are dealt"]],
 ["Tavern and Merchant rows on phones","2026-11-14 18:49",["On phones the Tavern notices and Merchant offers sit one per row, left to right"]],
 ["Staff hints labeled","2026-11-14 18:44",["Each staff post now says \"Best traits for this post\" above its trait hints"]],
 ["Map page on phones","2026-11-14 18:40",["On phones the map has its own page: Map, in the main menu after Home","Other pages on phones show without the map","Bigger zoom buttons on phones; map views in a dropdown","Tap a state on the Map page to see its name and a Details button","On phones, Auto and End turn sit top right, next to Menu and the same size"]],
@@ -7298,7 +7306,7 @@ document.addEventListener("click",async ev=>{
   if(d.defgen){ cmd("defGen",+d.defgen); render(); return; }
   if(d.dismiss){ cmd("dismissGeneral",+d.dismiss); render(); return; }
   if(d.tavcall){ if(!cmd("tavCall",d.tavcall)){ flash("Not enough gold, or no calls left for that tier this year."); render(); return; }
-    const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; save(); render(); tavReveal(); return; }
+    const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; save(); render(); toDraw("tavDraw",()=>{ if(UI.tavFresh) tavReveal(); }); return; }
   if(d.staffopen!=null){ UI.staffOpen=d.staffopen&&UI.staffOpen!==d.staffopen?d.staffopen:null; render(); return; }
   if(d.put){ cmd("post",+d.put,d.post); UI.staffOpen=null; save(); render(); return; }
   if(d.spyoff){ cmd("spy",null); save(); render(); return; }
@@ -7308,7 +7316,7 @@ document.addEventListener("click",async ev=>{
   if(d.relfor!=null){ UI.relFor=null; render(); return; }
   if(d.relsel){ UI.relSel=UI.relSel===+d.relsel?null:+d.relsel; UI.relFor=null; render(); return; }
   if(d.relgive){ const ok=cmd("relicGive",+d.relgive,+d.rel); if(!ok) flash("He can't take that relic now."); const pk=relPickOpen(); UI.relSel=null; UI.relFor=null; save(); render(); if(pk) relPickModal(+d.relgive); return; }
-  if(d.meropen){ if(!cmd("merOpen",d.meropen)){ flash("Not enough gold, or relics are still on the table."); render(); return; } const v=merOf(G,me()); UI.merFresh=G.turn+":"+(v.n[d.meropen]||0); save(); render(); merReveal(); return; }
+  if(d.meropen){ if(!cmd("merOpen",d.meropen)){ flash("Not enough gold, or relics are still on the table."); render(); return; } const v=merOf(G,me()); UI.merFresh=G.turn+":"+(v.n[d.meropen]||0); save(); render(); toDraw("merDraw",()=>{ if(UI.merFresh) merReveal(); }); return; }
   if(d.mertake!=null){ MER_T.forEach(clearTimeout); const r=cmd("merTake",+d.mertake); UI.merFresh=null; if(r) flash(`${relName(r)} is in your Treasury.`); save(); render(); return; }
   if(d.merskip){ merDone(); return; }
   if(d.meraway){ MER_T.forEach(clearTimeout); UI.merFresh=null; cmd("merAway"); save(); render(); return; }
