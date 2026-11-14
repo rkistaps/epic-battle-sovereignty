@@ -245,33 +245,80 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .mcard.r{border-top-color:var(--rc-r)} .mcard.l{border-top-color:var(--rc-l)} .mcard.x{border-top-color:var(--rc-x)} .mcard b{font:600 13.5px/1.15 var(--f-name)}
 .mcard .eff{font-size:12px;color:#8fdcae;line-height:1.3} .mcard.x .eff{color:#f0a094} .mcard .mroll{font-size:11px;color:var(--mut);display:flex;gap:5px;align-items:center} .mcard button{margin-top:auto}
 .flip.mr.charge .back{box-shadow:0 0 24px 3px var(--rc-r)} .flip.mr.ml.charge .back{box-shadow:0 0 30px 6px var(--rc-l)} .flip.open.mr.ml .front{box-shadow:0 0 16px -1px var(--rc-l)} .flip.mx.charge .back{box-shadow:0 0 24px 3px var(--rc-x)} .flip.open.mr .front{box-shadow:0 0 14px -2px var(--rc-r)}
-/* the state view: colour header, tabs, tiles; its neighbor relations */
-.sv{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--sc);border-radius:10px;overflow:hidden;container-type:inline-size;margin-bottom:12px}
-.svh{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:start;padding:12px;background:linear-gradient(120deg,color-mix(in srgb,var(--sc) 22%,transparent),transparent 70%)}
-.svflag{width:38px;height:46px;border-radius:4px 4px 12px 12px;background:#0f1114;border:1px solid var(--line);display:grid;place-items:center} .svflag i{width:24px;height:30px;border-radius:3px 3px 10px 10px;display:block}
-.svid{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px} .svnm{font:600 19px/1.15 var(--f-name)}
-.svchips{display:flex;flex-wrap:wrap;gap:4px} .svchips span{font-size:11.5px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:#1b1e24;color:var(--mut)}
-.svrel{display:flex;flex-direction:column;align-items:center;background:#0f1114aa;border:1px solid var(--line);border-radius:8px;padding:5px 9px;min-width:74px;cursor:help} .svrel b{font-size:20px;line-height:1.1}
-.svtabs{display:flex;gap:2px;align-items:center;padding:0 12px;border-bottom:1px solid var(--line)} .svtb{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:7px 10px;color:var(--mut)} .svtb.on{color:var(--txt);border-bottom-color:var(--acc)}
-.svbd{padding:12px;display:flex;flex-direction:column;gap:10px} .svacts{padding:0 12px 12px}
+/* the state window (a state opened from the map or any list): outline, identity, feelings; stat strip; tabs; actions */
+.modal.stwin{max-width:1060px;padding:0;position:relative;overflow:hidden;height:min(90vh,880px)} /* fixed height: switching tabs doesn't resize it */
+.modal.stwin::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--sc,var(--acc));z-index:1}
+.stw{flex:none;background:linear-gradient(100deg,color-mix(in srgb,var(--sc) 20%,transparent),transparent 60%)}
+.stwtop{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:16px;align-items:center;padding:18px 18px 12px}
+.stwshape{width:100px;height:100px;border-radius:10px;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--sc) 12%,#101215),#101215 75%);border:1px solid var(--line);position:relative;overflow:hidden}
+.stwshape img{width:100%;height:100%;display:block}
+.stwid{min-width:0;display:flex;flex-direction:column;gap:5px} .stwcrumb{font-size:12px}
+.stwnm{font:600 26px/1.15 var(--f-name);margin:0;text-wrap:balance} .stwnm small{font:13px system-ui,sans-serif;color:var(--mut);font-weight:400}
+.stwsub{display:flex;flex-wrap:wrap;gap:6px;align-items:center} .stwal{font-weight:600;text-decoration:underline dotted;text-underline-offset:3px}
+.stwtag{border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:999px;padding:1px 9px;font-size:12.5px;color:#c9ced8}
+.stwpills{display:flex;flex-wrap:wrap;gap:6px} .stwpill{font-size:12px;border-radius:5px;padding:2px 8px;background:var(--panel2);color:var(--mut);display:inline-flex;gap:5px;align-items:center}
+.stwpill i{width:7px;height:7px;border-radius:50%;background:currentColor} .stwpill.p-good{color:var(--good)} .stwpill.p-bad{color:var(--bad)} .stwpill.p-info{color:var(--info)} .stwpill.p-acc{color:var(--acc)}
+.stwfeel{min-width:140px;text-align:center;background:rgba(10,11,14,.55);border:1px solid var(--line);border-radius:10px;padding:8px 14px;display:flex;flex-direction:column;cursor:help}
+.stwfeel span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em} .stwfeel b{font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums} .stwfeel em{font-style:normal;font-size:13px}
+.stwx{align-self:start;display:flex;flex-direction:column;gap:6px} .stwx button{width:34px;height:34px;padding:0;display:grid;place-items:center}
+.stwstrip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#191c21}
+.stwst{padding:8px 14px;border-right:1px solid var(--line);min-width:0} .stwst:last-child{border-right:0}
+.stwst>span{display:block;font-size:10.5px;color:var(--mut);letter-spacing:.08em;text-transform:uppercase} .stwst b{font-size:17px;font-variant-numeric:tabular-nums}
+.stwst em{display:block;font-style:normal;font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stwtabs{display:flex;gap:2px;align-items:center;padding:0 12px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.stwtb{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:10px 12px 8px;color:var(--mut);white-space:nowrap;font-size:14px} .stwtb:hover{color:var(--txt)} .stwtb.on{color:var(--txt);border-bottom-color:var(--acc)}
+.stwtb .n{font-size:11px;background:var(--panel2);border-radius:8px;padding:0 6px;margin-left:5px;color:var(--mut)}
+.modal.stwin>.stwbd{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.stwg2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px}
+.stwcard{background:#1a1d22;border:1px solid var(--line);border-radius:9px;padding:12px 14px;min-width:0} .stwcard.sp{grid-column:1/-1}
+.stwcard h4{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:8px}
+.stwcard h4 .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400}
+.stwmap{display:block;width:100%;height:auto;border-radius:6px;aspect-ratio:16/9}
+.stwleg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--mut);margin-top:8px} .stwleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.stwcmp{display:grid;grid-template-columns:84px minmax(0,1fr) 64px;gap:8px 10px;align-items:center;font-size:12.5px} .stwcmp .k{color:var(--mut)}
+.stwcmp .bar{position:relative;height:16px} .stwcmp .bar i{position:absolute;left:0;top:0;height:7px;border-radius:2px} .stwcmp .bar i.y{top:9px;background:#8a8f98}
+.stwcmp .v{text-align:right;font-variant-numeric:tabular-nums}
+.stwkey{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:var(--mut);margin-top:10px} .stwkey i{display:inline-block;width:12px;height:6px;border-radius:2px;margin-right:4px;vertical-align:1px} .stwkey i.ln{width:3px;height:10px;vertical-align:-1px}
+.stwkv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px} .stwkv>span{color:var(--mut)} .stwkv>b{font-variant-numeric:tabular-nums;font-weight:600}
+.stwfacts{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--mut)} .stwfacts b{color:var(--txt);font-weight:500}
+.stwseg{display:inline-flex;background:var(--panel2);border-radius:6px;padding:2px} .stwseg button{background:none;border:0;padding:2px 9px;border-radius:4px;font-size:12px;color:var(--mut)} .stwseg button.on{background:#323743;color:var(--txt)}
+.stwchart{width:100%;height:auto;display:block}
+.stwnote{font-size:12.5px;color:var(--mut);padding:10px 12px;border:1px dashed var(--line);border-radius:8px}
+.stwlst{display:flex;flex-direction:column} .stwlst>div{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid #2b2f37;font-size:13px;flex-wrap:wrap} .stwlst>div:first-child{border-top:0}
+.stwbig{display:flex;gap:14px;align-items:center;margin-bottom:8px} .stwbig>b{font-size:34px;line-height:1} .stwbig>span{display:flex;flex-direction:column}
+.stwfac{display:grid;grid-template-columns:minmax(0,1fr) 36px 60px;gap:6px 10px;align-items:center;font-size:13px;margin-top:10px} .stwfac b{text-align:right;font-variant-numeric:tabular-nums}
+.stwgen{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid #2b2f37} .stwgen:first-child{border-top:0}
+.stwav{width:36px;height:36px;border-radius:50%;background:#252931;border:1px solid var(--line);display:grid;place-items:center;font:600 14px var(--f-name);color:var(--mut)}
+.stwfresh{font-size:11px;border-radius:4px;padding:1px 6px;background:#2f3a2a;color:#a9d79a} .stwfresh.old{background:#3d3524;color:#e5c57f} .stwfresh.none{background:var(--panel2);color:var(--mut)}
+.stwrec{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px} .stwrec span{display:block;font-size:12px;color:var(--mut)} .stwrec b{font-size:20px;font-variant-numeric:tabular-nums}
+.stwstack{display:flex;height:12px;border-radius:3px;overflow:hidden;margin:8px 0 0;background:#2b2f37} .stwstack i{display:block}
+.stwres{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px} .stwres span{display:block;font-size:12px;color:var(--mut)} .stwres b{font-variant-numeric:tabular-nums}
+.stwlv{display:grid;grid-template-columns:22px 130px minmax(0,1fr) 30px;gap:8px;align-items:center;font-size:13px;padding:4px 0} .stwlv b{text-align:right}
+.stwlv .tr{position:relative;height:10px;background:#2b2f37;border-radius:3px} .stwlv .tr i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--sc)}
+.stwlv .tr u,.stwlv .tr s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#c9ced8} .stwlv .tr s{background:var(--acc)}
+.stwfl{display:flex;flex-wrap:wrap;gap:6px;align-items:center} .stwfl button.on{border-color:var(--acc);color:var(--acc)}
+.stwyr{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:10px 0 2px;display:flex;align-items:center;gap:8px} .stwyr::after{content:"";flex:1;height:1px;background:var(--line)}
+.stwbd ul.log{margin:2px 0 4px;padding-left:18px}
+.modal.stwin>.stwft{margin:0;padding:12px 18px;border-top:1px solid var(--line);background:#191c21;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.stwft .grow,.stwtabs .grow,.stwfl .grow{flex:1}
+.stwft button:disabled{opacity:.45}
+.stwcard>.svrb{display:block;width:100%;height:9px}
+@media(max-width:860px){ .stwstrip{grid-template-columns:repeat(3,minmax(0,1fr))} .stwst:nth-child(3){border-right:0} .stwst:nth-child(-n+3){border-bottom:1px solid var(--line)}
+  .stwg2{grid-template-columns:minmax(0,1fr)} .stwtop{grid-template-columns:auto minmax(0,1fr) auto;gap:12px} .stwfeel{grid-column:1/-1;grid-row:2;flex-direction:row;gap:12px;align-items:center;justify-content:center;min-width:0} .stwfeel b{font-size:22px}
+  .stwrec{grid-template-columns:repeat(3,minmax(0,1fr))} .stwlv{grid-template-columns:22px 100px minmax(0,1fr) 28px} .stwkeys{display:none} }
+@media(max-width:560px){ #ov:has(.stwin){padding:0} .modal.stwin{border-radius:0;height:100%;max-height:none;border:0} .stwshape{width:68px;height:68px} .stwnm{font-size:20px}
+  .stwres{grid-template-columns:repeat(2,minmax(0,1fr))} .stwcmp{grid-template-columns:70px minmax(0,1fr) 56px} .stwlv{grid-template-columns:20px 84px minmax(0,1fr) 26px} }
 .svtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .svt{background:#191c21;border:1px solid var(--line);border-radius:8px;padding:7px 9px;display:flex;flex-direction:column;gap:1px;min-width:0} .svt.wide{grid-column:1/-1}
 .svt>span{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)} .svt b{font-size:17px;font-variant-numeric:tabular-nums} .svt b small{font-size:12px;font-weight:500}
-.svt em{font-style:normal;font-size:11.5px;color:var(--mut);display:flex;align-items:center;gap:6px;flex-wrap:wrap} .svspk{width:70px;height:18px}
-.svlb{display:block;height:7px;background:#0f1114;border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:3px} .svlb i{display:block;height:100%}
-.svfacts{display:flex;flex-wrap:wrap;gap:6px} .svfacts span{font-size:12px;background:#1b1e24;border:1px solid var(--line);border-radius:7px;padding:3px 8px}
+.svt em{font-style:normal;font-size:11.5px;color:var(--mut);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .svrb{position:relative;display:inline-block;width:56px;height:7px;background:#2a2e36;border-radius:4px;vertical-align:middle;flex:none} .svrb i{position:absolute;top:0;bottom:0;border-radius:4px} .svrb i.z{left:50%;width:1px;background:#6b717c}
-.svyou{background:#191c21;border:1px solid var(--line);border-radius:8px;padding:9px 10px;display:flex;flex-direction:column;gap:4px} .svbig{font-size:22px;font-weight:700} .svbig span{font-size:13px;font-weight:500}
-.svyou .svrb{width:100%;height:9px} .svparts{display:flex;gap:6px;flex-wrap:wrap} .svparts span{font-size:12px;border:1px solid var(--line);border-radius:7px;padding:1px 7px;background:#1b1e24}
 .svrt{display:flex;flex-direction:column;gap:3px}
 .svrh,.svrr{display:grid;grid-template-columns:minmax(0,1fr) 96px 96px;gap:8px;align-items:center;font-size:12.5px}
 .svrh{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px} .svrr{background:#191c21;border:1px solid var(--line);border-radius:7px;padding:4px 7px} .svrr.click{cursor:pointer} .svrr.click:hover{border-color:var(--acc)}
 .svrr .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .svrr .cell{display:flex;gap:5px;align-items:center;justify-content:flex-end} .svrr .cell b{width:26px;text-align:right;font-size:12px}
 .svtag{font-size:10.5px;color:var(--mut);border:1px solid var(--line);border-radius:8px;padding:0 5px} .svtag.war{color:var(--bad);border-color:#6b3a33}
-.svlvs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
-.svlv{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:2px 6px;align-items:center;background:#191c21;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-size:12.5px}
-.svlv .ln{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .svlv .lb{grid-column:1/-1;height:4px;background:#0f1114;border-radius:2px;overflow:hidden} .svlv .lb i{display:block;height:100%;background:var(--acc)}
-@container (max-width:380px){ .svh{grid-template-columns:auto minmax(0,1fr) auto} .svh .svrel{grid-column:1/-1;flex-direction:row;gap:8px;justify-content:flex-start} .svrh,.svrr{grid-template-columns:minmax(0,1fr) 78px 78px} .svrr .svrb{width:40px} }
+@media(max-width:560px){ .svrh,.svrr{grid-template-columns:minmax(0,1fr) 78px 78px} .svrr .svrb{width:40px} }
 .bgen .rlx{margin-top:3px;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:5px}
 /* Generals → Tavern: a Notice board box of tier cards and a Candidates box where candidates are dealt (in the tab, no window) */
 .tavern{container-type:inline-size;display:flex;flex-direction:column;gap:12px}
@@ -757,7 +804,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
 <nav id="topnav" aria-label="Main menu"></nav>
 <main>
   <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><button class="sm mvbtn" data-map="views" id="mvBtn" aria-haspopup="true" aria-expanded="false" title="Map view">States ▾</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="loy" id="loyBtn" title="Color states by loyalty: red = revolt possible, green = loyal">Loyalty</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="mapSel" hidden></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
-    <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to inspect it, click it again (or press Esc) to unselect. Right-click (or press and hold) a state for actions. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
+    <div class="row small mut" style="margin-top:8px">Scroll or pinch to zoom, drag to pan. Click a state to open its window. Right-click (or press and hold) a state for actions. ★ = you. You can only attack states that touch yours. <span style="white-space:nowrap">▨ Striped = land conquered last year.</span> <span style="white-space:nowrap"><span class="sw" style="background:rgb(128,118,100)"></span>Unowned land: neighbors settle it.</span></div>
   </section>
   <div id="split" title="Drag to resize panels (double-click to reset)"></div>
   <section class="card" id="side">
@@ -1079,6 +1126,7 @@ function birthsOf(c,peasants=c.peasants,pop=roomPop(c)){ return Math.round((peas
 function foodPerFarmer(c){ return R.foodPerFarmer*(1+R.agriPerLevel*lvl(c,"agri"))*(1+shoreBonus(c))*M(c,"food")*wonderMul(c,"agri"); }
 function foodProduction(c){ return Math.round(workers(c).farm*foodPerFarmer(c)*(1+govRes(c,"grain"))); } // a Governor relic
 function popOf(c){ return c.peasants+c.sci+c.soldiers; }
+const HIST_YEARS=100; // years of population and army history each state keeps (state window chart)
 function roomPop(c){ return c.peasants+c.sci+(R.peasantRoom?0:c.soldiers); } // the people that fill capacity (setting peasantRoom: soldiers don't)
 function foodUse(c){ let f=0; const tr=c.troops||{spear:c.soldiers}; for(const k in tr) f+=tr[k]*(TROOP[k]?.upFood??1); return Math.round(c.peasants+c.sci+f*(1-(postNow(c,"qm").food||0))); } // a Quartermaster cuts what the army eats
 // peasants at work: woodcutters and miners by the work split; everyone else farms
@@ -3295,7 +3343,8 @@ function endTurn(g){
   relYear(g); // peace, forgiveness and size threat
   warYear(g); // wars end and start
   allianceYear(g); // alliance relations, alliance wars
-  C.forEach(c=>{ c.lostRecent.shift(); c.lostRecent.push(c.lostThis); c.history.push(c.alive?c.land:0); });
+  C.forEach(c=>{ c.lostRecent.shift(); c.lostRecent.push(c.lostThis); c.history.push(c.alive?c.land:0);
+    if(c.alive){ const hp=c.hp||(c.hp=[]), hs=c.hs||(c.hs=[]); hp.push(popOf(c)); hs.push(c.soldiers); if(hp.length>HIST_YEARS){ hp.shift(); hs.shift(); } } }); // people and soldiers, last years only (state window chart)
   step(0.98,0,"Chroniclers write it down");
   g.allBattles.push({turn:g.turn,list:g.battles.map(({d,...b})=>b)}); // full reports live in the news archive
   if(g.allBattles.length>40) g.allBattles.shift();
@@ -4326,7 +4375,7 @@ const mainView=new MapView($("map"),{
   sel:()=>UI.sel, player:()=>G?G.player:-1, known:()=>UI.known, land:true, star:true, ally:()=>!!UI.allyView, rel:()=>!!UI.relView, wx:()=>!!UI.wxView, war:()=>!!UI.warView, loy:()=>!!UI.loyView,
   height:()=>Math.max(320, window.innerHeight-($("mapbox").getBoundingClientRect().top+window.scrollY+$("mapwrap").scrollTop)-72), // fill the window below the map's top edge (ignores scrolling)
   focus:g=>g.fog?g.player:null,
-  onPick:o=>{ if(!G||UI.busy) return; UI.sel=(o>=0&&isKnown(o)&&o!==UI.sel)?o:null; if(UI.tab!=="map"&&(UI.tab!=="war"||subOf("war")!=="nbrs")) UI.tab="world"; render(); },
+  onPick:o=>{ if(!G||UI.busy) return; if(o>=0&&isKnown(o)) openState(o); else if(UI.sel!=null){ UI.sel=null; render(); } },
   lift:o=>!!G&&isKnown(o), onMenu:(o,x,y)=>openCtx(o,x,y),
   onHover:(o,ev)=>{ const tip=$("tip"); if(!G||o===-9||!$("ctxMenu").hidden){ tip.style.display="none"; return; } const c=G.countries[o];
     const w=mainView.hoverW, wo=w?G.cells[w.cell]:-1;
@@ -4398,7 +4447,7 @@ function ctxSpyDo(a,o){ const pl=me(), D=G.countries[o];
   return false; }
 function closeCtx(){ const m=$("ctxMenu"); if(!m||m.hidden) return; m.hidden=true; mainView.menuId=null; mainView.schedule(); }
 function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
-  if(a==="pick"){ UI.sel=o; if(UI.tab!=="war"||subOf("war")!=="nbrs"||o===G.player) UI.tab="world"; render(); }
+  if(a==="pick") openState(o);
   else if(a.startsWith("tab:")){ const [,t,sub]=a.split(":"); goTab(t,sub); render(); }
   else if(a==="attack"){ UI.attackTarget=o; UI.sel=o; UI.atkMix=null; goTab("war","nbrs"); render(); $("atkSum")?.closest(".gen")?.scrollIntoView({block:"nearest"}); }
   else if(a==="calloff"){ cmd("callOff",o); render(); }
@@ -4406,7 +4455,7 @@ function ctxDo(a,o){ closeCtx(); const c=G.countries[o]; if(!c) return;
   else if(a==="alliance") allianceModal(c.team);
   else if(a==="news"){ UI.news={f:"all",q:c.name,page:0,al:"all"}; UI.tab="news"; render(); $("panel").scrollTop=0; }
   else if(a==="center"){ if(UI.mob&&UI.tab!=="map"){ UI.tab="map"; render(); } mainView.centerOn(o,Math.max(mainView.z,mainView.focusZoom())); }
-  else if(a==="take"){ UI.sel=o; UI.takeConfirm=o; UI.tab="world"; render(); } }
+  else if(a==="take"){ openState(o); UI.takeConfirm=o; stateModal(); } }
 $("ctxMenu").addEventListener("click",e=>{ e.stopPropagation(); const b=e.target.closest("button[data-ctx]"); if(!b||b.disabled||UI.busy) return; const a=b.dataset.ctx, o=+$("ctxMenu").dataset.id; if(a.startsWith("spy")&&ctxSpyDo(a,o)) return; ctxDo(a,o); });
 document.addEventListener("pointerdown",e=>{ if(!e.target.closest?.("#ctxMenu")) closeCtx(); },true);
 document.addEventListener("keydown",e=>{ const m=$("ctxMenu"); if(m.hidden) return;
@@ -4523,10 +4572,10 @@ setMob(); MOBQ.addEventListener?.("change",()=>{ setMob(); if(G) render(); });
 document.addEventListener("pointerdown",e=>{ if(!e.target.closest("#mapSeg,#mvBtn")){ $("mapSeg").classList.remove("open"); $("mvBtn").setAttribute("aria-expanded",false); } });
 // on the Map page: the picked state, with a button to its details
 function renderMapSel(){ const el=$("mapSel"), o=UI.sel, c=o!=null&&G?.countries[o]; el.hidden=!(UI.mob&&UI.tab==="map"&&c);
-  if(!el.hidden) el.innerHTML=`<span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}${o===G.player&&!observing()?" (you)":""}</b><button data-tab="world">Details ›</button>`; }
+  if(!el.hidden) el.innerHTML=`<span class="sw" style="background:${c.color}"></span><b>${esc(c.name)}${o===G.player&&!observing()?" (you)":""}</b><button data-pick="${o}">Details ›</button>`; }
 function render(){
   closeCtx(); UI.known=knownSet(G); if(UI.sel!=null&&!isKnown(UI.sel)) UI.sel=null;
-  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,generals:pGenPage,world:pWorld,alliances:pAlliances,news:pNews,map:()=>""}[UI.tab]; document.body.classList.toggle("onmap",UI.mob&&UI.tab==="map"); renderMapSel(); $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel"));
+  renderHeader(); renderTabs(); const f={economy:pEconomy,market:pMarket,barracks:pBarracks,science:pScience,war:pWar,generals:pGenPage,world:pWorld,alliances:pAlliances,news:pNews,map:()=>""}[UI.tab]; document.body.classList.toggle("onmap",UI.mob&&UI.tab==="map"); renderMapSel(); $("panel").innerHTML=watching()&&!PUBLIC_TABS.includes(UI.tab)?watchNote():f(subOf(UI.tab)); boxSections($("panel")); if(svOpen()) stateModal();
   mainView.setGame(G); mainView.refresh(); navTrack();
 }
 
@@ -5568,14 +5617,12 @@ function pWorld(sub){
   const th=(k,label,title="")=>`<th class="r"${title?` title="${title}"`:""}><button class="thsort${S.k===k?" on":""}" data-wsort="${k}">${label}<span class="sarr">${S.k===k?(S.dir<0?"▾":"▴"):""}</span></button></th>`;
   const hidden=G.countries.length-all.length, LIMIT=150;
   const C=all.slice(0,LIMIT); for(const id of [G.player,UI.sel]) if(id!=null&&isKnown(id)&&!C.some(c=>c.id===id)) C.push(G.countries[id]);
-  const sel=UI.sel!=null?G.countries[UI.sel]:null;
   const recent=G.allBattles.slice(-6).reverse().map(b=>({...b,list:b.list.filter(seenBattle).map(newsRefFor(G.allBattles.at(-6)?.turn??0))}));
-  if(sub==="recent") return `${sel?inspect(sel):""}
+  if(sub==="recent") return `
   <h3>Recent wars ${gl("wars")}</h3>
   ${recent.length?recent.map(b=>`<div class="small"><b>Year ${b.turn}</b>${b.list.length?"":" <span class='mut'>peace</span>"}<ul class="log" style="margin:2px 0 6px;padding-left:18px">${b.list.map(battleLine).join("")}</ul></div>`).join(""):`<div class="mut small">No turns played yet.</div>`}`;
-  if(sub==="wonders") return `${sel?inspect(sel):""}${wonderList()}`;
-  return `${sel?inspect(sel):""}
-  <h3>Rankings ${gl("power")}</h3>
+  if(sub==="wonders") return wonderList();
+  return `<h3>Rankings ${gl("power")}</h3>
   ${hidden?`<div class="small mut">🌫 ${fmt(hidden)} other states are hidden by fog of war.</div>`:""}
   <div class="small mut">${all.length>LIMIT?`Showing the top ${LIMIT} of ${fmt(all.length)} states. `:""}Alive ${fmt(nAlive)} / ${fmt(G.countries.length)} states.</div>
   <div class="row small"><label title="The # column shows each state's place by land, whatever you sort by"><input type="checkbox" id="wLandRank" ${UI.wLandRank?"checked":""}> # by land</label>${G.teams?`<label title="Color each state by its alliance"><input type="checkbox" id="wAllyCol" ${UI.wAllyCol?"checked":""}> Alliance colors</label>`:""}</div>
@@ -5643,13 +5690,10 @@ function wonderList(){
 }
 // total research levels, with each area in the tooltip
 function researchCell(c){ const tot=AREAS.reduce((s,a)=>s+c.lv[a],0); return `<span title="${AREAS.map(a=>`${AREA_NAMES[a]} ${c.lv[a]}`).join(" · ")}">${tot}</span>`; }
-// the state view (side panel, a state clicked on the map): header with its colour, alliance and how it feels about you; tabs Overview,
-// Relations (its neighbors, moved here from the map tooltip) and Science; actions at the bottom
+// state window helpers: relation bars, neighbors both ways, spy reports
 const SV_IC={sci:"🔬",agri:"🌾",fin:"💰",dens:"🏘️",grow:"👶",atk:"⚔️",def:"🛡️",wood:"🌲",iron:"⛏️",explore:"🧭"};
 const svBar=v=>`<span class="svrb"><i class="z"></i><i style="width:${Math.min(100,Math.abs(v))/2}%;${v<0?"right:50%":"left:50%"};background:${relColor(v)}"></i></span>`;
 const svNum=v=>{ const r=Math.round(v); return `<b style="color:${relColor(r)}">${r>0?"+":""}${r}</b>`; };
-function svSpark(h){ const a=(h||[]).slice(-40); if(a.length<2) return ""; const W=70,H=18,mx=Math.max(...a),mn=Math.min(...a);
-  return `<svg class="svspk" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${a.map((v,i)=>`${(i/(a.length-1)*W).toFixed(1)},${(H-2-(v-mn)/(mx-mn||1)*(H-4)).toFixed(1)}`).join(" ")}" fill="none" stroke="var(--acc)" stroke-width="1.6" stroke-linejoin="round"/></svg>`; }
 function svNeighbors(id){ const c=G.countries[id], nb=[...adjacency(G)[id]].filter(j=>G.countries[j].alive); if(!nb.length) return `<div class="small mut">No neighbors.</div>`;
   const rows=nb.map(j=>({j,out:relOf(G,c,j),inn:relOf(G,G.countries[j],id)})).sort((a,b)=>Math.min(a.out,a.inn)-Math.min(b.out,b.inn));
   const nm=j=>`<span class="sw" style="background:${G.countries[j].color}"></span>${j===G.player?"<b>You</b>":isKnown(j)?esc(G.countries[j].name):'<span class="mut">Unknown state</span>'}${allied(G,id,j)?' <span class="svtag">ally</span>':""}${atWar(G,id,j)?' <span class="svtag war">war</span>':""}`;
@@ -5663,37 +5707,179 @@ function svSpies(c){ const pl=me(), I=pl.intel?.[c.id]||{}, adj=adjacency(G)[pl.
   const court=ct?`<div class="svt wide"><span>🕸️ Court ${yr(ct.t)}</span><b>${ct.sp?`Spymaster ${esc(ct.sp.name)}, skill ${ct.sp.skill}`:"No Spymaster"}</b>${ct.sp?.traits?.length?`<em>${ct.sp.traits.map(k=>GTR[k]?`${GTR[k].icon} ${GTR[k].name}`:"").join(" · ")}</em>`:""}</div>`:"";
   const gens=gs?`<div class="svt wide"><span>📜 Generals ${yr(gs.t)}</span>${gs.list.length?gs.list.map(x=>`<em><b>${esc(x.name)}</b> · Mind ${x.mind} · skill ${x.skill} · morale ${x.morale} · age ${x.age}${x.post?` · ${POSTS.find(p=>p.id===x.post)?.name||""}`:x.def?" · defender":""}${x.traits.length?" · "+x.traits.map(k=>GTR[k]?`${GTR[k].icon} ${GTR[k].name}`:"").join(", "):""}${(x.rels||(x.rel?[x.rel]:[])).length?` · 🏺 ${(x.rels||[x.rel]).map(k=>esc(RELICS[k]?.name||"")).join(", ")}`:""}</em>`).join(""):"<em>No generals</em>"}</div>`:"";
   return head+(army||court||gens?`<div class="svtiles">${army}${court}${gens}</div>`:`<div class="small mut" style="margin-top:8px">No spy reports yet. Intel operations (scout their army, read their generals, map their court) fill this tab.</div>`); }
-function inspect(c){
-  const pl=me(), self=c.id===G.player, adj=!observing()&&neighbors(G,pl.id).includes(c.id), spyOn=!self&&!observing()&&pl.alive, tab=["ov","rel","sci",...(spyOn?["spy"]:[])].includes(UI.svTab)?UI.svTab:"ov";
-  const showRel=!self&&!observing(), rv=showRel?Math.round(relOf(G,c,G.player)):0;
-  const head=`<div class="svh"><div class="svflag"><i style="background:${c.color}"></i></div><div class="svid"><b class="svnm">${esc(c.name)}${self?' <span class="small mut">(you)</span>':""}</b>
-     ${G.teams&&c.team!=null?`<button class="mlink small" data-alliance="${c.team}" title="Open the alliance">${allyPrefix(c)}${esc(G.teams[c.team].name)}</button>`:""}
-     ${traitName(c)?`<div class="svchips">${traitName(c).split(" · ").map(x=>`<span>${esc(x)}</span>`).join("")}</div>`:""}</div>
-     ${showRel&&c.alive?`<div class="svrel" title="${esc(relTip(G,c,G.player))}"><span class="small mut">Feels about you</span><b style="color:${relColor(rv)}">${rv>0?"+":""}${rv}</b><span class="small">${relLabel(rv)}</span></div>`:"<span></span>"}
-     <button class="sm" data-pick="-1" aria-label="Close">✕</button></div>`;
-  if(!c.alive) return `<div class="sv" style="--sc:${c.color}">${head}<div class="svbd"><div class="small bad">Destroyed in year ${c.diedTurn}${c.killer!=null?` by ${esc(G.countries[c.killer].name)}`:""}.</div></div></div>`;
-  const alive=G.countries.filter(x=>x.alive), rank=1+alive.filter(x=>x.land>c.land).length, loy=loyOf(c), wars=warsOf(G,c.id), won=wondersOf(G,c.id), fam=relAll(c).filter(r=>RELICS[r.k]?.k==="u");
-  const tb=(id,l)=>`<button class="svtb${tab===id?" on":""}" data-svtab="${id}">${l}</button>`;
-  const tot=AREAS.reduce((s,a)=>s+(c.lv[a]||0),0), avg=Math.round(alive.reduce((s,x)=>s+AREAS.reduce((t,a)=>t+(x.lv[a]||0),0),0)/Math.max(1,alive.length)), mxL=Math.max(1,...alive.flatMap(x=>AREAS.map(a=>x.lv[a]||0)));
-  const body=tab==="spy"?svSpies(c):tab==="rel"?`${showRel?`<div class="svyou"><span class="small mut">How it feels about you</span><div class="svbig" style="color:${relColor(rv)}">${rv>0?"+":""}${rv} <span>${relLabel(rv)}</span></div>${svBar(rv)}
-       <div class="svparts">${relParts(G,c,G.player).map(([n,v])=>`<span>${esc(n)} ${svNum(v*3)}</span>`.replace(svNum(v*3),`<b style="color:${relColor(v*3)}">${v>0?"+":""}${v}</b>`)).join("")||'<span class="mut">No strong feelings</span>'}</div></div>`:""}
-     ${svNeighbors(c.id)}`
-    :tab==="sci"?`<div class="svlvs">${AREAS.map(a=>`<div class="svlv"><span>${SV_IC[a]||""}</span><span class="ln">${AREA_NAMES[a]}</span><b>${c.lv[a]||0}</b><span class="lb"><i style="width:${Math.round((c.lv[a]||0)/mxL*100)}%"></i></span></div>`).join("")}</div>
-     <div class="small mut">Total ${tot} levels · world average ${avg}. Bars are against the highest level any state has.</div>`
-    :`<div class="svtiles">
-       <div class="svt"><span>Land</span><b>${fmt(c.land)} km²</b><em>#${rank} of ${alive.length} ${svSpark(c.history)}</em></div>
-       <div class="svt"><span>Population</span><b>${fmt(popOf(c))}</b><em>${fmt(c.peasants)} peasants · ${fmt(c.sci)} scientists</em></div>
-       <div class="svt"><span>Army</span><b>${fmt(c.soldiers)}</b><em>⚔ ${fmtPow(armyAtk(c))} · 🛡 ${fmtPow(armyDef(c))}</em></div>
-       <div class="svt"><span>Generals</span><b>${c.generals.length}</b><em>${fam.length?`🏺 ${fam.map(r=>esc(relName(r))).join(", ")}`:"no famous relic"}</em></div>
-       ${loyOn(G)?`<div class="svt wide"><span>Loyalty</span><b style="color:${loyColor(loy)}">${Math.round(loy)} <small>${loyState(loy)[0].toLowerCase()}</small></b><span class="svlb"><i style="width:${Math.round(loy)}%;background:${loyColor(loy)}"></i></span></div>`:""}</div>
-     <div class="svfacts"><span>🏛 ${won.length?won.map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", "):"No wonders"}</span><span>⚔️ ${wars.length?"At war with "+wars.map(w=>{ const f=warFoe(w,c.id); return isKnown(f)||f===G.player?esc(G.countries[f].name):"an unknown state"; }).join(", "):"At peace"}</span>${!self&&!observing()?`<span>🧭 ${adj?"Borders you":"Doesn't border you"}</span>`:""}${c.rebelOf!=null?`<span>🔥 Broke away from ${esc(G.countries[c.rebelOf]?.name||"?")} in year ${c.born}</span>`:""}</div>`;
-  const acts=!self?(UI.takeConfirm===c.id
-    ?`<div class="row small"><span>Rule <b>${esc(c.name)}</b> from now on?${me().alive?` The computer takes over ${esc(me().name)}.`:""}</span><button class="sm pri" data-takeover="${c.id}">Yes, take over</button><button class="sm" data-takeask="-1">Cancel</button></div>`
-    :`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button>${!observing()?`<button class="sm" data-target="${c.id}" ${adj?"":`disabled title="It doesn't border you"`}>⚔ Plan attack</button>`:""}${canTakeOver()&&!isHuman(c.id)?`<button class="sm" data-takeask="${c.id}" title="${me().alive?"Swap: you rule this state, the computer rules yours":"Rule this state from now on"}">👑 Take over</button>`:""}</div>`)
-    :canGiveAway()?(UI.giveConfirm
-    ?`<div class="row small"><span>Hand <b>${esc(c.name)}</b> to the computer and keep watching? You can take over any state later.</span><button class="sm pri" data-giveaway="1">Yes, hand over</button><button class="sm" data-giveask="0">Cancel</button></div>`
-    :`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button><button class="sm" data-giveask="1" title="The computer rules your state from now on; you watch as an observer">Hand to computer</button></div>`):`<div class="row"><button class="sm" data-svshow="${c.id}">🗺 Show on map</button></div>`;
-  return `<div class="sv" style="--sc:${c.color}">${head}<div class="svtabs">${tb("ov","Overview")}${tb("rel","Relations")}${tb("sci","Science")}${spyOn?tb("spy","Spies"):""}<span class="grow"></span>${gl("relations")}</div><div class="svbd">${body}</div><div class="svacts">${acts}</div></div>`;
+// ---------- state window ----------
+// one window over the map for any state, opened the same way from everywhere: a map click, the right-click menu (Details),
+// tables, alliance lists and links. openState(id, true) opens a neighbor from inside the window and keeps a way back.
+function openState(id,inner){ if(!G||!G.countries[id]||(!isKnown(id)&&id!==G.player)) return;
+  if(inner&&UI.sv!=null&&UI.sv!==id) (UI.svBack||(UI.svBack=[])).push(UI.sv); else if(!inner) UI.svBack=[];
+  const first=UI.sv!==id; if(!inner&&first) UI.svTab="ov"; UI.sv=id; UI.sel=id; UI.takeConfirm=null; UI.giveConfirm=false; closeCtx(); $("tip").style.display="none";
+  stateModal(first); mainView.refresh(); }
+function closeState(keepSel){ UI.sv=null; UI.svBack=[]; closeModal(); if(!keepSel) UI.sel=null; mainView.refresh(); if(G) render(); }
+const svOpen=()=>UI.sv!=null&&!$("ov").classList.contains("hidden")&&$("modal").classList.contains("stwin");
+function stateModal(top){ const c=G.countries[UI.sv]; if(!c||(!isKnown(c.id)&&c.id!==G.player)){ closeState(); return; }
+  modal(stateHtml(c),"stwin"); if(top){ const b=$("modal").querySelector(".mbody"); if(b) b.scrollTop=0; } }
+// pictures: the state's outline and the land around it, drawn from the map cells (cached per game, year and state)
+const SV_PIC=new Map();
+function svPics(c){ const g=G, key=`${g.gid}:${g.turn}:${g.player}:${UI.known?UI.known.reduce((s,v,i)=>v?s+i:s,0):0}`, hit=SV_PIC.get(c.id); if(hit&&hit.key===key) return hit;
+  const {W,cells}=g, id=c.id; let x0=1e9,y0=1e9,x1=-1,y1=-1;
+  for(let i=0;i<cells.length;i++) if(cells[i]===id){ const x=i%W, y=(i/W)|0; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  const r={key,shape:"",map:""}; if(x1>=0){ r.shape=svShape(g,id,x0,y0,x1+1,y1+1); r.map=svLocal(g,id,x0,y0,x1+1,y1+1); }
+  if(SV_PIC.size>24) SV_PIC.clear(); SV_PIC.set(id,r); return r; }
+function svEdges(ctx,g,test,cx0,cy0,cw,ch,s){ const {W,H,cells}=g; ctx.beginPath();
+  for(let y=Math.max(0,cy0);y<Math.min(H,cy0+ch);y++) for(let x=Math.max(0,cx0);x<Math.min(W,cx0+cw);x++){ const i=y*W+x; if(!test(cells[i])) continue;
+    const px=(x-cx0)*s, py=(y-cy0)*s;
+    if(x===W-1||!test(cells[i+1])){ ctx.moveTo(px+s,py); ctx.lineTo(px+s,py+s); } if(x===0||!test(cells[i-1])){ ctx.moveTo(px,py); ctx.lineTo(px,py+s); }
+    if(y===H-1||!test(cells[i+W])){ ctx.moveTo(px,py+s); ctx.lineTo(px+s,py+s); } if(y===0||!test(cells[i-W])){ ctx.moveTo(px,py); ctx.lineTo(px+s,py); } }
+  ctx.stroke(); }
+function svShape(g,id,x0,y0,x1,y1){ const S=200, pad=14, bw=x1-x0, bh=y1-y0, s=Math.min((S-pad*2)/bw,(S-pad*2)/bh), col=hexRGB(g.countries[id].color);
+  const t=document.createElement("canvas"); t.width=bw; t.height=bh; const im=new ImageData(bw,bh), u=new Uint32Array(im.data.buffer), px=rgba(...col,255);
+  for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++) if(g.cells[y*g.W+x]===id) u[(y-y0)*bw+x-x0]=px;
+  t.getContext("2d").putImageData(im,0,0);
+  const cv=document.createElement("canvas"); cv.width=cv.height=S; const ctx=cv.getContext("2d"), ox=(S-bw*s)/2, oy=(S-bh*s)/2;
+  ctx.imageSmoothingEnabled=s<1; ctx.shadowColor=`rgba(${col.join(",")},0.6)`; ctx.shadowBlur=16; ctx.drawImage(t,ox,oy,bw*s,bh*s); ctx.shadowBlur=0;
+  if(s>=1.2){ ctx.save(); ctx.translate(ox,oy); ctx.strokeStyle="rgba(255,255,255,0.85)"; ctx.lineWidth=Math.min(2.4,Math.max(1.2,s/3)); svEdges(ctx,g,o=>o===id,x0,y0,bw,bh,s); ctx.restore(); }
+  return cv.toDataURL(); }
+function svLocal(g,id,x0,y0,x1,y1){ const OW=640, OH=360, {W,H,cells}=g, bw=x1-x0, bh=y1-y0, m=Math.max(bw,bh)*0.7+6, known=UI.known, pl=G.player, C=g.countries, adjS=adjacency(g)[id];
+  let cx0=x0-m, cx1=x1+m, cy0=y0-m, cy1=y1+m; const asp=OW/OH;
+  if((cx1-cx0)/(cy1-cy0)<asp){ const d=(cy1-cy0)*asp-(cx1-cx0); cx0-=d/2; cx1+=d/2; } else { const d=(cx1-cx0)/asp-(cy1-cy0); cy0-=d/2; cy1+=d/2; }
+  const sh=(a,b,n)=>a<0?[0,b-a]:b>n?[a-(b-n),n]:[a,b]; if(cx1-cx0<=W) [cx0,cx1]=sh(cx0,cx1,W); if(cy1-cy0<=H) [cy0,cy1]=sh(cy0,cy1,H);
+  cx0=Math.floor(cx0); cy0=Math.floor(cy0); const cw=Math.ceil(cx1-cx0), ch=Math.ceil(cy1-cy0), s=OW/cw;
+  const bg=hexRGB(BG), mix=(c,a)=>rgba(...c.map((v,k)=>Math.round(v*a+bg[k]*(1-a))),255), pal=new Map(), fogC=mix(FOG,1), wat=mix(WATERC,0.8), un=mix(UNOWNED,0.6), bgc=rgba(...bg,255);
+  const colOf=o=>{ let v=pal.get(o); if(v==null){ v=mix(hexRGB(C[o].color),o===id||o===pl?1:0.5); pal.set(o,v); } return v; };
+  const t=document.createElement("canvas"); t.width=cw; t.height=ch; const im=new ImageData(cw,ch), u=new Uint32Array(im.data.buffer);
+  for(let y=0;y<ch;y++) for(let x=0;x<cw;x++){ const X=x+cx0, Y=y+cy0; if(X<0||Y<0||X>=W||Y>=H){ u[y*cw+x]=bgc; continue; } const i=Y*W+X, o=cells[i];
+    u[y*cw+x]= o>=0 ? (known&&!known[o]?fogC:colOf(o)) : waterSeen(g,G.fog?known:null,i) ? (o===-2?wat:un) : fogC; }
+  t.getContext("2d").putImageData(im,0,0);
+  const cv=document.createElement("canvas"); cv.width=OW; cv.height=OH; const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false; ctx.drawImage(t,0,0,cw*s,ch*s);
+  ctx.lineCap="round";
+  if(s>=3){ ctx.strokeStyle="rgba(10,12,16,0.45)"; ctx.lineWidth=1; svEdges(ctx,g,o=>o>=0&&o!==id&&(!known||known[o]),cx0,cy0,cw,ch,s); }
+  if(pl>=0&&pl!==id&&C[pl]?.alive){ ctx.strokeStyle="#e0b354"; ctx.lineWidth=1.8; svEdges(ctx,g,o=>o===pl,cx0,cy0,cw,ch,s); }
+  ctx.strokeStyle="#fff"; ctx.lineWidth=2.4; svEdges(ctx,g,o=>o===id,cx0,cy0,cw,ch,s);
+  // names of its neighbors (and you)
+  const best=labelSpots(g).best; ctx.font="600 13px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  for(const j of new Set([...adjS,...(pl>=0&&pl!==id?[pl]:[])])){ if(!C[j]?.alive||(!isKnown(j)&&j!==pl)) continue; const b=best[j]; if(b==null||b<0) continue;
+    const px=(b%W-cx0+0.5)*s, py=(((b/W)|0)-cy0+0.5)*s; if(px<24||px>OW-24||py<10||py>OH-10) continue;
+    let nm=j===pl?"You":C[j].name; if(nm.length>18) nm=nm.slice(0,17)+"…"; const w=ctx.measureText(nm).width+12;
+    ctx.fillStyle="rgba(10,11,14,0.78)"; ctx.fillRect(px-w/2,py-10,w,20); ctx.fillStyle=j===pl?"#f3d58f":atWar(g,id,j)?"#f3a69b":allied(g,id,j)?"#9cc7f2":"#e7e9ee"; ctx.fillText(nm,px,py+1); }
+  return cv.toDataURL(); }
+// battles in the news archive that this state fought (only those you saw), with its record
+function svRecord(id){ const N=newsFor(G), k=`${G.turn}:${id}:${N.items.length}`; if(UI.svRec?.k===k) return UI.svRec;
+  const r={k,aw:0,al:0,dw:0,dl:0,took:0,lost:0,rows:[]};
+  for(let i=0;i<N.items.length;i++){ const a=N.items[i]; if(a[1]!==id&&a[2]!==id||!newsSeen(a)) continue; r.rows.push(i); if(a[1]<0) continue;
+    if(a[1]===id){ if(a[8]){ r.aw++; r.took+=a[7]||0; } else r.al++; } else { if(a[8]){ r.dl++; r.lost+=a[7]||0; } else r.dw++; } }
+  return UI.svRec=r; }
+const svDelta=a=>a&&a.length>1?a[a.length-1]-a[a.length-2]:null;
+const svD=(v,unit="")=>v==null||!Math.round(v)?`<span class="mut" title="Last year">steady</span>`:`<span class="${v>0?"good":"bad"}" title="Change last year">${v>0?"▲":"▼"} ${fmt(Math.abs(Math.round(v)))}${unit}</span>`;
+function svChart(a){ a=(a||[]).slice(-HIST_YEARS); if(a.length<2) return `<div class="stwnote">Not enough years recorded yet. This chart fills in as the years go by.</div>`;
+  const w=600,h=170,l=46,b=22,t=8, mx=Math.max(...a,1), Y=v=>t+(h-b-t)*(1-v/mx), X=i=>l+(w-l-8)*i/(a.length-1), y1=G.turn-1, y0=y1-a.length+1;
+  const p=a.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" "), tk=[0,mx/2,mx], yrs=[...new Set([0,.25,.5,.75,1].map(f=>Math.round(y0+(y1-y0)*f)))];
+  return `<svg class="stwchart" viewBox="0 0 ${w} ${h}" role="img" aria-label="History chart">
+   ${tk.map(v=>`<line x1="${l}" x2="${w-8}" y1="${Y(v)}" y2="${Y(v)}" stroke="#2b2f37"/><text x="${l-6}" y="${Y(v)+4}" fill="#9aa1ad" font-size="11" text-anchor="end">${fmtK(Math.round(v))}</text>`).join("")}
+   <polygon points="${X(0)},${Y(0)} ${p} ${X(a.length-1)},${Y(0)}" fill="var(--sc)" opacity=".14"/>
+   <polyline points="${p}" fill="none" stroke="var(--sc)" stroke-width="2" stroke-linejoin="round"/>
+   <circle cx="${X(a.length-1)}" cy="${Y(a[a.length-1])}" r="4" fill="var(--sc)" stroke="#1a1d22" stroke-width="2"/>
+   ${yrs.map(y=>`<text x="${X(y-y0)}" y="${h-5}" fill="#9aa1ad" font-size="11" text-anchor="middle">${y}</text>`).join("")}</svg>`; }
+const svSt=(k,v,sub,cls="")=>`<div class="stwst"><span>${k}</span><b class="${cls}">${v}</b><em>${sub}</em></div>`;
+const svName=j=>j===G.player&&!observing()?"<b>You</b>":isKnown(j)||j===G.player?esc(G.countries[j].name):'<span class="mut">an unknown state</span>';
+const svLink=j=>`${isKnown(j)||j===G.player?`<button class="mlink" data-pick="${j}"><span class="sw" style="background:${G.countries[j].color}"></span>${svName(j)}</button>`:svName(j)}`;
+function svGenRows(L){ return L.map(x=>`<div class="stwgen"><span class="stwav">${esc((x.name||"?")[0])}</span><span><b>${esc(x.name)}</b> <span class="small mut">Mind ${x.mind} · skill ${x.skill} · morale ${x.morale} · age ${x.age}</span>
+   <div class="small mut">${[x.post?POSTS.find(p=>p.id===x.post)?.name||"":x.def?"Defender":"",...(x.traits||[]).map(k=>GTR[k]?`${GTR[k].icon} ${GTR[k].name}`:""),...(x.rels||[]).map(k=>"🏺 "+esc(RELICS[k]?.name||""))].filter(Boolean).join(" · ")||"No traits"}</div></span></div>`).join(""); }
+const svFresh=t=>t==null?`<span class="stwfresh none">no report</span>`:`<span class="stwfresh${G.turn-t>2?" old":""}">year ${t}${G.turn-t>0?` · ${G.turn-t} yr old`:" · new"}</span>`;
+function stateHtml(c){
+  const pl=me(), obs=observing(), self=c.id===G.player&&!obs, you=!obs&&pl.alive&&!self, adj=you&&adjacency(G)[pl.id].has(c.id), spyOn=you, showRel=you;
+  const T=[["ov","Overview"],["rel","Relations"],["mil","Military"],["eco","Economy"],["sci","Science"],["news","News"],...(spyOn?[["spy","Spies"]]:[])];
+  const tab=c.alive&&T.some(x=>x[0]===UI.svTab)?UI.svTab:"ov", rv=showRel&&c.alive?Math.round(relOf(G,c,G.player)):0;
+  const alive=G.countries.filter(x=>x.alive), rankBy=f=>1+alive.filter(x=>f(x)>f(c)).length, tot=x=>AREAS.reduce((s,a)=>s+(x.lv[a]||0),0);
+  const wars=warsOf(G,c.id), won=wondersOf(G,c.id), fam=relAll(c).filter(r=>RELICS[r.k]?.k==="u"), rec=svRecord(c.id), loy=loyOf(c), pic=svPics(c), back=(UI.svBack||[]).filter(j=>G.countries[j]);
+  const pills=[];
+  if(!c.alive) pills.push(["bad",`Destroyed in year ${c.diedTurn}${c.killer!=null?` by ${isKnown(c.killer)||c.killer===G.player?esc(G.countries[c.killer].name):"an unknown state"}`:""}`]);
+  else { for(const w of wars){ const f=warFoe(w,c.id); pills.push(["bad",f===G.player&&!obs?`At war with you since year ${w.from}`:`At war with ${isKnown(f)||f===G.player?esc(G.countries[f].name):"an unknown state"}`]); }
+    if(!wars.length) pills.push(["good","At peace"]);
+    if(you) pills.push(allied(G,c.id,pl.id)?["good","Your ally"]:adj?["info","Borders you"]:["","Doesn't border you"]);
+    if(fam.length) pills.push(["acc","Holds a famous relic"]);
+    if(c.rebelOf!=null) pills.push(["",`Broke away from ${esc(G.countries[c.rebelOf]?.name||"?")} in year ${c.born}`]); }
+  const head=`<div class="stwhd"><div class="stwtop">
+    <div class="stwshape" title="Its shape on the map">${pic.shape?`<img src="${pic.shape}" alt="">`:""}</div>
+    <div class="stwid">${back.length?`<div class="stwcrumb"><button class="mlink" data-svback="1">← ${esc(G.countries[back[back.length-1]].name)}</button></div>`:""}
+     <h2 class="stwnm">${esc(c.name)}${self?' <small>(you)</small>':""}</h2>
+     <div class="stwsub">${G.teams&&c.team!=null?`<button class="mlink stwal" data-alliance="${c.team}" title="Open the alliance">${allyPrefix(c)}${esc(G.teams[c.team].name)}</button>`:""}${traitName(c)?traitName(c).split(" · ").map(x=>`<span class="stwtag">${esc(x)}</span>`).join(""):""}</div>
+     <div class="stwpills">${pills.map(([k,t])=>`<span class="stwpill${k?" p-"+k:""}"><i></i>${t}</span>`).join("")}</div></div>
+    ${showRel&&c.alive?`<div class="stwfeel" title="${esc(relTip(G,c,G.player))}"><span>Feels about you</span><b style="color:${relColor(rv)}">${rv>0?"+":""}${rv}</b><em>${relLabel(rv)}</em></div>`
+      :c.alive&&loyOn(G)?`<div class="stwfeel"><span>Loyalty</span><b style="color:${loyColor(loy)}">${Math.round(loy)}</b><em>${loyState(loy)[0]}</em></div>`:"<span></span>"}
+    <div class="stwx"><button data-svclose="1" aria-label="Close" title="Close (Esc)">✕</button>${c.alive?`<button data-svshow="${c.id}" aria-label="Show on map" title="Show on map">🗺</button>`:""}</div></div>
+   ${c.alive?`<div class="stwstrip">
+    ${svSt("Land",fmt(c.land)+" km²",`#${fmt(rankBy(x=>x.land))} of ${fmt(alive.length)} · ${svD(svDelta(c.history))}`)}
+    ${svSt("Population",fmt(popOf(c)),svD(svDelta(c.hp)))}
+    ${svSt("Army",fmt(c.soldiers),`⚔ ${fmtPow(armyAtk(c))} · 🛡 ${fmtPow(armyDef(c))}`)}
+    ${svSt("Generals",fmt(c.generals.length),fam.length?`🏺 ${fam.map(r=>esc(relName(r))).join(", ")}`:"no famous relic")}
+    ${loyOn(G)?svSt("Loyalty",Math.round(loy),loyState(loy)[0].toLowerCase()):svSt("Research",tot(c),`levels · #${fmt(rankBy(tot))}`)}
+    ${svSt("Wonders",won.length,won.length?won.map(w=>WONDERS[w.area].icon+" "+WONDERS[w.area].name).join(", "):"none")}</div>
+   <div class="stwtabs" role="tablist">${T.map(([id,l])=>`<button class="stwtb${tab===id?" on":""}" role="tab" aria-selected="${tab===id}" data-svtab="${id}">${l}${id==="news"&&rec.rows.length?`<span class="n">${fmtK(rec.rows.length)}</span>`:""}</button>`).join("")}<span class="grow"></span>${gl("statewin")}</div>`:""}</div>`;
+  let body="";
+  if(!c.alive) body=`<div class="stwnote">${esc(c.name)} is gone. Its land went to ${c.killer!=null?svName(c.killer):"nobody"}.${rec.rows.length?` It fought ${rec.rows.length} battle${rec.rows.length===1?"":"s"} you saw.`:""}</div>`;
+  else if(tab==="ov"){ const met=["land","pop","army"].includes(UI.svMet)?UI.svMet:"land", ser={land:c.history,pop:c.hp,army:c.hs}[met];
+    const cmp=you?[["Land",c.land,pl.land],["Population",popOf(c),popOf(pl)],["Soldiers",c.soldiers,pl.soldiers],["Attack",armyAtk(c),armyAtk(pl)],["Defense",armyDef(c),armyDef(pl)],["Research",tot(c),tot(pl)]]:null;
+    body=`<div class="stwg2">
+     <div class="stwcard"><h4>Where it is <span class="r">${adjacency(G)[c.id].size} neighbors</span></h4>${pic.map?`<img class="stwmap" src="${pic.map}" alt="Map of ${esc(c.name)} and its neighbors">`:""}
+      <div class="stwleg"><span><i style="background:${c.color};outline:2px solid #fff"></i>${self?"You":"This state"}</span>${you?`<span><i style="background:${pl.color};outline:2px solid #e0b354"></i>You</span>`:""}<span><b style="color:#9cc7f2">Name</b> its ally</span><span><b style="color:#f3a69b">Name</b> at war with it</span></div></div>
+     <div class="stwcard">${cmp?`<h4>Compared with you</h4><div class="stwcmp">${cmp.map(([k,a,b])=>{ const m=Math.max(a,b,1), r=b>0?a/b:a>0?Infinity:1;
+        return `<span class="k">${k}</span><span class="bar"><i style="width:${a/m*100}%;background:var(--sc)"></i><i class="y" style="width:${b/m*100}%"></i></span><span class="v ${r>1.15?"bad":r<0.87?"good":""}">${!isFinite(r)?"you: 0":r>=9.95?"≫ you":r.toFixed(1)+"× you"}</span>`; }).join("")}</div>
+        <div class="stwkey"><span><i style="background:var(--sc)"></i>${esc(c.name)}</span><span><i style="background:#8a8f98"></i>You</span></div>`
+       :`<h4>Standing</h4><div class="stwkv">${[["Land",rankBy(x=>x.land)],["Population",rankBy(popOf)],["Attack",rankBy(armyAtk)],["Defense",rankBy(armyDef)],["Research",rankBy(tot)]].map(([k,r])=>`<span>${k}</span><b>#${fmt(r)} <span class="small mut">of ${fmt(alive.length)}</span></b>`).join("")}</div>`}
+      <h4 style="margin-top:14px">At a glance</h4><div class="stwfacts">
+       <span>Battles you saw: won <b>${rec.aw+rec.dw}</b> · lost <b>${rec.al+rec.dl}</b></span><span>Land taken <b>${fmt(rec.took)} km²</b> · lost <b>${fmt(rec.lost)} km²</b></span>
+       ${landOf(c)?`<span>Land <b>${esc(landOf(c).name)}</b></span>`:""}${c.born?`<span>Founded <b>year ${c.born}</b></span>`:""}
+       <span>Research <b>${tot(c)} levels</b></span>${G.teams&&c.team!=null?`<span>Alliance <b>${fmt(G.countries.filter(x=>x.alive&&x.team===c.team).length)} states</b></span>`:""}</div></div>
+     <div class="stwcard sp"><h4>History <span class="r"><span class="stwseg">${[["land","Land"],["pop","Population"],["army","Soldiers"]].map(([k,l])=>`<button class="${met===k?"on":""}" data-svmet="${k}">${l}</button>`).join("")}</span></span></h4>${svChart(ser)}
+      <div class="small mut">${met==="land"?"Land at the end of each year. Steps are battles won or lost.":`${met==="pop"?"People":"Soldiers"} at the end of each year (the last ${HIST_YEARS} years are kept).`}</div></div></div>`; }
+  else if(tab==="rel"){ const allies=G.teams&&c.team!=null?G.countries.filter(x=>x.alive&&x.team===c.team&&x.id!==c.id):[];
+    body=`<div class="stwg2">${showRel?`<div class="stwcard"><h4>How it feels about you</h4><div class="stwbig"><b style="color:${relColor(rv)}">${rv>0?"+":""}${rv}</b><span>${relLabel(rv)}<em class="small mut">${rv>=20?"It won't pick a fight with you.":rv<=-50?"It looks for a chance to attack you.":"It could go either way."}</em></span></div>${svBar(rv)}
+      <div class="stwfac">${relParts(G,c,G.player).map(([n,v])=>`<span>${esc(n)}</span><b style="color:${relColor(v*3)}">${v>0?"+":""}${v}</b>${svBar(v*3)}`).join("")||'<span class="mut">No strong feelings</span>'}</div></div>`:""}
+     <div class="stwcard"><h4>Alliance${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}</h4>${G.teams&&c.team!=null?(allies.length?`<div class="stwlst">${allies.map(x=>`<div>${svLink(x.id)}<span class="small mut">${fmt(x.land)} km²</span></div>`).join("")}</div>`:`<div class="small mut">The last state left in its alliance.</div>`):`<div class="small mut">Not in an alliance.</div>`}
+      <h4 style="margin-top:14px">Wars</h4>${wars.length?`<div class="stwlst">${wars.map(w=>{ const f=warFoe(w,c.id); return `<div><span>⚔️ ${svLink(f)}</span><span class="small mut">since year ${w.from} · ends about year ${w.to}</span></div>`; }).join("")}</div>`:`<div class="small mut">At peace.${inPeace(G)?` Peace time for everyone until year ${G.peace+1}.`:""}</div>`}</div>
+     <div class="stwcard sp"><h4>Its neighbors</h4>${svNeighbors(c.id)}</div></div>`; }
+  else if(tab==="mil"){ const I=self?null:pl.intel?.[c.id]||{}, sc=self?{t:G.turn,tr:troopsOf(c),st:stanceOf(c)}:I?.scout, ST={fall:"Fall back",hold:"Hold",stand:"Stand ground"};
+    const gens=self?{t:G.turn,list:c.generals.map(x=>({name:x.name,mind:x.mind,age:x.age,skill:Math.round(x.skill),morale:Math.round(x.morale),traits:x.traits||[],post:x.post||null,def:c.defGen===x.id,rels:relKs(x)}))}:I?.gens;
+    const tt=sc?troopCount(sc.tr):0;
+    body=`<div class="stwg2"><div class="stwcard"><h4>Army ${self?"":`<span class="r">${svFresh(sc?.t)}</span>`}</h4>
+      <div class="stwkv"><span>Soldiers</span><b>${fmt(c.soldiers)}</b><span>Attack</span><b>${fmtPow(armyAtk(c))}</b><span>Defense</span><b>${fmtPow(armyDef(c))}</b>${sc?`<span>Stance</span><b>${ST[sc.st]||sc.st}</b>`:""}${sc?.ft!=null?`<span>War footing</span><b>${Math.round(sc.ft*100)}%</b>`:""}</div>
+      ${sc?`<div class="stwlst" style="margin-top:8px">${TROOPS.filter(t=>sc.tr[t.id]>0).map(t=>`<div><span>${t.icon||""} ${esc(TROOP_PL[t.id]||t.name)}</span><span class="num">${fmt(sc.tr[t.id])} <span class="small mut">${Math.round(sc.tr[t.id]/Math.max(1,tt)*100)}%</span></span></div>`).join("")||'<div class="mut small">No troops.</div>'}</div>`
+        :`<div class="stwnote">Its troop types are unknown. ${spyOn?"Your Spymaster can scout its army (Spies tab).":""}</div>`}</div>
+     <div class="stwcard"><h4>Generals ${self?"":`<span class="r">${svFresh(gens?.t)}</span>`}</h4>${gens?(gens.list.length?svGenRows(gens.list):'<div class="mut small">No generals.</div>'):`<div class="stwnote">${c.generals.length?`${fmt(c.generals.length)} general${c.generals.length===1?"":"s"}. Names and skills are unknown.`:"No generals."} ${spyOn?"Your Spymaster can read their files (Spies tab).":""}</div>`}</div>
+     <div class="stwcard sp"><h4>War record <span class="r small mut">battles you saw</span></h4><div class="stwrec">
+      <div><span>Attacks won</span><b>${rec.aw}</b></div><div><span>Attacks lost</span><b>${rec.al}</b></div><div><span>Held off</span><b>${rec.dw}</b></div><div><span>Broken through</span><b>${rec.dl}</b></div>
+      <div><span>Land net</span><b class="${rec.took>=rec.lost?"good":"bad"}">${rec.took-rec.lost>0?"+":""}${fmt(rec.took-rec.lost)} km²</b></div></div>
+      ${wars.length?`<div class="stwlst" style="margin-top:8px">${wars.map(w=>`<div><span>⚔️ At war with ${svLink(warFoe(w,c.id))}</span><span class="small mut">since year ${w.from}</span></div>`).join("")}</div>`:""}</div></div>`; }
+  else if(tab==="eco"){ const sc=self?{t:G.turn,money:c.money,grain:c.grain,wood:c.wood,iron:c.iron}:pl.intel?.[c.id]?.scout, P=popOf(c)||1;
+    const W_=[["Peasants",c.peasants,"#8fb34a"],["Scientists",c.sci,"#6aa9e9"],["Soldiers",c.soldiers,"#c95a4a"]];
+    body=`<div class="stwg2"><div class="stwcard"><h4>People</h4><div class="stwkv"><span>Population</span><b>${fmt(popOf(c))}</b></div><div class="stwstack">${W_.map(([,v,col])=>`<i style="width:${v/P*100}%;background:${col}"></i>`).join("")}</div>
+      <div class="stwleg">${W_.map(([n,v,col])=>`<span><i style="background:${col}"></i>${n} ${fmt(v)} (${Math.round(v/P*100)}%)</span>`).join("")}</div></div>
+     <div class="stwcard"><h4>Stores ${self?"":`<span class="r">${svFresh(sc?.t)}</span>`}</h4>${sc?`<div class="stwres">${[["💰","Gold",sc.money],["🌾","Grain",sc.grain],["🪵","Wood",sc.wood],["⛏️","Iron",sc.iron]].map(([i,k,v])=>`<div><span>${i} ${k}</span><b>${fmt(v)}</b></div>`).join("")}</div>`
+       :`<div class="stwnote">Unknown. ${spyOn?"Scouting its army also counts its stores (Spies tab).":""}</div>`}</div>
+     <div class="stwcard sp"><h4>Wonders and land</h4><div class="stwlst">${won.map(w=>`<div><span>${WONDERS[w.area].icon} <b>${WONDERS[w.area].name}</b></span><span class="small mut">+${wonderPct(w.area)}% ${WONDER_EFFECT[w.area]}</span></div>`).join("")||'<div class="small mut">No wonders.</div>'}
+      ${landOf(c)?`<div><span>🗺 ${esc(landOf(c).name)} land</span><span class="small mut">${Object.entries({attack:"attack",defense:"defense",food:"food",wood:"wood",iron:"iron",science:"research",growth:"growth",housing:"housing",explore:"land taken"}).filter(([k])=>landOf(c)[k]!=null&&landOf(c)[k]!==1).map(([k,n])=>`${n} ×${landOf(c)[k]}`).join(" · ")}</span></div>`:""}</div></div></div>`; }
+  else if(tab==="sci"){ const avg=a=>alive.reduce((s,x)=>s+(x.lv[a]||0),0)/Math.max(1,alive.length), mxL=Math.max(1,...alive.flatMap(x=>AREAS.map(a=>x.lv[a]||0)));
+    body=`<div class="stwcard"><h4>Research levels <span class="r small mut">total ${tot(c)} · world average ${Math.round(alive.reduce((s,x)=>s+tot(x),0)/Math.max(1,alive.length))}${you?` · you ${tot(pl)}`:""}</span></h4>
+     ${AREAS.map(a=>`<div class="stwlv"><span>${SV_IC[a]||""}</span><span>${AREA_NAMES[a]}</span><span class="tr"><i style="width:${(c.lv[a]||0)/mxL*100}%"></i><u style="left:${avg(a)/mxL*100}%" title="World average ${avg(a).toFixed(1)}"></u>${you?`<s style="left:${(pl.lv[a]||0)/mxL*100}%" title="You: ${pl.lv[a]||0}"></s>`:""}</span><b>${c.lv[a]||0}</b></div>`).join("")}
+     <div class="stwkey"><span><i style="background:var(--sc)"></i>${self?"You":esc(c.name)}</span><span><i class="ln" style="background:#c9ced8"></i>World average</span>${you?`<span><i class="ln" style="background:var(--acc)"></i>You</span>`:""}<span>Bars are against the highest level any state has.</span></div></div>`; }
+  else if(tab==="news"){ const N=newsFor(G), f=["all","att","def","you"].includes(UI.svNf)?UI.svNf:"all", F=[["all","All"],["att","Its attacks"],["def","Attacks on it"],...(you?[["you","With you"]]:[])];
+    const L=rec.rows.filter(i=>{ const a=N.items[i]; return f==="all"||(f==="att"?a[1]===c.id:f==="def"?a[2]===c.id:(a[1]===G.player||a[2]===G.player)); }).reverse(), MAX=80;
+    let h="", yr=null; for(const i of L.slice(0,MAX)){ const a=N.items[i]; if(a[0]!==yr){ if(yr!==null) h+="</ul>"; yr=a[0]; h+=`<div class="stwyr">Year ${yr}</div><ul class="log small">`; }
+      h+=a[1]===-1?`<li><b>${esc(c.name)}</b> collapsed from famine.</li>`:battleLine(Object.assign(unpackBattle(a),a[11]>=0?{ref:"n"+i}:{})); }
+    if(yr!==null) h+="</ul>";
+    body=`<div class="stwfl">${F.map(([k,l])=>`<button class="sm${f===k?" on":""}" data-svnf="${k}">${l}</button>`).join("")}<span class="grow"></span><button class="sm" data-svnews="${c.id}">Open in News ›</button></div>
+     ${wars.length?`<div class="stwlst" style="margin:8px 0">${wars.map(w=>`<div><span>⚔️ At war with ${svLink(warFoe(w,c.id))}</span><span class="small mut">since year ${w.from}</span></div>`).join("")}</div>`:""}
+     ${h||`<div class="stwnote" style="margin-top:8px">No battles${f==="all"?"":" of this kind"} in the news yet.</div>`}${L.length>MAX?`<div class="small mut">Showing the latest ${MAX} of ${fmt(L.length)}. Open in News for all of them.</div>`:""}
+     ${G.fog?`<div class="small mut" style="margin-top:6px">Fog of war: only battles you could see at the time.</div>`:""}`; }
+  else if(tab==="spy") body=svSpies(c);
+  // actions: the same as its right-click menu
+  let acts;
+  if(!self&&UI.takeConfirm===c.id) acts=`<div class="acts stwft"><span class="small">Rule <b>${esc(c.name)}</b> from now on?${pl.alive&&!obs?` The computer takes over ${esc(pl.name)}.`:""}</span><span class="grow"></span><button class="pri" data-takeover="${c.id}">Yes, take over</button><button data-takeask="-1">Cancel</button></div>`;
+  else if(self&&UI.giveConfirm) acts=`<div class="acts stwft"><span class="small">Hand <b>${esc(c.name)}</b> to the computer and keep watching? You can take over any state later.</span><span class="grow"></span><button class="pri" data-giveaway="1">Yes, hand over</button><button data-giveask="0">Cancel</button></div>`;
+  else { const I=c.alive?ctxItems(c.id).filter(i=>i&&!i.hd&&i.act!=="pick"&&i.act!=="center"):[];
+    acts=`<div class="acts stwft">${c.alive?`<button data-svshow="${c.id}">🗺 Show on map</button>`:""}${I.map(i=>`<button data-svact="${i.act}"${i.off?` disabled title="${esc(i.off)}"`:i.sub?` title="${esc(i.sub)}"`:""}${i.act==="attack"?' class="pri"':""}>${i.ic} ${esc(i.label.replace(/…$/,""))}</button>`).join("")}
+      ${self&&canGiveAway()?`<button data-giveask="1" title="The computer rules your state from now on; you watch as an observer">Hand to computer</button>`:""}<span class="grow"></span><span class="small mut stwkeys">← → tabs · Esc closes</span></div>`; }
+  return `<div class="stw" style="--sc:${c.color}">${head}</div><div class="mbody stwbd" style="--sc:${c.color}">${body}</div>${acts}`;
 }
 // fog of war: show a battle if you can see either side
 function seenBattle(b){ return b.att===G.player||b.def===G.player||isKnown(b.att)||isKnown(b.def); }
@@ -6049,7 +6235,8 @@ function modal(html,cls){ const m=$("modal"), c="modal"+(cls?" "+cls:""), ov=$("
     if(j>i){ const b=document.createElement("div"); b.className="mbody"; m.insertBefore(b,k[j]||null); k.slice(i,j).forEach(e=>b.appendChild(e)); } }
   const f=m.lastElementChild; if(f&&f.matches(".row,.rep-foot,.acts")&&f.querySelector("button")) f.classList.add("mfoot");
   const b=m.querySelector(".mbody"); if(b) b.scrollTop=y; ov.classList.toggle("solid",/\bhandover\b/.test(c)||!!UI.bf); ov.classList.remove("hidden"); }
-function closeModal(){ UI.bf=null; $("ov").classList.add("hidden"); }
+function closeModal(){ UI.bf=null; UI.sv=null; $("ov").classList.add("hidden"); }
+$("ov").addEventListener("click",e=>{ if(e.target===$("ov")&&svOpen()) closeState(); }); // the state window closes on a click beside it
 
 // prev = your state's numbers before the turn: {land, money, grain, pop}
 function snapshot(c){ return {land:c.land,money:c.money,grain:c.grain,pop:popOf(c)}; }
@@ -6359,6 +6546,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["State window","2026-11-14 20:15",["Clicking a state opens a window over the map, the same from the map, its right-click menu, tables and alliance lists","Its outline from the map, alliance, tags and how it feels about you at the top; land, people, army, generals, loyalty and wonders in a strip under it","Overview: a map of it and its neighbors, how it compares with you and a history chart of land, people and soldiers","New tabs: Military (troops, generals, war record), Economy (people, stores, wonders) and News (its battles)","Relations adds its alliance and wars; Science shows you and the world average","Click a neighbor to open it in the same window, ← goes back","Buttons at the bottom match the right-click menu","The World page no longer shows a state at the top"]],
 ["Staff posts one per row on phones","2026-11-14 19:02",["On phones each staff post is one row, portrait on the left","Choosing a post scrolls down to the list of generals","Best traits for a post moved to the ⓘ next to its name"]],
 ["Resources one per row on phones","2026-11-14 18:59",["On phones the Grain, Money, Wood and Iron boxes on Home sit one per row"]],
 ["Draws scroll into view","2026-11-14 18:50",["Pinning a notice or opening a Merchant offer scrolls down to the cards before they are dealt"]],
@@ -6559,7 +6747,7 @@ const GUIDE=[
 <li><b>Orders for the year:</b> the work split, the research split, attacks, and your defending general.</li></ul>
 <p>Press <b>End turn ▶</b> to run the year. Then the year report shows what happened: battles, harvest, births, research, weather, trades and news.</p>
 <h3>Where to look</h3>
-<ul class="log"><li>The <b>map</b> on the left shows every state. Click a state to inspect it.</li><li>The <b>tabs</b> on the right are your government: Home, Market, Science, Army, Generals, War, World, Allies, News. Keys <b>1</b>–<b>9</b> switch between them.</li><li>The <b>header</b> shows the year, peace time, your gold, grain, wood, iron, land and population.</li></ul>`],
+<ul class="log"><li>The <b>map</b> on the left shows every state. Click a state to open its window.</li><li>The <b>tabs</b> on the right are your government: Home, Market, Science, Army, Generals, War, World, Allies, News. Keys <b>1</b>–<b>9</b> switch between them.</li><li>The <b>header</b> shows the year, peace time, your gold, grain, wood, iron, land and population.</li></ul>`],
 ["first","Getting started","🧭","Your first years",()=>`
 <p>A safe opening that works with most civilizations:</p>
 <ol class="glist"><li><b>Home tab:</b> put 10–20% of peasants into science. Keep enough farmers that the grain card under <i>Resources</i> shows a surplus.</li>
@@ -6981,12 +7169,30 @@ ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","You
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
-<li>On a phone the map is its own page (🗺️ Map in the main menu). The map views are in a dropdown next to ★. Tap a state to pick it: its name shows under the map with a <b>Details ›</b> button for its view on the World page.</li>
-<li>Click a state to open its view in the side panel (tabs: Overview, Relations with every neighbor both ways, Science, and Spies with your intel reports on it; buttons to show it on the map, plan an attack or take over); click again or press Esc to unselect. Hover a state to raise it off the map, with a short tooltip: alliance, how it feels about you, its people and size.</li>
-<li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (the side panel); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>Sabotage…</b> for any state that borders you, when you have a Spymaster: the menu turns into a list of spy operations with their chances, then (for a poisoning) which general, then whom to blame for loud sabotage (${gl("spies")}); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
+<li>On a phone the map is its own page (🗺️ Map in the main menu). The map views are in a dropdown next to ★. Tap a state to open its window (${gl("statewin")}).</li>
+<li>Click a state to open its <b>state window</b> over the map (${gl("statewin")}). Esc, ✕ or a click beside it closes it. Hover a state to raise it off the map, with a short tooltip: alliance, how it feels about you, its people and size.</li>
+<li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (its state window); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>Sabotage…</b> for any state that borders you, when you have a Spymaster: the menu turns into a list of spy operations with their chances, then (for a poisoning) which general, then whom to blame for loud sabotage (${gl("spies")}); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
 <li>▨ Striped land was conquered last year (or broke away in a revolt). Grey-brown land is unowned. Dark grey states are rebels.</li>
 <li>Zoomed in, labels show land 🗺️, population 👥, attack ⚔️ and defense 🛡️.</li></ul>
 <h3>Map views</h3>${gTab(["View","Shows"],[["States","Each state in its own color"],["Alliances","Each alliance in its color"],["Relations","How each state feels about you"],["Wars","Your enemies red, states at war orange, at peace grey"],["Loyalty","Each state's loyalty: red = revolt possible, amber = restless, green = loyal (with Rebellions on)"],["Weather","How weather changed last harvest, and the systems coming"]])}`],
+["statewin","Interface","🪟","State window",()=>`
+<p>Every state opens in the same window over the map, wherever you click it: on the map, <b>Details</b> in its right-click menu, a row in War, World or Allies, a name in an alliance, or a neighbor inside another state window. The map behind it outlines the state.</p>
+<h3>Top</h3><ul class="log">
+<li><b>Outline:</b> the state's shape as it is on the map.</li>
+<li>Its name, alliance (click to open the alliance), civilization, leader and land type (${gl("identity")}), and short tags: at war or at peace, whether it borders you or is your ally, a famous relic, and whether it broke away in a revolt.</li>
+<li><b>Feels about you</b> (−100 to +100, ${gl("relations")}); hover it for the reasons. On your own state this box shows your loyalty instead.</li>
+<li>A strip that stays on every tab: land with its rank and last year's change, population, army with attack and defense, generals and famous relics, loyalty (research levels when rebellions are off) and wonders.</li></ul>
+<h3>Tabs</h3><ul class="log">
+<li><b>Overview:</b> a map of the state and its neighbors (white outline: this state; gold outline: you; blue names are its allies, red names are at war with it), the state <b>compared with you</b> (land, people, soldiers, attack, defense and research as "× you"; ranks instead when you watch), a few facts, and a <b>history</b> chart of its land, people or soldiers. People and soldiers are kept for the last ${HIST_YEARS} years.</li>
+<li><b>Relations:</b> how it feels about you and each reason with its number, its alliance members, its wars with the year each started and roughly ends (${gl("wars")}), and all its neighbors with how it feels about each and how they feel back. Click a state to open it in the same window; <b>←</b> at the top goes back.</li>
+<li><b>Military:</b> its soldiers, attack and defense; its troop types, stance and war footing, and its generals with skills, traits and relics, once your Spymaster has scouted them (each report shows its year); and its war record from the battles you saw.</li>
+<li><b>Economy:</b> its peasants, scientists and soldiers, its gold, grain, wood and iron from your last scouting report, its wonders and what its land is good at.</li>
+<li><b>Science:</b> its ten research levels against the world average and yours (${gl("science")}).</li>
+<li><b>News:</b> every battle it fought that you saw, newest first, filtered by its attacks, attacks on it, or battles with you. <b>Details ›</b> opens a battle report; <b>Open in News</b> shows them all in the News tab.</li>
+<li><b>Spies:</b> your intel reports on it and how old they are (${gl("spies")}).</li></ul>
+<h3>Buttons</h3>
+<p>The bar at the bottom has the same actions as the right-click menu: <b>Show on map</b> (closes the window and zooms to it), <b>Plan attack</b>, <b>Call off attack</b>, <b>Sabotage</b>, <b>Send aid</b>, <b>View alliance</b>, <b>Battles in the news</b> and <b>Take over</b>. Greyed-out buttons show why on hover. On your own state: Home, Army, War, Send aid and Hand to computer. ← and → switch tabs.</p>
+<p>Under fog of war you can open only states you can see; what your spies haven't found out shows as unknown.</p>`],
 ["news","Interface","📰","News and reports",()=>`
 <ul class="log"><li>While a year runs, a dial shows it passing: the gold ring fills with the sun riding its tip, and a line says what the world is doing (plans, battles, harvest, markets, envoys). During auto-run a small spinner sits in the corner instead.</li>
 <li>After a year with battles involving you, the <b>Your battles</b> screen comes first, with the results hidden (see Battles first). Then the <b>year report</b> opens: your battles, harvest, births, research, trades, weather and news, plus battles elsewhere. Press Enter or Esc to close it. Menu → Last year's report opens it again.</li>
@@ -7260,7 +7466,7 @@ function drawPreview(){
 
 // ---------- events ----------
 document.addEventListener("click",async ev=>{
-  const t=ev.target.closest("button,tr[data-pick],tr[data-alliance],tr[data-amember]"); if(!t) return;
+  const t=ev.target.closest("button,[data-pick],tr[data-alliance],tr[data-amember]"); if(!t) return;
   const d=t.dataset;
   if(d.guide){ UI.guideQ=""; helpModal(d.guide); return; }
   if(d.stab){ settingsModal(d.stab); const mb=$("modal").querySelector(".mbody"); if(mb) mb.scrollTop=0; return; }
@@ -7286,6 +7492,11 @@ document.addEventListener("click",async ev=>{
   if(d.repback!=null){ const bk=UI.repBack; UI.repBack=null; if(bk){ const m=$("modal"); m.className=bk.cls; m.innerHTML=bk.html; } else closeModal(); return; }
   if(d.repclose!=null){ UI.repBack=null; if(UI.bf) battlesModal(); else closeModal(); return; }
   if(d.repmap!=null){ const id=+d.repmap; UI.repBack=null; closeModal(); UI.sel=id; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
+  if(d.svclose){ closeState(); return; }
+  if(d.svback){ const j=(UI.svBack||[]).pop(); if(j!=null&&G.countries[j]){ UI.sv=j; UI.sel=j; UI.takeConfirm=null; stateModal(true); mainView.refresh(); } return; }
+  if(d.svtab){ UI.svTab=d.svtab; stateModal(true); return; }
+  if(d.svmet){ UI.svMet=d.svmet; stateModal(); return; }
+  if(d.svnf){ UI.svNf=d.svnf; stateModal(); return; }
   if(d.legend){ UI.legendOpen=!legendOpen(); try{ localStorage.setItem("eb.allyLegend",UI.legendOpen?"1":"0"); }catch{} renderAllyMap(); return; }
   if(UI.busy) return;
   if(d.tab){ goTab(d.tab,d.sub); UI.untrainAsk=null; render(); return; }
@@ -7297,21 +7508,27 @@ document.addEventListener("click",async ev=>{
     if(d.train){ const got=cmd("hireTroop",id,n)||0; if(got<n) flash(got?`Trained ${got}: not enough resources or peasants for more.`:"Not enough resources or peasants."); }
     else { const k=Math.min(n,troopsOf(me())[id]||0,me().soldiers-committed(me())); if(k>0) UI.untrainAsk={id,n:k}; else flash("None to dismiss."); }
     render(); return; }
-  if(d.svtab){ UI.svTab=d.svtab; render(); return; }
-  if(d.svshow!=null){ mainView.centerOn(+d.svshow,Math.max(mainView.z,mainView.focusZoom())); return; }
+  if(d.svshow!=null){ const id=+d.svshow; closeState(true); if(UI.mob&&UI.tab!=="map"){ UI.tab="map"; render(); } mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
+  if(d.svnews!=null){ const c=G.countries[+d.svnews]; closeState(true); UI.news={f:"all",q:c.name,page:0,al:"all"}; UI.tab="news"; render(); $("panel").scrollTop=0; return; }
+  if(d.svact){ const a=d.svact, o=UI.sv; if(o==null) return;
+    if(a==="spy"){ const r=t.getBoundingClientRect(); openCtx(o,r.left,r.top); ctxPage(o,{step:"ops"}); return; }
+    if(a==="take"){ UI.takeConfirm=o; stateModal(); return; }
+    if(a==="calloff"){ cmd("callOff",o); render(); return; }
+    if(a==="alliance"||a==="aid"){ ctxDo(a,o); return; }
+    closeState(true); ctxDo(a,o); return; }
   if(d.wonder!=null){ const w=G.wonders[+d.wonder]; mainView.centerOnCell(w.cell, Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.alliance!=null&&G?.teams){ allianceModal(+d.alliance); return; }
-  if(d.amember!=null){ const id=+d.amember; closeModal(); UI.sel=id; UI.tab="world"; render(); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
+  if(d.amember!=null){ const id=+d.amember; closeModal(); openState(id); mainView.centerOn(id,Math.max(mainView.z,mainView.focusZoom())); return; }
   if(d.allymap!=null){ closeModal(); UI.allyView=true; UI.relView=UI.wxView=UI.warView=UI.loyView=false; renderAllyMap(); mainView.refresh(); return; }
-  if(d.pick!=null){ const v=+d.pick; UI.sel=v<0?null:v; render();
-    // center the map on the picked state (zoom in first if showing the whole map)
-    if(v>=0&&G.countries[v].alive) mainView.centerOn(v, mainView.z<=mainView.minZ*1.001?mainView.focusZoom():mainView.z);
+  if(d.pick!=null){ const v=+d.pick; if(v<0){ closeState(); return; } const inner=svOpen(); openState(v,inner);
+    // from a list: center the map on it behind the window (zoom in first if showing the whole map)
+    if(!inner&&G.countries[v]?.alive&&(isKnown(v)||v===G.player)) mainView.centerOn(v, mainView.z<=mainView.minZ*1.001?mainView.focusZoom():mainView.z);
     return; }
   if(d.takeask!=null){ UI.takeConfirm=+d.takeask<0?null:+d.takeask; render(); return; }
-  if(d.takeover!=null){ takeOver(+d.takeover); return; }
+  if(d.takeover!=null){ if(svOpen()) closeState(true); takeOver(+d.takeover); return; }
   if(d.giveask!=null){ UI.giveConfirm=d.giveask==="1"; render(); return; }
-  if(d.giveaway!=null){ giveAway(); return; }
-  if(d.target!=null){ UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkMix=null; goTab("war","nbrs"); render(); return; }
+  if(d.giveaway!=null){ if(svOpen()) closeState(true); giveAway(); return; }
+  if(d.target!=null){ if(svOpen()) closeState(true); UI.attackTarget=+d.target; UI.sel=+d.target; UI.atkMix=null; goTab("war","nbrs"); render(); return; }
   if(d.atkpre){ UI.atkPreset=d.atkpre; UI.atkMix=null; if(d.atkpre!=="none") try{ localStorage.setItem("eb.atkPreset",d.atkpre); }catch{} render(); return; }
   if(d.atkset){ if(UI.atkMix){ UI.atkMix[d.atkset]=+d.n; UI.atkEdited=true; } const el=document.querySelector(`[data-atkmix="${d.atkset}"]`); if(el) el.value=d.n; refreshAtk(); return; }
   if(d.cancel!=null){ cmd("cancelAttack",+d.cancel); render(); return; }
@@ -7611,8 +7828,10 @@ document.addEventListener("keydown",e=>{
   if(UI.busy) return;
   const m=$("modal"), report=m.classList.contains("report");
   if(e.key==="Escape"||(report&&e.key==="Enter"&&canPlay())){
-    const close=m.querySelector('[data-a="close"]'); if(close){ e.preventDefault(); close.click(); }
+    const close=m.querySelector('[data-a="close"]')||m.querySelector("[data-svclose]"); if(close){ e.preventDefault(); close.click(); }
   }
+  if(svOpen()&&(e.key==="ArrowLeft"||e.key==="ArrowRight")&&!/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)){ const T=[...m.querySelectorAll("[data-svtab]")].map(b=>b.dataset.svtab), i=T.indexOf(m.querySelector(".stwtb.on")?.dataset.svtab);
+    if(T.length){ e.preventDefault(); UI.svTab=T[(i+(e.key==="ArrowRight"?1:-1)+T.length)%T.length]; stateModal(true); } }
 });
 
 // browser Back button: closes the open menu or dialog, else returns to the page you were on before
@@ -7628,7 +7847,7 @@ window.addEventListener("popstate",()=>{
   if(!$("ctxMenu").hidden){ closeCtx(); return; }
   if(document.querySelector(".pop:not([hidden])")){ closePops(); return; }
   if(UI.busy) return;
-  if(!$("ov").classList.contains("hidden")){ const m=$("modal"); (m.querySelector("[data-repback]")||m.querySelector('[data-a="close"]')||m.querySelector("[data-repclose]"))?.click(); return; }
+  if(!$("ov").classList.contains("hidden")){ const m=$("modal"); (m.querySelector("[data-repback]")||m.querySelector('[data-a="close"]')||m.querySelector("[data-repclose]")||m.querySelector("[data-svclose]"))?.click(); return; }
   if(!G) return;
   const k=NAV.stack.pop();
   if(k){ const [t,sub]=k.split("/"); NAV.skip=true; goTab(t,sub||null); UI.untrainAsk=null; render(); return; }

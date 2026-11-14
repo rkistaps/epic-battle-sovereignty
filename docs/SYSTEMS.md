@@ -58,7 +58,7 @@ The order matters: it decides which systems see this year's values and which see
 6. **Economy** per state (`economy`): harvest (× this year's weather) → eating → famine → spoilage → wood/iron → taxes − wages → empty treasury → births (none in a famine year) → research → generals age/train/recover (Drillmaster skill for field generals, Drunkard swing, Beloved recovery, Tattered Banner, Old Guard and Dragon Standard floors; retiring generals hand their relic to the Treasury, or to their successor with auto-replace, `genGone`) → collapse below `minPop`. Last year's undecided Tavern candidates are dropped the first time the Tavern is read in the new year (`tavOf`).
 7. **Market year** (`mkYear`): orders age and expire, the market price is updated, merchant prices reset, merchants take orders that beat them (`mkSweep`).
 8. **Weather** (`mkWeather`): systems drift/merge/clash/spawn; next year's `c.wx` and `c.wxSys` are rolled.
-9. **Relations year** (`relYear`), **wars** (`warYear`: wars that ran their time end, new ones start from hostility), history, `turn++`, victory check. Computer declarations happen earlier, in step 2 (AI turns).
+9. **Relations year** (`relYear`), **wars** (`warYear`: wars that ran their time end, new ones start from hostility), history (land every year; people `hp` and soldiers `hs` for the last `HIST_YEARS` = 100 years, shown in the state window), `turn++`, victory check. Computer declarations happen earlier, in step 2 (AI turns).
 
 Consequences:
 - Rebel states are created before the economy, so they farm, eat and pay tax the year they break away; famine and an empty treasury cost loyalty in the economy step, which counts toward next year's revolt check.
