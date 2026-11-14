@@ -349,6 +349,13 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .seat .eff{font-size:11.5px;line-height:1.3;background:#0f1114;border-radius:5px;padding:4px 5px;width:100%;color:#8fdcae} .seat .eff.none{color:var(--mut)}
 .seat .fit{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:auto} .seat .fitl{flex-basis:100%;text-align:center}
 .seat .auto{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--mut)} .seat .auto input{margin:0}
+@media(max-width:640px){ /* phones: one post per row, portrait on the left */
+  .seats{grid-template-columns:1fr}
+  .seat{display:grid;grid-template-columns:78px minmax(0,1fr);column-gap:12px;row-gap:0;align-items:start;justify-items:start;text-align:left;padding:10px 12px}
+  .seat>*{grid-column:2;margin-bottom:5px} .seat>:last-child{margin-bottom:0}
+  .seat .pick{grid-column:1;grid-row:1/span 9;width:78px} .seat .what{min-height:0}
+  .seat .fit{justify-content:flex-start;margin-top:0} .seat .fitl{text-align:left}
+}
 .pol{display:flex;gap:4px;width:100%} .pol button{flex:1} .pol button.on{border-color:var(--acc);color:var(--acc);background:#2a2620}
 .sprow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:4px 10px;align-items:center;background:#191c21;border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-top:6px}
 .sprow:first-of-type{margin-top:0} .sprow .pf{width:48px} .sprow.cur{border-color:var(--info)}
@@ -5191,7 +5198,7 @@ function pStaff(){
     const list=c.generals.filter(x=>x!==h).map(x=>({x,fits:postFits(x,open)})).sort((a,b)=>(b.fits-a.fits)||(score(b.x)-score(a.x)));
     const row=({x,fits})=>{ const atk=c.attacks.find(a=>a.gen===x.id), note=atk?`<span class="warnl">His attack on ${esc(G.countries[atk.target].name)} is called off</span>`:x.post?`<span class="warnl">Leaves the ${POSTS.find(q=>q.id===x.post).name} post</span>`:c.defGen===x.id?`<span class="warnl">Stops defending the border</span>`:"";
       return `<div class="sprow">${genFrame(x,c.color)}<div class="spn"><b>${esc(x.name)}${fits?`<span class="kfit">fits</span>`:""}</b><span class="meta">Mind ${x.mind} · age ${x.age} · skill ${Math.round(x.skill)}</span><span class="pe ${fits?"":"low"}">${esc(postLine(c,x,open))}</span>${note}<div class="gtraits">${genTraits(x)}</div></div><button class="pri sm" data-put="${x.id}" data-post="${open}">Post here</button></div>`; };
-    return `<div class="psec"><h3 class="tvh">Choose a ${p.name}<span class="grow"></span><button class="lnk" data-staffopen="">Close</button></h3>
+    return `<div class="psec" id="staffPick"><h3 class="tvh">Choose a ${p.name}<span class="grow"></span><button class="lnk" data-staffopen="">Close</button></h3>
       ${h?`<div class="sprow cur">${genFrame(h,c.color)}<div class="spn"><b>${esc(h.name)}</b><span class="meta">At this post now</span><span class="pe">${esc(postLine(c,h,open))}</span></div><button class="sm" data-unpost="${h.id}">Take him off</button></div>`:""}
       ${list.length?list.map(row).join(""):`<div class="small mut">No other generals. Hire one in the <button class="sm" data-tab="generals" data-sub="tavern">Tavern</button>.</div>`}
       <div class="small mut" style="margin-top:6px">Shown with what each would give at this post, best first. It counts at the end of the year.</div></div>`; };
@@ -5349,12 +5356,15 @@ function pMerchant(){ const c=me(), v=merOf(G,c), pend=v.pend, fresh=UI.merFresh
   </div>`; }
 let MER_T=[];
 // a fresh draw (Tavern candidates, Merchant relics): scroll it into view first, then deal the cards
+// scroll the page (phones) or the side panel so el's top sits just under the header; false if it was already in view
+function scrollToTop(el){ const top=UI.mob?document.querySelector("header").getBoundingClientRect().bottom:$("side").getBoundingClientRect().top, r=el.getBoundingClientRect();
+  if(r.top>=top-2&&r.top<innerHeight*0.45) return false;
+  (UI.mob?window:$("side")).scrollBy({top:r.top-top-8,behavior:"smooth"}); return true; }
 function toDraw(id,go){ const d=$(id), s=d?.closest(".psec")||d; if(!s) return go();
-  const top=UI.mob?document.querySelector("header").getBoundingClientRect().bottom:$("side").getBoundingClientRect().top, r=s.getBoundingClientRect();
-  if(r.top>=top-2&&r.top<innerHeight*0.45) return go();
   d.classList.add("wait");
   let done=false; const fin=()=>{ if(done) return; done=true; removeEventListener("scrollend",fin,true); d.classList.remove("wait"); go(); };
-  addEventListener("scrollend",fin,true); setTimeout(fin,700); (UI.mob?window:$("side")).scrollBy({top:r.top-top-8,behavior:"smooth"}); }
+  if(!scrollToTop(s)){ d.classList.remove("wait"); done=true; return go(); }
+  addEventListener("scrollend",fin,true); setTimeout(fin,700); }
 function merReveal(){ MER_T.forEach(clearTimeout); MER_T=[]; const fl=[...document.querySelectorAll("#merDraw .flip")]; let t=600;
   if(!fl.length||matchMedia("(prefers-reduced-motion: reduce)").matches) return merDone();
   fl.forEach((f,i)=>{ if(f.classList.contains("mr")||f.classList.contains("mx")){ MER_T.push(setTimeout(()=>{ document.querySelectorAll("#merDraw .flip")[i]?.classList.add("charge"); },t)); t+=900; }
@@ -6351,6 +6361,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Staff posts one per row on phones","2026-11-14 19:02",["On phones each staff post is one row, portrait on the left","Choosing a post scrolls down to the list of generals"]],
 ["Resources one per row on phones","2026-11-14 18:59",["On phones the Grain, Money, Wood and Iron boxes on Home sit one per row"]],
 ["Draws scroll into view","2026-11-14 18:50",["Pinning a notice or opening a Merchant offer scrolls down to the cards before they are dealt"]],
 ["Tavern and Merchant rows on phones","2026-11-14 18:49",["On phones the Tavern notices and Merchant offers sit one per row, left to right"]],
@@ -7309,7 +7320,7 @@ document.addEventListener("click",async ev=>{
   if(d.dismiss){ cmd("dismissGeneral",+d.dismiss); render(); return; }
   if(d.tavcall){ if(!cmd("tavCall",d.tavcall)){ flash("Not enough gold, or no calls left for that tier this year."); render(); return; }
     const v=tavOf(G,me()); UI.tavFresh=G.turn+":"+(v.n[d.tavcall]||0); UI.tavJoined=null; save(); render(); toDraw("tavDraw",()=>{ if(UI.tavFresh) tavReveal(); }); return; }
-  if(d.staffopen!=null){ UI.staffOpen=d.staffopen&&UI.staffOpen!==d.staffopen?d.staffopen:null; render(); return; }
+  if(d.staffopen!=null){ UI.staffOpen=d.staffopen&&UI.staffOpen!==d.staffopen?d.staffopen:null; render(); if(UI.staffOpen&&$("staffPick")) scrollToTop($("staffPick")); return; }
   if(d.put){ cmd("post",+d.put,d.post); UI.staffOpen=null; save(); render(); return; }
   if(d.spyoff){ cmd("spy",null); save(); render(); return; }
   if(d.unpost){ cmd("post",+d.unpost,null); UI.staffOpen=null; save(); render(); return; }
