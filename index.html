@@ -291,6 +291,12 @@ button.fslot{border-style:solid;cursor:pointer} button.fslot:hover,button.fslot:
 .bill .o{display:flex;justify-content:space-between;gap:6px;padding:0 4px} .bill .o i{font-style:normal} .bill .o b{font-weight:600}
 .bill .o.c{color:var(--rc-c)} .bill .o.r{color:var(--rc-r)} .bill .o.l{color:var(--rc-l)} .bill .o.x{color:var(--rc-x)}
 .bill .leg{margin-top:auto;padding-top:3px;font-size:10.5px;color:var(--acc);font-weight:600}
+@media(max-width:640px){ /* phones: one choice per row, laid out left to right */
+  .bills{grid-template-columns:1fr}
+  .bill{display:grid;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"cr w o" "cr n o" "cr p o" "cr x o";align-items:center;justify-items:start;text-align:left;column-gap:12px;row-gap:2px;padding:10px 12px}
+  .bill .crest{grid-area:cr;width:44px;height:44px} .bill .wanted{grid-area:w} .bill .tn{grid-area:n;font-size:17px} .bill .price{grid-area:p;margin:0} .bill .mnx,.bill .tally{grid-area:x} .bill .rng{display:none!important}
+  .bill .modds,.bill .leg{grid-area:o;margin:0;padding:0;align-self:center;justify-self:end} .bill .modds{width:auto;min-width:118px} .bill .leg{text-align:right;width:84px}
+}
 .bnote{margin:8px 2px 0;font:italic 12px var(--f-name);color:var(--mut);text-align:center}
 @container (min-width:620px){ .bill{padding:12px 10px 10px} .bill .crest{width:50px;height:50px} .bill .tn{font-size:18px} .bill .rng{display:block} .bills{gap:12px} }
 .lnk{background:none;border:0;padding:0;color:var(--mut);text-decoration:underline;text-underline-offset:2px;font-size:12px;text-transform:none;letter-spacing:0;font-weight:400}
@@ -6337,6 +6343,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Tavern and Merchant rows on phones","2026-11-14 18:49",["On phones the Tavern notices and Merchant offers sit one per row, left to right"]],
 ["Staff hints labeled","2026-11-14 18:44",["Each staff post now says \"Best traits for this post\" above its trait hints"]],
 ["Map page on phones","2026-11-14 18:40",["On phones the map has its own page: Map, in the main menu after Home","Other pages on phones show without the map","Bigger zoom buttons on phones; map views in a dropdown","Tap a state on the Map page to see its name and a Details button","On phones, Auto and End turn sit top right, next to Menu and the same size"]],
 ["Taking relics back is free","2026-11-14 14:58",["Taking a relic back or swapping it no longer costs the general morale","Only a famous relic still costs 10 morale when it leaves him"]],
