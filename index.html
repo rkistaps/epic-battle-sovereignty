@@ -785,6 +785,12 @@ table.btab td:nth-child(2),table.btab th:nth-child(2){background:#ffffff08}
 .sel{outline:2px solid var(--acc)}
 tr.click{cursor:pointer} tr.click:hover{background:var(--panel2)}
 tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{background:rgba(224,179,84,.2)} tr.sel>td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+/* header: one cell per stock (next year's change under it), then loyalty */
+.res{display:flex;align-items:center;font-variant-numeric:tabular-nums} #hPeace{margin-left:0}
+.hc{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:3px 9px;min-width:0;background:none;border:0;border-radius:6px;line-height:1.2;text-align:left;cursor:pointer} .hc:hover{background:var(--panel2);filter:none}
+.hc .v{font-weight:700;white-space:nowrap} .hc .ic{font-weight:400;margin-right:4px} .hc .d{font-size:11px;color:var(--mut);white-space:nowrap;padding-left:22px}
+.hc .d.good{color:var(--good)} .hc .d.bad{color:var(--bad)} header .auto{margin-left:auto}
+.hc.low{background:#e96a5a1c;box-shadow:inset 0 0 0 1px #e96a5a55} .hc.loy{margin-left:5px;padding-left:13px;border-left:1px solid var(--line);border-radius:0 6px 6px 0}
 .hfind{background:none;border:0;padding:0;font:inherit;color:var(--mut);cursor:pointer} .hfind:hover{color:var(--txt)} .hfind:hover b{text-decoration:underline}
 .small{font-size:12px}
 .nparts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px} .npart{display:flex;flex-direction:column;gap:3px;min-width:0} .npart textarea.names{height:200px}
@@ -801,6 +807,10 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   #bMenu,#bAuto,#bAutoOpt,body.mob #end{min-height:36px} #bMenu{padding:5px 9px} #bAuto{min-width:0} .split>#bAutoOpt{padding:5px 9px}
   header .chip{font-size:13px} header .chip:first-of-type{flex-basis:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hfind{min-height:24px}
+  .res{flex:1 1 100%;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#14161a80}
+  .hc,.hc.loy{padding:5px 3px 5px 7px;margin:0;border-radius:0;border-left:1px solid var(--line)} .hc:first-child{border-left:0} .hc .v{font-size:13.5px} .hc .ic{margin-right:3px} .hc .d{padding-left:0;font-size:10.5px}
+  #hPeace{order:-1;font-size:12px;padding:2px 7px;white-space:nowrap} #bAuto{padding:5px 11px}
+  header:has(#hPeace:not([hidden])) #bNav .nl,header:has(#hPeace:not([hidden])) #bAutoOpt{display:none} header:has(#hPeace:not([hidden])) .split>#bAuto{border-radius:6px} /* peace pill on the button row: the page name and auto options make room */
   /* main menu: a side panel that slides in, one square per page, two per row */
   #topnav{position:fixed;z-index:19;top:0;bottom:0;left:0;width:min(264px,82vw);display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:10px;padding:14px 12px;background:var(--panel);border-right:1px solid var(--line);box-shadow:8px 0 30px rgba(0,0,0,.5);overflow-y:auto;transform:translateX(-105%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
   body.navopen #topnav{transform:none;visibility:visible;transition:transform .22s ease}
@@ -848,7 +858,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
   .tarmy td:nth-child(3),.tarmy th:nth-child(3){display:none} .mwhy td,.mwhy th{font-size:11.5px} main{padding:6px} .card{padding:6px} .psec{padding:8px 7px 10px}
   .modal.battle{padding:10px} .overlay{padding:8px} .btroop td:nth-child(2),.btroop th:nth-child(2){display:none} .btroop td,.btroop th{font-size:12.5px}
   .gen.sel table.tight td,.gen.sel table.tight th{padding-left:1px;padding-right:1px} .gen.sel table.tight input{width:42px!important} .gen.sel table.tight td:first-child .small{display:none}
-  #bAutoOpt{display:none} .split>#bAuto{border-radius:6px} body.mob #end{padding:5px 8px}
+  #bAutoOpt{display:none} .split>#bAuto{border-radius:6px} #hPeace{display:none} header:has(#hPeace:not([hidden])) #bNav .nl{display:inline} .hc .yl{display:none} .hc .ic{margin-right:1px} .hc .v{font-size:12.5px} .hc,.hc.loy{padding:5px 2px 5px 5px} body.mob #end{padding:5px 8px}
 }
 </style>
 </head>
@@ -867,22 +877,17 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
     </div></div>
   <input type="file" id="gameFile" accept=".json,application/json" class="hidden">
   <h1>👑 EPIC BATTLE: SOVEREIGNTY</h1>
-  <span class="chip">📅 Year <b id="hYear">1</b><span id="hPeace" class="pz" hidden></span> · <span id="hState"></span></span>
-  <span class="chip" title="Money">💰 <b id="hMoney"></b></span>
-  <span class="chip" title="Grain">🌾 <b id="hGrain"></b></span>
-  <span class="chip" title="Wood">🌲 <b id="hWood"></b></span>
-  <span class="chip" title="Iron">⛏️ <b id="hIron"></b></span>
-  <button class="chip hfind" data-find="land" title="Land: click to find yourself in the rankings">🗺️ <b id="hLand"></b> km²</button>
-  <button class="chip hfind" data-find="pop" title="Population: click to find yourself in the rankings">👥 <b id="hPop"></b></button>
-  <button class="chip hfind" data-tab="economy" id="hLoyBox" title="Loyalty: click to see it on the Home tab">❤️ <b id="hLoy"></b></button>
+  <span class="chip" id="hWho" hidden>📅 Year <b id="hYear">1</b> · <span id="hState"></span></span>
+  <div class="res" id="hRes"></div>
+  <span id="hPeace" class="pz" hidden></span>
   <span class="grow"></span>
   <span class="auto">
-    <span class="split"><button id="bAuto" title="End turns automatically">▶ Auto</button><button id="bAutoOpt" data-pop="autoPop" aria-haspopup="true" aria-expanded="false" aria-label="Auto-run options" title="Auto-run options">▾</button>
+    <span class="split"><button id="bAuto" title="End turns automatically">▶<span class="dk"> Auto</span></button><button id="bAutoOpt" data-pop="autoPop" aria-haspopup="true" aria-expanded="false" aria-label="Auto-run options" title="Auto-run options">▾</button>
       <div id="autoPop" class="pop right" hidden>
         <label class="prow2">Seconds per turn <select id="autoSec"><option value="0.5">0.5 s</option><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option><option value="10">10 s</option><option value="20">20 s</option><option value="30">30 s</option><option value="60">60 s</option></select></label>
         <label class="prow2" title="Stop auto-run and show the report when someone attacks you"><input type="checkbox" id="autoStop"> Stop when I'm attacked</label>
       </div></span>
-    <button id="end" class="pri">End turn ▶</button>
+    <button id="end" class="pri">End year ▶</button>
   </span>
 </header>
 <div id="navbk"></div>
@@ -4631,22 +4636,24 @@ function renderAllyMap(){
 function renderHeader(){
   const c=me();
   $("hYear").textContent=G.turn;
-  { const pz=$("hPeace"), left=inPeace(G)?G.peace+1-G.turn:0; pz.hidden=!left; if(left){ pz.textContent=`🕊 ${left} yr${left>1?"s":""}`; pz.title=`Peace time: nobody can attack until year ${G.peace+1}`; } } // years of peace left, this one included
+  { const pz=$("hPeace"), left=inPeace(G)?G.peace+1-G.turn:0; pz.hidden=!left; if(left){ pz.innerHTML=`🕊 ${left}<span class="dk"> yr${left>1?"s":""}</span>`; pz.title=`Peace time: nobody can attack until year ${G.peace+1}`; } } // years of peace left, this one included
+  // the year and state name show only when it isn't obvious whose header this is: observer, a fallen player watching, hot-seat
+  $("hWho").hidden=!(observing()||!c.alive||G.hot);
   $("hState").innerHTML=observing()?`👁 <b>Observer</b> <span class="mut">(${fmt(G.countries.filter(x=>x.alive).length)} states left)</span>`:`<span class="sw" style="background:${c.color}"></span><b>${c.alive?"":"☠ "}${esc(c.name)}</b>${c.alive?"":` <span class="mut">(watching)</span>`}`;
-  // your own numbers mean nothing to an observer: hide them (each value sits in a header item with its icon)
-  for(const id of ["hMoney","hGrain","hWood","hIron","hLand","hPop"]){ const el=$(id), box=el?.closest(".hi")||el?.parentElement; if(box&&box.id!=="hState") box.style.display=observing()?"none":""; }
   const meBtn=document.querySelector('#mapbox [data-map="me"]'); if(meBtn) meBtn.style.display=observing()?"none":"";
   renderAllyMap();
-  if(!observing()){
-  $("hMoney").textContent=fmt(c.money);
-  $("hGrain").textContent=fmt(c.grain); $("hWood").textContent=fmt(c.wood||0); $("hIron").textContent=fmt(c.iron||0);
-  $("hLand").textContent=fmt(c.land);
-  $("hPop").textContent=fmt(popOf(c));
-  }
-  { const b=$("hLoyBox"), on=loyOn(G)&&!observing()&&c.alive; b.style.display=on?"":"none";
-    if(on){ const v=loyOf(c), [st,cls]=loyState(v); $("hLoy").textContent=Math.round(v); $("hLoy").className=cls; b.title=`Loyalty ${Math.round(v)} of ${loyCeil(G,c)} (${st}): click to see it on the Home tab`; } }
+  // stocks with next year's change under each, then loyalty; your own numbers mean nothing to an observer
+  { const el=$("hRes"), on=!observing()&&c.alive; el.style.display=on?"":"none"; if(on){
+    const sg=(v,f)=>(v>0?"+":v<0?"−":"±")+f(Math.abs(v)), two=v=>`<span class="dk">${fmt(v)}</span><span class="ph">${fmtK(v)}</span>`, S=supplies(c), W={Grain:["economy"],Money:["economy"],Wood:["market","stock"],Iron:["market","stock"]};
+    const cell=([ic,nm,st,py])=>{ py=Math.round(py); const left=py<0?Math.floor(st/-py):null, low=left!=null&&left<=10, [t,sub]=W[nm];
+      const tip=`${nm} ${fmt(st)}, ${py<0?"shrinking":"growing"} by ${fmt(Math.abs(py))} a year${left!=null?(left<1?": runs out next year":`: lasts about ${fmt(left)} year${left===1?"":"s"}`):""}. Click for ${t==="market"?"the Market":"Home"}`;
+      return `<button class="hc${low?" low":""}" data-tab="${t}"${sub?` data-sub="${sub}"`:""} title="${tip}" aria-label="${tip}"><span class="v"><span class="ic">${ic}</span><b>${two(st)}</b></span><span class="d ${py<0?"bad":py>0?"good":""}"><span class="dk">${sg(py,fmt)}</span><span class="ph">${sg(py,fmtK)}</span>${low?`<span class="yl">${left<1?" · ⚠":` · ${fmt(left)}<span class="dk"> yr${left===1?"":"s"}</span><span class="ph">y</span>`}</span>`:""}</span></button>`; };
+    let h=[S[3],S[0],S[1],S[2]].map(cell).join(""); // money, grain, wood, iron
+    if(loyOn(G)){ const v=loyOf(c), [st,cls]=loyState(v), face=v<R.loyRevolt?"🤬":v<R.loyUnrest?"😠":v<70?"😐":"😀", tip=`Loyalty ${Math.round(v)} of ${loyCeil(G,c)} (${st}). Click to see it on Home`;
+      h+=`<button class="hc loy" data-tab="economy" title="${tip}" aria-label="${tip}"><span class="v"><span class="ic">${face}</span><b class="${cls==="warn"?"warnc":cls}">${Math.round(v)}</b></span><span class="d">of ${loyCeil(G,c)}<span class="dk"> · ${st.split(" ")[0].toLowerCase()}</span></span></button>`; }
+    el.innerHTML=h; } }
   $("end").disabled=!canPlay()||UI.busy; $("bAuto").disabled=!canPlay()||!!G.hot; if((!canPlay()||G.hot)&&AUTO.on) setAuto(false); $("bAutoOpt").disabled=$("bAuto").disabled; $("bRep").disabled=!lastPrev();
-  $("end").textContent=G.hot?(hotLast()?"End year ▶":"Done ▶"):watching()?"Next year ▶":"End turn ▶";
+  $("end").textContent=G.hot?(hotLast()?`End year ${G.turn} ▶`:"Done ▶"):watching()?"Next year ▶":`End year ${G.turn} ▶`;
   $("end").title=(G.hot?(hotLast()?"You're the last player this year: the year runs now":"Hand over to the next player"):"End the year")+" (key X)";
 }
 
@@ -6755,6 +6762,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Cleaner header","2026-11-15 16:25",["Header shows gold, grain, wood and iron with next year's change under each","A stock that runs out within 10 years turns red, with the years left","Loyalty is a face that changes with its level, with the ceiling under it","Click a stock or loyalty to open its page","State name, land and people left the header: they are on Home and in Rankings","The End button shows the year: End year 30","Phones: all of it fits one row, with short numbers (10.8K)"]],
 ["Phones: side menu and tidier pages","2026-11-15 15:40",["Map is first in the main menu on phones","Phones: the main menu is a side panel that slides in, one square per page, two in a row","Phones: smaller header; the button top left shows the page you are on","Phones: the Map page fills the screen","Phones: no more sideways scrolling in Rankings, Alliances, Research, Total bonuses, Army, Neighbors, Wonders, World market, battle reports, replays and the state window","Phones: Settings tables and wide guide tables show one item per block","Bigger buttons for training and attacking on phones"]],
 ["News cards","2026-11-14 21:19",["News is a list of cards: an icon for each kind, the states and the key fact","Details opens the numbers, war tables and battle reports","Turn each kind of news on or off; the choice is remembered","The same in the state window's News tab","Sabotage now shows to everyone as damage with the culprit unknown, unless the spies were caught","The news keeps at most 10,000 entries; the oldest go first (Settings → News)"]],
 ["More kinds of news","2026-11-14 21:05",["News tab: buttons to show one kind of news at a time: Battles, Wars, Aid, Spies, Rebellions, Famine","Wars: a line when a war starts, and a report when it ends: who won, land each side took, soldiers lost, battles won, land before and after","Alliance wars too","Aid between allies, one line per giver and receiver a year","Spy operations: all of yours; against you, what you noticed; others' only when caught","Rebellions: who broke away and with how much","Famines: yours, and big ones elsewhere","State window News tab lists these too","Settings: when another state's famine makes the news"]],
@@ -6957,7 +6965,7 @@ const GUIDE=[
 <p>Everyone moves at the same time. During your turn some things happen <b>at once</b> and some are <b>only orders</b> that run when the year ends:</p>
 <ul class="log"><li><b>At once:</b> training and dismissing troops, hiring and dismissing generals, trading on the market (trade now, post or cancel orders), sending aid to allies.</li>
 <li><b>Orders for the year:</b> the work split, the research split, attacks, and your defending general.</li></ul>
-<p>Press <b>End turn ▶</b> to run the year. Then the year report shows what happened: battles, harvest, births, research, weather, trades and news.</p>
+<p>Press <b>End year ▶</b> to run the year. Then the year report shows what happened: battles, harvest, births, research, weather, trades and news.</p>
 <h3>Where to look</h3>
 <ul class="log"><li>The <b>map</b> on the left shows every state. Click a state to open its window.</li><li>The <b>tabs</b> on the right are your government: Home, Market, Science, Army, Generals, War, World, Allies, News. Keys <b>1</b>–<b>9</b> switch between them.</li><li>The <b>header</b> shows the year, peace time, your gold, grain, wood, iron, land and population.</li></ul>`],
 ["first","Getting started","🧭","Your first years",()=>`
@@ -7347,7 +7355,7 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <h3>Computer states</h3><ul class="log"><li>Hold festivals with spare gold when loyalty is under ${R.aiFestLoy}.</li>
 <li>Outside wars, take no land while loyalty is under ${R.aiLoyCalm}.</li>
 <li>Raid instead of conquering when an attack would leave loyalty under ${R.aiLoyFloor} (warlike leaders go ${R.aiLoyFloor-5}).</li></ul>
-<h3>Where to see it</h3><p>The ❤️ number in the header, the Loyalty row in the Population box on the Home tab (with last year's changes, next year's recovery and the revolt chance), War → Wars, each state's details, the <b>Loyalty</b> map view, and the News tab's Rebellions button, which lists every revolt you could see (${gl("news")}).</p>
+<h3>Where to see it</h3><p>The face and number in the header, the Loyalty row in the Population box on the Home tab (with last year's changes, next year's recovery and the revolt chance), War → Wars, each state's details, the <b>Loyalty</b> map view, and the News tab's Rebellions button, which lists every revolt you could see (${gl("news")}).</p>
 <p><b>How it balances:</b> conquest is fast but loyalty recovers slowly, so even a strong state can only grow a little each year without risking revolt, and the bigger it is the slower it recovers and the lower its ceiling. Revolts hand land, people and troops to new states that fight the giant, so runaway empires break up instead of rolling over everyone.</p>`],
 ["ai","Diplomacy","🤖","Computer players",()=>`
 <p>Computer states play by the same rules as you: no free resources. Their leader shapes their personality.</p>
@@ -7367,12 +7375,13 @@ ${gTab(["Feeling","Comes from","Fades"],[
 
 ["screen","Interface","🖥️","Header and menu",()=>`
 <ul class="log"><li><b>☰ Menu:</b> New game, Save to file, Load from file, Last year's report, Rules &amp; guide, Change log, Settings.</li>
-<li><b>Year</b> and a peace pill with the years of peace left.</li>
-<li>Your <b>gold, grain, wood, iron</b>. Click land 🗺️ or population 👥 to find yourself in the rankings.</li>
-<li>❤️ Your <b>loyalty</b> (with Rebellions on): green loyal, amber restless, red unrest or revolt possible. Click it for the Home tab.</li>
+<li>Your <b>gold, grain, wood and iron</b>, one box each: what you have, and under it what next year adds or takes (green up, red down). A box turns red when that stock runs out within 10 years, with the years left. Click gold or grain for Home, wood or iron for the Market.</li>
+<li>A face for your <b>loyalty</b> (with Rebellions on), with its ceiling under it: 😀 loyal, 😐 restless, 😠 unrest, 🤬 revolt possible. Click it for the Home tab.</li>
+<li>A green <b>peace pill</b> with the years of peace left, while peace lasts.</li>
+<li>Your state's name is at the top of Home and marked ★ on the map; land and people are on Home and in World → Rankings. The year and state name show in the header only in hot-seat games, for an observer, or after you fall.</li>
 <li><b>▶ Auto</b> ends turns by itself; ▾ sets seconds per turn and whether to stop when you are attacked. It pauses while a window is open or you're typing.</li>
-<li><b>End turn ▶</b> runs the year.</li></ul>
-<p>On a phone the header is one row: a gold button with ☰ and the page you are on (it opens the main menu), ⚙️ for the game menu (saves, guide, change log, settings), then ▶ Auto and End turn on the right. Your state and resources sit in the lines under it; the title is left out to save room.</p>
+<li><b>End year ▶</b> shows the year you are in and runs it.</li></ul>
+<p>On a phone the header is one row: a gold button with ☰ and the page you are on (it opens the main menu), ⚙️ for the game menu (saves, guide, change log, settings), then ▶ (auto) and End year on the right. The resource boxes sit in one row under it, with short numbers above 10,000 (10.8K); the title is left out to save room.</p>
 <p>Under the header is the main menu: Home, Science, Army, Market, War, World, Allies and News, plus Map on a phone (see Menus).</p>
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
@@ -8098,7 +8107,7 @@ function autoHeld(){
 }
 function paintAuto(){
   const b=$("bAuto"); b.classList.toggle("on",AUTO.on);
-  b.textContent = !AUTO.on ? "▶ Auto" : autoHeld()&&!UI.busy ? "⏸ Paused" : "⏸ Stop";
+  { const [ic,l]=!AUTO.on?["▶","Auto"]:autoHeld()&&!UI.busy?["⏸","Paused"]:["⏸","Stop"]; if(b.dataset.l!==l){ b.dataset.l=l; b.innerHTML=`${ic}<span class="dk"> ${l}</span>`; b.setAttribute("aria-label",l); } } // phones show the icon only
   const p=AUTO.on?Math.max(0,Math.min(100,100*(1-AUTO.left/(AUTO.sec*1000)))):0; // End button fills up until the next turn
   $("end").style.background=AUTO.on?`linear-gradient(90deg,var(--acc) ${p}%,color-mix(in srgb,var(--acc) 45%,var(--panel2)) ${p}%)`:"";
   b.title = AUTO.on ? "Stop auto-run" : "End turns automatically";
