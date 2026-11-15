@@ -790,11 +790,72 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
 .nparts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px} .npart{display:flex;flex-direction:column;gap:3px;min-width:0} .npart textarea.names{height:200px}
 @media(max-width:700px){.nparts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .homename{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:6px} .homename>b{font-size:16px}
+/* ---------- phones (≤640px) ---------- */
+.ph,#bNav,#navbk{display:none}
+@media(max-width:640px){
+  .dk{display:none} .ph{display:inline}
+  select{max-width:100%}
+  /* header: pages button, game menu, auto and end turn on one row; chips below */
+  header{gap:5px 6px;padding:7px 10px} header .chip{margin-right:6px} header h1{display:none} body.mob header .menu{order:-2} #bNav{order:-3}
+  #bNav{display:inline-flex;align-items:center;gap:6px;position:relative;font-weight:600;padding:6px 10px;min-height:36px;border-color:var(--acc)} #bNav .nb{color:var(--acc)} #bNav{flex:0 1 auto;min-width:0} #bNav .nl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} #bNav .tbdg.dot{top:-3px;right:-3px}
+  #bMenu,#bAuto,#bAutoOpt,body.mob #end{min-height:36px} #bMenu{padding:5px 9px} #bAuto{min-width:0} .split>#bAutoOpt{padding:5px 9px}
+  header .chip{font-size:13px} header .chip:first-of-type{flex-basis:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hfind{min-height:24px}
+  /* main menu: a side panel that slides in, one square per page, two per row */
+  #topnav{position:fixed;z-index:19;top:0;bottom:0;left:0;width:min(264px,82vw);display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:10px;padding:14px 12px;background:var(--panel);border-right:1px solid var(--line);box-shadow:8px 0 30px rgba(0,0,0,.5);overflow-y:auto;transform:translateX(-105%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
+  body.navopen #topnav{transform:none;visibility:visible;transition:transform .22s ease}
+  #topnav button:not(.glink){aspect-ratio:1;flex-direction:column;justify-content:center;gap:6px;padding:6px;border-radius:12px;font-size:14px} #topnav .ic{font-size:30px;line-height:1.1}
+  #topnav .tbdg{top:8px;right:8px} #topnav>.glink{grid-column:1/-1;justify-self:center;width:28px;height:28px;margin:4px 0 0;font-size:14px}
+  #navbk{display:block;position:fixed;inset:0;z-index:18;background:#000a;opacity:0;visibility:hidden;transition:opacity .22s ease,visibility 0s .22s}
+  body.navopen #navbk{opacity:1;visibility:visible;transition:opacity .22s ease} body.navopen{overflow:hidden}
+  main{padding:8px} .card{padding:8px}
+  /* tables that don't fit turn into stacked rows */
+  /* rankings: the name on its own line, the numbers in even columns under it */
+  table.atab,table.atab tbody{display:block} table.atab tr{display:grid;grid-template-columns:26px repeat(5,minmax(0,1fr));align-items:center;border-bottom:1px solid var(--line);padding:5px 0} table.atab.a6 tr{grid-template-columns:26px repeat(6,minmax(0,1fr))}
+  table.atab td,table.atab th{border:0;padding:1px 0 1px 4px!important;font-size:13px} table.atab .pl{grid-row:1/3;padding:0 6px 0 0!important} table.atab td.nm,table.atab tr>th:nth-child(2){grid-column:2/-1;width:auto;max-width:none;font-size:14px} table.atab tr>th:nth-child(2){font-size:12px}
+  table.atab tr.sel{box-shadow:inset 3px 0 0 var(--acc)} table.atab tr.sel>td:first-child{box-shadow:none} .thsort .sarr{width:.7em} .thsort{min-height:24px}
+  .tarmy td,.tarmy th{font-size:12px;padding:4px 2px;white-space:normal!important} .tarmy th{vertical-align:bottom}
+  .mwhy th{white-space:normal;vertical-align:bottom} .mwhy td,.mwhy th{padding-left:2px;padding-right:2px}
+  .amem td,.amem th{padding-left:3px;padding-right:3px} .amem td:first-child,.amem td:first-child *{white-space:normal!important}
+ .btroop .lossbar{display:block;width:30px;margin:2px 0 0} .btroop td,.btroop th{padding-left:3px;padding-right:3px} .bside{padding:9px}
+  .rp-head{align-items:stretch;min-width:0} .rp-side{box-sizing:border-box;max-width:100%} .rp-nm{flex:1 1 auto} .rp-gen{flex:0 1 auto;min-width:0;max-width:50%} .rp-gen>div{min-width:0} .rp-gen b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ttrain,.ttrain tbody,.rtable,.rtable tbody,.nbtab,.nbtab tbody{display:block}
+  .ttrain tr,.nbtab tr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:9px 0;border-bottom:1px solid var(--line)} .ttrain tr:first-child,.nbtab tr:first-child{display:none}
+  .ttrain td,.nbtab td{border:0;padding:0} .ttrain td:first-child,.nbtab td:first-child{flex:1 1 100%}
+  .ttrain td:nth-child(2)::before{content:"Owned ";color:var(--mut);font-size:12px} .ttrain td:nth-child(2){min-width:76px;text-align:left} .ttrain td:nth-child(3){margin-left:auto}
+  .ttrain button.sm,.nbtab button.sm{padding:5px 9px}
+  .nbtab td:nth-child(2)::before{content:"⚔️ soldiers ";color:var(--mut);font-size:12px} .nbtab td:nth-child(3){margin-left:auto;text-align:right} .nbtab td:nth-child(4){flex:none} .nbtab td:first-child>div{white-space:normal!important}
+  .rtable colgroup{display:none} .rtable tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;padding:7px 0;border-bottom:1px solid var(--line)} .rtable td,.rtable th{border:0;padding:0}
+  .rtable tr:first-child>th:nth-child(-n+2){display:none} .rtable tr>:nth-child(3){grid-column:1/-1;width:auto!important} .rtable .rsplit{grid-template-columns:minmax(60px,1fr) auto}
+  .rtable .lockbtn,.rtable .aslot>button{min-height:28px} .rtable .aslot{width:30px}
+  .wtab td{white-space:normal!important}
+  /* total bonuses: stat and total on one line, its formula under it */
+  .mchain,.mchain tbody{display:block} .mchain tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 5px;padding:7px 0;border-bottom:1px solid var(--line)} .mchain tr:first-child{display:none}
+  table.btab.mchain td{border:0;padding:0!important;background:none!important;font-size:12px} table.btab.mchain td:first-child{order:-2;flex:1 1 calc(100% - 130px);font-size:14px} table.btab.mchain td:last-child{order:-1;min-width:110px;text-align:right;font-size:14px}
+  .mchain td:last-child div{display:inline;margin-left:5px} .mchain td.op:nth-last-child(2){display:none}
+  #atkGen{flex:1 1 100%;min-width:0}
+  /* Settings tables: one card per row, every field with its name over it */
+  .scards,.scards tbody{display:block} .scards tr:first-child{display:none} .scards tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 8px;border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px;background:rgba(255,255,255,.022)}
+  .scards td{border:0;padding:0;font-size:11px;color:var(--mut);min-width:0;white-space:nowrap} .scards td::before{content:attr(data-l);display:block;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis} .scards td:first-child{grid-column:1/-1} .scards td:has(>input[type=text]:not(.icon)){grid-column:1/-1}
+  .stable .scards input{width:calc(100% - 14px)!important;box-sizing:border-box;font-size:14px;padding:5px 6px} .scards td:first-child input{width:100%!important;font-weight:600}
+  /* guide tables: wide ones stack, each value next to its column name */
+  table.gtab td:first-child{white-space:normal} table.gtab.gw{overflow:visible} .gtab.gw tbody{display:block} .gtab.gw tr:first-child{display:none} .gtab.gw tr{display:block;padding:7px 0;border-bottom:1px solid var(--line)}
+  table.gtab.gw td{display:flex;justify-content:space-between;gap:12px;border:0;padding:1px 0;text-align:right} .gtab.gw td::before{content:attr(data-l);color:var(--mut);text-align:left;flex:none;max-width:50%} table.gtab.gw td:first-child{font-weight:600;font-size:14px;text-align:left} .gtab.gw td:first-child::before{content:none}
+  /* state window: all tabs visible, four per row */
+  .stwtabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0 6px;overflow:visible} .stwtb{padding:9px 2px 7px;font-size:13px;overflow:hidden;text-overflow:ellipsis} .stwtabs .grow{display:none}
+}
+@media(max-width:350px){ /* the smallest phones */
+  .tarmy td:nth-child(3),.tarmy th:nth-child(3){display:none} .mwhy td,.mwhy th{font-size:11.5px} main{padding:6px} .card{padding:6px} .psec{padding:8px 7px 10px}
+  .modal.battle{padding:10px} .overlay{padding:8px} .btroop td:nth-child(2),.btroop th:nth-child(2){display:none} .btroop td,.btroop th{font-size:12.5px}
+  .gen.sel table.tight td,.gen.sel table.tight th{padding-left:1px;padding-right:1px} .gen.sel table.tight input{width:42px!important} .gen.sel table.tight td:first-child .small{display:none}
+  #bAutoOpt{display:none} .split>#bAuto{border-radius:6px} body.mob #end{padding:5px 8px}
+}
 </style>
 </head>
 <body>
 <header>
-  <div class="menu"><button id="bMenu" data-pop="menuPop" aria-haspopup="true" aria-expanded="false">☰ Menu</button>
+  <button id="bNav" aria-haspopup="true" aria-expanded="false" aria-controls="topnav" title="Pages"></button>
+  <div class="menu"><button id="bMenu" data-pop="menuPop" aria-haspopup="true" aria-expanded="false" aria-label="Game menu"><span class="dk">☰ Menu</span><span class="ph" aria-hidden="true">⚙️</span></button>
     <div id="menuPop" class="pop" role="menu" hidden>
       <button role="menuitem" id="bNew">New game</button>
       <button role="menuitem" id="bExport" title="Download this game as a file, to keep or to play on another device">Save to file</button>
@@ -824,6 +885,7 @@ tr.me>td{background:rgba(255,255,255,.05)} tr.sel{outline:none} tr.sel>td{backgr
     <button id="end" class="pri">End turn ▶</button>
   </span>
 </header>
+<div id="navbk"></div>
 <nav id="topnav" aria-label="Main menu"></nav>
 <main>
   <section class="card" id="mapwrap"><div class="mapbox" id="mapbox"><canvas id="map"></canvas><div class="mapctl"><button class="sm" data-map="in" title="Zoom in">+</button><button class="sm" data-map="out" title="Zoom out">−</button><button class="sm" data-map="fit" title="Show the whole map">Fit</button><button class="sm" data-map="me" title="Center on your state">★</button><button class="sm mvbtn" data-map="views" id="mvBtn" aria-haspopup="true" aria-expanded="false" title="Map view">States ▾</button><span class="mapseg" id="mapSeg"><button class="sm hidden" data-map="states" id="stBtn" title="Each state in its own color">States</button><button class="sm hidden" data-map="ally" id="allyBtn" title="Switch between state colors and alliance colors">Alliances</button><button class="sm hidden" data-map="rel" id="relBtn" title="Color states by how they feel about you">Relations</button><button class="sm hidden" data-map="war" id="warBtn" title="Color states by war: your enemies, states at war, states at peace">Wars</button><button class="sm hidden" data-map="loy" id="loyBtn" title="Color states by loyalty: red = revolt possible, green = loyal">Loyalty</button><button class="sm hidden" data-map="wx" id="wxBtn" title="Color states by how weather changed their last harvest">Weather</button><button type="button" class="glink" data-guide="map" title="Guide: Map and map views" aria-label="Guide: Map and map views">?</button></span></div><div id="allyLegend" class="hidden"></div></div><div id="mapSel" hidden></div><div id="tip"></div><div id="ctxMenu" class="ctxm" role="menu" hidden></div>
@@ -4590,7 +4652,7 @@ function renderHeader(){
 
 // ---------- tabs ----------
 // main menu above the map: [key, short name, icon, full name]
-const TABS=[["economy","Home","🏰","Home: your state"],["map","Map","🗺️","Map: the world map"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["generals","Generals","🎖️","Generals: your generals, staff posts and the Tavern"],["war","War","🗡️","War: wars, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
+const TABS=[["map","Map","🗺️","Map: the world map"],["economy","Home","🏰","Home: your state"],["science","Science","🔬","Science"],["barracks","Army","⚔️","Army: troops, supplies, training"],["market","Market","⚖️","Market"],["generals","Generals","🎖️","Generals: your generals, staff posts and the Tavern"],["war","War","🗡️","War: wars, defense, attacks"],["world","World","🌍","World"],["alliances","Allies","🤝","Alliances"],["news","News","📰","News"]];
 // second menu at the top of the side panel, for pages split in parts (keys Q W E …)
 const SUBS={science:[["research","Research","🔬","Research: split your points"],["bonus","Bonuses","✨","Total bonuses: where every bonus comes from"]],
   market:[["stock","Stock","📦","Your stock and the world market"],["trade","Trade","🔁","Trade, order book and your orders"]],
@@ -4610,6 +4672,8 @@ function renderTabs(){
   const T=visibleTabs(), bdg=b=>b?`<span class="tbdg ${b.cls||""}">${b.n??""}</span>`:""; seeTab(UI.tab);
   $("topnav").innerHTML=T.map(([k,l,ic,full],i)=>{ const b=tabBadge(k), tip=full+(i<9?` · key ${i+1}`:"")+(b?.tip?` · ${b.tip}`:"");
     return `<button data-tab="${k}" class="${UI.tab===k?'on':''}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="ic">${ic}</span>${l}${i<9?`<span class="key">${i+1}</span>`:""}${bdg(b)}</button>`; }).join("")+gl("tabs");
+  { const c=T.find(x=>x[0]===UI.tab)||T[0], any=T.some(([k])=>k!==UI.tab&&tabBadge(k)); // phones: the header button that opens the menu shows the page you're on
+    $("bNav").innerHTML=`<span class="nb">☰</span><span class="ic">${c[2]}</span><span class="nl">${c[1]}</span>${any?`<span class="tbdg dot"></span>`:""}`; }
   const S=watching()&&!PUBLIC_TABS.includes(UI.tab)?null:subsOf(UI.tab), el=$("tabs"), cur=subOf(UI.tab); el.hidden=!S;
   if(!S){ el.innerHTML=""; return; }
   el.style.gridTemplateColumns=`repeat(${S.length},1fr)`;
@@ -4641,6 +4705,8 @@ const SUB_BADGE={science:{research:"science"},war:{wars:"war"},generals:{list:"g
 const subBadge=(t,k)=>{ const x=SUB_BADGE[t]?.[k]; return x?badgeFor(x):null; };
 // phones and narrow windows: the map gets its own page (Map) in the main menu
 const MOBQ=matchMedia("(max-width:980px)");
+// phones: the main menu is a side panel that slides in (button #bNav in the header)
+function navOpen(on){ document.body.classList.toggle("navopen",!!on); $("bNav").setAttribute("aria-expanded",on?"true":"false"); if(on) $("topnav").querySelector("button.on")?.focus({preventScroll:true}); }
 function setMob(){ UI.mob=MOBQ.matches; document.body.classList.toggle("mob",UI.mob); if(!UI.mob) document.body.classList.remove("onmap"); }
 setMob(); MOBQ.addEventListener?.("change",()=>{ setMob(); if(G) render(); });
 document.addEventListener("pointerdown",e=>{ if(!e.target.closest("#mapSeg,#mvBtn")){ $("mapSeg").classList.remove("open"); $("mvBtn").setAttribute("aria-expanded",false); } });
@@ -4955,7 +5021,7 @@ function pBarracks(){
     ${card("Soldiers",fmt(c.soldiers),away?`${fmt(away)} away on attack`:"all at home")}
     ${card("Attack",fmtPow(armyAtk(c)),`research lvl ${c.lv.atk}`,"Attack strength of your whole army")}
     ${card("Home defense",fmtPow(armyDef(c,home)),away?`lvl ${c.lv.def} · full army ${fmtPow(armyDef(c))}`:`research lvl ${c.lv.def}`,"Defense of the soldiers guarding at home this year")}</div>
-  <table class="tight" style="margin-top:8px"><tr><th>Troop</th><th class="r">Soldiers</th><th class="r" title="Not sent on an attack this year">At home</th><th class="r" title="With all your bonuses">Attack</th><th class="r" title="With all your bonuses">Defense</th><th class="r">Upkeep/yr</th></tr>
+  <table class="tight tarmy" style="margin-top:8px"><tr><th>Troop</th><th class="r">Soldiers</th><th class="r" title="Not sent on an attack this year">At home</th><th class="r" title="With all your bonuses">Attack</th><th class="r" title="With all your bonuses">Defense</th><th class="r">Upkeep/yr</th></tr>
   ${TROOPS.filter(t=>tr[t.id]>0).map(t=>`<tr><td style="white-space:nowrap">${t.icon} ${t.name}</td><td class="r"><b>${fmt(tr[t.id])}</b></td><td class="r">${fmt(home[t.id]||0)}</td><td class="r">${fmtPow(t.atk*atkPower(c)*tr[t.id])}</td><td class="r">${fmtPow(t.def*defPower(c)*tr[t.id])}</td><td class="r mut" style="white-space:nowrap">${fmt(t.upFood*tr[t.id])} 🌾${t.upGold?` ${fmt(t.upGold*tr[t.id])} 💰`:""}</td></tr>`).join("")}</table>`
   :`<div class="note warn">No soldiers. Your borders are unguarded: any attack wins and takes as much land as it can.</div>`}
   <h3>Supplies ${gl("food")}</h3>
@@ -4963,7 +5029,7 @@ function pBarracks(){
   <div class="small mut" style="margin:4px 0">${upFood||upGold?`Army upkeep: <span class="bad">−${fmt(upFood)} 🌾${upGold?` · −${fmt(upGold)} 💰`:""}</span> per year (included above)`:"No army upkeep."}</div>
   <div class="small" id="supplyCap" style="margin-bottom:6px">${roomNote(c)}</div>
   <h3>Train &amp; dismiss ${gl("troops")}</h3>
-  <table class="tight"><tr><th>Troop</th><th class="r">Owned</th><th>Train / dismiss</th></tr>
+  <table class="tight ttrain"><tr><th>Troop</th><th class="r">Owned</th><th>Train / dismiss</th></tr>
   ${TROOPS.map(t=>{ const open=troopUnlocked(c,t.id), max=open?Math.max(0,Math.min(affordable(c,t),c.peasants-50)):0;
     return `<tr class="${open?"":"mut"}"><td>${t.icon} <b>${t.name}</b>
         <div class="small mut" title="Strength per soldier with your bonuses · training cost · wage per year">atk ${(t.atk*atkPower(c)).toFixed(2)} · def ${(t.def*defPower(c)).toFixed(2)} · ${[["food","🌾"],["wood","🌲"],["iron","⛏️"],["gold","💰"]].filter(([r])=>t[r]>0).map(([r,i])=>t[r]+i).join(" ")} · upkeep ${t.upFood}🌾${t.upGold?` ${t.upGold}💰`:""}/yr${t.hold?` · holds ${t.hold} km²`:""}</div></td>
@@ -5688,7 +5754,7 @@ function pWorld(sub){
   const all=G.countries.filter(c=>isKnown(c.id)).sort((a,b)=>(b.alive-a.alive)||(a.alive?S.dir*(val(a)-val(b))||b.land-a.land:(b.diedTurn??0)-(a.diedTurn??0)||b.land-a.land));
   const landRank=new Map(all.filter(c=>c.alive).sort((a,b)=>b.land-a.land).map((c,i)=>[c.id,i+1])), nAlive=G.countries.filter(c=>c.alive).length;
   const swatch=c=>UI.wAllyCol&&G.teams&&c.team!=null?G.teams[c.team].color:c.color;
-  const th=(k,label,title="")=>`<th class="r"${title?` title="${title}"`:""}><button class="thsort${S.k===k?" on":""}" data-wsort="${k}">${label}<span class="sarr">${S.k===k?(S.dir<0?"▾":"▴"):""}</span></button></th>`;
+  const th=(k,label,title="",short)=>`<th class="r"${title?` title="${title}"`:""}><button class="thsort${S.k===k?" on":""}" data-wsort="${k}">${short?`<span class="dk">${label}</span><span class="ph">${short}</span>`:label}<span class="sarr">${S.k===k?(S.dir<0?"▾":"▴"):""}</span></button></th>`;
   const hidden=G.countries.length-all.length, LIMIT=150;
   const C=all.slice(0,LIMIT); for(const id of [G.player,UI.sel]) if(id!=null&&isKnown(id)&&!C.some(c=>c.id===id)) C.push(G.countries[id]);
   const recent=G.allBattles.slice(-6).reverse().map(b=>({...b,list:b.list.filter(seenBattle).map(newsRefFor(G.allBattles.at(-6)?.turn??0))}));
@@ -5700,7 +5766,7 @@ function pWorld(sub){
   ${hidden?`<div class="small mut">🌫 ${fmt(hidden)} other states are hidden by fog of war.</div>`:""}
   <div class="small mut">${all.length>LIMIT?`Showing the top ${LIMIT} of ${fmt(all.length)} states. `:""}Alive ${fmt(nAlive)} / ${fmt(G.countries.length)} states.</div>
   <div class="row small"><label title="The # column shows each state's place by land, whatever you sort by"><input type="checkbox" id="wLandRank" ${UI.wLandRank?"checked":""}> # by land</label>${G.teams?`<label title="Color each state by its alliance"><input type="checkbox" id="wAllyCol" ${UI.wAllyCol?"checked":""}> Alliance colors</label>`:""}</div>
-  <table class="rank atab"><tr><th class="pl" title="Place">#</th><th>State</th>${th("land","Land")}${th("pop","Pop")}${th("atk","Attack","Army attack power: every troop's attack × research, civilization, leader, land and wonder bonuses")}${th("def","Defense","Army defense power: every troop's defense × research, civilization, leader, land and wonder bonuses")}${th("sci","Science","Total science levels across all areas (hover a number for each area)")}</tr>
+  <table class="rank atab"><tr><th class="pl" title="Place">#</th><th>State</th>${th("land","Land")}${th("pop","Pop")}${th("atk","Attack","Army attack power: every troop's attack × research, civilization, leader, land and wonder bonuses","Atk")}${th("def","Defense","Army defense power: every troop's defense × research, civilization, leader, land and wonder bonuses","Def")}${th("sci","Science","Total science levels across all areas (hover a number for each area)","Sci")}</tr>
   ${C.map(c=>`<tr class="click${UI.sel===c.id?' sel':''}${c.id===G.player?' me':''}" data-pick="${c.id}"><td class="pl">${c.alive?(UI.wLandRank?landRank.get(c.id):all.indexOf(c)+1):"—"}</td><td class="nm" title="${esc(c.name)}${G.teams&&c.team!=null?` · ${esc(G.teams[c.team].name)}`:""}"><div class="nmtxt fl">${c.id===G.player?`<span style="margin-right:4px">★</span>`:""}${allyPrefix(c)}<span class="sw" style="background:${swatch(c)}"></span><span class="nmn">${esc(c.name)}${c.alive?"":` <span class="small bad">fell yr ${c.diedTurn}</span>`}</span></div></td><td class="r" title="${fmt(c.land)} km²">${fmtK(c.land)}</td><td class="r" title="${c.alive?fmt(popOf(c)):""}">${c.alive?fmtK(popOf(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyAtk(c)):"—"}</td><td class="r" title="${c.alive?`${fmt(c.soldiers)} soldiers`:""}">${c.alive?fmtPow(armyDef(c)):"—"}</td><td class="r${c.alive?"":" mut"}">${researchCell(c)}</td></tr>`).join("")}</table>`;
 }
 // alliance tag before a state's name in tables, e.g. "GC "
@@ -5731,7 +5797,7 @@ function allianceModal(t){ const T=G.teams[t], all=G.countries.filter(c=>c.team=
   <h3>Wars ${gl("wars")}</h3>${aw.length?`<table>${aw.map(w=>{ const o=w.a===t?w.b:w.a; return `<tr><td>⚔️ <span class="sw" style="background:${G.teams[o].color}"></span>${esc(G.teams[o].name)}</td><td class="small mut">since year ${w.from}</td></tr>`; }).join("")}</table>`:`<div class="small mut">No alliance war.</div>`}
   <div class="small mut">${stWars?`Members are in ${stWars} state war${stWars>1?"s":""}.`:"No member is in a state war."}</div>
   ${allianceRelTable(t)}
-  <h3>Members ${gl("alliances")}</h3><table><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th></tr>${mem}</table>
+  <h3>Members ${gl("alliances")}</h3><table class="amem"><tr><th>State</th><th class="r">Land</th><th class="r">Pop</th><th class="r">Soldiers</th></tr>${mem}</table>
   ${aid}
   <div class="row"><button data-allymap="${t}">Show on map</button><span class="grow"></span><button class="pri" data-a="close">Close</button></div>`); }
 function pAlliances(){
@@ -5742,11 +5808,11 @@ function pAlliances(){
     return {t, states:m.length, all:G.countries.filter(c=>c.team===t.id).length, land:m.reduce((s,c)=>s+c.land,0), pop:m.reduce((s,c)=>s+popOf(c),0),
       atk:m.reduce((s,c)=>s+armyAtk(c),0), def:m.reduce((s,c)=>s+armyDef(c),0), sci:m.reduce((s,c)=>s+sciTot(c),0), mine:!observing()&&me().team===t.id}; });
   rows.sort((a,b)=>((b.states>0)-(a.states>0))||S.dir*(a[S.k]-b[S.k])||b.land-a.land);
-  const th=(k,label,title="")=>`<th class="r"${title?` title="${title}"`:""}><button class="thsort${S.k===k?" on":""}" data-asort="${k}">${label}<span class="sarr">${S.k===k?(S.dir<0?"▾":"▴"):""}</span></button></th>`;
+  const th=(k,label,title="",short)=>`<th class="r"${title?` title="${title}"`:""}><button class="thsort${S.k===k?" on":""}" data-asort="${k}">${short?`<span class="dk">${label}</span><span class="ph">${short}</span>`:label}<span class="sarr">${S.k===k?(S.dir<0?"▾":"▴"):""}</span></button></th>`;
   const fog=G.fog?`<div class="small mut">🌫 Totals include states hidden by fog of war.</div>`:"";
   return `<h3>Alliance rankings ${gl("alliances")}</h3>${fog}
-  <table class="rank atab">
-  <tr><th class="pl" title="Place">#</th><th>Alliance</th>${th("states","States","States still standing (the strip under each name: one square per member, grey = fallen)")}${th("land","Land","km²")}${th("pop","Pop")}${th("atk","Attack","Sum of the members' army attack power")}${th("def","Defense","Sum of the members' army defense power")}${th("sci","Science","Sum of the members' science levels")}</tr>
+  <table class="rank atab a6">
+  <tr><th class="pl" title="Place">#</th><th>Alliance</th>${th("states","States","States still standing (the strip under each name: one square per member, grey = fallen)")}${th("land","Land","km²")}${th("pop","Pop")}${th("atk","Attack","Sum of the members' army attack power","Atk")}${th("def","Defense","Sum of the members' army defense power","Def")}${th("sci","Science","Sum of the members' science levels","Sci")}</tr>
   ${rows.map((r,i)=>{ const num=(v,f)=>`<td class="r" title="${fmt(v)}">${r.states?f(v):"—"}</td>`;
     return `<tr class="click${r.mine?" sel":""}" data-alliance="${r.t.id}" title="Open ${esc(r.t.name)}"><td class="pl">${r.states?i+1:"—"}</td><td class="nm" title="${esc(r.t.name)}: ${r.states} of ${r.all} states standing"><div class="nmtxt"><b class="small" style="color:${inkOnDark(r.t.color)}">${esc(allyTag(G,r.t.id))}</b> ${r.mine?"★ ":""}${esc(r.t.name)}${r.states?"":` <span class="small bad">defeated</span>`}</div>${memberStrip(r.t.color,r.states,r.all)}</td>
     <td class="r" title="${r.states} of ${r.all} standing"><b>${fmt(r.states)}</b><span class="mut small">/${fmt(r.all)}</span></td>${num(r.land,fmtK)}${num(r.pop,fmtK)}${num(r.atk,fmtK)}${num(r.def,fmtK)}${num(r.sci,fmtK)}</tr>`; }).join("")}</table>
@@ -5756,7 +5822,7 @@ function pAlliances(){
 function wonderList(){
   if(!G.wonders) return "";
   const mine=G.wonders.filter(w=>G.cells[w.cell]===G.player).length;
-  return `<h3>Wonders ${gl("wonders")}</h3><div class="small mut" style="margin-bottom:4px">You hold ${mine} of ${G.wonders.length}.</div><table>${G.wonders.map((w,i)=>{ const o=G.cells[w.cell], seen=o>=0&&isKnown(o), h=seen?G.countries[o]:null;
+  return `<h3>Wonders ${gl("wonders")}</h3><div class="small mut" style="margin-bottom:4px">You hold ${mine} of ${G.wonders.length}.</div><table class="wtab">${G.wonders.map((w,i)=>{ const o=G.cells[w.cell], seen=o>=0&&isKnown(o), h=seen?G.countries[o]:null;
     if(o===-1) return `<tr><td style="white-space:nowrap">${WONDERS[w.area].icon} ${WONDERS[w.area].name}<div class="small mut">${AREA_NAMES[w.area]} +${wonderPct(w.area)}%</div></td><td class="mut">unowned land</td><td><button class="sm" data-wonder="${i}">Show</button></td></tr>`;
     return `<tr><td style="white-space:nowrap">${WONDERS[w.area].icon} ${WONDERS[w.area].name}<div class="small mut">${AREA_NAMES[w.area]} +${wonderPct(w.area)}%</div></td>
       <td>${h?`<span class="sw" style="background:${h.color}"></span>${o===G.player?"★ ":""}${esc(h.name)}`:'<span class="mut">unknown</span>'}</td>
@@ -6112,7 +6178,7 @@ function reportHtml(b,d,ref){
     : `<div class="bgen">${g[8]!=null?genFrame({name:g[0],age:g[1],morale:g[5],face:g[8],tier:g[9],battles:0,l:0},civ):`<span style="font-size:20px">${icon}</span>`}<div style="flex:1"><b>Gen. ${esc(g[0])}</b> <span class="mut small">age ${g[1]}</span>
       <div class="small mut">Skill ${g[2]} → <span class="${g[3]>g[2]?"good":"mut"}">${g[3]}</span> · Morale ${g[4]} → <span class="${g[5]<g[4]?"bad":"mut"}">${g[5]}</span>${lost?" (lost the battle)":""}${g[6]!=null?` · Speed ${g[6]} (reach ${speedCap({speed:g[6],traits:g[7]})} km²)`:""}</div>${g[7]?.length?`<div class="gtraits" style="margin-top:3px">${g[7].map(k=>trChip(k,{nem:g[10]<0?null:g[10],tier:g[9]})).join("")}</div>`:""}${g[11]&&RELICS[g[11]]?`<div class="rlx">${relTile(g[11],20)} ${esc(RELICS[g[11]].name)}</div>`:""}</div>
       <div style="text-align:right" title="skill ${g[2]} → ${mul(0.4+g[2]*0.008)} · morale ${g[4]} → ${mul(0.5+g[4]/200)}"><b>General ${mul(genFac(g[2],g[4]))}</b><div class="small mut">skill × morale</div></div></div>`;
-  const troopTable=(T,L,stat,head)=>{ let h=`<table><tr><th>Troop</th><th class="r">${stat==="atk"?"Atk":"Def"}</th><th class="r">${head}</th><th class="r">Died</th><th class="r">Left</th><th>Loss</th></tr>`;
+  const troopTable=(T,L,stat,head)=>{ let h=`<table class="btroop"><tr><th>Troop</th><th class="r">${stat==="atk"?"Atk":"Def"}</th><th class="r">${head}</th><th class="r">Died</th><th class="r">Left</th><th>Loss</th></tr>`;
     TROOPS.forEach((t,i)=>{ if(!T[i]) return; const f=L[i]/T[i]; h+=`<tr><td>${t.icon} ${esc(t.name)}</td><td class="r mut">${t[stat].toFixed(2)}</td><td class="r">${fmt(T[i])}</td><td class="r bad">${fmt(L[i])}</td><td class="r">${fmt(T[i]-L[i])}</td><td class="small">${Math.round(f*100)}%<span class="lossbar"><i style="width:${Math.min(100,f*100)}%"></i></span></td></tr>`; });
     const tt=sum(T), tl=sum(L);
     return h+`<tr style="font-weight:700"><td>Total</td><td></td><td class="r">${fmt(tt)}</td><td class="r bad">${fmt(tl)}</td><td class="r">${fmt(tt-tl)}</td><td class="small">${pct(tl,tt)}</td></tr></table>`; };
@@ -6310,9 +6376,9 @@ function settingsModal(tab){
     return `<input type="text" inputmode="decimal" data-sk="${path}" data-kind="${kind||""}" value="${shown}" class="${chg}" title="Default: ${kind==="%"?+(def*100).toFixed(4)+"%":def}">`; };
   const gRow=(k,label,kind)=>`<span>${esc(label)}</span><span>${inp("R."+k,kind,getPath(d.R,k),getPath(v.R,k))}${kind==="%"?" %":""}</span><span class="small mut">default ${kind==="%"?+(getPath(d.R,k)*100).toFixed(4)+"%":kind==="bool"?(getPath(d.R,k)?"on":"off"):kind==="select"?(LABEL_STYLES.find(x=>x[0]===getPath(d.R,k))||[,""])[1]:getPath(d.R,k)}</span>`;
   // a table tab's rows (all, or only those given as [row, index]) with its column headers
-  const tRows=(t,list)=>{ const M_=TABLE_META[t]; return `<div class="stable"><table class="tight"><tr>${M_.cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${(list||v[t].map((r,i)=>[r,i])).map(([row,i])=>
-      `<tr>${M_.cols.map(([f,,kind])=>`<td>${inp(t+"."+i+"."+f,kind,d[t][i][f],row[f])}${kind==="%"?"%":""}</td>`).join("")}</tr>`).join("")}</table></div>`; };
-  const wRow=a=>`<tr><td>${AREA_NAMES[a]}</td><td>${inp("wonders."+a+".name","text",d.wonders[a].name,v.wonders[a].name)}</td><td>${inp("wonders."+a+".icon","icon",d.wonders[a].icon,v.wonders[a].icon)}</td><td>${inp("wonders."+a+".bonus","%",d.wonders[a].bonus,v.wonders[a].bonus)} %</td></tr>`;
+  const tRows=(t,list)=>{ const M_=TABLE_META[t]; return `<div class="stable"><table class="tight scards"><tr>${M_.cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>${(list||v[t].map((r,i)=>[r,i])).map(([row,i])=>
+      `<tr>${M_.cols.map(([f,l,kind])=>`<td data-l="${esc(l)}">${inp(t+"."+i+"."+f,kind,d[t][i][f],row[f])}${kind==="%"?"%":""}</td>`).join("")}</tr>`).join("")}</table></div>`; };
+  const wRow=a=>`<tr><td><b>${AREA_NAMES[a]}</b></td><td data-l="Name">${inp("wonders."+a+".name","text",d.wonders[a].name,v.wonders[a].name)}</td><td data-l="Icon">${inp("wonders."+a+".icon","icon",d.wonders[a].icon,v.wonders[a].icon)}</td><td data-l="Bonus">${inp("wonders."+a+".bonus","%",d.wonders[a].bonus,v.wonders[a].bonus)} %</td></tr>`;
   const wHead=`<tr><th>Research area</th><th>Name</th><th>Icon</th><th title="How much the holder's effect in this area is raised">Bonus</th></tr>`;
   const q=(UI.sq||"").trim().toLowerCase(), hit=x=>String(x??"").toLowerCase().includes(q);
   let body="";
@@ -6323,7 +6389,7 @@ function settingsModal(tab){
     G_.map(([grp,rows])=>{ const nChg=rows.filter(([k])=>JSON.stringify(getPath(v.R,k))!==JSON.stringify(getPath(d.R,k))).length;
     return `<details class="sgrp" data-sgrp="${esc(grp)}" ${q||UI.sopen?.[grp]?"open":""}><summary><h3>${q?hl(grp):esc(grp)}</h3> <span class="small mut">${rows.length} setting${rows.length>1?"s":""}${nChg?` · <span class="acc">${nChg} changed</span>`:""}</span></summary><div class="sgrid">${rows.map(([k,label,kind])=>
     q?gRow(k,label,kind).replace(`<span>${esc(label)}</span>`,`<span>${hl(label)}</span>`):gRow(k,label,kind)).join("")}</div></details>`; }).join(""); }
-  else if(UI.stab==="wonders") body=`<div class="stable"><table class="tight">${wHead}${Object.keys(v.wonders).map(a=>wRow(a)).join("")}</table></div>
+  else if(UI.stab==="wonders") body=`<div class="stable"><table class="tight scards">${wHead}${Object.keys(v.wonders).map(a=>wRow(a)).join("")}</table></div>
     <div class="small mut">Bonus: multiplies the holder's main effect in that area (research, food, taxes, capacity, births, attack, defense, wood, iron, land taken). +25% means ×1.25.</div>`;
   else if(UI.stab==="names"){ const chg=JSON.stringify(v.names)!==JSON.stringify(d.names)?"chg":"";
     const g=v.ngen, ta=(k,l,tip)=>`<label class="npart"><span>${l} <span class="small mut" id="ngN-${k}">${fmt(g[k].length)}</span></span><textarea class="names ${JSON.stringify(g[k])!==JSON.stringify(d.ngen[k])?"chg":""}" data-sk="ngen.${k}" data-kind="lines" spellcheck="false" title="${tip}">${esc(g[k].join("\n"))}</textarea></label>`;
@@ -6689,6 +6755,7 @@ function turnReport(prev){
 // ---------- change log ----------
 // Newest first. Add an entry with every commit: [title, "YYYY-MM-DD HH:MM", [short "what changed" bullets]].
 const CHANGELOG=[
+["Phones: side menu and tidier pages","2026-11-15 15:40",["Map is first in the main menu on phones","Phones: the main menu is a side panel that slides in, one square per page, two in a row","Phones: smaller header; the button top left shows the page you are on","Phones: the Map page fills the screen","Phones: no more sideways scrolling in Rankings, Alliances, Research, Total bonuses, Army, Neighbors, Wonders, World market, battle reports, replays and the state window","Phones: Settings tables and wide guide tables show one item per block","Bigger buttons for training and attacking on phones"]],
 ["News cards","2026-11-14 21:19",["News is a list of cards: an icon for each kind, the states and the key fact","Details opens the numbers, war tables and battle reports","Turn each kind of news on or off; the choice is remembered","The same in the state window's News tab","Sabotage now shows to everyone as damage with the culprit unknown, unless the spies were caught","The news keeps at most 10,000 entries; the oldest go first (Settings → News)"]],
 ["More kinds of news","2026-11-14 21:05",["News tab: buttons to show one kind of news at a time: Battles, Wars, Aid, Spies, Rebellions, Famine","Wars: a line when a war starts, and a report when it ends: who won, land each side took, soldiers lost, battles won, land before and after","Alliance wars too","Aid between allies, one line per giver and receiver a year","Spy operations: all of yours; against you, what you noticed; others' only when caught","Rebellions: who broke away and with how much","Famines: yours, and big ones elsewhere","State window News tab lists these too","Settings: when another state's famine makes the news"]],
 ["State window","2026-11-14 20:15",["Clicking a state opens a window over the map, the same from the map, its right-click menu, tables and alliance lists","Its outline from the map, alliance, tags and how it feels about you at the top; land, people, army, generals, loyalty and wonders in a strip under it","Overview: a map of it and its neighbors, how it compares with you and a history chart of land, people and soldiers","New tabs: Military (troops, generals, war record), Economy (people, stores, wonders) and News (its battles)","Relations adds its alliance and wars; Science shows you and the world average","Click a neighbor to open it in the same window, ← goes back","Buttons at the bottom match the right-click menu","The World page no longer shows a state at the top"]],
@@ -6881,7 +6948,7 @@ function changelogModal(){
 }
 // ---------- rules & guide: a big window with a menu on the left, search, one topic at a time ----------
 // GUIDE: [id, group, icon, title, () => html]. Numbers come from R and the data tables, so the guide follows Settings.
-const gP=x=>Math.round(x*100)+"%", gTab=(head,rows)=>`<table class="gtab"><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join("")}</tr>`).join("")}</table>`;
+const gP=x=>Math.round(x*100)+"%", gTab=(head,rows)=>`<table class="gtab${head.length>3?" gw":""}"><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map((v,i)=>`<td data-l="${esc(String(head[i]??"").replace(/<[^>]*>/g,""))}">${v}</td>`).join("")}</tr>`).join("")}</table>`; // gw: wide tables turn into stacked rows on phones
 const gTraits=x=>Object.keys(TRAITS).filter(k=>(x[k]??1)!==1).map(k=>`<span class="${x[k]>1?"gup":"gdn"}">${TRAITS[k]} ${x[k]>1?"+":"−"}${Math.round(Math.abs(x[k]-1)*100)}%</span>`).join(", ")||"<span class=\"mut\">no bonuses</span>";
 const GUIDE=[
 ["start","Getting started","👑","Goal and how a year works",()=>`
@@ -7305,18 +7372,20 @@ ${gTab(["Feeling","Comes from","Fades"],[
 <li>❤️ Your <b>loyalty</b> (with Rebellions on): green loyal, amber restless, red unrest or revolt possible. Click it for the Home tab.</li>
 <li><b>▶ Auto</b> ends turns by itself; ▾ sets seconds per turn and whether to stop when you are attacked. It pauses while a window is open or you're typing.</li>
 <li><b>End turn ▶</b> runs the year.</li></ul>
-<p>On a phone, ☰ Menu sits top left and ▶ Auto and End turn top right, all the same size.</p>
+<p>On a phone the header is one row: a gold button with ☰ and the page you are on (it opens the main menu), ⚙️ for the game menu (saves, guide, change log, settings), then ▶ Auto and End turn on the right. Your state and resources sit in the lines under it; the title is left out to save room.</p>
 <p>Under the header is the main menu: Home, Science, Army, Market, War, World, Allies and News, plus Map on a phone (see Menus).</p>
 <p>Drag the bar between the map and the side panel to resize them (double-click to reset).</p>`],
 ["tabs","Interface","🗂️","Menus",()=>`
 <p>The <b>main menu</b> runs across the top, under the header. Press 1–9 or click to switch pages. Science, Market, Generals, War and World are split in parts: a <b>second menu</b> of boxes at the top of the side panel picks the part, with keys Q, W, E and so on.</p>
 ${gTab(["Key","Page","Parts (keys)","What's there"],[["1","🏰 Home","—","Your state's name, alliance, civilization, leader and land; population and loyalty; work sliders; resources: grain, money, wood and iron in store, what comes in and goes out next year, prices"],["2","🔬 Science","Q Research · W Bonuses","Research: split your points, levels, costs, presets. Bonuses: where every bonus comes from"],["3","⚔️ Army","—","Your army with soldiers per troop type; supplies; train and dismiss troops"],["4","⚖️ Market","Q Stock · W Trade","Stock: your goods and the world market. Trade: buy or sell now, post orders, the order book and your orders, auto-sell"],["5","🎖️ Generals","Q Generals · W Staff · E Tavern · R Merchant · T Treasury","Generals: a card for each general (traits, relic, record), dismiss, rest, pick the defender. Staff: put generals on posts (Quartermaster, Drillmaster, Spymaster, Governor). Tavern: call candidates by tier and hire one. Merchant: buy relics. Treasury: the Forge, relics, who carries them, and who holds the famous ones"],["6","🗡️ War","Q Wars · W Neighbors","Wars: your wars, defense and stance, this year's orders. Neighbors: their soldiers and feelings, plan an attack"],["7","🌍 World","Q Rankings · W Wonders · E Recent wars","Rankings of every state; who holds each wonder (only in games with wonders; Recent wars is then W); the last years' battles. A state you click shows on top"],["8","🤝 Allies","—","Alliances ranked, their relations with yours; click one to open it"],["9","📰 News","—","Every report and battle, newest first"]])}
 <p>Allies shows only in games with alliances; without them News takes key 8.</p>
-<p>On a phone (or a narrow window) the map gets its own page, <b>🗺️ Map</b>, right after Home, and the other pages show without the map.</p>
+<p>On a phone (or a narrow window) the map gets its own page, <b>🗺️ Map</b>, first in the main menu, and the other pages show without the map.</p>
+<p>On a phone the main menu is a <b>side panel</b>: tap the gold ☰ button top left and it slides in from the left with one square per page, two in a row. Tap a page to go there; tap beside the panel to close it. A dot on the ☰ button means another page has something new.</p>
+<p>On a phone wide tables turn into stacked rows: rankings show the name with its numbers under it, and research, training, neighbors, total bonuses and the Settings tables show one item per block.</p>
 <p>A red number or dot means something new (battles, an attack on you), a gold <b>!</b> needs attention (no or tired defender, research idle), a blue dot is good news (a research level, a market trade). The same mark shows on the part of the page it is about.</p>`],
 ["map","Interface","🗺️","Map and map views",()=>`
 <ul class="log"><li>Scroll or pinch to zoom, drag to pan. <b>+ − Fit ★</b> zoom, show all, or center on you.</li>
-<li>On a phone the map is its own page (🗺️ Map in the main menu). The map views are in a dropdown next to ★. Tap a state to open its window (${gl("statewin")}).</li>
+<li>On a phone the map is its own page (🗺️ Map, first in the main menu) and fills the screen. The map views are in a dropdown next to ★. Tap a state to open its window (${gl("statewin")}).</li>
 <li>Click a state to open its <b>state window</b> over the map (${gl("statewin")}). Esc, ✕ or a click beside it closes it. Hover a state to raise it off the map, with a short tooltip: alliance, how it feels about you, its people and size.</li>
 <li><b>Right-click</b> a state (on touch screens, press and hold) for its menu. The top shows its name, alliance, how it feels about you and its size. Below: <b>Details</b> (its state window); <b>Plan attack…</b> (opens the attack form under War → Neighbors; greyed out with the reason when it doesn't border you, in peace time or with no free general); <b>Call off attack</b> if you ordered one against it; <b>Send aid…</b> for an ally you can reach over allied land (opens your alliance with that ally chosen); <b>Sabotage…</b> for any state that borders you, when you have a Spymaster: the menu turns into a list of spy operations with their chances, then (for a poisoning) which general, then whom to blame for loud sabotage (${gl("spies")}); <b>View alliance</b>; <b>Battles in the news</b> (the News tab searched for that state); <b>Center map here</b>; and <b>Take over…</b>. On your own state it links to Home, Army, War and sending aid. Arrow keys move through the menu, Esc closes it.</li>
 <li>▨ Striped land was conquered last year (or broke away in a revolt). Grey-brown land is unowned. Dark grey states are rebels.</li>
@@ -7612,7 +7681,7 @@ function drawPreview(){
   const s=UI.setup, cv=$("pvc"); if(!cv) return;
   if(!UI.pvView||UI.pvView.cv!==cv){ UI.pvView?.destroy(); UI.pvView=new MapView(cv,{
     sel:()=>{ const s=UI.setup; if(!s) return null; if(s.hot&&!s.observer){ const P=picksOf(s).filter(x=>x!=null); return P.length?P[P.length-1]:null; } return s.pick??null; }, player:()=>-1, land:false, star:false,
-    height:(w,g)=>Math.min(window.innerHeight*0.45,Math.max(220,w*g.H/g.W)),
+    height:(w,g)=>UI.mob?Math.max(260,window.innerHeight-document.querySelector("header").offsetHeight-36):Math.min(window.innerHeight*0.45,Math.max(220,w*g.H/g.W)), // phones: the Map page fills the screen
     onPick:o=>{ const s=UI.setup; if(!s||!s.preview||o<0) return;
       if(s.hot&&!s.observer){ const P=picksOf(s), i=nextPick(s); if(P.includes(o)){ flash("Another player already has that state."); return; } if(i<0){ flash("Every player has a state. Clear one first."); return; } P[i]=o; }
       else s.pick=o;
@@ -8054,6 +8123,11 @@ $("autoSec").addEventListener("change",e=>{ AUTO.sec=+e.target.value; AUTO.left=
 $("autoStop").addEventListener("change",e=>{ AUTO.stop=e.target.checked; saveAuto(); });
 // last year's report for the player at the controls (hot-seat keeps one per player)
 function lastPrev(){ return G ? (G.hot ? G.hot.prev?.[G.player] : UI.lastPrev) : null; }
+$("bNav").addEventListener("click",()=>navOpen(!document.body.classList.contains("navopen")));
+$("navbk").addEventListener("click",()=>navOpen(false));
+$("topnav").addEventListener("click",e=>{ if(e.target.closest("button")) navOpen(false); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.body.classList.contains("navopen")){ navOpen(false); e.stopPropagation(); } },true);
+matchMedia("(max-width:640px)").addEventListener?.("change",()=>navOpen(false));
 // header dropdowns: the button with data-pop opens its panel; a click outside, a menu item or Escape closes it
 function closePops(){ document.querySelectorAll(".pop").forEach(p=>{ p.hidden=true; }); document.querySelectorAll("[data-pop]").forEach(b=>b.setAttribute("aria-expanded","false")); }
 document.addEventListener("click",e=>{

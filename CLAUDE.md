@@ -17,6 +17,7 @@ The whole game is one file, `index.html`. There is no build step, no dependencie
   - The UI talks to the engine via `ENGINE.call("newGame"|"endTurn", data)`.
   - Every change a human makes to their own state goes through `cmd(type, ...args)` → `applyCmd(G, G.player, {t, a})` (engine `CMD` table), which checks it and applies it. Never edit `G` for a human directly from the UI; add a command instead. The work and research plan is edited on a copy with `planEdit(fn)` and sent as one `plan` command.
   - Global game state: `G`. UI state: `UI`.
+  - Phones: `body.mob` (≤980px) makes the map its own page, first in the main menu. The block `/* ---------- phones (≤640px) ---------- */` at the end of `<style>` holds the phone layout: the main menu as a slide-in side panel (`#bNav`, `navOpen`), a one-row header, and wide tables turned into stacked rows. `.dk` shows only on wider screens, `.ph` only on phones. Keep phone changes inside that block so the desktop layout doesn't move, and check new screens at 320, 360 and 390px for sideways scrolling.
 
 ## Game systems
 
